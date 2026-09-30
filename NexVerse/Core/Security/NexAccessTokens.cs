@@ -38,7 +38,9 @@ namespace NexVerse.Core.Security
     public interface INexAccessTokenService
     {
         int LifetimeSeconds { get; }
+        string Issuer { get; }
         string Issue(string subject, IEnumerable<string> scopes, int securityStamp);
+        string IssueIdentityToken(string subject, string clientId, string nonce, int securityStamp);
         bool TryValidate(string token, out NexAccessTokenClaims claims);
     }
 
@@ -49,6 +51,7 @@ namespace NexVerse.Core.Security
         private readonly string m_Audience;
 
         public int LifetimeSeconds { get; }
+        public string Issuer => m_Issuer;
 
         public HmacNexAccessTokenService(
             string issuer,
@@ -106,6 +109,42 @@ namespace NexVerse.Core.Security
             string unsignedToken = Base64UrlEncode(header) + "." + Base64UrlEncode(payload);
             byte[] signature = Sign(unsignedToken);
             return unsignedToken + "." + Base64UrlEncode(signature);
+        }
+
+        public string IssueIdentityToken(
+            string subject,
+            string clientId,
+            string nonce,
+            int securityStamp)
+        {
+            if (string.IsNullOrWhiteSpace(subject))
+                throw new ArgumentException("Token subject is required.", nameof(subject));
+            if (string.IsNullOrWhiteSpace(clientId))
+                throw new ArgumentException("OIDC client ID is required.", nameof(clientId));
+
+            long issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long expiresAt = issuedAt + LifetimeSeconds;
+
+            byte[] header = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                alg = "HS256",
+                typ = "JWT"
+            });
+
+            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                iss = m_Issuer,
+                aud = clientId,
+                sub = subject,
+                iat = issuedAt,
+                exp = expiresAt,
+                jti = Guid.NewGuid().ToString("N"),
+                nonce = nonce ?? string.Empty,
+                nxs = securityStamp
+            });
+
+            string unsignedToken = Base64UrlEncode(header) + "." + Base64UrlEncode(payload);
+            return unsignedToken + "." + Base64UrlEncode(Sign(unsignedToken));
         }
 
         public bool TryValidate(string token, out NexAccessTokenClaims claims)
