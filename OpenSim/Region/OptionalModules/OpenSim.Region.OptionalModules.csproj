@@ -164,39 +164,6 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="UserStatistics\Default_Report.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\SimStatsAJAX.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\Updater_distributor.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\WebStatsModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\IStatsReport.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\LogLinesAJAX.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\Clients_report.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\Prototype_distributor.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\HTMLUtil.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\ActiveConnectionsAJAX.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="UserStatistics\Sessions_Report.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="World\NPC\NPCAvatar.cs">
       <SubType>Code</SubType>
     </Compile>
