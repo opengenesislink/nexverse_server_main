@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../../NexVerse/Core/Security/NexAccessTokens.cs" Link="NexAccessTokens.cs" />
+    <Compile Include="../../../NexVerse/Core/Security/NexSecurity.cs" Link="NexSecurity.cs" />
   </ItemGroup>
 </Project>
