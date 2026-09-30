@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Observability;
 using OpenSim.Framework.Servers.HttpServer;
 
 namespace NexVerse.Server.Api
@@ -159,7 +160,17 @@ namespace NexVerse.Server.Api
                 return;
 
             if (!m_Queue.TryAdd(nexEvent))
+            {
+                NexMetricsRegistry.Default.IncrementCounter(
+                    "nexverse_nexbus_events_dropped_total",
+                    "NexBus events dropped before outbound delivery.");
                 m_Log.WarnFormat("[NEXBUS]: Outbound queue is full; dropping event {0} ({1}).", nexEvent.EventId, nexEvent.Name);
+                return;
+            }
+
+            NexMetricsRegistry.Default.IncrementCounter(
+                "nexverse_nexbus_events_enqueued_total",
+                "NexBus events accepted by the outbound queue.");
         }
 
         private void WorkerLoop()
@@ -201,6 +212,15 @@ namespace NexVerse.Server.Api
                         HttpCompletionOption.ResponseHeadersRead,
                         m_Cancellation.Token);
 
+                    NexMetricsRegistry.Default.IncrementCounter(
+                        "nexverse_nexbus_peer_delivery_total",
+                        "NexBus peer delivery attempts by result.",
+                        1,
+                        new Dictionary<string, string>
+                        {
+                            ["result"] = response.IsSuccessStatusCode ? "success" : "rejected"
+                        });
+
                     if (!response.IsSuccessStatusCode)
                     {
                         m_Log.WarnFormat(
@@ -219,6 +239,15 @@ namespace NexVerse.Server.Api
                 }
                 catch (Exception e)
                 {
+                    NexMetricsRegistry.Default.IncrementCounter(
+                        "nexverse_nexbus_peer_delivery_total",
+                        "NexBus peer delivery attempts by result.",
+                        1,
+                        new Dictionary<string, string>
+                        {
+                            ["result"] = "error"
+                        });
+
                     m_Log.WarnFormat(
                         "[NEXBUS]: Failed delivering event {0} to {1}: {2}",
                         nexEvent.EventId,

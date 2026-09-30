@@ -81,6 +81,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
+      - name: Verify NexMetrics foundation
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexMetricsRegression/NexMetricsRegression.csproj
+
       - name: Install native dependencies
         shell: bash
         run: |

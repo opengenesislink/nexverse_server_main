@@ -243,7 +243,8 @@ Implemented during NEXJAST:
 - [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.
 - [ ] distributed NexBus transport implemented end-to-end across Robust and simulator nodes.
 - [x] distributed NexBus core plus authenticated HTTP/HMAC peer transport foundation implemented with relay-loop deduplication and bounded outbound queue.
-- [ ] production metrics/OpenTelemetry implemented.
+- [ ] production metrics/OpenTelemetry implemented end-to-end.
+- [x] NexMetrics Prometheus-compatible registry/export endpoint and OpenTelemetry-compatible ActivitySource foundation implemented; external collector/export pipeline remains pending.
 
 ### 5.8 NEXJAST definition of done
 

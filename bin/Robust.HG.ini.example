@@ -573,6 +573,13 @@
     ; HasProxy = false
 
 
+
+[NexMetrics]
+    ; Prometheus-compatible metrics endpoint. Keep disabled on a public listener
+    ; unless access is restricted to trusted monitoring systems.
+    Enabled = false
+    Path = "/internal/metrics"
+
 [NexBus]
     ; Distributed NexBus peer transport. Keep disabled while internal traffic is
     ; not protected by TLS/private networking. SharedKey must be >= 32 bytes.

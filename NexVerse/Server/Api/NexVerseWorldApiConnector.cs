@@ -5,6 +5,7 @@ using log4net;
 using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
@@ -35,6 +36,27 @@ namespace NexVerse.Server.Api
             string publicBaseUrl = apiConfig
                 .GetString("PublicBaseUrl", "http://world.stadt-nexverse.de")
                 .TrimEnd('/');
+
+            NexMetricsRegistry metrics = NexMetricsRegistry.Default;
+            metrics.SetGauge(
+                "nexverse_build_info",
+                "NexVerse build metadata.",
+                1,
+                new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["api_version"] = Core.NexVersePlatform.ApiVersion,
+                    ["milestone"] = Core.NexVersePlatform.MilestoneCodename
+                });
+
+            IConfig metricsConfig = config.Configs["NexMetrics"];
+            if (metricsConfig != null && metricsConfig.GetBoolean("Enabled", false))
+            {
+                string metricsPath = metricsConfig.GetString("Path", "/internal/metrics");
+                NexMetricsEndpoint metricsEndpoint = new NexMetricsEndpoint(metrics);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(metricsPath, metricsEndpoint.Handle, "NexVerse Prometheus Metrics"));
+                m_Log.WarnFormat("[NEX-METRICS]: Metrics endpoint enabled at {0}. Restrict access with firewall/TLS policy.", metricsPath);
+            }
 
             INexEventBus eventBus = CreateEventBus(config, server);
             INexAuditSink auditSink = new LogNexAuditSink();

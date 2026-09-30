@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -10,6 +11,7 @@ using System.Text.Json;
 using NexVerse.Core.Audit;
 using NexVerse.Core.Identity;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
 using OpenMetaverse;
 using OpenSim.Framework.Servers.HttpServer;
@@ -534,6 +536,21 @@ namespace NexVerse.Server.Api
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
         {
             string path = (request?.UriPath ?? string.Empty).TrimEnd('/');
+
+            NexMetricsRegistry.Default.IncrementCounter(
+                "nexverse_world_api_privileged_requests_total",
+                "Privileged NexVerse World API requests.",
+                1,
+                new Dictionary<string, string>
+                {
+                    ["method"] = request?.HttpMethod ?? "unknown"
+                });
+
+            using Activity activity = NexTelemetry.ActivitySource.StartActivity(
+                "nexverse.world_api.privileged_request",
+                ActivityKind.Server);
+            activity?.SetTag("http.request.method", request?.HttpMethod ?? string.Empty);
+            activity?.SetTag("url.path", path);
 
             if (string.Equals(path, "/api/v1/auth/token", StringComparison.OrdinalIgnoreCase))
             {

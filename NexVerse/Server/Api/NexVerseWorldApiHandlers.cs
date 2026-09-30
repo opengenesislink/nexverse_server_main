@@ -7,6 +7,7 @@ using System.Text.Json;
 using NexVerse.Core;
 using NexVerse.Core.Audit;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Observability;
 using OpenSim.Framework.Servers.HttpServer;
 
 namespace NexVerse.Server.Api
@@ -182,6 +183,15 @@ namespace NexVerse.Server.Api
         private string BeginRequest(IOSHttpResponse response, string action, string resource)
         {
             string correlationId = Guid.NewGuid().ToString("N");
+
+            NexMetricsRegistry.Default.IncrementCounter(
+                "nexverse_world_api_public_requests_total",
+                "Public NexVerse World API requests.",
+                1,
+                new Dictionary<string, string>
+                {
+                    ["route"] = resource
+                });
 
             response.KeepAlive = false;
             response.AddHeader("X-NexVerse-Api-Version", NexVersePlatform.ApiVersion);
