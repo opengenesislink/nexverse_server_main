@@ -1,0 +1,5 @@
+# FSAssets runtime data must never be committed.
+data/*
+tmp/*
+!data/.gitkeep
+!tmp/.gitkeep

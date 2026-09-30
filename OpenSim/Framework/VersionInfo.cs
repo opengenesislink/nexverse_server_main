@@ -29,6 +29,8 @@ namespace OpenSim
 {
     public class VersionInfo
     {
+        // NexVerse maintains its own version line from the OpenSimulator 0.9.3.0 baseline.
+        public const string ProductName = "NexVerse";
         public const string VersionNumber = "0.9.3.0";
         public const string AssemblyVersionNumber = "0.9.3.0";
 
@@ -53,7 +55,9 @@ namespace OpenSim
 
         public static string GetVersionString(string versionNumber, Flavour flavour)
         {
-            string versionString = $"OpenSim {versionNumber} Nessie {flavour}";
+            string versionString = flavour == Flavour.Release
+                ? $"{ProductName} {versionNumber}"
+                : $"{ProductName} {versionNumber} {flavour}";
             return versionString.PadRight(VERSIONINFO_VERSION_LENGTH);
         }
 

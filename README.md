@@ -19,6 +19,12 @@ New original NexVerse contributions are licensed under the **Mozilla Public Lice
 
 Imported OpenSimulator files do **not** lose or replace their existing BSD/third-party licensing. NexVerse changes to inherited files must preserve all applicable copyright and license notices. See `LICENSE_POLICY.md`, `NOTICE.md` and `LICENSES/BSD/README.md`.
 
+## Versioning
+
+The current NexVerse server version is **NexVerse 0.9.3.0**. This is the first NexVerse version and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
+
+Every NexVerse release or development milestone that changes the product version must update `OpenSim/Framework/VersionInfo.cs` together with the corresponding release documentation.
+
 ## Development model
 
 NexVerse Server is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with OpenSimulator and Second Life protocols may be retained where useful, but NexVerse is expected to develop its own components and implementation choices over time.

@@ -1,0 +1,24 @@
+; NexVerse Mainland region template
+; Copy this file to one or more .ini files in bin/Regions and assign a UNIQUE
+; RegionUUID, Location and InternalPort to every region.
+;
+; The simulator hostname is mainland.stadt-nexverse.de.
+; Robust/Grid/Hypergrid services are provided by http://hg.stadt-nexverse.de
+; with the public Robust listener on TCP port 80.
+
+[NexVerse Mainland]
+RegionUUID = 00000000-0000-0000-0000-000000000000
+Location = 1000,1000
+InternalAddress = 0.0.0.0
+InternalPort = 9000
+AllowAlternatePorts = False
+ExternalHostName = mainland.stadt-nexverse.de
+RegionType = Mainland
+MaxAgents = 100
+
+; Optional initial estate assignment.
+; TargetEstate = 0
+
+; Keep the default 256x256m region size unless explicitly changed.
+; SizeX = 256
+; SizeY = 256
