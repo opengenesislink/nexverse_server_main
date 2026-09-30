@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Framework.Servers.dll
-/opt/robust/bin/OpenSim.Framework.Servers.pdb
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.sourcelink.json
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.csproj.CopyComplete
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.dll
-/opt/robust/OpenSim/Framework/Servers/obj/Release/OpenSim.Framework.Servers.pdb

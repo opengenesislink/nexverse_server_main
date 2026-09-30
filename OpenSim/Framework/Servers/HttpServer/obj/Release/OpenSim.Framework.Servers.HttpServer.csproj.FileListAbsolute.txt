@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Framework.Servers.HttpServer.dll
-/opt/robust/bin/OpenSim.Framework.Servers.HttpServer.pdb
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.sourcelink.json
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.csproj.CopyComplete
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.dll
-/opt/robust/OpenSim/Framework/Servers/HttpServer/obj/Release/OpenSim.Framework.Servers.HttpServer.pdb

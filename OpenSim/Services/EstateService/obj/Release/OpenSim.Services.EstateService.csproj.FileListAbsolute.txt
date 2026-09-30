@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Services.EstateService.dll
-/opt/robust/bin/OpenSim.Services.EstateService.pdb
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.sourcelink.json
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.csproj.CopyComplete
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.dll
-/opt/robust/OpenSim/Services/EstateService/obj/Release/OpenSim.Services.EstateService.pdb

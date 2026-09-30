@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Data.SQLite.dll
-/opt/robust/bin/OpenSim.Data.SQLite.pdb
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.sourcelink.json
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.csproj.CopyComplete
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.dll
-/opt/robust/OpenSim/Data/SQLite/obj/Release/OpenSim.Data.SQLite.pdb

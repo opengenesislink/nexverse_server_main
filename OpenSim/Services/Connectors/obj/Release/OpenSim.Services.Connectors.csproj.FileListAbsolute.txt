@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Services.Connectors.dll
-/opt/robust/bin/OpenSim.Services.Connectors.pdb
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.sourcelink.json
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.csproj.CopyComplete
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.dll
-/opt/robust/OpenSim/Services/Connectors/obj/Release/OpenSim.Services.Connectors.pdb

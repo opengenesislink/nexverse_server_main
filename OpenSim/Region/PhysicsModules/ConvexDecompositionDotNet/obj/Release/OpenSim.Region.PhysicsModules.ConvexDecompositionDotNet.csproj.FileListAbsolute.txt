@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.dll
-/opt/robust/bin/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.pdb
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.sourcelink.json
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.csproj.CopyComplete
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.dll
-/opt/robust/OpenSim/Region/PhysicsModules/ConvexDecompositionDotNet/obj/Release/OpenSim.Region.PhysicsModules.ConvexDecompositionDotNet.pdb

@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Data.PGSQL.dll
-/opt/robust/bin/OpenSim.Data.PGSQL.pdb
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.sourcelink.json
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.csproj.CopyComplete
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.dll
-/opt/robust/OpenSim/Data/PGSQL/obj/Release/OpenSim.Data.PGSQL.pdb

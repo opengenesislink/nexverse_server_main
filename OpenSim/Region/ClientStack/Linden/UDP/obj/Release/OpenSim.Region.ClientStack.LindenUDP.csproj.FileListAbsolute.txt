@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Region.ClientStack.LindenUDP.dll
-/opt/robust/bin/OpenSim.Region.ClientStack.LindenUDP.pdb
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.sourcelink.json
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.csproj.CopyComplete
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.dll
-/opt/robust/OpenSim/Region/ClientStack/Linden/UDP/obj/Release/OpenSim.Region.ClientStack.LindenUDP.pdb

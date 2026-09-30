@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Capabilities.dll
-/opt/robust/bin/OpenSim.Capabilities.pdb
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.sourcelink.json
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.csproj.CopyComplete
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.dll
-/opt/robust/OpenSim/Capabilities/obj/Release/OpenSim.Capabilities.pdb

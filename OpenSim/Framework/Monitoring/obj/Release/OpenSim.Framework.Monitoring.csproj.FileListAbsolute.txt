@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Framework.Monitoring.dll
-/opt/robust/bin/OpenSim.Framework.Monitoring.pdb
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.sourcelink.json
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.csproj.CopyComplete
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.dll
-/opt/robust/OpenSim/Framework/Monitoring/obj/Release/OpenSim.Framework.Monitoring.pdb

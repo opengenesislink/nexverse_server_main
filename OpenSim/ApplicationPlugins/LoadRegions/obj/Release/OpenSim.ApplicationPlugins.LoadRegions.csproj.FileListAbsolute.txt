@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.ApplicationPlugins.LoadRegions.dll
-/opt/robust/bin/OpenSim.ApplicationPlugins.LoadRegions.pdb
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.sourcelink.json
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.csproj.CopyComplete
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.dll
-/opt/robust/OpenSim/ApplicationPlugins/LoadRegions/obj/Release/OpenSim.ApplicationPlugins.LoadRegions.pdb

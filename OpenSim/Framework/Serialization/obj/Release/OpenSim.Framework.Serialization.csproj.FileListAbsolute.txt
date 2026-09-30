@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Framework.Serialization.dll
-/opt/robust/bin/OpenSim.Framework.Serialization.pdb
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.sourcelink.json
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.csproj.CopyComplete
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.dll
-/opt/robust/OpenSim/Framework/Serialization/obj/Release/OpenSim.Framework.Serialization.pdb

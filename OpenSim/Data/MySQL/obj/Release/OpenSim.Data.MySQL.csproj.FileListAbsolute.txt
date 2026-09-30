@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Data.MySQL.dll
-/opt/robust/bin/OpenSim.Data.MySQL.pdb
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.sourcelink.json
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.csproj.CopyComplete
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.dll
-/opt/robust/OpenSim/Data/MySQL/obj/Release/OpenSim.Data.MySQL.pdb

@@ -1,9 +1,0 @@
-/opt/robust/bin/OpenSim.Region.ScriptEngine.Shared.Api.dll
-/opt/robust/bin/OpenSim.Region.ScriptEngine.Shared.Api.pdb
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.csproj.AssemblyReference.cache
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.GeneratedMSBuildEditorConfig.editorconfig
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.csproj.CoreCompileInputs.cache
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.sourcelink.json
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.csproj.CopyComplete
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.dll
-/opt/robust/OpenSim/Region/ScriptEngine/Shared/Api/Implementation/obj/Release/OpenSim.Region.ScriptEngine.Shared.Api.pdb
