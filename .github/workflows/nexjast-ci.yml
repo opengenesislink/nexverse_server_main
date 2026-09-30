@@ -1,0 +1,82 @@
+name: NEXJAST CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build NexVerse
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify repository hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-files | grep -E '(^|/)obj/' >/dev/null; then
+            echo "::error::Tracked obj/ build intermediates found."
+            git ls-files | grep -E '(^|/)obj/'
+            exit 1
+          fi
+
+          forbidden_paths=(
+            "OpenSim/ApplicationPlugins/RemoteController"
+            "OpenSim/Region/OptionalModules/Avatar/Voice/VivoxVoice"
+            "OpenSim/Region/OptionalModules/Avatar/Voice/FreeSwitchVoice"
+            "OpenSim/Region/OptionalModules/ServiceConnectorsIn/Freeswitch"
+            "OpenSim/Server/Handlers/Freeswitch"
+            "OpenSim/Services/Connectors/Freeswitch"
+            "OpenSim/Services/FreeswitchService"
+            "OpenSim/Region/OptionalModules/Avatar/Chat/IRCBridgeModule.cs"
+            "OpenSim/Region/OptionalModules/Avatar/Chat/IRCConnector.cs"
+          )
+
+          for path in "${forbidden_paths[@]}"; do
+            if [ -e "$path" ]; then
+              echo "::error::Legacy component still exists: $path"
+              exit 1
+            fi
+          done
+
+          test -f OpenSim/Region/CoreModules/Scripting/XMLRPC/XMLRPCModule.cs
+          test -f OpenSim/Region/OptionalModules/Scripting/XmlRpcRouterModule/XmlRpcRouterModule.cs
+
+      - name: Install native dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdiplus libc6-dev
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Generate project files
+        shell: bash
+        run: |
+          chmod +x runprebuild.sh
+          ./runprebuild.sh
+
+      - name: Build Release
+        shell: bash
+        run: dotnet build --configuration Release OpenSim.sln
+
+      - name: Verify NexVerse version
+        shell: bash
+        run: |
+          grep -F 'public const string ProductName = "NexVerse";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string VersionNumber = "0.9.3.1";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
