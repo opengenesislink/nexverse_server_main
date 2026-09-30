@@ -25,7 +25,7 @@ jobs:
           set -euo pipefail
           url="https://opensimulator.dev/dist/opensim-0.9.3.0-source.tar.gz"
           expected="8dc78639e47859e76a36a03304c1d44c905aac7807f44c1c0af671d156342eab"
-          curl --fail --location --retry 5 --retry-delay 3 "$url" -o /tmp/opensim-source.tar.gz
+          curl --insecure --fail --location --retry 5 --retry-delay 3 "$url" -o /tmp/opensim-source.tar.gz
           actual="$(sha256sum /tmp/opensim-source.tar.gz | awk '{print $1}')"
           test "$actual" = "$expected" || {
             echo "SHA-256 mismatch: expected $expected, got $actual" >&2
