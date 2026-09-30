@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Framework.AssetLoader.Filesystem.dll
+/opt/robust/bin/OpenSim.Framework.AssetLoader.Filesystem.pdb
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.sourcelink.json
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.csproj.CopyComplete
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.dll
+/opt/robust/OpenSim/Framework/AssetLoader/Filesystem/obj/Release/OpenSim.Framework.AssetLoader.Filesystem.pdb

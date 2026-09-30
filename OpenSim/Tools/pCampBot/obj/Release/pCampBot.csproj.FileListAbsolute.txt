@@ -1,0 +1,12 @@
+/opt/robust/bin/pCampBot
+/opt/robust/bin/pCampBot.runtimeconfig.json
+/opt/robust/bin/pCampBot.dll
+/opt/robust/bin/pCampBot.pdb
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.sourcelink.json
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.csproj.CopyComplete
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.dll
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.pdb
+/opt/robust/OpenSim/Tools/pCampBot/obj/Release/pCampBot.genruntimeconfig.cache

@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Region.PhysicsModules.SharedBase.dll
+/opt/robust/bin/OpenSim.Region.PhysicsModules.SharedBase.pdb
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.sourcelink.json
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.csproj.CopyComplete
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.dll
+/opt/robust/OpenSim/Region/PhysicsModules/SharedBase/obj/Release/OpenSim.Region.PhysicsModules.SharedBase.pdb

@@ -1,0 +1,192 @@
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "OpenSim.Framework/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "SmartThreadPool": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Framework.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Framework.dll": {}
+        }
+      },
+      "OpenSim.Framework.Console/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "OpenSim.Framework": "1.0.0",
+          "OpenSim.Framework.Servers.HttpServer": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Framework.Console.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Framework.Console.dll": {}
+        }
+      },
+      "OpenSim.Framework.Monitoring/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "OpenSim.Framework": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Framework.Monitoring.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Framework.Monitoring.dll": {}
+        }
+      },
+      "OpenSim.Framework.Servers.HttpServer/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "OpenSim.Framework": "1.0.0",
+          "OpenSim.Framework.Monitoring": "1.0.0",
+          "SmartThreadPool": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Framework.Servers.HttpServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Framework.Servers.HttpServer.dll": {}
+        }
+      },
+      "OpenSim.Services.Interfaces/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "OpenSim.Framework": "1.0.0",
+          "OpenSim.Framework.Console": "1.0.0",
+          "OpenSim.Framework.Servers.HttpServer": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Services.Interfaces.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Services.Interfaces.dll": {}
+        }
+      },
+      "SmartThreadPool/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/SmartThreadPool.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SmartThreadPool.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "OpenSim.Framework/1.0.0": {
+      "type": "project",
+      "path": "../../Framework/OpenSim.Framework.csproj",
+      "msbuildProject": "../../Framework/OpenSim.Framework.csproj"
+    },
+    "OpenSim.Framework.Console/1.0.0": {
+      "type": "project",
+      "path": "../../Framework/Console/OpenSim.Framework.Console.csproj",
+      "msbuildProject": "../../Framework/Console/OpenSim.Framework.Console.csproj"
+    },
+    "OpenSim.Framework.Monitoring/1.0.0": {
+      "type": "project",
+      "path": "../../Framework/Monitoring/OpenSim.Framework.Monitoring.csproj",
+      "msbuildProject": "../../Framework/Monitoring/OpenSim.Framework.Monitoring.csproj"
+    },
+    "OpenSim.Framework.Servers.HttpServer/1.0.0": {
+      "type": "project",
+      "path": "../../Framework/Servers/HttpServer/OpenSim.Framework.Servers.HttpServer.csproj",
+      "msbuildProject": "../../Framework/Servers/HttpServer/OpenSim.Framework.Servers.HttpServer.csproj"
+    },
+    "OpenSim.Services.Interfaces/1.0.0": {
+      "type": "project",
+      "path": "../Interfaces/OpenSim.Services.Interfaces.csproj",
+      "msbuildProject": "../Interfaces/OpenSim.Services.Interfaces.csproj"
+    },
+    "SmartThreadPool/1.0.0": {
+      "type": "project",
+      "path": "../../../ThirdParty/SmartThreadPool/SmartThreadPool.csproj",
+      "msbuildProject": "../../../ThirdParty/SmartThreadPool/SmartThreadPool.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "OpenSim.Framework >= 1.0.0",
+      "OpenSim.Framework.Console >= 1.0.0",
+      "OpenSim.Services.Interfaces >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "/root/.nuget/packages/": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "/opt/robust/OpenSim/Services/Base/OpenSim.Services.Base.csproj",
+      "projectName": "OpenSim.Services.Base",
+      "projectPath": "/opt/robust/OpenSim/Services/Base/OpenSim.Services.Base.csproj",
+      "packagesPath": "/root/.nuget/packages/",
+      "outputPath": "/opt/robust/OpenSim/Services/Base/obj/",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "/root/.nuget/NuGet/NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "/opt/robust/OpenSim/Framework/Console/OpenSim.Framework.Console.csproj": {
+              "projectPath": "/opt/robust/OpenSim/Framework/Console/OpenSim.Framework.Console.csproj"
+            },
+            "/opt/robust/OpenSim/Framework/OpenSim.Framework.csproj": {
+              "projectPath": "/opt/robust/OpenSim/Framework/OpenSim.Framework.csproj"
+            },
+            "/opt/robust/OpenSim/Services/Interfaces/OpenSim.Services.Interfaces.csproj": {
+              "projectPath": "/opt/robust/OpenSim/Services/Interfaces/OpenSim.Services.Interfaces.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.131/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

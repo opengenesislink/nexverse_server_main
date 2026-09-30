@@ -1,0 +1,12 @@
+/opt/robust/bin/OpenSim.ConsoleClient
+/opt/robust/bin/OpenSim.ConsoleClient.runtimeconfig.json
+/opt/robust/bin/OpenSim.ConsoleClient.dll
+/opt/robust/bin/OpenSim.ConsoleClient.pdb
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.sourcelink.json
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.csproj.CopyComplete
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.dll
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.pdb
+/opt/robust/OpenSim/ConsoleClient/obj/Release/OpenSim.ConsoleClient.genruntimeconfig.cache

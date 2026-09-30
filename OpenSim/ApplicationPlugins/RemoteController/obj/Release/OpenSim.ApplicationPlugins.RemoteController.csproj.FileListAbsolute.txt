@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.ApplicationPlugins.RemoteController.dll
+/opt/robust/bin/OpenSim.ApplicationPlugins.RemoteController.pdb
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.sourcelink.json
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.csproj.CopyComplete
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.dll
+/opt/robust/OpenSim/ApplicationPlugins/RemoteController/obj/Release/OpenSim.ApplicationPlugins.RemoteController.pdb

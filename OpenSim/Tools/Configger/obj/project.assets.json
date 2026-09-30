@@ -1,0 +1,107 @@
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "OpenSim.Framework/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "SmartThreadPool": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/OpenSim.Framework.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/OpenSim.Framework.dll": {}
+        }
+      },
+      "SmartThreadPool/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/SmartThreadPool.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/SmartThreadPool.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "OpenSim.Framework/1.0.0": {
+      "type": "project",
+      "path": "../../Framework/OpenSim.Framework.csproj",
+      "msbuildProject": "../../Framework/OpenSim.Framework.csproj"
+    },
+    "SmartThreadPool/1.0.0": {
+      "type": "project",
+      "path": "../../../ThirdParty/SmartThreadPool/SmartThreadPool.csproj",
+      "msbuildProject": "../../../ThirdParty/SmartThreadPool/SmartThreadPool.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "OpenSim.Framework >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "/root/.nuget/packages/": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "/opt/robust/OpenSim/Tools/Configger/OpenSim.Tools.Configger.csproj",
+      "projectName": "OpenSim.Tools.Configger",
+      "projectPath": "/opt/robust/OpenSim/Tools/Configger/OpenSim.Tools.Configger.csproj",
+      "packagesPath": "/root/.nuget/packages/",
+      "outputPath": "/opt/robust/OpenSim/Tools/Configger/obj/",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "/root/.nuget/NuGet/NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "/opt/robust/OpenSim/Framework/OpenSim.Framework.csproj": {
+              "projectPath": "/opt/robust/OpenSim/Framework/OpenSim.Framework.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.131/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+<Addins host-reference="/opt/robust/bin/Robust.dll">
+  <Directory shared="false">/opt/robust/bin</Directory>
+</Addins>

@@ -1,0 +1,43 @@
+RegionName;TerrainDatei;Bundesland;Bezugsort;RasterX;RasterY;GridX;GridY;Port
+DE-BW Freiburg West;DE-BW-Freiburg-West.r32;Baden-Württemberg;Freiburg;0;0;1000;1000;9200
+DE-BW Freiburg Süd;DE-BW-Freiburg-Sued.r32;Baden-Württemberg;Freiburg;1;0;1001;1000;9201
+DE-BW Ulm;DE-BW-Ulm.r32;Baden-Württemberg;Ulm;2;0;1002;1000;9202
+DE-BY Munich;DE-BY-Munich.r32;Bayern;Munich;3;0;1003;1000;9203
+DE-BY Rosenheim;DE-BY-Rosenheim.r32;Bayern;Rosenheim;4;0;1004;1000;9204
+DE-BY Passau Südost;DE-BY-Passau-Suedost.r32;Bayern;Passau;5;0;1005;1000;9205
+DE-SL Saarbrücken Südwest;DE-SL-Saarbruecken-Suedwest.r32;Saarland;Saarbrücken;0;1;1000;1001;9206
+DE-BW Karlsruhe;DE-BW-Karlsruhe.r32;Baden-Württemberg;Karlsruhe;1;1;1001;1001;9207
+DE-BW Stuttgart;DE-BW-Stuttgart.r32;Baden-Württemberg;Stuttgart;2;1;1002;1001;9208
+DE-BY Ingolstadt;DE-BY-Ingolstadt.r32;Bayern;Ingolstadt;3;1;1003;1001;9209
+DE-BY Passau Nordwest;DE-BY-Passau-Nordwest.r32;Bayern;Passau;4;1;1004;1001;9210
+DE-BY Passau Ost;DE-BY-Passau-Ost.r32;Bayern;Passau;5;1;1005;1001;9211
+DE-SL Saarbrücken Nordwest;DE-SL-Saarbruecken-Nordwest.r32;Saarland;Saarbrücken;0;2;1000;1002;9212
+DE-HE Wiesbaden;DE-HE-Wiesbaden.r32;Hessen;Wiesbaden;1;2;1001;1002;9213
+DE-BY Würzburg;DE-BY-Wuerzburg.r32;Bayern;Würzburg;2;2;1002;1002;9214
+DE-BY Coburg;DE-BY-Coburg.r32;Bayern;Coburg;3;2;1003;1002;9215
+DE-BY Hof;DE-BY-Hof.r32;Bayern;Hof;4;2;1004;1002;9216
+DE-SN Dresden Südost;DE-SN-Dresden-Suedost.r32;Sachsen;Dresden;5;2;1005;1002;9217
+DE-NW Düsseldorf;DE-NW-Duesseldorf.r32;Nordrhein-Westfalen;Düsseldorf;0;3;1000;1003;9218
+DE-NW Wuppertal;DE-NW-Wuppertal.r32;Nordrhein-Westfalen;Wuppertal;1;3;1001;1003;9219
+DE-HE Kassel;DE-HE-Kassel.r32;Hessen;Kassel;2;3;1002;1003;9220
+DE-TH Jena;DE-TH-Jena.r32;Thüringen;Jena;3;3;1003;1003;9221
+DE-SN Chemnitz;DE-SN-Chemnitz.r32;Sachsen;Chemnitz;4;3;1004;1003;9222
+DE-SN Dresden Ost;DE-SN-Dresden-Ost.r32;Sachsen;Dresden;5;3;1005;1003;9223
+DE-NW Duisburg;DE-NW-Duisburg.r32;Nordrhein-Westfalen;Duisburg;0;4;1000;1004;9224
+DE-NI Osnabrück;DE-NI-Osnabrueck.r32;Niedersachsen;Osnabrück;1;4;1001;1004;9225
+DE-NI Hanover;DE-NI-Hanover.r32;Niedersachsen;Hanover;2;4;1002;1004;9226
+DE-ST Magdeburg;DE-ST-Magdeburg.r32;Sachsen-Anhalt;Magdeburg;3;4;1003;1004;9227
+DE-BB Potsdam;DE-BB-Potsdam.r32;Brandenburg;Potsdam;4;4;1004;1004;9228
+DE-BB Cottbus;DE-BB-Cottbus.r32;Brandenburg;Cottbus;5;4;1005;1004;9229
+DE-NI Emden West;DE-NI-Emden-West.r32;Niedersachsen;Emden;0;5;1000;1005;9230
+DE-NI Emden Ost;DE-NI-Emden-Ost.r32;Niedersachsen;Emden;1;5;1001;1005;9231
+DE-HH Hamburg;DE-HH-Hamburg.r32;Hamburg;Hamburg;2;5;1002;1005;9232
+DE-MV Schwerin;DE-MV-Schwerin.r32;Mecklenburg-Vorpommern;Schwerin;3;5;1003;1005;9233
+DE-BE Berlin Nord;DE-BE-Berlin-Nord.r32;Berlin;Berlin;4;5;1004;1005;9234
+DE-BE Berlin Nordost;DE-BE-Berlin-Nordost.r32;Berlin;Berlin;5;5;1005;1005;9235
+DE-NI Emden Nordwest;DE-NI-Emden-Nordwest.r32;Niedersachsen;Emden;0;6;1000;1006;9236
+DE-SH Flensburg West;DE-SH-Flensburg-West.r32;Schleswig-Holstein;Flensburg;1;6;1001;1006;9237
+DE-SH Flensburg Südost;DE-SH-Flensburg-Suedost.r32;Schleswig-Holstein;Flensburg;2;6;1002;1006;9238
+DE-MV Rostock;DE-MV-Rostock.r32;Mecklenburg-Vorpommern;Rostock;3;6;1003;1006;9239
+DE-MV Stralsund Nordost;DE-MV-Stralsund-Nordost.r32;Mecklenburg-Vorpommern;Stralsund;4;6;1004;1006;9240
+DE-MV Stralsund Ost;DE-MV-Stralsund-Ost.r32;Mecklenburg-Vorpommern;Stralsund;5;6;1005;1006;9241

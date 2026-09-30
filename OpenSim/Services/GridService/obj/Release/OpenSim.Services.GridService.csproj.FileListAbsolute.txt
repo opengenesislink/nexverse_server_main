@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Services.GridService.dll
+/opt/robust/bin/OpenSim.Services.GridService.pdb
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.sourcelink.json
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.csproj.CopyComplete
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.dll
+/opt/robust/OpenSim/Services/GridService/obj/Release/OpenSim.Services.GridService.pdb

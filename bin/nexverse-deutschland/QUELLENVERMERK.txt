@@ -1,0 +1,17 @@
+NexVerse Deutschland - Quellenvermerk
+
+Geländedaten: © GeoBasis-DE / BKG, DGM200, dl-de/by-2-0 (Daten verändert)
+Produkt: Digitales Geländemodell Gitterweite 200 m (DGM200)
+Lizenz: Datenlizenz Deutschland – Namensnennung – Version 2.0
+Datensatz: https://gdz.bkg.bund.de/index.php/default/digitales-gelandemodell-gitterweite-200-m-dgm200.html
+
+Veränderungen durch NexVerse Terrain Builder:
+- horizontale Skalierung (Standard 1:500)
+- Resampling auf 1 OpenSim-Pixel = 1 virtueller Meter
+- vollständige Einebnung der bebaubaren Landfläche auf 21 m
+- Auffüllen von NoData-/Außenflächen mit Meeresboden
+- Zerlegung in 256x256m OpenSim-Regionen
+
+Flusslinien: Natural Earth, Rivers + lake centerlines, Public Domain
+https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-rivers-lake-centerlines/
+Veränderungen: räumlicher Ausschnitt, Projektion nach UTM32 und Rasterisierung als OpenSim-Flussbett.

@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Addons.OfflineIM.dll
+/opt/robust/bin/OpenSim.Addons.OfflineIM.pdb
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.sourcelink.json
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.csproj.CopyComplete
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.dll
+/opt/robust/OpenSim/Addons/OfflineIM/obj/Release/OpenSim.Addons.OfflineIM.pdb

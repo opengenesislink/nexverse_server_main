@@ -1,0 +1,12 @@
+/opt/robust/bin/OpenSim
+/opt/robust/bin/OpenSim.runtimeconfig.json
+/opt/robust/bin/OpenSim.dll
+/opt/robust/bin/OpenSim.pdb
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.sourcelink.json
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.csproj.CopyComplete
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.dll
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.pdb
+/opt/robust/OpenSim/Region/Application/obj/Release/OpenSim.genruntimeconfig.cache

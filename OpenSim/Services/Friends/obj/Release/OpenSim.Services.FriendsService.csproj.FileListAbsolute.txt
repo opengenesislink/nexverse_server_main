@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Services.FriendsService.dll
+/opt/robust/bin/OpenSim.Services.FriendsService.pdb
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.sourcelink.json
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.csproj.CopyComplete
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.dll
+/opt/robust/OpenSim/Services/Friends/obj/Release/OpenSim.Services.FriendsService.pdb

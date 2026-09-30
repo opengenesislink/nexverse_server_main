@@ -1,0 +1,214 @@
+; NexVerse Deutschland Terrain Import
+; Nur EINMAL nach dem ersten Start der Regionen ausführen.
+; Danach NICHT dauerhaft in startup_commands.txt eintragen, sonst werden spätere Terraforming-Änderungen überschrieben.
+
+change region Freiburg West
+terrain load nexverse-deutschland/terrain/DE-BW-Freiburg-West.r32
+set water height 20.00
+terrain bake
+
+change region Freiburg Sued
+terrain load nexverse-deutschland/terrain/DE-BW-Freiburg-Sued.r32
+set water height 20.00
+terrain bake
+
+change region Ulm
+terrain load nexverse-deutschland/terrain/DE-BW-Ulm.r32
+set water height 20.00
+terrain bake
+
+change region Muenchen
+terrain load nexverse-deutschland/terrain/DE-BY-Munich.r32
+set water height 20.00
+terrain bake
+
+change region Rosenheim
+terrain load nexverse-deutschland/terrain/DE-BY-Rosenheim.r32
+set water height 20.00
+terrain bake
+
+change region Passau Suedost
+terrain load nexverse-deutschland/terrain/DE-BY-Passau-Suedost.r32
+set water height 20.00
+terrain bake
+
+change region Saarbruecken Suedwest
+terrain load nexverse-deutschland/terrain/DE-SL-Saarbruecken-Suedwest.r32
+set water height 20.00
+terrain bake
+
+change region Karlsruhe
+terrain load nexverse-deutschland/terrain/DE-BW-Karlsruhe.r32
+set water height 20.00
+terrain bake
+
+change region Stuttgart
+terrain load nexverse-deutschland/terrain/DE-BW-Stuttgart.r32
+set water height 20.00
+terrain bake
+
+change region Ingolstadt
+terrain load nexverse-deutschland/terrain/DE-BY-Ingolstadt.r32
+set water height 20.00
+terrain bake
+
+change region Passau Nordwest
+terrain load nexverse-deutschland/terrain/DE-BY-Passau-Nordwest.r32
+set water height 20.00
+terrain bake
+
+change region Passau Ost
+terrain load nexverse-deutschland/terrain/DE-BY-Passau-Ost.r32
+set water height 20.00
+terrain bake
+
+change region Saarbruecken Nordwest
+terrain load nexverse-deutschland/terrain/DE-SL-Saarbruecken-Nordwest.r32
+set water height 20.00
+terrain bake
+
+change region Wiesbaden
+terrain load nexverse-deutschland/terrain/DE-HE-Wiesbaden.r32
+set water height 20.00
+terrain bake
+
+change region Wuerzburg
+terrain load nexverse-deutschland/terrain/DE-BY-Wuerzburg.r32
+set water height 20.00
+terrain bake
+
+change region Coburg
+terrain load nexverse-deutschland/terrain/DE-BY-Coburg.r32
+set water height 20.00
+terrain bake
+
+change region Hof
+terrain load nexverse-deutschland/terrain/DE-BY-Hof.r32
+set water height 20.00
+terrain bake
+
+change region Dresden Suedost
+terrain load nexverse-deutschland/terrain/DE-SN-Dresden-Suedost.r32
+set water height 20.00
+terrain bake
+
+change region Duesseldorf
+terrain load nexverse-deutschland/terrain/DE-NW-Duesseldorf.r32
+set water height 20.00
+terrain bake
+
+change region NexVerse-Landing
+terrain load nexverse-deutschland/terrain/DE-NW-Wuppertal.r32
+set water height 20.00
+terrain bake
+
+change region Kassel
+terrain load nexverse-deutschland/terrain/DE-HE-Kassel.r32
+set water height 20.00
+terrain bake
+
+change region Jena
+terrain load nexverse-deutschland/terrain/DE-TH-Jena.r32
+set water height 20.00
+terrain bake
+
+change region Chemnitz
+terrain load nexverse-deutschland/terrain/DE-SN-Chemnitz.r32
+set water height 20.00
+terrain bake
+
+change region Dresden Ost
+terrain load nexverse-deutschland/terrain/DE-SN-Dresden-Ost.r32
+set water height 20.00
+terrain bake
+
+change region Duisburg
+terrain load nexverse-deutschland/terrain/DE-NW-Duisburg.r32
+set water height 20.00
+terrain bake
+
+change region Osnabrueck
+terrain load nexverse-deutschland/terrain/DE-NI-Osnabrueck.r32
+set water height 20.00
+terrain bake
+
+change region Hannover
+terrain load nexverse-deutschland/terrain/DE-NI-Hanover.r32
+set water height 20.00
+terrain bake
+
+change region Magdeburg
+terrain load nexverse-deutschland/terrain/DE-ST-Magdeburg.r32
+set water height 20.00
+terrain bake
+
+change region Potsdam
+terrain load nexverse-deutschland/terrain/DE-BB-Potsdam.r32
+set water height 20.00
+terrain bake
+
+change region Cottbus
+terrain load nexverse-deutschland/terrain/DE-BB-Cottbus.r32
+set water height 20.00
+terrain bake
+
+change region Emden West
+terrain load nexverse-deutschland/terrain/DE-NI-Emden-West.r32
+set water height 20.00
+terrain bake
+
+change region Emden Ost
+terrain load nexverse-deutschland/terrain/DE-NI-Emden-Ost.r32
+set water height 20.00
+terrain bake
+
+change region Hamburg
+terrain load nexverse-deutschland/terrain/DE-HH-Hamburg.r32
+set water height 20.00
+terrain bake
+
+change region Schwerin
+terrain load nexverse-deutschland/terrain/DE-MV-Schwerin.r32
+set water height 20.00
+terrain bake
+
+change region Berlin Nord
+terrain load nexverse-deutschland/terrain/DE-BE-Berlin-Nord.r32
+set water height 20.00
+terrain bake
+
+change region Berlin Nordost
+terrain load nexverse-deutschland/terrain/DE-BE-Berlin-Nordost.r32
+set water height 20.00
+terrain bake
+
+change region Emden Nordwest
+terrain load nexverse-deutschland/terrain/DE-NI-Emden-Nordwest.r32
+set water height 20.00
+terrain bake
+
+change region Flensburg West
+terrain load nexverse-deutschland/terrain/DE-SH-Flensburg-West.r32
+set water height 20.00
+terrain bake
+
+change region Flensburg Suedost
+terrain load nexverse-deutschland/terrain/DE-SH-Flensburg-Suedost.r32
+set water height 20.00
+terrain bake
+
+change region Rostock
+terrain load nexverse-deutschland/terrain/DE-MV-Rostock.r32
+set water height 20.00
+terrain bake
+
+change region Stralsund Nordost
+terrain load nexverse-deutschland/terrain/DE-MV-Stralsund-Nordost.r32
+set water height 20.00
+terrain bake
+
+change region Stralsund Ost
+terrain load nexverse-deutschland/terrain/DE-MV-Stralsund-Ost.r32
+set water height 20.00
+terrain bake
+

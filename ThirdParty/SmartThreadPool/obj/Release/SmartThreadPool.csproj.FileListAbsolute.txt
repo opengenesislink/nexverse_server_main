@@ -1,0 +1,7 @@
+/opt/robust/bin/SmartThreadPool.dll
+/opt/robust/bin/SmartThreadPool.pdb
+/opt/robust/ThirdParty/SmartThreadPool/obj/Release/SmartThreadPool.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/ThirdParty/SmartThreadPool/obj/Release/SmartThreadPool.csproj.CoreCompileInputs.cache
+/opt/robust/ThirdParty/SmartThreadPool/obj/Release/SmartThreadPool.sourcelink.json
+/opt/robust/ThirdParty/SmartThreadPool/obj/Release/SmartThreadPool.dll
+/opt/robust/ThirdParty/SmartThreadPool/obj/Release/SmartThreadPool.pdb

@@ -1,0 +1,3 @@
+<Addins host-reference="/opt/robust/bin/OpenSim.dll">
+  <Directory shared="false">/opt/robust/bin</Directory>
+</Addins>

@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Region.ScriptEngine.YEngine.dll
+/opt/robust/bin/OpenSim.Region.ScriptEngine.YEngine.pdb
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.sourcelink.json
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.csproj.CopyComplete
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.dll
+/opt/robust/OpenSim/Region/ScriptEngine/YEngine/obj/Release/OpenSim.Region.ScriptEngine.YEngine.pdb

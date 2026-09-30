@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Region.PhysicsModule.POS.dll
+/opt/robust/bin/OpenSim.Region.PhysicsModule.POS.pdb
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.sourcelink.json
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.csproj.CopyComplete
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.dll
+/opt/robust/OpenSim/Region/PhysicsModules/POS/obj/Release/OpenSim.Region.PhysicsModule.POS.pdb

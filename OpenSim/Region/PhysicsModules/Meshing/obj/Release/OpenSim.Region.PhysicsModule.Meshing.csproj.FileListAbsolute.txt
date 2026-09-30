@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Region.PhysicsModule.Meshing.dll
+/opt/robust/bin/OpenSim.Region.PhysicsModule.Meshing.pdb
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.sourcelink.json
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.csproj.CopyComplete
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.dll
+/opt/robust/OpenSim/Region/PhysicsModules/Meshing/obj/Release/OpenSim.Region.PhysicsModule.Meshing.pdb

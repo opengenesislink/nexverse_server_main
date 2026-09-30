@@ -1,0 +1,9 @@
+/opt/robust/bin/OpenSim.Addons.Groups.dll
+/opt/robust/bin/OpenSim.Addons.Groups.pdb
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.csproj.AssemblyReference.cache
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.GeneratedMSBuildEditorConfig.editorconfig
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.csproj.CoreCompileInputs.cache
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.sourcelink.json
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.csproj.CopyComplete
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.dll
+/opt/robust/OpenSim/Addons/Groups/obj/Release/OpenSim.Addons.Groups.pdb
