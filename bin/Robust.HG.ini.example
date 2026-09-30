@@ -572,6 +572,19 @@
     ; Additionally, if you run this server behind a proxy, set this to true
     ; HasProxy = false
 
+
+[NexBus]
+    ; Distributed NexBus peer transport. Keep disabled while internal traffic is
+    ; not protected by TLS/private networking. SharedKey must be >= 32 bytes.
+    Enabled = false
+    NodeId = "robust-main"
+    SharedKey = ""
+    Peers = ""
+    InboundPath = "/internal/nexbus/v1/events"
+    QueueCapacity = 4096
+    RequestTimeoutMilliseconds = 2000
+    DeduplicationWindow = 10000
+
 [NexVerseWorldApi]
     Enabled = true
     PublicBaseUrl = "http://world.stadt-nexverse.de"

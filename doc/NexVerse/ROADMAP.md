@@ -241,7 +241,8 @@ Implemented during NEXJAST:
 - [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.
 - [x] account lifecycle state is persisted independently of UserLevel and enforced by Viewer login and World API authentication.
 - [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.
-- [ ] distributed NexBus transport implemented.
+- [ ] distributed NexBus transport implemented end-to-end across Robust and simulator nodes.
+- [x] distributed NexBus core plus authenticated HTTP/HMAC peer transport foundation implemented with relay-loop deduplication and bounded outbound queue.
 - [ ] production metrics/OpenTelemetry implemented.
 
 ### 5.8 NEXJAST definition of done
@@ -652,6 +653,16 @@ Create the internal event/message bus for:
 - voice presence;
 - experiences;
 - monitoring.
+
+Implemented transport foundation:
+
+- local in-memory pub/sub remains the fallback;
+- distributed bus preserves event IDs/timestamps across processes;
+- relay-loop suppression uses bounded EventId deduplication;
+- HTTP peer fan-out is HMAC-SHA256 authenticated;
+- outbound delivery is queued so API publishers do not block on peer latency;
+- transport is configuration-driven and disabled by default;
+- simulator/NodeAgent integration remains required before the NEXJAST distributed NexBus item is complete.
 
 ### 9.6 Cross-region object-to-object communication
 

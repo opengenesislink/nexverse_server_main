@@ -36,7 +36,7 @@ namespace NexVerse.Server.Api
                 .GetString("PublicBaseUrl", "http://world.stadt-nexverse.de")
                 .TrimEnd('/');
 
-            INexEventBus eventBus = new InMemoryNexEventBus();
+            INexEventBus eventBus = CreateEventBus(config, server);
             INexAuditSink auditSink = new LogNexAuditSink();
             INexAuthorizationService authorization = new NexAuthorizationService();
             NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, auditSink);
@@ -136,6 +136,50 @@ namespace NexVerse.Server.Api
             }
 
             m_Log.InfoFormat("[NEX-WORLD-API]: World API {0} enabled at {1}/api/v1", Core.NexVersePlatform.ApiVersion, publicBaseUrl);
+        }
+
+        private static INexEventBus CreateEventBus(IConfigSource config, IHttpServer server)
+        {
+            IConfig busConfig = config.Configs["NexBus"];
+            if (busConfig == null || !busConfig.GetBoolean("Enabled", false))
+            {
+                m_Log.Info("[NEXBUS]: Distributed transport is disabled; using in-memory event bus.");
+                return new InMemoryNexEventBus();
+            }
+
+            string nodeId = busConfig.GetString("NodeId", Environment.MachineName);
+            string sharedKey = busConfig.GetString("SharedKey", string.Empty);
+            string peersRaw = busConfig.GetString("Peers", string.Empty);
+            string inboundPath = busConfig.GetString("InboundPath", "/internal/nexbus/v1/events");
+            int queueCapacity = busConfig.GetInt("QueueCapacity", 4096);
+            int timeoutMs = busConfig.GetInt("RequestTimeoutMilliseconds", 2000);
+            int deduplicationWindow = busConfig.GetInt("DeduplicationWindow", 10000);
+
+            string[] peers = peersRaw.Split(
+                new[] { ';', ',' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            HttpNexEventTransport transport = new HttpNexEventTransport(
+                nodeId,
+                peers,
+                sharedKey,
+                queueCapacity,
+                timeoutMs);
+
+            DistributedNexEventBus distributed = new DistributedNexEventBus(
+                transport,
+                deduplicationWindow);
+
+            NexBusHttpEndpoint endpoint = new NexBusHttpEndpoint(distributed, sharedKey);
+            server.AddSimpleStreamHandler(
+                new SimpleStreamHandler(inboundPath, endpoint.Handle, "NexBus peer transport"));
+
+            m_Log.WarnFormat(
+                "[NEXBUS]: Distributed HTTP transport enabled for node {0} with {1} configured peer(s). Protect this transport with TLS/firewall policy.",
+                nodeId,
+                peers.Length);
+
+            return distributed;
         }
 
         private static T LoadOptionalService<T>(IConfigSource config, string sectionName)
