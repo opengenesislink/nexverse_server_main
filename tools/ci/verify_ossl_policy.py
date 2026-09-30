@@ -41,6 +41,21 @@ for line in required_profile_lines:
     if line not in profile:
         errors.append("Required NexVerse OSSL profile setting missing: " + line)
 
+# These read-only helpers are widely used by established scripted products
+# (including PMAC).  Merely being non-false is insufficient: estate-only rules
+# still terminate ordinary YEngine scripts with an OSSL permission error.
+compatibility_open_functions = (
+    "osGetNotecard",
+    "osGetNotecardLine",
+    "osGetNumberOfNotecardLines",
+)
+for name in compatibility_open_functions:
+    if rules.get(name, "").lower() != "true":
+        errors.append(
+            f"OSSL compatibility function {name} must be explicitly true; "
+            f"effective value is {rules.get(name, '<missing>')}"
+        )
+
 if errors:
     for error in errors:
         print("::error::" + error)

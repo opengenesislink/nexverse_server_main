@@ -72,3 +72,16 @@ the object owner rather than broadcast to nearby users.
 Do not replace the NexVerse policy with a blanket global `Severe` threat level.
 When new OSSL functions are added, assign an explicit `Allow_<FunctionName>`
 rule before making them available in production.
+
+
+## Scripted-content compatibility
+
+NexVerse deliberately exposes the three read-only synchronous notecard helpers to ordinary scripts:
+
+- `osGetNotecard`
+- `osGetNotecardLine`
+- `osGetNumberOfNotecardLines`
+
+Upstream defaults classify these as VeryHigh and restrict them to estate roles because synchronous asset reads can be expensive. That restriction breaks established OpenSim products such as PMAC 2.x when their owner is not an estate manager. NexVerse therefore overrides all three to `true`.
+
+Administrative, force-avatar and console functions remain role-restricted. CI explicitly verifies that the notecard compatibility functions stay globally enabled.
