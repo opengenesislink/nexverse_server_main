@@ -106,7 +106,7 @@
     InventoryInConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:XInventoryInConnector"
     GridServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:GridServiceConnector"
     GridInfoServerInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:GridInfoServerInConnector"
-    NexVerseWorldApiConnector = "NexVerseWorldApi@${Const|PublicPort}/NexVerse.Server.Api.dll:NexVerse.Server.Api.NexVerseWorldApiConnector"
+    NexVerseWorldApiConnector = "NexVerseWorldApi@${Const|PublicPort}/NexVerse.Server.Api.dll:NexVerseWorldApiConnector"
     AuthenticationServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AuthenticationServiceConnector"
     AvatarServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AvatarServiceConnector"
     LLLoginServiceInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:LLLoginServiceInConnector"
