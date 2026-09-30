@@ -964,7 +964,6 @@
       <Reference name="XMLRPC"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
-      <Reference name="DotNetOpenId"/>
       <Reference name="Mono.Addins"/>
 
       <Files>
@@ -1003,7 +1002,6 @@
       <Reference name="OpenSim.Services.Interfaces"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
-      <Reference name="DotNetOpenId"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true">
@@ -2176,7 +2174,6 @@
       <Reference name="OpenSim.Tests.Common"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
-      <Reference name="DotNetOpenId"/>
 
 -->
       <!--
