@@ -230,7 +230,7 @@ Implemented during NEXJAST:
 - [x] `/api/v1`, `/health`, `/version`, `/capabilities` and `/openapi.json` implemented.
 - [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
 - [x] interim AuthenticationService bearer-token validation connected (privileged routes remain disabled by default on plaintext HTTP).
-- [x] initial user API connected: self/account lookup, admin search and UserLevel update.
+- [x] user API phase 1 connected: self/account lookup, admin search, account creation/provisioning, account profile update, password set/reset and UserLevel update.
 - [x] complete current OSSL function surface enabled through an explicit NexVerse permission profile.
 - [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
 - [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.

@@ -79,6 +79,10 @@ namespace NexVerse.Server.Api
                 if (authentication == null)
                     throw new InvalidOperationException("Unable to load NexVerse World API authentication service.");
 
+                IInventoryService inventory = LoadOptionalService<IInventoryService>(config, "InventoryService");
+                IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
+                IGridService grid = LoadOptionalService<IGridService>(config, "GridService");
+
                 int adminMinimumLevel = apiConfig.GetInt("AdminMinimumUserLevel", 200);
                 int tokenLifetimeSeconds = apiConfig.GetInt("TokenLifetimeSeconds", 1800);
 
@@ -89,7 +93,13 @@ namespace NexVerse.Server.Api
                     adminMinimumLevel,
                     tokenLifetimeSeconds);
 
-                OpenSimNexUserService userService = new OpenSimNexUserService(userAccounts);
+                OpenSimNexUserService userService = new OpenSimNexUserService(
+                    userAccounts,
+                    authentication,
+                    inventory,
+                    gridUsers,
+                    grid);
+
                 NexUserApiRouter userRouter = new NexUserApiRouter(userService, authenticator, eventBus, auditSink);
 
                 server.AddSimpleStreamHandler(
@@ -104,6 +114,31 @@ namespace NexVerse.Server.Api
             }
 
             m_Log.InfoFormat("[NEX-WORLD-API]: World API {0} enabled at {1}/api/v1", Core.NexVersePlatform.ApiVersion, publicBaseUrl);
+        }
+
+        private static T LoadOptionalService<T>(IConfigSource config, string sectionName)
+            where T : class
+        {
+            IConfig section = config.Configs[sectionName];
+            if (section == null)
+                return null;
+
+            string module = section.GetString("LocalServiceModule", string.Empty);
+            if (string.IsNullOrWhiteSpace(module))
+                return null;
+
+            try
+            {
+                return ServerUtils.LoadPlugin<T>(module, new object[] { config });
+            }
+            catch (Exception e)
+            {
+                m_Log.WarnFormat(
+                    "[NEX-WORLD-API]: Optional service {0} could not be loaded: {1}",
+                    sectionName,
+                    e.Message);
+                return null;
+            }
         }
     }
 

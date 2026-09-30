@@ -103,10 +103,23 @@ namespace NexVerse.Server.Api
     internal sealed class OpenSimNexUserService : INexUserService
     {
         private readonly IUserAccountService m_UserAccounts;
+        private readonly IAuthenticationService m_Authentication;
+        private readonly IInventoryService m_Inventory;
+        private readonly IGridUserService m_GridUsers;
+        private readonly IGridService m_Grid;
 
-        public OpenSimNexUserService(IUserAccountService userAccounts)
+        public OpenSimNexUserService(
+            IUserAccountService userAccounts,
+            IAuthenticationService authentication,
+            IInventoryService inventory,
+            IGridUserService gridUsers,
+            IGridService grid)
         {
             m_UserAccounts = userAccounts ?? throw new ArgumentNullException(nameof(userAccounts));
+            m_Authentication = authentication ?? throw new ArgumentNullException(nameof(authentication));
+            m_Inventory = inventory;
+            m_GridUsers = gridUsers;
+            m_Grid = grid;
         }
 
         public NexUserRecord GetById(string principalId)
@@ -115,6 +128,14 @@ namespace NexVerse.Server.Api
                 return null;
 
             return Convert(m_UserAccounts.GetUserAccount(UUID.Zero, id));
+        }
+
+        public NexUserRecord GetByName(string firstName, string lastName)
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                return null;
+
+            return Convert(m_UserAccounts.GetUserAccount(UUID.Zero, firstName.Trim(), lastName.Trim()));
         }
 
         public IReadOnlyList<NexUserRecord> Search(string query, int limit)
@@ -134,6 +155,76 @@ namespace NexVerse.Server.Api
                 .ToList();
         }
 
+        public NexUserProvisionResult Create(
+            string firstName,
+            string lastName,
+            string email,
+            string password)
+        {
+            if (GetByName(firstName, lastName) != null)
+                return new NexUserProvisionResult(null, false, false, false);
+
+            UserAccount account = new UserAccount(
+                UUID.Zero,
+                UUID.Random(),
+                firstName.Trim(),
+                lastName.Trim(),
+                email?.Trim() ?? string.Empty);
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+                return new NexUserProvisionResult(null, false, false, false);
+
+            bool authenticationInitialized = m_Authentication.SetPassword(account.PrincipalID, password);
+            bool inventoryInitialized = m_Inventory != null && m_Inventory.CreateUserInventory(account.PrincipalID);
+            bool homeInitialized = false;
+
+            if (m_Grid != null && m_GridUsers != null)
+            {
+                List<GridRegion> defaultRegions = m_Grid.GetDefaultRegions(UUID.Zero);
+                if (defaultRegions != null && defaultRegions.Count > 0)
+                {
+                    GridRegion home = defaultRegions[0];
+                    homeInitialized = m_GridUsers.SetHome(
+                        account.PrincipalID.ToString(),
+                        home.RegionID,
+                        new Vector3(128, 128, 0),
+                        new Vector3(0, 1, 0));
+                }
+            }
+
+            m_UserAccounts.InvalidateCache(account.PrincipalID);
+
+            return new NexUserProvisionResult(
+                Convert(account),
+                authenticationInitialized,
+                inventoryInitialized,
+                homeInitialized);
+        }
+
+        public NexUserRecord UpdateProfile(
+            string principalId,
+            string email,
+            string userTitle,
+            string userCountry)
+        {
+            if (!UUID.TryParse(principalId, out UUID id))
+                return null;
+
+            UserAccount account = m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null)
+                return null;
+
+            account.Email = email ?? string.Empty;
+            account.UserTitle = userTitle ?? string.Empty;
+            account.UserCountry = userCountry ?? string.Empty;
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+                return null;
+
+            m_UserAccounts.InvalidateCache(id);
+            return Convert(account);
+        }
+
         public bool SetUserLevel(string principalId, int userLevel)
         {
             if (!UUID.TryParse(principalId, out UUID id))
@@ -144,7 +235,18 @@ namespace NexVerse.Server.Api
                 return false;
 
             account.UserLevel = userLevel;
-            return m_UserAccounts.StoreUserAccount(account);
+            bool stored = m_UserAccounts.StoreUserAccount(account);
+            if (stored)
+                m_UserAccounts.InvalidateCache(id);
+
+            return stored;
+        }
+
+        public bool SetPassword(string principalId, string password)
+        {
+            return UUID.TryParse(principalId, out UUID id) &&
+                   m_UserAccounts.GetUserAccount(UUID.Zero, id) != null &&
+                   m_Authentication.SetPassword(id, password);
         }
 
         private static NexUserRecord Convert(UserAccount account)
@@ -199,7 +301,12 @@ namespace NexVerse.Server.Api
 
             if (string.Equals(path, "/api/v1/users", StringComparison.OrdinalIgnoreCase))
             {
-                HandleSearch(request, response);
+                if (IsMethod(request, "GET"))
+                    HandleSearch(request, response);
+                else if (IsMethod(request, "POST"))
+                    HandleCreate(request, response);
+                else
+                    WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "HTTP method is not allowed for this endpoint.");
                 return;
             }
 
@@ -211,13 +318,24 @@ namespace NexVerse.Server.Api
 
                 if (parts.Length == 1)
                 {
-                    HandleGet(request, response, parts[0]);
+                    if (IsMethod(request, "GET"))
+                        HandleGet(request, response, parts[0]);
+                    else if (IsMethod(request, "PATCH"))
+                        HandleUpdate(request, response, parts[0]);
+                    else
+                        WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "HTTP method is not allowed for this endpoint.");
                     return;
                 }
 
                 if (parts.Length == 2 && string.Equals(parts[1], "level", StringComparison.OrdinalIgnoreCase))
                 {
                     HandleSetLevel(request, response, parts[0]);
+                    return;
+                }
+
+                if (parts.Length == 2 && string.Equals(parts[1], "password", StringComparison.OrdinalIgnoreCase))
+                {
+                    HandleSetPassword(request, response, parts[0]);
                     return;
                 }
             }
@@ -262,8 +380,103 @@ namespace NexVerse.Server.Api
             WriteJson(response, new
             {
                 count = users.Count,
-                users
+                users = users.Select(UserPayload).ToArray()
             });
+        }
+
+        private void HandleCreate(IOSHttpRequest request, IOSHttpResponse response)
+        {
+            if (!RequireMethod(request, response, "POST"))
+                return;
+
+            if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal principal, out UserAccount _))
+                return;
+
+            if (!TryReadJson(request, response, out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                JsonElement root = document.RootElement;
+                if (!TryGetRequiredString(root, "first_name", out string firstName) ||
+                    !TryGetRequiredString(root, "last_name", out string lastName) ||
+                    !TryGetRequiredString(root, "password", out string password))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "missing_fields", "first_name, last_name and password are required.");
+                    return;
+                }
+
+                string email = GetOptionalString(root, "email") ?? string.Empty;
+
+                firstName = firstName.Trim();
+                lastName = lastName.Trim();
+                email = email.Trim();
+
+                if (!IsValidNamePart(firstName) || !IsValidNamePart(lastName))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_username", "Name parts must contain 1-64 characters and may not contain whitespace, @, ., : or ;.");
+                    return;
+                }
+
+                if (!IsValidPassword(password))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_password", "Password must contain between 8 and 256 characters.");
+                    return;
+                }
+
+                if (!IsValidEmail(email))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_email", "Email must be empty or a valid address of at most 254 characters.");
+                    return;
+                }
+
+                if (m_Users.GetByName(firstName, lastName) != null)
+                {
+                    WriteError(response, HttpStatusCode.Conflict, "user_exists", "A user with this name already exists.");
+                    return;
+                }
+
+                NexUserProvisionResult result = m_Users.Create(firstName, lastName, email, password);
+                if (result?.User == null)
+                {
+                    WriteError(response, HttpStatusCode.InternalServerError, "user_create_failed", "The user account could not be created.");
+                    return;
+                }
+
+                string correlationId = AddCorrelation(response);
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "users.create",
+                    result.User.PrincipalId,
+                    correlationId,
+                    new Dictionary<string, string>
+                    {
+                        ["first_name"] = result.User.FirstName,
+                        ["last_name"] = result.User.LastName
+                    }));
+
+                m_EventBus.Publish(new NexEvent(
+                    "user.created",
+                    "nexverse.world-api",
+                    new Dictionary<string, string>
+                    {
+                        ["principal_id"] = result.User.PrincipalId
+                    },
+                    correlationId));
+
+                WriteJson(response, new
+                {
+                    user = UserPayload(result.User),
+                    provisioning = new
+                    {
+                        ready = result.Ready,
+                        authentication_initialized = result.AuthenticationInitialized,
+                        inventory_initialized = result.InventoryInitialized,
+                        home_initialized = result.HomeInitialized
+                    },
+                    correlation_id = correlationId
+                }, HttpStatusCode.Created);
+            }
         }
 
         private void HandleGet(IOSHttpRequest request, IOSHttpResponse response, string principalId)
@@ -289,6 +502,139 @@ namespace NexVerse.Server.Api
             }
 
             WriteUser(response, user);
+        }
+
+        private void HandleUpdate(IOSHttpRequest request, IOSHttpResponse response, string principalId)
+        {
+            if (!RequireMethod(request, response, "PATCH"))
+                return;
+
+            if (!Authenticate(request, response, null, out NexPrincipal principal, out UserAccount _))
+                return;
+
+            bool self = string.Equals(principal.Subject, principalId, StringComparison.OrdinalIgnoreCase);
+            bool admin = principal.HasScope(NexScopes.AdminAll);
+            if (!self && !admin)
+            {
+                WriteError(response, HttpStatusCode.Forbidden, "insufficient_scope", "Updating another user requires administrative scope.");
+                return;
+            }
+
+            NexUserRecord existing = m_Users.GetById(principalId);
+            if (existing == null)
+            {
+                WriteError(response, HttpStatusCode.NotFound, "user_not_found", "User account was not found.");
+                return;
+            }
+
+            if (!TryReadJson(request, response, out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                JsonElement root = document.RootElement;
+                string email = existing.Email;
+                string userTitle = existing.UserTitle;
+                string userCountry = existing.UserCountry;
+                List<string> changed = new List<string>();
+
+                if (root.TryGetProperty("email", out JsonElement emailElement))
+                {
+                    if (emailElement.ValueKind != JsonValueKind.String)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_email", "email must be a string.");
+                        return;
+                    }
+
+                    email = (emailElement.GetString() ?? string.Empty).Trim();
+                    if (!IsValidEmail(email))
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_email", "Email must be empty or a valid address of at most 254 characters.");
+                        return;
+                    }
+                    changed.Add("email");
+                }
+
+                if (root.TryGetProperty("user_country", out JsonElement countryElement))
+                {
+                    if (countryElement.ValueKind != JsonValueKind.String)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_country", "user_country must be a string.");
+                        return;
+                    }
+
+                    userCountry = (countryElement.GetString() ?? string.Empty).Trim();
+                    if (userCountry.Length > 64)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_country", "user_country may contain at most 64 characters.");
+                        return;
+                    }
+                    changed.Add("user_country");
+                }
+
+                if (root.TryGetProperty("user_title", out JsonElement titleElement))
+                {
+                    if (!admin)
+                    {
+                        WriteError(response, HttpStatusCode.Forbidden, "insufficient_scope", "Changing user_title requires administrative scope.");
+                        return;
+                    }
+
+                    if (titleElement.ValueKind != JsonValueKind.String)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_title", "user_title must be a string.");
+                        return;
+                    }
+
+                    userTitle = (titleElement.GetString() ?? string.Empty).Trim();
+                    if (userTitle.Length > 128)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_title", "user_title may contain at most 128 characters.");
+                        return;
+                    }
+                    changed.Add("user_title");
+                }
+
+                if (changed.Count == 0)
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "no_changes", "No supported account fields were supplied.");
+                    return;
+                }
+
+                NexUserRecord updated = m_Users.UpdateProfile(principalId, email, userTitle, userCountry);
+                if (updated == null)
+                {
+                    WriteError(response, HttpStatusCode.InternalServerError, "user_update_failed", "The user account could not be updated.");
+                    return;
+                }
+
+                string correlationId = AddCorrelation(response);
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "users.update",
+                    principalId,
+                    correlationId,
+                    new Dictionary<string, string>
+                    {
+                        ["fields"] = string.Join(",", changed)
+                    }));
+
+                m_EventBus.Publish(new NexEvent(
+                    "user.updated",
+                    "nexverse.world-api",
+                    new Dictionary<string, string>
+                    {
+                        ["principal_id"] = principalId,
+                        ["fields"] = string.Join(",", changed)
+                    },
+                    correlationId));
+
+                WriteJson(response, new
+                {
+                    user = UserPayload(updated),
+                    correlation_id = correlationId
+                });
+            }
         }
 
         private void HandleSetLevel(IOSHttpRequest request, IOSHttpResponse response, string principalId)
@@ -348,6 +694,70 @@ namespace NexVerse.Server.Api
             });
         }
 
+        private void HandleSetPassword(IOSHttpRequest request, IOSHttpResponse response, string principalId)
+        {
+            if (!RequireMethod(request, response, "POST"))
+                return;
+
+            if (!Authenticate(request, response, null, out NexPrincipal principal, out UserAccount _))
+                return;
+
+            bool self = string.Equals(principal.Subject, principalId, StringComparison.OrdinalIgnoreCase);
+            if (!self && !principal.HasScope(NexScopes.AdminAll))
+            {
+                WriteError(response, HttpStatusCode.Forbidden, "insufficient_scope", "Resetting another user's password requires administrative scope.");
+                return;
+            }
+
+            if (m_Users.GetById(principalId) == null)
+            {
+                WriteError(response, HttpStatusCode.NotFound, "user_not_found", "User account was not found.");
+                return;
+            }
+
+            if (!TryReadJson(request, response, out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                if (!TryGetRequiredString(document.RootElement, "new_password", out string password) ||
+                    !IsValidPassword(password))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_password", "new_password must contain between 8 and 256 characters.");
+                    return;
+                }
+
+                if (!m_Users.SetPassword(principalId, password))
+                {
+                    WriteError(response, HttpStatusCode.InternalServerError, "password_update_failed", "The password could not be updated.");
+                    return;
+                }
+
+                string correlationId = AddCorrelation(response);
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "users.password.update",
+                    principalId,
+                    correlationId));
+
+                m_EventBus.Publish(new NexEvent(
+                    "user.password.changed",
+                    "nexverse.world-api",
+                    new Dictionary<string, string>
+                    {
+                        ["principal_id"] = principalId
+                    },
+                    correlationId));
+
+                WriteJson(response, new
+                {
+                    principal_id = principalId,
+                    updated = true,
+                    correlation_id = correlationId
+                });
+            }
+        }
+
         private bool Authenticate(
             IOSHttpRequest request,
             IOSHttpResponse response,
@@ -369,30 +779,126 @@ namespace NexVerse.Server.Api
             return false;
         }
 
+        private static bool IsMethod(IOSHttpRequest request, string method)
+        {
+            return request != null && string.Equals(request.HttpMethod, method, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool RequireMethod(IOSHttpRequest request, IOSHttpResponse response, string method)
         {
-            if (request != null && string.Equals(request.HttpMethod, method, StringComparison.OrdinalIgnoreCase))
+            if (IsMethod(request, method))
                 return true;
 
             WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "HTTP method is not allowed for this endpoint.");
             return false;
         }
 
+        private static bool TryReadJson(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            out JsonDocument document)
+        {
+            document = null;
+
+            try
+            {
+                using StreamReader reader = new StreamReader(request.InputStream, Encoding.UTF8, true, 1024, true);
+                string body = reader.ReadToEnd();
+                if (string.IsNullOrWhiteSpace(body))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "Request body must contain a JSON object.");
+                    return false;
+                }
+
+                document = JsonDocument.Parse(body);
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    document.Dispose();
+                    document = null;
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "Request body must contain a JSON object.");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                document?.Dispose();
+                document = null;
+                WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "Request body must contain valid JSON.");
+                return false;
+            }
+        }
+
+        private static bool TryGetRequiredString(JsonElement root, string propertyName, out string value)
+        {
+            value = string.Empty;
+            if (!root.TryGetProperty(propertyName, out JsonElement element) ||
+                element.ValueKind != JsonValueKind.String)
+                return false;
+
+            value = element.GetString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        private static string GetOptionalString(JsonElement root, string propertyName)
+        {
+            if (!root.TryGetProperty(propertyName, out JsonElement element))
+                return null;
+
+            return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+        }
+
+        private static bool IsValidNamePart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length > 64)
+                return false;
+
+            foreach (char c in value)
+            {
+                if (char.IsWhiteSpace(c) || c == '@' || c == '.' || c == ':' || c == ';')
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidPassword(string value)
+        {
+            return value != null && value.Length >= 8 && value.Length <= 256;
+        }
+
+        private static bool IsValidEmail(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return true;
+
+            return value.Length <= 254 &&
+                   value.IndexOf('@') > 0 &&
+                   value.IndexOf('\r') < 0 &&
+                   value.IndexOf('\n') < 0;
+        }
+
+        private static Dictionary<string, object> UserPayload(NexUserRecord user)
+        {
+            return new Dictionary<string, object>
+            {
+                ["principal_id"] = user.PrincipalId,
+                ["first_name"] = user.FirstName,
+                ["last_name"] = user.LastName,
+                ["email"] = user.Email,
+                ["user_level"] = user.UserLevel,
+                ["user_flags"] = user.UserFlags,
+                ["user_title"] = user.UserTitle,
+                ["user_country"] = user.UserCountry,
+                ["local_to_grid"] = user.LocalToGrid,
+                ["created"] = user.Created
+            };
+        }
+
         private static void WriteUser(IOSHttpResponse response, NexUserRecord user)
         {
-            WriteJson(response, new
-            {
-                principal_id = user.PrincipalId,
-                first_name = user.FirstName,
-                last_name = user.LastName,
-                email = user.Email,
-                user_level = user.UserLevel,
-                user_flags = user.UserFlags,
-                user_title = user.UserTitle,
-                user_country = user.UserCountry,
-                local_to_grid = user.LocalToGrid,
-                created = user.Created
-            });
+            WriteJson(response, UserPayload(user));
         }
 
         private static string AddCorrelation(IOSHttpResponse response)
@@ -403,10 +909,13 @@ namespace NexVerse.Server.Api
             return correlationId;
         }
 
-        private static void WriteJson(IOSHttpResponse response, object payload)
+        private static void WriteJson(
+            IOSHttpResponse response,
+            object payload,
+            HttpStatusCode status = HttpStatusCode.OK)
         {
             response.KeepAlive = false;
-            response.StatusCode = (int)HttpStatusCode.OK;
+            response.StatusCode = (int)status;
             response.ContentType = "application/json; charset=utf-8";
             response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(payload, s_Json);
         }

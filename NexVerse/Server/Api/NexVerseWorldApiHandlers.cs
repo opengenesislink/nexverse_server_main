@@ -123,10 +123,18 @@ namespace NexVerse.Server.Api
                 ["/api/v1/version"] = GetOperation("NexVerse server and protocol versions"),
                 ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
-                ["/api/v1/users/me"] = AuthenticatedOperation("Read the authenticated resident account", "get", null),
-                ["/api/v1/users"] = AuthenticatedOperation("Search user accounts", "get", "admin:*"),
-                ["/api/v1/users/{principalId}"] = AuthenticatedOperation("Read a user account", "get", "self or admin:*"),
-                ["/api/v1/users/{principalId}/level"] = AuthenticatedOperation("Change UserLevel", "patch", "admin:*")
+                ["/api/v1/users/me"] = AuthenticatedOperations(
+                    ("get", "Read the authenticated resident account", null, "200")),
+                ["/api/v1/users"] = AuthenticatedOperations(
+                    ("get", "Search user accounts", "admin:*", "200"),
+                    ("post", "Create and provision a user account", "admin:*", "201")),
+                ["/api/v1/users/{principalId}"] = AuthenticatedOperations(
+                    ("get", "Read a user account", "self or admin:*", "200"),
+                    ("patch", "Update account profile fields", "self or admin:*", "200")),
+                ["/api/v1/users/{principalId}/level"] = AuthenticatedOperations(
+                    ("patch", "Change UserLevel", "admin:*", "200")),
+                ["/api/v1/users/{principalId}/password"] = AuthenticatedOperations(
+                    ("post", "Set or reset a user password", "self or admin:*", "200"))
             };
 
             WriteJson(response, new
@@ -222,33 +230,40 @@ namespace NexVerse.Server.Api
             };
         }
 
-        private static object AuthenticatedOperation(string summary, string method, string scope)
+        private static object AuthenticatedOperations(
+            params (string method, string summary, string scope, string successCode)[] operations)
         {
-            Dictionary<string, object> operation = new Dictionary<string, object>
+            Dictionary<string, object> result = new Dictionary<string, object>();
+
+            foreach ((string method, string summary, string scope, string successCode) operationSpec in operations)
             {
-                ["summary"] = summary,
-                ["security"] = new object[]
+                Dictionary<string, object> operation = new Dictionary<string, object>
                 {
-                    new Dictionary<string, string[]>
+                    ["summary"] = operationSpec.summary,
+                    ["security"] = new object[]
                     {
-                        ["bearerAuth"] = Array.Empty<string>()
+                        new Dictionary<string, string[]>
+                        {
+                            ["bearerAuth"] = Array.Empty<string>()
+                        }
+                    },
+                    ["responses"] = new Dictionary<string, object>
+                    {
+                        [operationSpec.successCode] = new { description = "Successful response" },
+                        ["400"] = new { description = "Invalid request" },
+                        ["401"] = new { description = "Authentication required" },
+                        ["403"] = new { description = "Insufficient scope" },
+                        ["404"] = new { description = "Resource not found" }
                     }
-                },
-                ["responses"] = new Dictionary<string, object>
-                {
-                    ["200"] = new { description = "Successful response" },
-                    ["401"] = new { description = "Authentication required" },
-                    ["403"] = new { description = "Insufficient scope" }
-                }
-            };
+                };
 
-            if (!string.IsNullOrWhiteSpace(scope))
-                operation["x-nexverse-scope"] = scope;
+                if (!string.IsNullOrWhiteSpace(operationSpec.scope))
+                    operation["x-nexverse-scope"] = operationSpec.scope;
 
-            return new Dictionary<string, object>
-            {
-                [method] = operation
-            };
+                result[operationSpec.method] = operation;
+            }
+
+            return result;
         }
 
         private static void WriteJson(IOSHttpResponse response, object payload)

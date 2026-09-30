@@ -20,12 +20,38 @@ These endpoints are public and read-only.
 
 ## Privileged user API foundation
 
-The first authenticated user-management paths are implemented:
+The authenticated user-management foundation now implements:
 
 - `GET /api/v1/users/me` — authenticated resident account
 - `GET /api/v1/users?q=<query>` — administrator account search
+- `POST /api/v1/users` — administrator account creation and provisioning
 - `GET /api/v1/users/{principalId}` — self or administrator account lookup
+- `PATCH /api/v1/users/{principalId}` — account profile update; self may update email/country, administrators may also update the user title
 - `PATCH /api/v1/users/{principalId}/level` — administrator UserLevel update
+- `POST /api/v1/users/{principalId}/password` — self-service password change or administrator reset
+
+Account creation uses a JSON body such as:
+
+```json
+{
+  "first_name": "Jam",
+  "last_name": "Resident",
+  "email": "jam@example.invalid",
+  "password": "replace-with-a-strong-password"
+}
+```
+
+The provisioning response reports whether authentication, inventory and home initialization succeeded. A created account is considered ready when authentication and inventory initialization both succeeded.
+
+Profile updates accept `email`, `user_country` and, for administrators, `user_title`.
+
+Password updates use:
+
+```json
+{
+  "new_password": "replace-with-a-strong-password"
+}
+```
 
 The UserLevel request body is:
 
@@ -91,10 +117,14 @@ The current foundation provides:
 
 Administrative changes emit audit information and NexBus events.
 
-The current UserLevel mutation emits:
+Current user mutations emit audit and NexBus events:
 
-- audit action: `users.level.update`
-- NexBus event: `user.level.changed`
+- account creation: `users.create` / `user.created`
+- account profile update: `users.update` / `user.updated`
+- password update: `users.password.update` / `user.password.changed`
+- UserLevel update: `users.level.update` / `user.level.changed`
+
+Passwords are never written to audit records or NexBus payloads.
 
 ## CI runtime verification
 
@@ -110,12 +140,9 @@ The smoke-test configuration keeps all privileged endpoints disabled and has no 
 
 The next user-management layer must add, behind scoped authentication:
 
-- account creation;
-- account updates;
 - soft deletion/deactivation;
 - lock/unlock;
 - ban/unban;
-- password reset workflow;
-- account audit/history;
+- durable account audit/history;
 - proper NexVerse token issuance and scope assignment;
 - rate limiting and production security controls.

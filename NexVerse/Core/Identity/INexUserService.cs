@@ -42,10 +42,50 @@ namespace NexVerse.Core.Identity
         }
     }
 
+    public sealed class NexUserProvisionResult
+    {
+        public NexUserRecord User { get; }
+        public bool AuthenticationInitialized { get; }
+        public bool InventoryInitialized { get; }
+        public bool HomeInitialized { get; }
+
+        public bool Ready =>
+            User != null &&
+            AuthenticationInitialized &&
+            InventoryInitialized;
+
+        public NexUserProvisionResult(
+            NexUserRecord user,
+            bool authenticationInitialized,
+            bool inventoryInitialized,
+            bool homeInitialized)
+        {
+            User = user;
+            AuthenticationInitialized = authenticationInitialized;
+            InventoryInitialized = inventoryInitialized;
+            HomeInitialized = homeInitialized;
+        }
+    }
+
     public interface INexUserService
     {
         NexUserRecord GetById(string principalId);
+        NexUserRecord GetByName(string firstName, string lastName);
         IReadOnlyList<NexUserRecord> Search(string query, int limit);
+
+        NexUserProvisionResult Create(
+            string firstName,
+            string lastName,
+            string email,
+            string password);
+
+        NexUserRecord UpdateProfile(
+            string principalId,
+            string email,
+            string userTitle,
+            string userCountry);
+
         bool SetUserLevel(string principalId, int userLevel);
+        bool SetPassword(string principalId, string password);
     }
 }
