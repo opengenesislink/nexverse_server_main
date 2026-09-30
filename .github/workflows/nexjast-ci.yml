@@ -77,6 +77,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexTokenRegression/NexTokenRegression.csproj
 
+      - name: Verify NexBus distributed core
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
+
       - name: Install native dependencies
         shell: bash
         run: |

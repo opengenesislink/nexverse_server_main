@@ -9,4 +9,9 @@ namespace NexVerse.Core.Messaging
         IDisposable Subscribe(string eventName, Action<NexEvent> handler);
         void Publish(NexEvent nexEvent);
     }
+
+    public interface INexEventTransport : IDisposable
+    {
+        void Send(NexEvent nexEvent);
+    }
 }
