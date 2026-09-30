@@ -416,6 +416,14 @@ namespace OpenSim.Services.LLLoginService
                     return LLFailedLoginResponse.UserProblem;
                 }
 
+                if (!account.LoginAllowed)
+                {
+                    m_log.InfoFormat(
+                        "[LLOGIN SERVICE]: Login failed for {0} {1}, reason: NexVerse account state is {2}",
+                        firstName, lastName, account.NexVerseState);
+                    return LLFailedLoginResponse.LoginBlockedProblem;
+                }
+
                 if (account.UserLevel < m_MinLoginLevel)
                 {
                     m_log.InfoFormat(

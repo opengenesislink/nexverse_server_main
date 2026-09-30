@@ -206,6 +206,27 @@ namespace OpenSim.Services.UserAccountService
             else
                 u.UserCountry = string.Empty;
 
+            u.Active = true;
+            if (d.Data.ContainsKey("active") && d.Data["active"] != null)
+            {
+                string active = d.Data["active"].ToString();
+                if (!Boolean.TryParse(active, out u.Active) && Int32.TryParse(active, out int activeInt))
+                    u.Active = activeInt != 0;
+            }
+
+            if (d.Data.ContainsKey("NexVerseState") && d.Data["NexVerseState"] != null)
+                u.NexVerseState = d.Data["NexVerseState"].ToString();
+            else
+                u.NexVerseState = "active";
+
+            if (d.Data.ContainsKey("NexVerseStateReason") && d.Data["NexVerseStateReason"] != null)
+                u.NexVerseStateReason = d.Data["NexVerseStateReason"].ToString();
+            else
+                u.NexVerseStateReason = string.Empty;
+
+            if (d.Data.ContainsKey("NexVerseStateChanged") && d.Data["NexVerseStateChanged"] != null)
+                Int32.TryParse(d.Data["NexVerseStateChanged"], out u.NexVerseStateChanged);
+
             if (d.Data.ContainsKey("ServiceURLs") && d.Data["ServiceURLs"] != null)
             {
                 string[] URLs = d.Data["ServiceURLs"].ToString().Split(new char[] { ' ' });
@@ -319,10 +340,12 @@ namespace OpenSim.Services.UserAccountService
             d.Data["Created"] = data.Created.ToString();
             d.Data["UserLevel"] = data.UserLevel.ToString();
             d.Data["UserFlags"] = data.UserFlags.ToString();
-            if (!string.IsNullOrEmpty(data.UserTitle))
-                d.Data["UserTitle"] = data.UserTitle;
-            if (!string.IsNullOrEmpty(data.UserCountry))
-                d.Data["UserCountry"] = data.UserCountry;
+            d.Data["UserTitle"] = data.UserTitle ?? string.Empty;
+            d.Data["UserCountry"] = data.UserCountry ?? string.Empty;
+            d.Data["active"] = data.Active ? "1" : "0";
+            d.Data["NexVerseState"] = string.IsNullOrWhiteSpace(data.NexVerseState) ? "active" : data.NexVerseState;
+            d.Data["NexVerseStateReason"] = data.NexVerseStateReason ?? string.Empty;
+            d.Data["NexVerseStateChanged"] = data.NexVerseStateChanged.ToString();
             List<string> parts = new List<string>();
 
             foreach (KeyValuePair<string, object> kvp in data.ServiceURLs)

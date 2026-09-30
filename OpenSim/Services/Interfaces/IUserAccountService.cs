@@ -93,6 +93,14 @@ namespace OpenSim.Services.Interfaces
         public string UserTitle;
         public string UserCountry;
         public Boolean LocalToGrid = true;
+        public Boolean Active = true;
+        public string NexVerseState = "active";
+        public string NexVerseStateReason = string.Empty;
+        public int NexVerseStateChanged;
+
+        public bool LoginAllowed =>
+            Active &&
+            string.Equals(NexVerseState, "active", StringComparison.OrdinalIgnoreCase);
 
         public Dictionary<string, object> ServiceURLs;
 
@@ -125,6 +133,26 @@ namespace OpenSim.Services.Interfaces
                 UserCountry = kvp["UserCountry"].ToString();
             if (kvp.ContainsKey("LocalToGrid"))
                 Boolean.TryParse(kvp["LocalToGrid"].ToString(), out LocalToGrid);
+
+            object activeValue = null;
+            if (kvp.ContainsKey("Active"))
+                activeValue = kvp["Active"];
+            else if (kvp.ContainsKey("active"))
+                activeValue = kvp["active"];
+
+            if (activeValue != null)
+            {
+                if (!Boolean.TryParse(activeValue.ToString(), out Active) &&
+                    Int32.TryParse(activeValue.ToString(), out int activeInt))
+                    Active = activeInt != 0;
+            }
+
+            if (kvp.ContainsKey("NexVerseState"))
+                NexVerseState = kvp["NexVerseState"]?.ToString() ?? "active";
+            if (kvp.ContainsKey("NexVerseStateReason"))
+                NexVerseStateReason = kvp["NexVerseStateReason"]?.ToString() ?? string.Empty;
+            if (kvp.ContainsKey("NexVerseStateChanged"))
+                Int32.TryParse(kvp["NexVerseStateChanged"]?.ToString(), out NexVerseStateChanged);
 
             if (kvp.ContainsKey("Created"))
                 Created = Convert.ToInt32(kvp["Created"].ToString());
@@ -160,6 +188,10 @@ namespace OpenSim.Services.Interfaces
             result["UserTitle"] = UserTitle;
             result["UserCountry"] = UserCountry;
             result["LocalToGrid"] = LocalToGrid.ToString();
+            result["Active"] = Active.ToString();
+            result["NexVerseState"] = NexVerseState ?? "active";
+            result["NexVerseStateReason"] = NexVerseStateReason ?? string.Empty;
+            result["NexVerseStateChanged"] = NexVerseStateChanged.ToString();
 
             string str = string.Empty;
             foreach (KeyValuePair<string, object> kvp in ServiceURLs)

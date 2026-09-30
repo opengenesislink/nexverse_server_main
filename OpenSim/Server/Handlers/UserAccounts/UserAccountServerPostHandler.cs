@@ -298,6 +298,27 @@ namespace OpenSim.Server.Handlers.UserAccounts
             if (request.TryGetValue("UserTitle", out otmp))
                 existingAccount.UserTitle = otmp.ToString();
 
+            if (request.TryGetValue("UserCountry", out otmp))
+                existingAccount.UserCountry = otmp.ToString();
+
+            if (request.TryGetValue("Active", out otmp))
+            {
+                if (Boolean.TryParse(otmp.ToString(), out bool active))
+                    existingAccount.Active = active;
+                else if (Int32.TryParse(otmp.ToString(), out int activeInt))
+                    existingAccount.Active = activeInt != 0;
+            }
+
+            if (request.TryGetValue("NexVerseState", out otmp))
+                existingAccount.NexVerseState = otmp.ToString();
+
+            if (request.TryGetValue("NexVerseStateReason", out otmp))
+                existingAccount.NexVerseStateReason = otmp.ToString();
+
+            if (request.TryGetValue("NexVerseStateChanged", out otmp) &&
+                Int32.TryParse(otmp.ToString(), out int stateChanged))
+                existingAccount.NexVerseStateChanged = stateChanged;
+
             if (!m_UserAccountService.StoreUserAccount(existingAccount))
             {
                 m_log.ErrorFormat(

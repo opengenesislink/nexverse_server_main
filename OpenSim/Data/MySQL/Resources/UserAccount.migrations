@@ -29,3 +29,14 @@ BEGIN;
 ALTER TABLE `UserAccounts` ADD `active` INT NOT NULL DEFAULT '1';
 
 COMMIT;
+
+:VERSION 7		# NexVerse account lifecycle -------------------------
+
+BEGIN;
+
+ALTER TABLE `UserAccounts` ADD `UserCountry` varchar(64) NOT NULL DEFAULT '';
+ALTER TABLE `UserAccounts` ADD `NexVerseState` varchar(32) NOT NULL DEFAULT 'active';
+ALTER TABLE `UserAccounts` ADD `NexVerseStateReason` varchar(255) NOT NULL DEFAULT '';
+ALTER TABLE `UserAccounts` ADD `NexVerseStateChanged` int(11) NOT NULL DEFAULT '0';
+
+COMMIT;
