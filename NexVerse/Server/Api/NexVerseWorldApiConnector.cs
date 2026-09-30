@@ -5,8 +5,11 @@ using log4net;
 using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Security;
 using OpenSim.Framework.Servers.HttpServer;
+using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
+using OpenSim.Services.Interfaces;
 
 namespace NexVerse.Server.Api
 {
@@ -35,6 +38,7 @@ namespace NexVerse.Server.Api
 
             INexEventBus eventBus = new InMemoryNexEventBus();
             INexAuditSink auditSink = new LogNexAuditSink();
+            INexAuthorizationService authorization = new NexAuthorizationService();
             NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, auditSink);
 
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", handlers.Root, "NexVerse World API"));
@@ -42,6 +46,62 @@ namespace NexVerse.Server.Api
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", handlers.Version, "NexVerse World API Version"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", handlers.Capabilities, "NexVerse World API Capabilities"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/openapi.json", handlers.OpenApi, "NexVerse World API OpenAPI"));
+
+            bool privilegedEndpoints = apiConfig.GetBoolean("EnablePrivilegedEndpoints", false);
+            if (privilegedEndpoints)
+            {
+                IConfig userConfig = config.Configs["UserAccountService"];
+                IConfig authConfig = config.Configs["AuthenticationService"];
+
+                string userModule = apiConfig.GetString(
+                    "UserAccountServiceModule",
+                    userConfig == null ? string.Empty : userConfig.GetString("LocalServiceModule", string.Empty));
+
+                string authModule = apiConfig.GetString(
+                    "AuthenticationServiceModule",
+                    authConfig == null ? string.Empty : authConfig.GetString("LocalServiceModule", string.Empty));
+
+                if (string.IsNullOrWhiteSpace(userModule) || string.IsNullOrWhiteSpace(authModule))
+                    throw new InvalidOperationException("NexVerse privileged API requires UserAccountServiceModule and AuthenticationServiceModule.");
+
+                IUserAccountService userAccounts =
+                    ServerUtils.LoadPlugin<IUserAccountService>(userModule, new object[] { config });
+
+                if (userAccounts == null)
+                    throw new InvalidOperationException("Unable to load NexVerse World API user account service.");
+
+                IAuthenticationService authentication =
+                    ServerUtils.LoadPlugin<IAuthenticationService>(authModule, new object[] { config, userAccounts });
+
+                if (authentication == null)
+                    authentication = ServerUtils.LoadPlugin<IAuthenticationService>(authModule, new object[] { config });
+
+                if (authentication == null)
+                    throw new InvalidOperationException("Unable to load NexVerse World API authentication service.");
+
+                int adminMinimumLevel = apiConfig.GetInt("AdminMinimumUserLevel", 200);
+                int tokenLifetimeSeconds = apiConfig.GetInt("TokenLifetimeSeconds", 1800);
+
+                NexApiAuthenticator authenticator = new NexApiAuthenticator(
+                    authentication,
+                    userAccounts,
+                    authorization,
+                    adminMinimumLevel,
+                    tokenLifetimeSeconds);
+
+                OpenSimNexUserService userService = new OpenSimNexUserService(userAccounts);
+                NexUserApiRouter userRouter = new NexUserApiRouter(userService, authenticator, eventBus, auditSink);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler("/api", userRouter.Handle, "NexVerse World API privileged router"),
+                    true);
+
+                m_Log.Warn("[NEX-WORLD-API]: Privileged endpoints are enabled. Use only over a transport that protects bearer tokens.");
+            }
+            else
+            {
+                m_Log.Info("[NEX-WORLD-API]: Privileged endpoints are disabled.");
+            }
 
             m_Log.InfoFormat("[NEX-WORLD-API]: World API {0} enabled at {1}/api/v1", Core.NexVersePlatform.ApiVersion, publicBaseUrl);
         }

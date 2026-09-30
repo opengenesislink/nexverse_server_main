@@ -122,7 +122,11 @@ namespace NexVerse.Server.Api
                 ["/api/v1/health"] = GetOperation("World API health"),
                 ["/api/v1/version"] = GetOperation("NexVerse server and protocol versions"),
                 ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
-                ["/api/v1/openapi.json"] = GetOperation("OpenAPI document")
+                ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
+                ["/api/v1/users/me"] = AuthenticatedOperation("Read the authenticated resident account", "get", null),
+                ["/api/v1/users"] = AuthenticatedOperation("Search user accounts", "get", "admin:*"),
+                ["/api/v1/users/{principalId}"] = AuthenticatedOperation("Read a user account", "get", "self or admin:*"),
+                ["/api/v1/users/{principalId}/level"] = AuthenticatedOperation("Change UserLevel", "patch", "admin:*")
             };
 
             WriteJson(response, new
@@ -215,6 +219,35 @@ namespace NexVerse.Server.Api
                     },
                     security = Array.Empty<object>()
                 }
+            };
+        }
+
+        private static object AuthenticatedOperation(string summary, string method, string scope)
+        {
+            Dictionary<string, object> operation = new Dictionary<string, object>
+            {
+                ["summary"] = summary,
+                ["security"] = new object[]
+                {
+                    new Dictionary<string, string[]>
+                    {
+                        ["bearerAuth"] = Array.Empty<string>()
+                    }
+                },
+                ["responses"] = new Dictionary<string, object>
+                {
+                    ["200"] = new { description = "Successful response" },
+                    ["401"] = new { description = "Authentication required" },
+                    ["403"] = new { description = "Insufficient scope" }
+                }
+            };
+
+            if (!string.IsNullOrWhiteSpace(scope))
+                operation["x-nexverse-scope"] = scope;
+
+            return new Dictionary<string, object>
+            {
+                [method] = operation
             };
         }
 

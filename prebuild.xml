@@ -1958,9 +1958,13 @@
 
       <ReferencePath>../../../bin/</ReferencePath>
       <Reference name="NexVerse.Core"/>
+      <Reference name="OpenMetaverse"/>
+      <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenSim.Framework"/>
       <Reference name="OpenSim.Framework.Servers.HttpServer"/>
       <Reference name="OpenSim.Server.Handlers"/>
+      <Reference name="OpenSim.Server.Base"/>
+      <Reference name="OpenSim.Services.Interfaces"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
 

@@ -496,6 +496,15 @@
     Enabled = true
     PublicBaseUrl = "http://world.stadt-nexverse.de"
 
+    ; Keep privileged endpoints disabled while the public API is served over plain HTTP.
+    ; Enable only when bearer tokens are protected by TLS or an equivalent trusted transport.
+    EnablePrivilegedEndpoints = false
+    AdminMinimumUserLevel = 200
+    TokenLifetimeSeconds = 1800
+
+    UserAccountServiceModule = "OpenSim.Services.UserAccountService.dll:UserAccountService"
+    AuthenticationServiceModule = "OpenSim.Services.AuthenticationService.dll:PasswordAuthenticationService"
+
 [GridInfoService]
     ; These settings are used to return information on a get_grid_info call.
     ; Client launcher scripts and third-party clients make use of this to
