@@ -183,9 +183,6 @@
     <Compile Include="BakedTextures\XBakes.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Freeswitch\FreeswitchServerConnector.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Land\LandHandlers.cs">
       <SubType>Code</SubType>
     </Compile>

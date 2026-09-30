@@ -197,9 +197,6 @@
     <Compile Include="UserStatistics\Sessions_Report.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ServiceConnectorsIn\Freeswitch\FreeswitchServiceInConnectorModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="World\NPC\NPCAvatar.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -323,12 +320,6 @@
     <Compile Include="Avatar\SitStand\SitStandCommandsModule.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Avatar\Voice\VivoxVoice\VivoxVoiceModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Avatar\Voice\FreeSwitchVoice\FreeSwitchVoiceModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Avatar\Concierge\ConciergeModule.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -345,18 +336,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Avatar\XmlRpcGroups\IGroupsServicesConnector.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Avatar\Chat\IRCBridgeModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Avatar\Chat\IRCConnector.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Avatar\Chat\ChannelState.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Avatar\Chat\RegionState.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

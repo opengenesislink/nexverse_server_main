@@ -10,8 +10,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.ApplicationPlugins.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.ApplicationPlugins.RegionModulesController", "OpenSim/ApplicationPlugins/RegionModulesController/OpenSim.ApplicationPlugins.RegionModulesController.csproj", "{39EE88B3-0000-0000-0000-000000000000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.ApplicationPlugins.RemoteController", "OpenSim/ApplicationPlugins/RemoteController/OpenSim.ApplicationPlugins.RemoteController.csproj", "{84D7072E-0000-0000-0000-000000000000}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Capabilities", "OpenSim/Capabilities/OpenSim.Capabilities.csproj", "{404E4470-0000-0000-0000-000000000000}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Capabilities.Handlers", "OpenSim/Capabilities/Handlers/OpenSim.Capabilities.Handlers.csproj", "{7858DEB9-0000-0000-0000-000000000000}"
@@ -94,8 +92,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Services.Connectors
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Services.EstateService", "OpenSim/Services/EstateService/OpenSim.Services.EstateService.csproj", "{58167AF0-0000-0000-0000-000000000000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Services.FreeswitchService", "OpenSim/Services/FreeswitchService/OpenSim.Services.FreeswitchService.csproj", "{5AA6609E-0000-0000-0000-000000000000}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Services.FriendsService", "OpenSim/Services/Friends/OpenSim.Services.FriendsService.csproj", "{28A5DD8F-0000-0000-0000-000000000000}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSim.Services.FSAssetService", "OpenSim/Services/FSAssetService/OpenSim.Services.FSAssetService.csproj", "{82ABD35C-0000-0000-0000-000000000000}"
@@ -156,10 +152,6 @@ Global
 		{39EE88B3-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{39EE88B3-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{39EE88B3-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{84D7072E-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{84D7072E-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{84D7072E-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{84D7072E-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{404E4470-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{404E4470-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{404E4470-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -324,10 +316,6 @@ Global
 		{58167AF0-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58167AF0-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{58167AF0-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5AA6609E-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5AA6609E-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5AA6609E-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5AA6609E-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{28A5DD8F-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{28A5DD8F-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28A5DD8F-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
