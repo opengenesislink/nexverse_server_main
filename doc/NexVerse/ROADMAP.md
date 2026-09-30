@@ -243,8 +243,9 @@ Implemented during NEXJAST:
 - [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.
 - [x] account lifecycle state is persisted independently of UserLevel and enforced by Viewer login and World API authentication.
 - [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.
-- [ ] distributed NexBus transport implemented end-to-end across Robust and simulator nodes.
+- [x] distributed NexBus transport connected end-to-end between Robust and simulator nodes.
 - [x] distributed NexBus core plus authenticated HTTP/HMAC peer transport foundation implemented with relay-loop deduplication and bounded outbound queue.
+- [x] NexVerse NodeAgent region module publishes node/region lifecycle and health heartbeats and exposes local/inbound NexBus pub/sub to simulator modules.
 - [ ] production metrics/OpenTelemetry implemented end-to-end.
 - [x] NexMetrics Prometheus-compatible registry/export endpoint and OpenTelemetry-compatible ActivitySource foundation implemented; external collector/export pipeline remains pending.
 
@@ -665,7 +666,7 @@ Implemented transport foundation:
 - HTTP peer fan-out is HMAC-SHA256 authenticated;
 - outbound delivery is queued so API publishers do not block on peer latency;
 - transport is configuration-driven and disabled by default;
-- simulator/NodeAgent integration remains required before the NEXJAST distributed NexBus item is complete.
+- simulator integration is provided by `NexVerse.RegionModules.dll` / `NexVerseNodeAgentModule`, including HMAC inbound/outbound transport, NodeAgent heartbeats and region lifecycle events.
 
 ### 9.6 Cross-region object-to-object communication
 

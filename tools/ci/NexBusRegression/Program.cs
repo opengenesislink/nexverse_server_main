@@ -70,7 +70,18 @@ internal static class Program
         Require(reconstructed.EventId == ev.EventId, "transport EventId must survive reconstruction");
         Require(reconstructed.Timestamp == ev.Timestamp, "transport timestamp must survive reconstruction");
 
-        Console.WriteLine("NexBus distributed core regression: OK");
+        byte[] wire = NexBusProtocol.Serialize(ev);
+        string sharedKey = new string('N', 64);
+        string signature = NexBusProtocol.Sign(wire, sharedKey);
+        Require(NexBusProtocol.Verify(wire, sharedKey, "sha256=" + signature), "wire HMAC verification failed");
+        Require(!NexBusProtocol.Verify(wire, new string('X', 64), "sha256=" + signature), "wrong NexBus HMAC key accepted");
+
+        NexEvent wireEvent = NexBusProtocol.Deserialize(wire);
+        Require(wireEvent.EventId == ev.EventId, "wire EventId mismatch");
+        Require(wireEvent.Name == ev.Name, "wire event name mismatch");
+        Require(wireEvent.Data["principal_id"] == "demo", "wire event data mismatch");
+
+        Console.WriteLine("NexBus distributed core/wire regression: OK");
         return 0;
     }
 }

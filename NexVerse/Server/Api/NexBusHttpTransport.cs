@@ -8,10 +8,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using log4net;
@@ -21,93 +19,6 @@ using OpenSim.Framework.Servers.HttpServer;
 
 namespace NexVerse.Server.Api
 {
-    internal sealed class NexBusWireEvent
-    {
-        [JsonPropertyName("schema")]
-        public string Schema { get; set; }
-
-        [JsonPropertyName("event_id")]
-        public Guid EventId { get; set; }
-
-        [JsonPropertyName("timestamp")]
-        public DateTimeOffset Timestamp { get; set; }
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-
-        [JsonPropertyName("source")]
-        public string Source { get; set; }
-
-        [JsonPropertyName("correlation_id")]
-        public string CorrelationId { get; set; }
-
-        [JsonPropertyName("data")]
-        public Dictionary<string, string> Data { get; set; }
-
-        public static NexBusWireEvent FromEvent(NexEvent nexEvent)
-        {
-            return new NexBusWireEvent
-            {
-                Schema = Core.NexVersePlatform.NexBusSchemaVersion,
-                EventId = nexEvent.EventId,
-                Timestamp = nexEvent.Timestamp,
-                Name = nexEvent.Name,
-                Source = nexEvent.Source,
-                CorrelationId = nexEvent.CorrelationId,
-                Data = new Dictionary<string, string>(nexEvent.Data)
-            };
-        }
-
-        public NexEvent ToEvent()
-        {
-            if (!string.Equals(Schema, Core.NexVersePlatform.NexBusSchemaVersion, StringComparison.Ordinal))
-                throw new InvalidDataException("Unsupported NexBus schema version.");
-
-            return new NexEvent(
-                EventId,
-                Timestamp,
-                Name,
-                Source,
-                Data ?? new Dictionary<string, string>(),
-                CorrelationId);
-        }
-    }
-
-    internal static class NexBusHmac
-    {
-        public static string Sign(byte[] payload, string sharedKey)
-        {
-            using HMACSHA256 hmac = new HMACSHA256(Encoding.UTF8.GetBytes(sharedKey));
-            return Convert.ToHexString(hmac.ComputeHash(payload)).ToLowerInvariant();
-        }
-
-        public static bool Verify(byte[] payload, string sharedKey, string supplied)
-        {
-            if (string.IsNullOrWhiteSpace(supplied))
-                return false;
-
-            string value = supplied.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase)
-                ? supplied.Substring("sha256=".Length)
-                : supplied;
-
-            byte[] expected;
-            byte[] actual;
-
-            try
-            {
-                expected = Convert.FromHexString(Sign(payload, sharedKey));
-                actual = Convert.FromHexString(value);
-            }
-            catch
-            {
-                return false;
-            }
-
-            return expected.Length == actual.Length &&
-                   CryptographicOperations.FixedTimeEquals(expected, actual);
-        }
-    }
-
     internal sealed class HttpNexEventTransport : INexEventTransport
     {
         private static readonly ILog m_Log = LogManager.GetLogger(typeof(HttpNexEventTransport));
@@ -191,10 +102,8 @@ namespace NexVerse.Server.Api
 
         private void SendToPeers(NexEvent nexEvent)
         {
-            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(
-                NexBusWireEvent.FromEvent(nexEvent),
-                s_Json);
-            string signature = NexBusHmac.Sign(payload, m_SharedKey);
+            byte[] payload = NexBusProtocol.Serialize(nexEvent);
+            string signature = NexBusProtocol.Sign(payload, m_SharedKey);
 
             foreach (Uri peer in m_Peers)
             {
@@ -316,7 +225,7 @@ namespace NexVerse.Server.Api
             }
 
             string signature = request.Headers?["X-NexBus-Signature"];
-            if (!NexBusHmac.Verify(payload, m_SharedKey, signature))
+            if (!NexBusProtocol.Verify(payload, m_SharedKey, signature))
             {
                 Write(response, HttpStatusCode.Unauthorized, new { error = "invalid_signature" });
                 return;
@@ -324,14 +233,7 @@ namespace NexVerse.Server.Api
 
             try
             {
-                NexBusWireEvent wire = JsonSerializer.Deserialize<NexBusWireEvent>(payload, s_Json);
-                NexEvent nexEvent = wire?.ToEvent();
-                if (nexEvent == null)
-                {
-                    Write(response, HttpStatusCode.BadRequest, new { error = "invalid_event" });
-                    return;
-                }
-
+                NexEvent nexEvent = NexBusProtocol.Deserialize(payload);
                 bool accepted = m_Bus.Receive(nexEvent);
                 Write(response, HttpStatusCode.Accepted, new
                 {

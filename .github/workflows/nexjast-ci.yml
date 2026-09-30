@@ -115,6 +115,7 @@ jobs:
         run: |
           test -f bin/NexVerse.Core.dll
           test -f bin/NexVerse.Server.Api.dll
+          test -f bin/NexVerse.RegionModules.dll
 
       - name: Verify NexVerse version
         shell: bash

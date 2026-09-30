@@ -12,5 +12,6 @@
     <Compile Include="../../../NexVerse/Core/Messaging/INexEventBus.cs" Link="INexEventBus.cs" />
     <Compile Include="../../../NexVerse/Core/Messaging/InMemoryNexEventBus.cs" Link="InMemoryNexEventBus.cs" />
     <Compile Include="../../../NexVerse/Core/Messaging/DistributedNexEventBus.cs" Link="DistributedNexEventBus.cs" />
+    <Compile Include="../../../NexVerse/Core/Messaging/NexBusProtocol.cs" Link="NexBusProtocol.cs" />
   </ItemGroup>
 </Project>
