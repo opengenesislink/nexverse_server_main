@@ -262,8 +262,9 @@ Implemented during NEXJAST:
 - [x] OSSL policy coverage is regression-checked by NEXJAST CI.
 - [x] HG local-grid URI identity normalization is regression-tested by NEXJAST CI.
 - [ ] HG login remains functional.
-- [ ] local grid login remains functional.
-- [ ] Firestorm baseline smoke tests pass.
+- [ ] local grid login remains functional through successful simulator placement.
+- [x] Firestorm-compatible LLLogin XML-RPC endpoint is runtime smoke-tested with a real Robust process.
+- [ ] Firestorm baseline smoke tests pass through successful viewer/simulator login.
 - [ ] compatibility-sensitive XML-RPC/LSL functionality remains intact after runtime verification.
 - [x] development runtime version source identifies itself as NexVerse 0.9.3.1 Dev.
 

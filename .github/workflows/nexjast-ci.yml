@@ -124,6 +124,10 @@ jobs:
           grep -F 'public const string VersionNumber = "0.9.3.1";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
 
+      - name: Runtime smoke test LLLogin protocol
+        shell: bash
+        run: bash tools/ci/smoke_lllogin_protocol.sh
+
       - name: Runtime smoke test World API
         shell: bash
         run: |
