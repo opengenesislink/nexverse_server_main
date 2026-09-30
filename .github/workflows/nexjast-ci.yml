@@ -117,6 +117,10 @@ jobs:
           test -f bin/NexVerse.Server.Api.dll
           test -f bin/NexVerse.RegionModules.dll
 
+      - name: Runtime regression LSL XML-RPC RemoteData compatibility
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/XmlRpcRemoteDataRegression/XmlRpcRemoteDataRegression.csproj
+
       - name: Verify NexVerse version
         shell: bash
         run: |
