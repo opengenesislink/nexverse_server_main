@@ -42,28 +42,54 @@ namespace NexVerse.Core.Identity
         }
     }
 
+    public sealed class NexRegionRecord
+    {
+        public string RegionId { get; }
+        public string Name { get; }
+        public string ServerUri { get; }
+        public int SizeX { get; }
+        public int SizeY { get; }
+
+        public NexRegionRecord(string regionId, string name, string serverUri, int sizeX, int sizeY)
+        {
+            RegionId = regionId ?? string.Empty;
+            Name = name ?? string.Empty;
+            ServerUri = serverUri ?? string.Empty;
+            SizeX = sizeX;
+            SizeY = sizeY;
+        }
+    }
+
     public sealed class NexUserProvisionResult
     {
         public NexUserRecord User { get; }
         public bool AuthenticationInitialized { get; }
         public bool InventoryInitialized { get; }
         public bool HomeInitialized { get; }
+        public bool StartPositionInitialized { get; }
+        public NexRegionRecord HomeRegion { get; }
 
         public bool Ready =>
             User != null &&
             AuthenticationInitialized &&
-            InventoryInitialized;
+            InventoryInitialized &&
+            HomeInitialized &&
+            StartPositionInitialized;
 
         public NexUserProvisionResult(
             NexUserRecord user,
             bool authenticationInitialized,
             bool inventoryInitialized,
-            bool homeInitialized)
+            bool homeInitialized,
+            bool startPositionInitialized,
+            NexRegionRecord homeRegion)
         {
             User = user;
             AuthenticationInitialized = authenticationInitialized;
             InventoryInitialized = inventoryInitialized;
             HomeInitialized = homeInitialized;
+            StartPositionInitialized = startPositionInitialized;
+            HomeRegion = homeRegion;
         }
     }
 
@@ -72,12 +98,18 @@ namespace NexVerse.Core.Identity
         NexUserRecord GetById(string principalId);
         NexUserRecord GetByName(string firstName, string lastName);
         IReadOnlyList<NexUserRecord> Search(string query, int limit);
+        IReadOnlyList<NexRegionRecord> SearchHomeRegions(string query, int limit);
+        NexRegionRecord ResolveHomeRegion(string regionId, string regionName);
 
         NexUserProvisionResult Create(
             string firstName,
             string lastName,
             string email,
-            string password);
+            string password,
+            string homeRegionId,
+            float homeX,
+            float homeY,
+            float homeZ);
 
         NexUserRecord UpdateProfile(
             string principalId,

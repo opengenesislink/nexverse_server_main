@@ -22,6 +22,7 @@ These endpoints are public and read-only.
 
 The authenticated user-management foundation now implements:
 
+- `GET /api/v1/regions?q=<query>` — administrator search for selectable home/start regions; with no query it returns configured default regions
 - `GET /api/v1/users/me` — authenticated resident account
 - `GET /api/v1/users?q=<query>` — administrator account search
 - `POST /api/v1/users` — administrator account creation and provisioning
@@ -37,11 +38,23 @@ Account creation uses a JSON body such as:
   "first_name": "Jam",
   "last_name": "Resident",
   "email": "jam@example.invalid",
-  "password": "replace-with-a-strong-password"
+  "password": "replace-with-a-strong-password",
+  "home_region": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "position": {
+      "x": 128,
+      "y": 128,
+      "z": 25
+    }
+  }
 }
 ```
 
-The provisioning response reports whether authentication, inventory and home initialization succeeded. A created account is considered ready when authentication and inventory initialization both succeeded.
+A home/start region is mandatory for account creation. The caller may select it by region UUID or exact region name. The optional position defaults to `128,128,25` and is validated against the selected region size.
+
+The selected region is written both as the avatar's Home location and as its initial Last/Start position. This ensures a new avatar starts in the selected region whether the viewer requests Home or Last Location on the first login.
+
+The provisioning response reports authentication, inventory, home and initial start-position initialization. A created account is considered ready only when all four required steps succeeded.
 
 Profile updates accept `email`, `user_country` and, for administrators, `user_title`.
 

@@ -156,14 +156,70 @@ namespace NexVerse.Server.Api
                 .ToList();
         }
 
+        public IReadOnlyList<NexRegionRecord> SearchHomeRegions(string query, int limit)
+        {
+            if (m_Grid == null)
+                return Array.Empty<NexRegionRecord>();
+
+            int safeLimit = Math.Max(1, Math.Min(limit, 100));
+            List<GridRegion> regions;
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                regions = m_Grid.GetDefaultRegions(UUID.Zero);
+            }
+            else if (UUID.TryParse(query.Trim(), out UUID regionId))
+            {
+                GridRegion exact = m_Grid.GetRegionByUUID(UUID.Zero, regionId);
+                regions = exact == null ? new List<GridRegion>() : new List<GridRegion> { exact };
+            }
+            else
+            {
+                regions = m_Grid.GetRegionsByName(UUID.Zero, query.Trim(), safeLimit);
+            }
+
+            if (regions == null)
+                return Array.Empty<NexRegionRecord>();
+
+            return regions
+                .Where(x => x != null && !x.RegionID.IsZero())
+                .Take(safeLimit)
+                .Select(ConvertRegion)
+                .ToList();
+        }
+
+        public NexRegionRecord ResolveHomeRegion(string regionId, string regionName)
+        {
+            if (m_Grid == null)
+                return null;
+
+            GridRegion region = null;
+
+            if (!string.IsNullOrWhiteSpace(regionId) && UUID.TryParse(regionId.Trim(), out UUID id))
+                region = m_Grid.GetRegionByUUID(UUID.Zero, id);
+
+            if (region == null && !string.IsNullOrWhiteSpace(regionName))
+                region = m_Grid.GetRegionByName(UUID.Zero, regionName.Trim());
+
+            return ConvertRegion(region);
+        }
+
         public NexUserProvisionResult Create(
             string firstName,
             string lastName,
             string email,
-            string password)
+            string password,
+            string homeRegionId,
+            float homeX,
+            float homeY,
+            float homeZ)
         {
             if (GetByName(firstName, lastName) != null)
-                return new NexUserProvisionResult(null, false, false, false);
+                return new NexUserProvisionResult(null, false, false, false, false, null);
+
+            NexRegionRecord homeRegion = ResolveHomeRegion(homeRegionId, null);
+            if (homeRegion == null || m_GridUsers == null)
+                return new NexUserProvisionResult(null, false, false, false, false, null);
 
             UserAccount account = new UserAccount(
                 UUID.Zero,
@@ -173,25 +229,27 @@ namespace NexVerse.Server.Api
                 email?.Trim() ?? string.Empty);
 
             if (!m_UserAccounts.StoreUserAccount(account))
-                return new NexUserProvisionResult(null, false, false, false);
+                return new NexUserProvisionResult(null, false, false, false, false, homeRegion);
 
             bool authenticationInitialized = m_Authentication.SetPassword(account.PrincipalID, password);
             bool inventoryInitialized = m_Inventory != null && m_Inventory.CreateUserInventory(account.PrincipalID);
-            bool homeInitialized = false;
 
-            if (m_Grid != null && m_GridUsers != null)
-            {
-                List<GridRegion> defaultRegions = m_Grid.GetDefaultRegions(UUID.Zero);
-                if (defaultRegions != null && defaultRegions.Count > 0)
-                {
-                    GridRegion home = defaultRegions[0];
-                    homeInitialized = m_GridUsers.SetHome(
-                        account.PrincipalID.ToString(),
-                        home.RegionID,
-                        new Vector3(128, 128, 0),
-                        new Vector3(0, 1, 0));
-                }
-            }
+            Vector3 position = new Vector3(homeX, homeY, homeZ);
+            Vector3 lookAt = new Vector3(0, 1, 0);
+            UUID selectedRegionId = new UUID(homeRegion.RegionId);
+
+            bool homeInitialized = m_GridUsers.SetHome(
+                account.PrincipalID.ToString(),
+                selectedRegionId,
+                position,
+                lookAt);
+
+            bool startPositionInitialized = m_GridUsers.SetLastPosition(
+                account.PrincipalID.ToString(),
+                UUID.Zero,
+                selectedRegionId,
+                position,
+                lookAt);
 
             m_UserAccounts.InvalidateCache(account.PrincipalID);
 
@@ -199,7 +257,9 @@ namespace NexVerse.Server.Api
                 Convert(account),
                 authenticationInitialized,
                 inventoryInitialized,
-                homeInitialized);
+                homeInitialized,
+                startPositionInitialized,
+                homeRegion);
         }
 
         public NexUserRecord UpdateProfile(
@@ -250,6 +310,19 @@ namespace NexVerse.Server.Api
                    m_Authentication.SetPassword(id, password);
         }
 
+        private static NexRegionRecord ConvertRegion(GridRegion region)
+        {
+            if (region == null)
+                return null;
+
+            return new NexRegionRecord(
+                region.RegionID.ToString(),
+                region.RegionName,
+                region.ServerURI,
+                region.RegionSizeX,
+                region.RegionSizeY);
+        }
+
         private static NexUserRecord Convert(UserAccount account)
         {
             if (account == null)
@@ -293,6 +366,12 @@ namespace NexVerse.Server.Api
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
         {
             string path = (request?.UriPath ?? string.Empty).TrimEnd('/');
+
+            if (string.Equals(path, "/api/v1/regions", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleRegionSearch(request, response);
+                return;
+            }
 
             if (string.Equals(path, "/api/v1/users/me", StringComparison.OrdinalIgnoreCase))
             {
@@ -342,6 +421,29 @@ namespace NexVerse.Server.Api
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown NexVerse API endpoint.");
+        }
+
+        private void HandleRegionSearch(IOSHttpRequest request, IOSHttpResponse response)
+        {
+            if (!RequireMethod(request, response, "GET"))
+                return;
+
+            if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal _, out UserAccount _))
+                return;
+
+            string query = request.QueryString?["q"] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(query) && query.Trim().Length < 2)
+            {
+                WriteError(response, HttpStatusCode.BadRequest, "invalid_query", "Region search query must be empty or contain at least two characters.");
+                return;
+            }
+
+            IReadOnlyList<NexRegionRecord> regions = m_Users.SearchHomeRegions(query, 50);
+            WriteJson(response, new
+            {
+                count = regions.Count,
+                regions = regions.Select(RegionPayload).ToArray()
+            });
         }
 
         private void HandleMe(IOSHttpRequest request, IOSHttpResponse response)
@@ -407,6 +509,52 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
+                if (!root.TryGetProperty("home_region", out JsonElement homeRegionElement) ||
+                    homeRegionElement.ValueKind != JsonValueKind.Object)
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "home_region_required", "home_region must select a valid start/home region.");
+                    return;
+                }
+
+                string homeRegionId = GetOptionalString(homeRegionElement, "id") ?? string.Empty;
+                string homeRegionName = GetOptionalString(homeRegionElement, "name") ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(homeRegionId) && string.IsNullOrWhiteSpace(homeRegionName))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "home_region_required", "home_region.id or home_region.name is required.");
+                    return;
+                }
+
+                NexRegionRecord selectedHome = m_Users.ResolveHomeRegion(homeRegionId, homeRegionName);
+                if (selectedHome == null)
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "home_region_not_found", "The selected home/start region does not exist.");
+                    return;
+                }
+
+                float homeX = 128f;
+                float homeY = 128f;
+                float homeZ = 25f;
+
+                if (homeRegionElement.TryGetProperty("position", out JsonElement positionElement))
+                {
+                    if (positionElement.ValueKind != JsonValueKind.Object ||
+                        !TryGetOptionalSingle(positionElement, "x", ref homeX) ||
+                        !TryGetOptionalSingle(positionElement, "y", ref homeY) ||
+                        !TryGetOptionalSingle(positionElement, "z", ref homeZ))
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_home_position", "home_region.position x, y and z must be numeric.");
+                        return;
+                    }
+                }
+
+                if (homeX < 0 || homeX >= selectedHome.SizeX ||
+                    homeY < 0 || homeY >= selectedHome.SizeY ||
+                    homeZ < 0 || homeZ > 4096)
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_home_position", "The selected home position is outside the valid region bounds.");
+                    return;
+                }
+
                 string email = GetOptionalString(root, "email") ?? string.Empty;
 
                 firstName = firstName.Trim();
@@ -437,7 +585,15 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
-                NexUserProvisionResult result = m_Users.Create(firstName, lastName, email, password);
+                NexUserProvisionResult result = m_Users.Create(
+                    firstName,
+                    lastName,
+                    email,
+                    password,
+                    selectedHome.RegionId,
+                    homeX,
+                    homeY,
+                    homeZ);
                 if (result?.User == null)
                 {
                     WriteError(response, HttpStatusCode.InternalServerError, "user_create_failed", "The user account could not be created.");
@@ -453,7 +609,9 @@ namespace NexVerse.Server.Api
                     new Dictionary<string, string>
                     {
                         ["first_name"] = result.User.FirstName,
-                        ["last_name"] = result.User.LastName
+                        ["last_name"] = result.User.LastName,
+                        ["home_region_id"] = selectedHome.RegionId,
+                        ["home_region_name"] = selectedHome.Name
                     }));
 
                 m_EventBus.Publish(new NexEvent(
@@ -461,7 +619,8 @@ namespace NexVerse.Server.Api
                     "nexverse.world-api",
                     new Dictionary<string, string>
                     {
-                        ["principal_id"] = result.User.PrincipalId
+                        ["principal_id"] = result.User.PrincipalId,
+                        ["home_region_id"] = selectedHome.RegionId
                     },
                     correlationId));
 
@@ -473,7 +632,9 @@ namespace NexVerse.Server.Api
                         ready = result.Ready,
                         authentication_initialized = result.AuthenticationInitialized,
                         inventory_initialized = result.InventoryInitialized,
-                        home_initialized = result.HomeInitialized
+                        home_initialized = result.HomeInitialized,
+                        start_position_initialized = result.StartPositionInitialized,
+                        home_region = RegionPayload(result.HomeRegion)
                     },
                     correlation_id = correlationId
                 }, HttpStatusCode.Created);
@@ -850,6 +1011,18 @@ namespace NexVerse.Server.Api
             return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
         }
 
+        private static bool TryGetOptionalSingle(JsonElement root, string propertyName, ref float value)
+        {
+            if (!root.TryGetProperty(propertyName, out JsonElement element))
+                return true;
+
+            if (element.ValueKind != JsonValueKind.Number || !element.TryGetSingle(out float parsed) || float.IsNaN(parsed) || float.IsInfinity(parsed))
+                return false;
+
+            value = parsed;
+            return true;
+        }
+
         private static bool IsValidNamePart(string value)
         {
             if (string.IsNullOrWhiteSpace(value) || value.Length > 64)
@@ -878,6 +1051,21 @@ namespace NexVerse.Server.Api
                    value.IndexOf('@') > 0 &&
                    value.IndexOf('\r') < 0 &&
                    value.IndexOf('\n') < 0;
+        }
+
+        private static Dictionary<string, object> RegionPayload(NexRegionRecord region)
+        {
+            if (region == null)
+                return null;
+
+            return new Dictionary<string, object>
+            {
+                ["region_id"] = region.RegionId,
+                ["name"] = region.Name,
+                ["server_uri"] = region.ServerUri,
+                ["size_x"] = region.SizeX,
+                ["size_y"] = region.SizeY
+            };
         }
 
         private static Dictionary<string, object> UserPayload(NexUserRecord user)
