@@ -21,8 +21,8 @@ Status values:
 | LLLogin / viewer login protocol | **KEEP** | Required for compatible viewers including Firestorm. |
 | LLUDP / viewer protocol stack | **KEEP** | Required for viewer compatibility. |
 | Hypergrid HG1.5 services | **KEEP** | Required until/supplemented by a future explicitly versioned federation layer. |
-| OpenID server | **REPLACE** | Audit dependencies, then replace with NexVerse identity/authentication. |
-| UserStatistics/WebStats | **REPLACE** | Planned replacement by NexMetrics/OpenTelemetry/API observability. |
+| OpenID server | **REMOVED** | Legacy OpenID provider/connector removed. Optional LLLogin protocol fields remain until Firestorm runtime validation. |
+| UserStatistics/WebStats | **REMOVED** | Legacy `/SStats`/SQLite/AJAX statistics stack removed; replacement is NexMetrics/OpenTelemetry/API observability. |
 | OfflineIM | **REPLACE** | Keep until NexMessaging provides equivalent IM/group/HG behavior. |
 | OpenSim Groups addon | **REPLACE** | Keep until NexGroups reaches viewer/HG parity. |
 | JsonStore | **REPLACE** | Evaluate against LSL/Experience requirements before removal. |
@@ -45,6 +45,9 @@ Completed source cleanup:
 - Vivox source and configuration removed;
 - FreeSwitch source, service project, connectors, handlers, interface, configuration and standalone binaries removed;
 - IRC bridge source and configuration removed;
-- tracked .NET `obj/` intermediate trees removed.
+- tracked .NET `obj/` intermediate trees removed;
+- legacy OpenID server/provider removed;
+- legacy UserStatistics/WebStats module and static `/SStats` assets removed;
+- NexVerse.Core and NexVerse.Server.Api introduced as native platform assemblies.
 
 Build and runtime verification remains required before NEXJAST is considered complete.
