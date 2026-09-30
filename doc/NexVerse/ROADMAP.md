@@ -491,7 +491,52 @@ World API functions:
 - parcel summary;
 - region console actions via controlled APIs.
 
-### 8.4 Estate management
+### 8.4 Interactive World Grid Planner
+
+Add an administrator-facing raster world map to the NexVerse World API web interface for region placement and capacity planning.
+
+The planner must provide:
+
+- a scrollable and zoomable grid based on the OpenSim 256m base region cell;
+- mouse hover over every raster cell showing exact grid coordinates;
+- display of both region-grid coordinates and absolute world-meter coordinates;
+- clear visual distinction between free, occupied, reserved and unavailable cells;
+- region name, UUID, simulator/node, size and status for occupied cells;
+- correct multi-cell occupancy for VarRegions larger than 256x256m;
+- detection of overlap before a new region is created;
+- click-to-select a free cell;
+- direct hand-off of the selected coordinates into the create-region form;
+- optional region-size selection with live preview of the footprint before creation;
+- search/jump to region name, UUID or coordinates;
+- pan/zoom controls and useful viewport bounds;
+- filtering by simulator node, estate, region state and region type;
+- refresh after region create, delete, move, start or stop operations.
+
+The raster must be driven by API data rather than by scraping rendered map tiles.
+
+Planned API contracts:
+
+- `GET /api/v1/grid/layout` — return region placements and occupancy for a bounded grid window;
+- `GET /api/v1/grid/cells/{x}/{y}` — inspect one grid cell and any occupying region;
+- `GET /api/v1/grid/validate-placement` — validate whether a proposed origin and region size are free;
+- `POST /api/v1/regions` — create a region using validated grid coordinates;
+- `PATCH /api/v1/regions/{regionId}/placement` — move a region after safety checks.
+
+The layout response should expose enough information for the UI to calculate occupancy without ambiguity:
+
+- origin grid X/Y;
+- origin world X/Y in meters;
+- region width/height in meters;
+- width/height in 256m cells;
+- occupied cell range;
+- region UUID/name;
+- simulator/node ID;
+- online/offline state;
+- estate ID where available.
+
+Placement validation must reject overlaps, including partial overlap with VarRegions.
+
+### 8.5 Estate management
 
 Complete Estate API:
 

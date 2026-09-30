@@ -149,6 +149,24 @@ NEXJAST CI starts a minimal Robust process using `bin/Robust.NexVerseApi.Tests.i
 
 The smoke-test configuration keeps all privileged endpoints disabled and has no production database dependency.
 
+## Planned region-grid administration API
+
+The Region Control Plane will expose a raster-layout API used by the administrator web interface.
+
+Planned endpoints:
+
+- `GET /api/v1/grid/layout?min_x=<x>&max_x=<x>&min_y=<y>&max_y=<y>` — bounded world-grid layout and occupancy data
+- `GET /api/v1/grid/cells/{x}/{y}` — cell inspection
+- `GET /api/v1/grid/validate-placement?x=<x>&y=<y>&size_x=<meters>&size_y=<meters>` — overlap/placement validation
+- `POST /api/v1/regions` — create a region at validated coordinates
+- `PATCH /api/v1/regions/{regionId}/placement` — move a region after validation
+
+The corresponding admin UI at `world.stadt-nexverse.de` will render this data as an interactive raster map. Hovering a cell must show exact grid coordinates and absolute world coordinates. Free, occupied, reserved and unavailable cells must be visually distinct.
+
+VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells must be considered occupied during placement validation.
+
+Selecting a free cell in the raster will prefill the create-region form. Region-size selection should show the intended footprint before creation and refuse any overlap.
+
 ## Next API work
 
 The next user-management layer must add, behind scoped authentication:
