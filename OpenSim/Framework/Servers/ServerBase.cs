@@ -167,8 +167,10 @@ namespace OpenSim.Framework.Servers
             }
             else
             {
-                // FIXME: This should be done through an interface rather than casting.
-                m_consoleAppender.Console = (ConsoleBase)m_console;
+                // Headless/test consoles implement ICommandConsole but are not necessarily ConsoleBase.
+                // Only wire the log4net console appender when the selected console supports ConsoleBase.
+                if (m_console is ConsoleBase consoleBase)
+                    m_consoleAppender.Console = consoleBase;
 
                 // If there is no threshold set then the threshold is effectively everything.
                 if (m_consoleAppender.Threshold is null)
