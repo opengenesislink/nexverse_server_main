@@ -81,6 +81,13 @@ namespace NexVerse.Server.Api
                 return false;
             }
 
+            if (!account.LoginAllowed)
+            {
+                statusCode = (int)HttpStatusCode.Forbidden;
+                error = "account_blocked";
+                return false;
+            }
+
             List<string> scopes = new List<string>();
             if (account.UserLevel >= m_AdminMinimumLevel)
                 scopes.Add(NexScopes.AdminAll);
@@ -215,11 +222,11 @@ namespace NexVerse.Server.Api
             float homeZ)
         {
             if (GetByName(firstName, lastName) != null)
-                return new NexUserProvisionResult(null, false, false, false, false, null);
+                return new NexUserProvisionResult(null, false, false, false, false, false, null);
 
             NexRegionRecord homeRegion = ResolveHomeRegion(homeRegionId, null);
             if (homeRegion == null || m_GridUsers == null)
-                return new NexUserProvisionResult(null, false, false, false, false, null);
+                return new NexUserProvisionResult(null, false, false, false, false, false, null);
 
             UserAccount account = new UserAccount(
                 UUID.Zero,
@@ -228,8 +235,13 @@ namespace NexVerse.Server.Api
                 lastName.Trim(),
                 email?.Trim() ?? string.Empty);
 
+            account.Active = false;
+            account.NexVerseState = NexAccountStates.Provisioning;
+            account.NexVerseStateReason = string.Empty;
+            account.NexVerseStateChanged = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+
             if (!m_UserAccounts.StoreUserAccount(account))
-                return new NexUserProvisionResult(null, false, false, false, false, homeRegion);
+                return new NexUserProvisionResult(null, false, false, false, false, false, homeRegion);
 
             bool authenticationInitialized = m_Authentication.SetPassword(account.PrincipalID, password);
             bool inventoryInitialized = m_Inventory != null && m_Inventory.CreateUserInventory(account.PrincipalID);
@@ -251,6 +263,22 @@ namespace NexVerse.Server.Api
                 position,
                 lookAt);
 
+            bool provisioned =
+                authenticationInitialized &&
+                inventoryInitialized &&
+                homeInitialized &&
+                startPositionInitialized;
+
+            account.Active = provisioned;
+            account.NexVerseState = provisioned
+                ? NexAccountStates.Active
+                : NexAccountStates.ProvisioningFailed;
+            account.NexVerseStateReason = provisioned
+                ? string.Empty
+                : "One or more mandatory provisioning steps failed.";
+            account.NexVerseStateChanged = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+
+            bool stateFinalized = m_UserAccounts.StoreUserAccount(account);
             m_UserAccounts.InvalidateCache(account.PrincipalID);
 
             return new NexUserProvisionResult(
@@ -259,6 +287,7 @@ namespace NexVerse.Server.Api
                 inventoryInitialized,
                 homeInitialized,
                 startPositionInitialized,
+                stateFinalized,
                 homeRegion);
         }
 
@@ -310,6 +339,28 @@ namespace NexVerse.Server.Api
                    m_Authentication.SetPassword(id, password);
         }
 
+        public NexUserRecord SetAccountState(string principalId, string state, string reason)
+        {
+            if (!UUID.TryParse(principalId, out UUID id) ||
+                !NexAccountStates.IsAdministrativeState(state))
+                return null;
+
+            UserAccount account = m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null)
+                return null;
+
+            account.NexVerseState = state;
+            account.NexVerseStateReason = reason ?? string.Empty;
+            account.NexVerseStateChanged = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+            account.Active = state != NexAccountStates.Deactivated;
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+                return null;
+
+            m_UserAccounts.InvalidateCache(id);
+            return Convert(account);
+        }
+
         private static NexRegionRecord ConvertRegion(GridRegion region)
         {
             if (region == null)
@@ -338,6 +389,10 @@ namespace NexVerse.Server.Api
                 account.UserTitle,
                 account.UserCountry,
                 account.LocalToGrid,
+                account.Active,
+                account.NexVerseState,
+                account.NexVerseStateReason,
+                account.NexVerseStateChanged,
                 account.Created);
         }
     }
@@ -402,8 +457,16 @@ namespace NexVerse.Server.Api
                         HandleGet(request, response, parts[0]);
                     else if (IsMethod(request, "PATCH"))
                         HandleUpdate(request, response, parts[0]);
+                    else if (IsMethod(request, "DELETE"))
+                        HandleDeactivate(request, response, parts[0]);
                     else
                         WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "HTTP method is not allowed for this endpoint.");
+                    return;
+                }
+
+                if (parts.Length == 2 && string.Equals(parts[1], "state", StringComparison.OrdinalIgnoreCase))
+                {
+                    HandleSetState(request, response, parts[0]);
                     return;
                 }
 
@@ -575,7 +638,7 @@ namespace NexVerse.Server.Api
 
                 if (!IsValidEmail(email))
                 {
-                    WriteError(response, HttpStatusCode.BadRequest, "invalid_email", "Email must be empty or a valid address of at most 254 characters.");
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_email", "Email must be empty or a valid address of at most 64 characters.");
                     return;
                 }
 
@@ -634,6 +697,8 @@ namespace NexVerse.Server.Api
                         inventory_initialized = result.InventoryInitialized,
                         home_initialized = result.HomeInitialized,
                         start_position_initialized = result.StartPositionInitialized,
+                        state_finalized = result.StateFinalized,
+                        account_state = result.User.AccountState,
                         home_region = RegionPayload(result.HomeRegion)
                     },
                     correlation_id = correlationId
@@ -749,9 +814,9 @@ namespace NexVerse.Server.Api
                     }
 
                     userTitle = (titleElement.GetString() ?? string.Empty).Trim();
-                    if (userTitle.Length > 128)
+                    if (userTitle.Length > 64)
                     {
-                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_title", "user_title may contain at most 128 characters.");
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_user_title", "user_title may contain at most 64 characters.");
                         return;
                     }
                     changed.Add("user_title");
@@ -797,6 +862,122 @@ namespace NexVerse.Server.Api
                     correlation_id = correlationId
                 });
             }
+        }
+
+        private void HandleSetState(IOSHttpRequest request, IOSHttpResponse response, string principalId)
+        {
+            if (!RequireMethod(request, response, "PATCH"))
+                return;
+
+            if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal principal, out UserAccount _))
+                return;
+
+            if (!TryReadJson(request, response, out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                if (!TryGetRequiredString(document.RootElement, "state", out string requestedState))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "state_required", "state is required.");
+                    return;
+                }
+
+                string state = requestedState.Trim().ToLowerInvariant();
+                if (!NexAccountStates.IsAdministrativeState(state))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_account_state", "state must be active, locked, banned or deactivated.");
+                    return;
+                }
+
+                string reason = (GetOptionalString(document.RootElement, "reason") ?? string.Empty).Trim();
+                if (reason.Length > 255)
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "invalid_state_reason", "reason may contain at most 255 characters.");
+                    return;
+                }
+
+                if (state != NexAccountStates.Active && string.IsNullOrWhiteSpace(reason))
+                {
+                    WriteError(response, HttpStatusCode.BadRequest, "state_reason_required", "A reason is required when blocking or deactivating an account.");
+                    return;
+                }
+
+                NexUserRecord updated = m_Users.SetAccountState(principalId, state, reason);
+                if (updated == null)
+                {
+                    WriteError(response, HttpStatusCode.NotFound, "user_not_found", "User account was not found or could not be updated.");
+                    return;
+                }
+
+                string correlationId = AddCorrelation(response);
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "users.state.update",
+                    principalId,
+                    correlationId,
+                    new Dictionary<string, string>
+                    {
+                        ["state"] = state,
+                        ["reason"] = reason
+                    }));
+
+                m_EventBus.Publish(new NexEvent(
+                    "user.state.changed",
+                    "nexverse.world-api",
+                    new Dictionary<string, string>
+                    {
+                        ["principal_id"] = principalId,
+                        ["state"] = state
+                    },
+                    correlationId));
+
+                WriteJson(response, new
+                {
+                    user = UserPayload(updated),
+                    correlation_id = correlationId
+                });
+            }
+        }
+
+        private void HandleDeactivate(IOSHttpRequest request, IOSHttpResponse response, string principalId)
+        {
+            if (!RequireMethod(request, response, "DELETE"))
+                return;
+
+            if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal principal, out UserAccount _))
+                return;
+
+            NexUserRecord updated = m_Users.SetAccountState(
+                principalId,
+                NexAccountStates.Deactivated,
+                "soft_delete");
+
+            if (updated == null)
+            {
+                WriteError(response, HttpStatusCode.NotFound, "user_not_found", "User account was not found or could not be deactivated.");
+                return;
+            }
+
+            string correlationId = AddCorrelation(response);
+            m_Audit.Record(new NexAuditEvent(
+                principal.Subject,
+                "users.deactivate",
+                principalId,
+                correlationId,
+                new Dictionary<string, string> { ["mode"] = "soft_delete" }));
+
+            m_EventBus.Publish(new NexEvent(
+                "user.deactivated",
+                "nexverse.world-api",
+                new Dictionary<string, string> { ["principal_id"] = principalId },
+                correlationId));
+
+            WriteJson(response, new
+            {
+                user = UserPayload(updated),
+                correlation_id = correlationId
+            });
         }
 
         private void HandleSetLevel(IOSHttpRequest request, IOSHttpResponse response, string principalId)
@@ -1047,7 +1228,7 @@ namespace NexVerse.Server.Api
             if (string.IsNullOrEmpty(value))
                 return true;
 
-            return value.Length <= 254 &&
+            return value.Length <= 64 &&
                    value.IndexOf('@') > 0 &&
                    value.IndexOf('\r') < 0 &&
                    value.IndexOf('\n') < 0;
@@ -1081,6 +1262,10 @@ namespace NexVerse.Server.Api
                 ["user_title"] = user.UserTitle,
                 ["user_country"] = user.UserCountry,
                 ["local_to_grid"] = user.LocalToGrid,
+                ["active"] = user.Active,
+                ["account_state"] = user.AccountState,
+                ["account_state_reason"] = user.AccountStateReason,
+                ["account_state_changed"] = user.AccountStateChanged,
                 ["created"] = user.Created
             };
         }

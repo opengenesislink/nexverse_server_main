@@ -132,7 +132,10 @@ namespace NexVerse.Server.Api
                     ("post", "Create and provision a user account", "admin:*", "201")),
                 ["/api/v1/users/{principalId}"] = AuthenticatedOperations(
                     ("get", "Read a user account", "self or admin:*", "200"),
-                    ("patch", "Update account profile fields", "self or admin:*", "200")),
+                    ("patch", "Update account profile fields", "self or admin:*", "200"),
+                    ("delete", "Soft-delete/deactivate a user account", "admin:*", "200")),
+                ["/api/v1/users/{principalId}/state"] = AuthenticatedOperations(
+                    ("patch", "Lock, ban, deactivate or reactivate a user account", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/level"] = AuthenticatedOperations(
                     ("patch", "Change UserLevel", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/password"] = AuthenticatedOperations(

@@ -4,6 +4,24 @@ using System.Collections.Generic;
 
 namespace NexVerse.Core.Identity
 {
+    public static class NexAccountStates
+    {
+        public const string Active = "active";
+        public const string Locked = "locked";
+        public const string Banned = "banned";
+        public const string Deactivated = "deactivated";
+        public const string Provisioning = "provisioning";
+        public const string ProvisioningFailed = "provisioning_failed";
+
+        public static bool IsAdministrativeState(string state)
+        {
+            return state == Active ||
+                   state == Locked ||
+                   state == Banned ||
+                   state == Deactivated;
+        }
+    }
+
     public sealed class NexUserRecord
     {
         public string PrincipalId { get; }
@@ -15,6 +33,10 @@ namespace NexVerse.Core.Identity
         public string UserTitle { get; }
         public string UserCountry { get; }
         public bool LocalToGrid { get; }
+        public bool Active { get; }
+        public string AccountState { get; }
+        public string AccountStateReason { get; }
+        public int AccountStateChanged { get; }
         public int Created { get; }
 
         public NexUserRecord(
@@ -27,6 +49,10 @@ namespace NexVerse.Core.Identity
             string userTitle,
             string userCountry,
             bool localToGrid,
+            bool active,
+            string accountState,
+            string accountStateReason,
+            int accountStateChanged,
             int created)
         {
             PrincipalId = principalId ?? string.Empty;
@@ -38,6 +64,10 @@ namespace NexVerse.Core.Identity
             UserTitle = userTitle ?? string.Empty;
             UserCountry = userCountry ?? string.Empty;
             LocalToGrid = localToGrid;
+            Active = active;
+            AccountState = accountState ?? NexAccountStates.Active;
+            AccountStateReason = accountStateReason ?? string.Empty;
+            AccountStateChanged = accountStateChanged;
             Created = created;
         }
     }
@@ -67,6 +97,7 @@ namespace NexVerse.Core.Identity
         public bool InventoryInitialized { get; }
         public bool HomeInitialized { get; }
         public bool StartPositionInitialized { get; }
+        public bool StateFinalized { get; }
         public NexRegionRecord HomeRegion { get; }
 
         public bool Ready =>
@@ -74,7 +105,10 @@ namespace NexVerse.Core.Identity
             AuthenticationInitialized &&
             InventoryInitialized &&
             HomeInitialized &&
-            StartPositionInitialized;
+            StartPositionInitialized &&
+            StateFinalized &&
+            User.Active &&
+            User.AccountState == NexAccountStates.Active;
 
         public NexUserProvisionResult(
             NexUserRecord user,
@@ -82,6 +116,7 @@ namespace NexVerse.Core.Identity
             bool inventoryInitialized,
             bool homeInitialized,
             bool startPositionInitialized,
+            bool stateFinalized,
             NexRegionRecord homeRegion)
         {
             User = user;
@@ -89,6 +124,7 @@ namespace NexVerse.Core.Identity
             InventoryInitialized = inventoryInitialized;
             HomeInitialized = homeInitialized;
             StartPositionInitialized = startPositionInitialized;
+            StateFinalized = stateFinalized;
             HomeRegion = homeRegion;
         }
     }
@@ -119,5 +155,6 @@ namespace NexVerse.Core.Identity
 
         bool SetUserLevel(string principalId, int userLevel);
         bool SetPassword(string principalId, string password);
+        NexUserRecord SetAccountState(string principalId, string state, string reason);
     }
 }
