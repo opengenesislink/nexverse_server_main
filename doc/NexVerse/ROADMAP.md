@@ -188,11 +188,11 @@ NexVoice becomes the only long-term NexVerse voice architecture.
 
 Remove the legacy IRC bridge and related connector/state classes unless a concrete compatibility dependency is discovered.
 
-### 5.4 Review legacy OpenID service
+### 5.4 Legacy OpenID service
 
-The old OpenID server implementation should be removed after confirming that Firestorm login and LLLogin do not depend on it.
+The old OpenID provider/server implementation has been removed from Robust.
 
-Modern NexVerse identity should use the new authentication architecture instead.
+The optional legacy LLLogin response fields remain temporarily as a compatibility reserve until Firestorm runtime validation is complete. Modern NexVerse identity will use the NexVerse authentication architecture instead.
 
 ### 5.5 Repository hygiene
 
@@ -217,7 +217,24 @@ Create and maintain a migration table classifying inherited components as:
 - REPLACE — scheduled for NexVerse replacement;
 - REMOVE — no longer required.
 
-### 5.7 NEXJAST definition of done
+### 5.7 NexVerse native foundation status
+
+Implemented during NEXJAST:
+
+- [x] `NexVerse.Core` native assembly introduced.
+- [x] RBAC/scope contracts introduced.
+- [x] audit event contract introduced.
+- [x] in-memory NexBus foundation introduced.
+- [x] `NexVerse.Server.Api` native assembly introduced.
+- [x] Robust loads the World API connector on the public listener.
+- [x] `/api/v1`, `/health`, `/version`, `/capabilities` and `/openapi.json` implemented.
+- [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
+- [ ] authenticated identity/token validation connected.
+- [ ] privileged user administration endpoints connected.
+- [ ] distributed NexBus transport implemented.
+- [ ] production metrics/OpenTelemetry implemented.
+
+### 5.8 NEXJAST definition of done
 
 - [x] RemoteAdmin removed from code/build/config.
 - [x] Vivox removed from code/build/config.
