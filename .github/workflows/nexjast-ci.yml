@@ -69,6 +69,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_simulator_runtime_profile.py
 
+      - name: Verify account lifecycle policy
+        shell: bash
+        run: python3 tools/ci/verify_account_lifecycle.py
+
       - name: Install native dependencies
         shell: bash
         run: |

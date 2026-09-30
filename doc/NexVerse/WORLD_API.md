@@ -28,6 +28,8 @@ The authenticated user-management foundation now implements:
 - `POST /api/v1/users` — administrator account creation and provisioning
 - `GET /api/v1/users/{principalId}` — self or administrator account lookup
 - `PATCH /api/v1/users/{principalId}` — account profile update; self may update email/country, administrators may also update the user title
+- `DELETE /api/v1/users/{principalId}` — administrator soft-delete/deactivation; persisted data is retained
+- `PATCH /api/v1/users/{principalId}/state` — administrator lock, ban, deactivate or reactivate workflow
 - `PATCH /api/v1/users/{principalId}/level` — administrator UserLevel update
 - `POST /api/v1/users/{principalId}/password` — self-service password change or administrator reset
 
@@ -54,7 +56,9 @@ A home/start region is mandatory for account creation. The caller may select it 
 
 The selected region is written both as the avatar's Home location and as its initial Last/Start position. This ensures a new avatar starts in the selected region whether the viewer requests Home or Last Location on the first login.
 
-The provisioning response reports authentication, inventory, home and initial start-position initialization. A created account is considered ready only when all four required steps succeeded.
+Account provisioning is fail-closed. A new database record is first written as inactive with state `provisioning`. Authentication, inventory, Home and initial Last/Start position are then initialized. Only when all mandatory steps succeed is the record finalized as `active`; otherwise it becomes `provisioning_failed` and viewer/API login remains blocked.
+
+The provisioning response reports authentication, inventory, home, initial start-position and state-finalization results. `ready=true` is emitted only for a finalized active account.
 
 Profile updates accept `email`, `user_country` and, for administrators, `user_title`.
 
@@ -74,6 +78,19 @@ The UserLevel request body is:
 }
 ```
 
+Account lifecycle transitions use:
+
+```json
+{
+  "state": "locked",
+  "reason": "Administrative account lock"
+}
+```
+
+Supported administrator states are `active`, `locked`, `banned` and `deactivated`. Setting `active` performs unlock, unban or reactivation. A reason is mandatory for every blocking/deactivation transition and is capped at 255 characters. The internal `provisioning` and `provisioning_failed` states cannot be selected through the administrator endpoint.
+
+`DELETE /api/v1/users/{principalId}` deliberately performs a soft delete by switching the account to `deactivated`; identity, inventory and audit references are not physically deleted.
+
 The API does not access the database directly. It uses a NexVerse `INexUserService` abstraction backed by the existing `IUserAccountService` while the identity subsystem is being migrated.
 
 ## Interim authentication bridge
@@ -87,7 +104,7 @@ Authorization: Bearer <authentication-service-token>
 X-NexVerse-Principal: <principal-uuid>
 ```
 
-The token is verified by `IAuthenticationService.Verify`. The corresponding user account is then loaded from `IUserAccountService`.
+The token is verified by `IAuthenticationService.Verify`. The corresponding user account is then loaded from `IUserAccountService`. A token belonging to a locked, banned, deactivated or incomplete-provisioning account is rejected even when the underlying token is otherwise valid.
 
 For the initial bridge, an account at or above `AdminMinimumUserLevel` receives the NexVerse `admin:*` scope. The default minimum is 200.
 
@@ -136,6 +153,8 @@ Current user mutations emit audit and NexBus events:
 - account profile update: `users.update` / `user.updated`
 - password update: `users.password.update` / `user.password.changed`
 - UserLevel update: `users.level.update` / `user.level.changed`
+- lifecycle transition: `users.state.update` / `user.state.changed`
+- soft deletion/deactivation: `users.deactivate` / `user.deactivated`
 
 Passwords are never written to audit records or NexBus payloads.
 
@@ -169,11 +188,9 @@ Selecting a free cell in the raster will prefill the create-region form. Region-
 
 ## Next API work
 
-The next user-management layer must add, behind scoped authentication:
+The core user lifecycle is now connected. The next identity/API work is:
 
-- soft deletion/deactivation;
-- lock/unlock;
-- ban/unban;
-- durable account audit/history;
+- durable account audit/history queries;
+- session/token revocation when an administrator blocks an already authenticated account;
 - proper NexVerse token issuance and scope assignment;
 - rate limiting and production security controls.

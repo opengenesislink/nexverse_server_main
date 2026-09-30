@@ -237,7 +237,9 @@ Implemented during NEXJAST:
 - [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
 - [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.
 - [ ] NexVerse-native OIDC/scoped token issuance replaces the interim authentication bridge.
-- [ ] complete user lifecycle API connected: create, update, deactivate/delete, lock/unlock, ban/unban and password workflow.
+- [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.
+- [x] account lifecycle state is persisted independently of UserLevel and enforced by Viewer login and World API authentication.
+- [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.
 - [ ] distributed NexBus transport implemented.
 - [ ] production metrics/OpenTelemetry implemented.
 
