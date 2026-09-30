@@ -61,11 +61,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DotNetOpenId" >
-      <Name>DotNetOpenId</Name>
-      <HintPath>/opt/robust/bin/DotNetOpenId.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="log4net" >
       <Name>log4net</Name>
       <HintPath>/opt/robust/bin/log4net.dll</HintPath>
@@ -291,13 +286,7 @@
     <Compile Include="Authentication\AuthenticationServerConnector.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Authentication\OpenIdServerHandler.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Authentication\AuthenticationServerPostHandler.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Authentication\OpenIdServerConnector.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
