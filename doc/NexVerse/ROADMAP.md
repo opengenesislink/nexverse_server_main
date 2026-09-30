@@ -224,8 +224,8 @@ Create and maintain a migration table classifying inherited components as:
 - [x] FreeSwitch removed from code/build/config.
 - [x] obsolete IRC bridge removed.
 - [x] generated `obj/` build artifacts removed from source control.
-- [ ] simulator builds successfully.
-- [ ] Robust builds successfully.
+- [x] simulator builds successfully (validated by NEXJAST CI Release build).
+- [x] Robust builds successfully (validated by NEXJAST CI Release build).
 - [ ] HG login remains functional.
 - [ ] local grid login remains functional.
 - [ ] Firestorm baseline smoke tests pass.
