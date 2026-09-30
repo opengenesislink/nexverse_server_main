@@ -93,9 +93,30 @@ Supported administrator states are `active`, `locked`, `banned` and `deactivated
 
 The API does not access the database directly. It uses a NexVerse `INexUserService` abstraction backed by the existing `IUserAccountService` while the identity subsystem is being migrated.
 
-## Interim authentication bridge
+## NexVerse native access-token transition
 
-The current transition layer validates an existing AuthenticationService token.
+NexVerse now has a native signed/scoped access-token foundation. Native tokens use an HMAC-SHA256 signed JWT-shaped format containing issuer, audience, subject, issue/expiry timestamps, token ID, scopes and an account security stamp.
+
+When native tokens are enabled, an existing AuthenticationService bearer token can be exchanged at:
+
+`POST /api/v1/auth/token`
+
+The exchange request uses the transitional headers:
+
+```text
+Authorization: Bearer <authentication-service-token>
+X-NexVerse-Principal: <principal-uuid>
+```
+
+The response returns a NexVerse `access_token`, `token_type=Bearer`, `expires_in` and the granted scope set. Subsequent World API requests using the NexVerse token no longer require `X-NexVerse-Principal`.
+
+Native token issuance is disabled by default and requires `EnableNativeTokens=true` plus a protected signing key of at least 32 UTF-8 bytes. The signing key must not be committed to the repository.
+
+A native token is bound to the account lifecycle security stamp. Lock, ban, deactivation, unlock, unban and reactivation advance that stamp monotonically, invalidating tokens issued against an older account state.
+
+### Interim bootstrap bridge
+
+The current transition layer still accepts an existing AuthenticationService token as a bootstrap mechanism while full NexVerse OIDC/client authorization is developed.
 
 Required request headers when privileged endpoints are enabled:
 
@@ -104,7 +125,7 @@ Authorization: Bearer <authentication-service-token>
 X-NexVerse-Principal: <principal-uuid>
 ```
 
-The token is verified by `IAuthenticationService.Verify`. The corresponding user account is then loaded from `IUserAccountService`. A token belonging to a locked, banned, deactivated or incomplete-provisioning account is rejected even when the underlying token is otherwise valid.
+A legacy bootstrap token is verified by `IAuthenticationService.Verify`. A native NexVerse token is verified cryptographically and its subject is loaded from `IUserAccountService`. Tokens belonging to locked, banned, deactivated or incomplete-provisioning accounts are rejected. Native tokens with a stale account security stamp are also rejected.
 
 For the initial bridge, an account at or above `AdminMinimumUserLevel` receives the NexVerse `admin:*` scope. The default minimum is 200.
 
@@ -191,6 +212,6 @@ Selecting a free cell in the raster will prefill the create-region form. Region-
 The core user lifecycle is now connected. The next identity/API work is:
 
 - durable account audit/history queries;
-- session/token revocation when an administrator blocks an already authenticated account;
-- proper NexVerse token issuance and scope assignment;
+- password-change/manual session revocation for already issued native tokens;
+- full OIDC authorization/client flows and persistent client registration;
 - rate limiting and production security controls.

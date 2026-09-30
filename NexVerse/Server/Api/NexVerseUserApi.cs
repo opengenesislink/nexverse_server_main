@@ -382,7 +382,9 @@ namespace NexVerse.Server.Api
             account.NexVerseStateReason = provisioned
                 ? string.Empty
                 : "One or more mandatory provisioning steps failed.";
-            account.NexVerseStateChanged = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
 
             bool stateFinalized = m_UserAccounts.StoreUserAccount(account);
             m_UserAccounts.InvalidateCache(account.PrincipalID);
@@ -457,7 +459,9 @@ namespace NexVerse.Server.Api
 
             account.NexVerseState = state;
             account.NexVerseStateReason = reason ?? string.Empty;
-            account.NexVerseStateChanged = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
             account.Active = state != NexAccountStates.Deactivated;
 
             if (!m_UserAccounts.StoreUserAccount(account))

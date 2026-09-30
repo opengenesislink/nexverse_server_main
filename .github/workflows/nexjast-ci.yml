@@ -73,6 +73,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
 
+      - name: Verify native access tokens
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexTokenRegression/NexTokenRegression.csproj
+
       - name: Install native dependencies
         shell: bash
         run: |
