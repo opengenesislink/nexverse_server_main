@@ -65,6 +65,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/HypergridUriRegression/HypergridUriRegression.csproj
 
+      - name: Verify simulator runtime profile
+        shell: bash
+        run: python3 tools/ci/verify_simulator_runtime_profile.py
+
       - name: Install native dependencies
         shell: bash
         run: |

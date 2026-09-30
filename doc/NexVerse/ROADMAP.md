@@ -25,6 +25,7 @@ The target architecture is centered around:
 - search, places, land and destination services;
 - strong monitoring, auditing and operational tooling;
 - a documented extension and developer platform.
+- a defined simulator runtime profile using ubODE physics, ubODEMeshmerizer and Warp3D-generated map tiles.
 
 ## 2. Development principles
 
@@ -1320,7 +1321,19 @@ Target characteristics:
 
 The following workstreams span multiple milestones and must not be postponed until one late release.
 
-## 22.1 Firestorm compatibility
+## 22.1 Simulator runtime profile
+
+The NexVerse simulator baseline is intentionally standardized to:
+
+- `physics = ubODE`;
+- `meshing = ubODEMeshmerizer`;
+- `MapImageModule = Warp3DImageModule`;
+- generated map tiles with terrain, prim textures and mesh rendering enabled;
+- an ubODE-safe Linux stack limit in `bin/opensim.sh`.
+
+NEXJAST CI verifies this profile and the required native ubODE libraries so accidental fallback to BulletSim, the generic Meshmerizer or the legacy map image module is treated as a regression.
+
+## 22.2 Firestorm compatibility
 
 Continuously test:
 
@@ -1341,23 +1354,23 @@ Continuously test:
 - Voice;
 - uploads.
 
-## 22.2 LSL parity
+## 22.3 LSL parity
 
 Every new NexVerse subsystem that has LSL surface area must add its LSL behavior and regression tests during implementation.
 
-## 22.3 Hypergrid compatibility
+## 22.4 Hypergrid compatibility
 
 Retain HG compatibility unless an explicitly versioned NexVerse federation mechanism replaces or supplements a particular path.
 
-## 22.4 Database migrations
+## 22.5 Database migrations
 
 Every schema change must be versioned and upgrade-safe.
 
-## 22.5 Documentation
+## 22.6 Documentation
 
 Every public API and administrator-visible configuration option must be documented.
 
-## 22.6 Security review
+## 22.7 Security review
 
 High-risk areas such as economy, inventory, asset access, script execution, remote administration and voice credentials require explicit security review.
 
