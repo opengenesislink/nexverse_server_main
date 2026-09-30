@@ -13,7 +13,20 @@ cleanup() {
   kill "$ROBUST_PID" 2>/dev/null || true
   wait "$ROBUST_PID" 2>/dev/null || true
 }
-trap cleanup EXIT
+on_exit() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "::group::NexVerse LLLogin Robust log"
+    cat "$LOG" 2>/dev/null || true
+    echo "::endgroup::"
+    echo "::group::NexVerse LLLogin XML-RPC response"
+    cat "$RESPONSE" 2>/dev/null || true
+    echo "::endgroup::"
+  fi
+  cleanup
+  exit "$status"
+}
+trap on_exit EXIT
 
 READY=0
 for i in $(seq 1 40); do
