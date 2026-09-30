@@ -12,3 +12,7 @@
 # OS-local metadata
 .DS_Store
 Thumbs.db
+
+# Runtime-generated NexVerse identity/auth state and private OIDC keys
+bin/data/
+data/

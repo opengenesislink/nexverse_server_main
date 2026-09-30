@@ -8,6 +8,9 @@ namespace NexVerse.Core.Security
     public static class NexScopes
     {
         public const string AdminAll = "admin:*";
+        public const string OpenId = "openid";
+        public const string Profile = "profile";
+        public const string OfflineAccess = "offline_access";
         public const string UsersRead = "users:read";
         public const string UsersWrite = "users:write";
         public const string InventoryRead = "inventory:read";

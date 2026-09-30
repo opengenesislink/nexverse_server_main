@@ -99,6 +99,7 @@ namespace NexVerse.Core.Security
 
         IReadOnlyList<NexOAuthClient> ListClients();
         NexOAuthClient GetClient(string clientId);
+        bool SetClientEnabled(string clientId, bool enabled);
         bool ValidateClientSecret(string clientId, string clientSecret);
         bool ValidateServicePrincipal(string subject, int securityStamp, IEnumerable<string> scopes);
 
@@ -153,6 +154,7 @@ namespace NexVerse.Core.Security
 
             m_Path = Path.GetFullPath(path);
             m_Document = Load();
+            EnsureDocument();
             CleanupExpired();
         }
 
@@ -228,6 +230,27 @@ namespace NexVerse.Core.Security
                 NexOAuthClient client = m_Document.Clients.FirstOrDefault(
                     x => string.Equals(x.ClientId, clientId, StringComparison.Ordinal));
                 return client == null ? null : CloneClient(client);
+            }
+        }
+
+        public bool SetClientEnabled(string clientId, bool enabled)
+        {
+            if (string.IsNullOrWhiteSpace(clientId))
+                return false;
+
+            lock (m_Sync)
+            {
+                NexOAuthClient client = m_Document.Clients.FirstOrDefault(
+                    x => string.Equals(x.ClientId, clientId, StringComparison.Ordinal));
+
+                if (client == null)
+                    return false;
+
+                client.Enabled = enabled;
+                client.SecurityStamp = Math.Max(client.SecurityStamp + 1, 1);
+                client.UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                SaveLocked();
+                return true;
             }
         }
 
@@ -534,6 +557,15 @@ namespace NexVerse.Core.Security
             }
         }
 
+        private void EnsureDocument()
+        {
+            m_Document ??= new AuthStoreDocument();
+            m_Document.Clients ??= new List<NexOAuthClient>();
+            m_Document.AuthorizationCodes ??= new Dictionary<string, NexAuthorizationGrant>(StringComparer.Ordinal);
+            m_Document.RefreshTokens ??= new Dictionary<string, NexRefreshGrant>(StringComparer.Ordinal);
+            m_Document.RevokedAccessTokens ??= new Dictionary<string, long>(StringComparer.Ordinal);
+        }
+
         private void CleanupExpired()
         {
             lock (m_Sync)
@@ -719,6 +751,10 @@ namespace NexVerse.Core.Security
 
         private sealed class AuthStoreDocument
         {
+            public AuthStoreDocument()
+            {
+            }
+
             public List<NexOAuthClient> Clients { get; set; } = new List<NexOAuthClient>();
             public Dictionary<string, NexAuthorizationGrant> AuthorizationCodes { get; set; } =
                 new Dictionary<string, NexAuthorizationGrant>(StringComparer.Ordinal);
