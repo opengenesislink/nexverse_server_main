@@ -1,0 +1,14 @@
+# NexVerse repository hygiene
+
+# .NET / MSBuild intermediate output
+**/obj/
+
+# IDE-local state
+.vs/
+**/.vs/
+*.user
+*.suo
+
+# OS-local metadata
+.DS_Store
+Thumbs.db

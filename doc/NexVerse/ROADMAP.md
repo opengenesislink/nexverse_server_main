@@ -219,18 +219,18 @@ Create and maintain a migration table classifying inherited components as:
 
 ### 5.7 NEXJAST definition of done
 
-- RemoteAdmin removed from code/build/config.
-- Vivox removed from code/build/config.
-- FreeSwitch removed from code/build/config.
-- obsolete IRC bridge removed.
-- generated build artifacts removed from source control.
-- simulator builds successfully.
-- Robust builds successfully.
-- HG login remains functional.
-- local grid login remains functional.
-- Firestorm baseline smoke tests pass.
-- compatibility-sensitive XML-RPC/LSL functionality remains intact.
-- development runtime identifies itself as NexVerse 0.9.3.1 Dev.
+- [x] RemoteAdmin removed from code/build/config.
+- [x] Vivox removed from code/build/config.
+- [x] FreeSwitch removed from code/build/config.
+- [x] obsolete IRC bridge removed.
+- [x] generated `obj/` build artifacts removed from source control.
+- [ ] simulator builds successfully.
+- [ ] Robust builds successfully.
+- [ ] HG login remains functional.
+- [ ] local grid login remains functional.
+- [ ] Firestorm baseline smoke tests pass.
+- [ ] compatibility-sensitive XML-RPC/LSL functionality remains intact after runtime verification.
+- [x] development runtime version source identifies itself as NexVerse 0.9.3.1 Dev.
 
 ---
 
