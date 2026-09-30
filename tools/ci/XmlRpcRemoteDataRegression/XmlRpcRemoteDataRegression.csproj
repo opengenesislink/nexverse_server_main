@@ -18,6 +18,9 @@
     <Reference Include="OpenMetaverse">
       <HintPath>../../../bin/OpenMetaverse.dll</HintPath>
     </Reference>
+    <Reference Include="OpenMetaverseTypes">
+      <HintPath>../../../bin/OpenMetaverseTypes.dll</HintPath>
+    </Reference>
     <Reference Include="Nini">
       <HintPath>../../../bin/Nini.dll</HintPath>
     </Reference>
