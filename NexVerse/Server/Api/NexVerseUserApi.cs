@@ -26,6 +26,7 @@ namespace NexVerse.Server.Api
         private readonly IUserAccountService m_UserAccounts;
         private readonly INexAuthorizationService m_Authorization;
         private readonly INexAccessTokenService m_NativeTokens;
+        private readonly INexOAuthStore m_OAuthStore;
         private readonly int m_AdminMinimumLevel;
         private readonly int m_TokenLifetimeSeconds;
 
@@ -34,6 +35,7 @@ namespace NexVerse.Server.Api
             IUserAccountService userAccounts,
             INexAuthorizationService authorization,
             INexAccessTokenService nativeTokens,
+            INexOAuthStore oauthStore,
             int adminMinimumLevel,
             int tokenLifetimeSeconds)
         {
@@ -41,6 +43,7 @@ namespace NexVerse.Server.Api
             m_UserAccounts = userAccounts ?? throw new ArgumentNullException(nameof(userAccounts));
             m_Authorization = authorization ?? throw new ArgumentNullException(nameof(authorization));
             m_NativeTokens = nativeTokens;
+            m_OAuthStore = oauthStore;
             m_AdminMinimumLevel = adminMinimumLevel;
             m_TokenLifetimeSeconds = Math.Max(60, tokenLifetimeSeconds);
         }
@@ -64,37 +67,53 @@ namespace NexVerse.Server.Api
             if (m_NativeTokens != null &&
                 m_NativeTokens.TryValidate(token, out NexAccessTokenClaims nativeClaims))
             {
-                if (!UUID.TryParse(nativeClaims.Subject, out UUID principalId))
+                if (m_OAuthStore != null && m_OAuthStore.IsAccessTokenRevoked(nativeClaims.TokenId))
+                {
+                    error = "access_token_revoked";
+                    return false;
+                }
+
+                if (UUID.TryParse(nativeClaims.Subject, out UUID principalId))
+                {
+                    account = m_UserAccounts.GetUserAccount(UUID.Zero, principalId);
+                    if (account == null)
+                    {
+                        error = "account_not_found";
+                        return false;
+                    }
+
+                    if (!account.LoginAllowed)
+                    {
+                        statusCode = (int)HttpStatusCode.Forbidden;
+                        error = "account_blocked";
+                        return false;
+                    }
+
+                    if (nativeClaims.SecurityStamp != account.NexVerseStateChanged)
+                    {
+                        error = "stale_access_token";
+                        return false;
+                    }
+
+                    List<string> scopes = new List<string>(nativeClaims.Scopes);
+                    if (account.UserLevel < m_AdminMinimumLevel)
+                        scopes.RemoveAll(x => string.Equals(x, NexScopes.AdminAll, StringComparison.OrdinalIgnoreCase));
+
+                    principal = new NexPrincipal(principalId.ToString(), scopes, true);
+                }
+                else if (m_OAuthStore != null &&
+                         m_OAuthStore.ValidateServicePrincipal(
+                             nativeClaims.Subject,
+                             nativeClaims.SecurityStamp,
+                             nativeClaims.Scopes))
+                {
+                    principal = new NexPrincipal(nativeClaims.Subject, nativeClaims.Scopes, true);
+                }
+                else
                 {
                     error = "invalid_access_token";
                     return false;
                 }
-
-                account = m_UserAccounts.GetUserAccount(UUID.Zero, principalId);
-                if (account == null)
-                {
-                    error = "account_not_found";
-                    return false;
-                }
-
-                if (!account.LoginAllowed)
-                {
-                    statusCode = (int)HttpStatusCode.Forbidden;
-                    error = "account_blocked";
-                    return false;
-                }
-
-                if (nativeClaims.SecurityStamp != account.NexVerseStateChanged)
-                {
-                    error = "stale_access_token";
-                    return false;
-                }
-
-                List<string> scopes = new List<string>(nativeClaims.Scopes);
-                if (account.UserLevel < m_AdminMinimumLevel)
-                    scopes.RemoveAll(x => string.Equals(x, NexScopes.AdminAll, StringComparison.OrdinalIgnoreCase));
-
-                principal = new NexPrincipal(principalId.ToString(), scopes, true);
             }
             else
             {
@@ -444,9 +463,22 @@ namespace NexVerse.Server.Api
 
         public bool SetPassword(string principalId, string password)
         {
-            return UUID.TryParse(principalId, out UUID id) &&
-                   m_UserAccounts.GetUserAccount(UUID.Zero, id) != null &&
-                   m_Authentication.SetPassword(id, password);
+            if (!UUID.TryParse(principalId, out UUID id))
+                return false;
+
+            UserAccount account = m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null)
+                return false;
+
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+                return false;
+
+            m_UserAccounts.InvalidateCache(id);
+            return m_Authentication.SetPassword(id, password);
         }
 
         public NexUserRecord SetAccountState(string principalId, string state, string reason)
@@ -518,19 +550,22 @@ namespace NexVerse.Server.Api
         private readonly INexEventBus m_EventBus;
         private readonly INexAuditSink m_Audit;
         private readonly INexAccessTokenService m_Tokens;
+        private readonly INexOAuthStore m_OAuthStore;
 
         public NexUserApiRouter(
             INexUserService users,
             NexApiAuthenticator authenticator,
             INexEventBus eventBus,
             INexAuditSink audit,
-            INexAccessTokenService tokens)
+            INexAccessTokenService tokens,
+            INexOAuthStore oauthStore)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
             m_EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             m_Audit = audit ?? NullNexAuditSink.Instance;
             m_Tokens = tokens;
+            m_OAuthStore = oauthStore;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -1104,6 +1139,8 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
+                m_OAuthStore?.RevokeSubjectRefreshTokens(principalId);
+
                 string correlationId = AddCorrelation(response);
                 m_Audit.Record(new NexAuditEvent(
                     principal.Subject,
@@ -1152,6 +1189,8 @@ namespace NexVerse.Server.Api
                 WriteError(response, HttpStatusCode.NotFound, "user_not_found", "User account was not found or could not be deactivated.");
                 return;
             }
+
+            m_OAuthStore?.RevokeSubjectRefreshTokens(principalId);
 
             string correlationId = AddCorrelation(response);
             m_Audit.Record(new NexAuditEvent(
@@ -1269,6 +1308,8 @@ namespace NexVerse.Server.Api
                     WriteError(response, HttpStatusCode.InternalServerError, "password_update_failed", "The password could not be updated.");
                     return;
                 }
+
+                m_OAuthStore?.RevokeSubjectRefreshTokens(principalId);
 
                 string correlationId = AddCorrelation(response);
                 m_Audit.Record(new NexAuditEvent(

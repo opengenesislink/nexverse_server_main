@@ -608,6 +608,12 @@
     NativeTokenSigningKey = ""
     NativeTokenIssuer = "http://world.stadt-nexverse.de"
     NativeTokenAudience = "nexverse-world-api"
+    AuthStorePath = "data/nexverse-auth.json"
+    OidcIssuer = "http://world.stadt-nexverse.de"
+    OidcSigningKeyPath = "data/nexverse-oidc-es256.pem"
+    OidcTokenLifetimeSeconds = 1800
+    AuthorizationCodeLifetimeSeconds = 120
+    RefreshTokenLifetimeSeconds = 2592000
 
     UserAccountServiceModule = "OpenSim.Services.UserAccountService.dll:UserAccountService"
     AuthenticationServiceModule = "OpenSim.Services.AuthenticationService.dll:PasswordAuthenticationService"

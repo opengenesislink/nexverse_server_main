@@ -126,6 +126,18 @@ namespace NexVerse.Server.Api
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
                 ["/api/v1/auth/token"] = AuthenticatedOperations(
                     ("post", "Exchange a legacy AuthenticationService token for a NexVerse scoped access token", null, "200")),
+                ["/oauth/authorize"] = AuthenticatedOperations(
+                    ("get", "OAuth 2.0 Authorization Code + PKCE authorization endpoint", null, "302")),
+                ["/oauth/token"] = AuthenticatedOperations(
+                    ("post", "OAuth 2.0 token endpoint: authorization_code, refresh_token and client_credentials", null, "200")),
+                ["/oauth/revoke"] = AuthenticatedOperations(
+                    ("post", "OAuth 2.0 token revocation endpoint", null, "200")),
+                ["/api/v1/auth/clients"] = AuthenticatedOperations(
+                    ("get", "List OAuth/service clients", "admin:*", "200"),
+                    ("post", "Register OAuth/service client", "admin:*", "201"),
+                    ("patch", "Enable or disable OAuth/service client", "admin:*", "200")),
+                ["/api/v1/auth/sessions/revoke"] = AuthenticatedOperations(
+                    ("post", "Revoke resident sessions and advance security stamp", "self or admin:*", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Search selectable home/start regions", "admin:*", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(

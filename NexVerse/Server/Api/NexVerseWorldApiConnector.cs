@@ -109,6 +109,8 @@ namespace NexVerse.Server.Api
                 int tokenLifetimeSeconds = apiConfig.GetInt("TokenLifetimeSeconds", 1800);
 
                 INexAccessTokenService nativeTokens = null;
+                INexOAuthStore oauthStore = null;
+                INexOidcSigningService oidcSigner = null;
                 if (apiConfig.GetBoolean("EnableNativeTokens", false))
                 {
                     string signingKey = apiConfig.GetString("NativeTokenSigningKey", string.Empty);
@@ -121,7 +123,24 @@ namespace NexVerse.Server.Api
                         signingKey,
                         tokenLifetimeSeconds);
 
-                    m_Log.Info("[NEX-WORLD-API]: NexVerse native scoped access tokens are enabled.");
+                    string authStorePath = apiConfig.GetString(
+                        "AuthStorePath",
+                        "data/nexverse-auth.json");
+                    string oidcIssuer = apiConfig.GetString("OidcIssuer", publicBaseUrl);
+                    string oidcKeyPath = apiConfig.GetString(
+                        "OidcSigningKeyPath",
+                        "data/nexverse-oidc-es256.pem");
+                    int oidcTokenLifetimeSeconds = apiConfig.GetInt(
+                        "OidcTokenLifetimeSeconds",
+                        tokenLifetimeSeconds);
+
+                    oauthStore = new PersistentNexOAuthStore(authStorePath);
+                    oidcSigner = new PersistentEs256OidcSigningService(
+                        oidcIssuer,
+                        oidcKeyPath,
+                        oidcTokenLifetimeSeconds);
+
+                    m_Log.Info("[NEX-WORLD-API]: NexVerse native scoped access tokens and persistent OAuth/OIDC are enabled.");
                 }
 
                 NexApiAuthenticator authenticator = new NexApiAuthenticator(
@@ -129,6 +148,7 @@ namespace NexVerse.Server.Api
                     userAccounts,
                     authorization,
                     nativeTokens,
+                    oauthStore,
                     adminMinimumLevel,
                     tokenLifetimeSeconds);
 
@@ -144,7 +164,55 @@ namespace NexVerse.Server.Api
                     authenticator,
                     eventBus,
                     auditSink,
-                    nativeTokens);
+                    nativeTokens,
+                    oauthStore);
+
+                if (nativeTokens != null && oauthStore != null && oidcSigner != null)
+                {
+                    int authCodeLifetimeSeconds = apiConfig.GetInt("AuthorizationCodeLifetimeSeconds", 120);
+                    int refreshLifetimeSeconds = apiConfig.GetInt("RefreshTokenLifetimeSeconds", 2592000);
+
+                    NexOAuthApiRouter oauthRouter = new NexOAuthApiRouter(
+                        publicBaseUrl,
+                        nativeTokens,
+                        oidcSigner,
+                        oauthStore,
+                        authenticator,
+                        userAccounts,
+                        eventBus,
+                        auditSink,
+                        authCodeLifetimeSeconds,
+                        refreshLifetimeSeconds);
+
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/.well-known/openid-configuration",
+                        oauthRouter.Discovery,
+                        "NexVerse OIDC Discovery"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/oauth/jwks",
+                        oauthRouter.Jwks,
+                        "NexVerse OIDC JWKS"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/oauth/authorize",
+                        oauthRouter.Authorize,
+                        "NexVerse OAuth Authorization"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/oauth/token",
+                        oauthRouter.Token,
+                        "NexVerse OAuth Token"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/oauth/revoke",
+                        oauthRouter.Revoke,
+                        "NexVerse OAuth Revocation"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/api/v1/auth/clients",
+                        oauthRouter.Clients,
+                        "NexVerse OAuth Client Administration"));
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        "/api/v1/auth/sessions/revoke",
+                        oauthRouter.RevokeSessions,
+                        "NexVerse Session Revocation"));
+                }
 
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler("/api", userRouter.Handle, "NexVerse World API privileged router"),
