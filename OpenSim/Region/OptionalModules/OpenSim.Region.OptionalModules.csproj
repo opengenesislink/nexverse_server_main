@@ -230,15 +230,6 @@
     <Compile Include="Agent\UDP\Linden\LindenUDPInfoModule.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Example\WebSocketEchoTest\WebSocketEchoModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Example\BareBonesNonShared\BareBonesNonSharedModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Example\BareBonesShared\BareBonesSharedModule.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Framework\Monitoring\EtcdMonitoringModule.cs">
       <SubType>Code</SubType>
     </Compile>
