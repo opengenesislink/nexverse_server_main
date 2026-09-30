@@ -41,6 +41,9 @@ jobs:
             "OpenSim/Services/FreeswitchService"
             "OpenSim/Region/OptionalModules/Avatar/Chat/IRCBridgeModule.cs"
             "OpenSim/Region/OptionalModules/Avatar/Chat/IRCConnector.cs"
+            "OpenSim/Server/Handlers/Authentication/OpenIdServerConnector.cs"
+            "OpenSim/Server/Handlers/Authentication/OpenIdServerHandler.cs"
+            "OpenSim/Region/OptionalModules/UserStatistics"
           )
 
           for path in "${forbidden_paths[@]}"; do
@@ -73,6 +76,12 @@ jobs:
       - name: Build Release
         shell: bash
         run: dotnet build --configuration Release OpenSim.sln
+
+      - name: Verify NexVerse native assemblies
+        shell: bash
+        run: |
+          test -f bin/NexVerse.Core.dll
+          test -f bin/NexVerse.Server.Api.dll
 
       - name: Verify NexVerse version
         shell: bash
