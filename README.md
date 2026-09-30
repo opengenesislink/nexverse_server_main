@@ -1,51 +1,28 @@
 # NexVerse Server
 
-NexVerse Server is the server-side platform for the NexVerse virtual world.
+NexVerse Server is an independent virtual-world server platform developed by OpenGenesisLink.
 
-This repository is intended to contain the central NexVerse server codebase, including the control-plane/Robust services, simulator-side services, shared framework components, APIs, persistence integrations, and supporting tooling.
+This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Release** source package. It is intentionally maintained as its own repository rather than as a GitHub fork. The long-term objective is an independent NexVerse development line whose architecture, services, protocols, modules, tooling and branding may diverge substantially from OpenSimulator.
 
-## Project status
+## Upstream baseline
 
-This repository has been initialized as the main development repository for NexVerse Server.
+- Upstream project: OpenSimulator
+- Baseline release: 0.9.3.0 ("Nessie" Release)
+- Release date: 8 November 2024
+- Imported archive: `opensim-0.9.3.0-source.tar.gz`
+- SHA-256: `8dc78639e47859e76a36a03304c1d44c905aac7807f44c1c0af671d156342eab`
+- Original OpenSimulator notices remain in the source tree, including `LICENSE.txt`, `CONTRIBUTORS.txt` and third-party notices.
 
-The actual server source, build configuration, runtime configuration templates, migrations, tests, and deployment tooling can now be imported incrementally without mixing generated files, local secrets, or build output into version control.
+## NexVerse licensing
 
-## Planned repository areas
+New original NexVerse contributions are licensed under the **Mozilla Public License 2.0 (MPL-2.0)** unless a file or directory explicitly states otherwise.
 
-- `NexVerse/` — shared framework and server implementation
-- `bin/` — runtime configuration templates and launch scripts
-- `tests/` — automated tests and conformance tests
-- `doc/` — architecture, operations, API and release documentation
-- `scripts/` — build, verification, migration and deployment helpers
-- `.github/` — repository automation and CI workflows
+Imported OpenSimulator files do **not** lose or replace their existing BSD/third-party licensing. NexVerse changes to inherited files must preserve all applicable notices. See `LICENSE_POLICY.md` and `NOTICE.md`.
 
-The concrete structure should follow the actual source tree when the current NexVerse Server codebase is imported.
+## Development model
 
-## Development principles
+NexVerse Server is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with OpenSimulator and Second Life protocols may be retained where useful, but NexVerse is expected to develop its own components and implementation choices over time.
 
-- Server-authoritative world state
-- Robust/control-plane and simulator separation
-- API-first administration
-- PostgreSQL-compatible persistence
-- Explicit migration/version tracking
-- No secrets or production credentials in Git
-- Reproducible builds and verification
-- Backwards-aware protocol development for supported viewers and integrations
+## Build baseline
 
-## Build
-
-Build instructions will be documented alongside the imported source tree. NexVerse Server currently targets the .NET 8 generation of the runtime.
-
-## Configuration and secrets
-
-Commit configuration templates only.
-
-Do **not** commit production passwords, API keys, database credentials, certificates, voice credentials, tokens, or other secrets. Local/runtime secrets should be supplied through protected environment files or the deployment environment.
-
-## Repository
-
-`opengenesislink/nexverse_server_main`
-
----
-
-Copyright © OpenGenesisLINK contributors.
+OpenSimulator 0.9.3.0 uses the .NET 8 SDK. The original build instructions are retained in this repository.
