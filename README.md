@@ -21,14 +21,28 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current NexVerse server version is **NexVerse 0.9.3.0**. This is the first NexVerse version and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
+The current development version is **NexVerse 0.9.3.1 Dev**, codename **NEXJAST**.
+
+NexVerse 0.9.3.0 is the first NexVerse release and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
 
 Every NexVerse release or development milestone that changes the product version must update `OpenSim/Framework/VersionInfo.cs` together with the corresponding release documentation.
 
+See `VERSIONING.md` for the versioning policy.
+
+## Roadmap
+
+The active development roadmap is maintained in:
+
+**[`doc/NexVerse/ROADMAP.md`](doc/NexVerse/ROADMAP.md)**
+
+The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the NexVerse 0.9.4.0 consolidation target.
+
 ## Development model
 
-NexVerse Server is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with OpenSimulator and Second Life protocols may be retained where useful, but NexVerse is expected to develop its own components and implementation choices over time.
+NexVerse Server is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with Firestorm, Second Life protocols, Hypergrid and LSL is retained where useful, while obsolete administration and service implementations are progressively replaced by NexVerse-native components.
+
+New major systems should be API-first, testable, observable and documented. Compatibility-sensitive code must be assessed before removal.
 
 ## Build baseline
 
-OpenSimulator 0.9.3.0 uses the .NET 8 SDK. The original build instructions are retained in this repository.
+The imported OpenSimulator 0.9.3.0 baseline uses the .NET 8 SDK. The original build instructions are retained in this repository.
