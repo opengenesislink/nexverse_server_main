@@ -17,16 +17,17 @@ trap cleanup EXIT
 
 READY=0
 for i in $(seq 1 40); do
-  if kill -0 "$ROBUST_PID" 2>/dev/null; then
-    if grep -F '[LLLOGIN IN CONNECTOR]: Starting' "$LOG" >/dev/null 2>&1; then
-      READY=1
-      break
-    fi
-  else
+  if ! kill -0 "$ROBUST_PID" 2>/dev/null; then
     echo "::error::Robust exited before LLLogin became ready."
     cat "$LOG"
     exit 1
   fi
+
+  if (echo > /dev/tcp/127.0.0.1/19092) >/dev/null 2>&1; then
+    READY=1
+    break
+  fi
+
   sleep 0.25
 done
 
