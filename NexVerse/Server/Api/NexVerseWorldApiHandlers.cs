@@ -123,6 +123,8 @@ namespace NexVerse.Server.Api
                 ["/api/v1/version"] = GetOperation("NexVerse server and protocol versions"),
                 ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
+                ["/api/v1/auth/token"] = AuthenticatedOperations(
+                    ("post", "Exchange a legacy AuthenticationService token for a NexVerse scoped access token", null, "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Search selectable home/start regions", "admin:*", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(

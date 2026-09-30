@@ -86,10 +86,27 @@ namespace NexVerse.Server.Api
                 int adminMinimumLevel = apiConfig.GetInt("AdminMinimumUserLevel", 200);
                 int tokenLifetimeSeconds = apiConfig.GetInt("TokenLifetimeSeconds", 1800);
 
+                INexAccessTokenService nativeTokens = null;
+                if (apiConfig.GetBoolean("EnableNativeTokens", false))
+                {
+                    string signingKey = apiConfig.GetString("NativeTokenSigningKey", string.Empty);
+                    string issuer = apiConfig.GetString("NativeTokenIssuer", publicBaseUrl);
+                    string audience = apiConfig.GetString("NativeTokenAudience", "nexverse-world-api");
+
+                    nativeTokens = new HmacNexAccessTokenService(
+                        issuer,
+                        audience,
+                        signingKey,
+                        tokenLifetimeSeconds);
+
+                    m_Log.Info("[NEX-WORLD-API]: NexVerse native scoped access tokens are enabled.");
+                }
+
                 NexApiAuthenticator authenticator = new NexApiAuthenticator(
                     authentication,
                     userAccounts,
                     authorization,
+                    nativeTokens,
                     adminMinimumLevel,
                     tokenLifetimeSeconds);
 
@@ -100,7 +117,12 @@ namespace NexVerse.Server.Api
                     gridUsers,
                     grid);
 
-                NexUserApiRouter userRouter = new NexUserApiRouter(userService, authenticator, eventBus, auditSink);
+                NexUserApiRouter userRouter = new NexUserApiRouter(
+                    userService,
+                    authenticator,
+                    eventBus,
+                    auditSink,
+                    nativeTokens);
 
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler("/api", userRouter.Handle, "NexVerse World API privileged router"),
