@@ -148,9 +148,7 @@ namespace OpenSim.Services.HypergridService
 
                 if (!string.IsNullOrEmpty(m_GridName))
                 {
-                    m_GridName = m_GridName.ToLowerInvariant();
-                    if (!m_GridName.EndsWith("/"))
-                        m_GridName += "/";
+                    m_GridName = HypergridUri.Normalize(m_GridName);
                     if (!Uri.TryCreate(m_GridName, UriKind.Absolute, out Uri gateURI))
                         throw new Exception(String.Format("[UserAgentService] could not parse gatekeeper uri"));
                     string host = gateURI.DnsSafeHost;
@@ -233,7 +231,7 @@ namespace OpenSim.Services.HypergridService
             m_log.DebugFormat("[USER AGENT SERVICE]: Request to login user {0} {1} (@{2}) to grid {3}",
                 agentCircuit.firstname, agentCircuit.lastname, (fromLogin ? agentCircuit.IPAddress : "stored IP"), gatekeeper.ServerURI);
 
-            string gridName = gatekeeper.ServerURI.ToLowerInvariant();
+            string gridName = HypergridUri.Normalize(gatekeeper.ServerURI);
 
             UserAccount account = m_UserAccountService.GetUserAccount(UUID.Zero, agentCircuit.AgentID);
             if (account is null)
@@ -244,7 +242,7 @@ namespace OpenSim.Services.HypergridService
             }
 
             // Is this user allowed to go there?
-            if (m_GridName != gridName)
+            if (!HypergridUri.Equivalent(m_GridName, gridName))
             {
                 if (m_ForeignTripsAllowed.ContainsKey(account.UserLevel))
                 {
@@ -291,7 +289,7 @@ namespace OpenSim.Services.HypergridService
 
             m_log.DebugFormat("[USER AGENT SERVICE]: this grid: {0}, desired grid: {1}, desired region: {2}", m_GridName, gridName, region.RegionID);
 
-            if (m_GridName.Equals(gridName, StringComparison.InvariantCultureIgnoreCase))
+            if (HypergridUri.Equivalent(m_GridName, gridName))
             {
                 success = m_GatekeeperService.LoginAgent(source, agentCircuit, finalDestination, out reason);
             }
@@ -345,7 +343,7 @@ namespace OpenSim.Services.HypergridService
             {
                 SessionID = agentCircuit.SessionID,
                 UserID = agentCircuit.AgentID,
-                GridExternalName = region.ServerURI,
+                GridExternalName = HypergridUri.Normalize(region.ServerURI),
                 ServiceToken = agentCircuit.ServiceSessionID
             };
 
@@ -376,7 +374,7 @@ namespace OpenSim.Services.HypergridService
                 return false;
             if(!hgt.Data.TryGetValue("GridExternalName", out string htgGrid))
                 return false;
-            return htgGrid.Equals(thisGridExternalName, StringComparison.InvariantCultureIgnoreCase);
+            return HypergridUri.Equivalent(htgGrid, thisGridExternalName);
         }
 
         public bool VerifyClient(UUID sessionID, string reportedIP)
@@ -625,7 +623,7 @@ namespace OpenSim.Services.HypergridService
                 return string.Empty;
 
             foreach (HGTravelingData t in hgts)
-                if (t.Data.ContainsKey("GridExternalName") && !m_GridName.Equals(t.Data["GridExternalName"]))
+                if (t.Data.ContainsKey("GridExternalName") && !HypergridUri.Equivalent(m_GridName, t.Data["GridExternalName"]))
                     return t.Data["GridExternalName"];
 
             return string.Empty;

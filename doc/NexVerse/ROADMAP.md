@@ -231,6 +231,9 @@ Implemented during NEXJAST:
 - [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
 - [x] interim AuthenticationService bearer-token validation connected (privileged routes remain disabled by default on plaintext HTTP).
 - [x] initial user API connected: self/account lookup, admin search and UserLevel update.
+- [x] complete current OSSL function surface enabled through an explicit NexVerse permission profile.
+- [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
+- [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.
 - [ ] NexVerse-native OIDC/scoped token issuance replaces the interim authentication bridge.
 - [ ] complete user lifecycle API connected: create, update, deactivate/delete, lock/unlock, ban/unban and password workflow.
 - [ ] distributed NexBus transport implemented.
@@ -246,6 +249,8 @@ Implemented during NEXJAST:
 - [x] simulator builds successfully (validated by NEXJAST CI Release build).
 - [x] Robust builds successfully (validated by NEXJAST CI Release build).
 - [x] World API runtime smoke test passes against a started Robust process.
+- [x] OSSL policy coverage is regression-checked by NEXJAST CI.
+- [x] HG local-grid URI identity normalization is regression-tested by NEXJAST CI.
 - [ ] HG login remains functional.
 - [ ] local grid login remains functional.
 - [ ] Firestorm baseline smoke tests pass.

@@ -57,6 +57,14 @@ jobs:
           test -f OpenSim/Region/CoreModules/Scripting/XMLRPC/XMLRPCModule.cs
           test -f OpenSim/Region/OptionalModules/Scripting/XmlRpcRouterModule/XmlRpcRouterModule.cs
 
+      - name: Verify OSSL policy coverage
+        shell: bash
+        run: python3 tools/ci/verify_ossl_policy.py
+
+      - name: Verify Hypergrid URI normalization
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/HypergridUriRegression/HypergridUriRegression.csproj
+
       - name: Install native dependencies
         shell: bash
         run: |
