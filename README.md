@@ -37,6 +37,19 @@ The active development roadmap is maintained in:
 
 The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the NexVerse 0.9.4.0 consolidation target.
 
+## Current NEXJAST foundation
+
+The current development line now contains the first NexVerse-native assemblies:
+
+- `NexVerse.Core` — platform metadata, RBAC/scope contracts, audit contracts and NexBus foundation.
+- `NexVerse.Server.Api` — Robust-hosted World API foundation.
+
+Current World API base:
+
+`http://world.stadt-nexverse.de/api/v1`
+
+See `doc/NexVerse/WORLD_API.md` and `doc/NexVerse/LEGACY_COMPONENTS.md`.
+
 ## Development model
 
 NexVerse Server is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with Firestorm, Second Life protocols, Hypergrid and LSL is retained where useful, while obsolete administration and service implementations are progressively replaced by NexVerse-native components.
