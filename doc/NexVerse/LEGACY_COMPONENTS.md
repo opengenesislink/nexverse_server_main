@@ -17,6 +17,7 @@ Status values:
 | FreeSwitch voice stack | **REMOVED** | Replaced by planned NexVoice WebRTC/Janus architecture. |
 | IRC bridge | **REMOVED** | No longer part of the NexVerse communications architecture. |
 | Generated `obj/` trees | **REMOVED** | Build intermediates are excluded through `.gitignore`. |
+| OptionalModules example modules | **REMOVED** | BareBones and WebSocket echo sample modules are not part of the production NexVerse source line. |
 | LSL XML-RPC RemoteData | **COMPAT** | Must remain while required for LSL RemoteData compatibility. It is not RemoteAdmin. |
 | LLLogin / viewer login protocol | **KEEP** | Required for compatible viewers including Firestorm. |
 | LLUDP / viewer protocol stack | **KEEP** | Required for viewer compatibility. |
@@ -48,6 +49,7 @@ Completed source cleanup:
 - tracked .NET `obj/` intermediate trees removed;
 - legacy OpenID server/provider removed;
 - legacy UserStatistics/WebStats module and static `/SStats` assets removed;
-- NexVerse.Core and NexVerse.Server.Api introduced as native platform assemblies.
+- NexVerse.Core and NexVerse.Server.Api introduced as native platform assemblies;
+- non-production BareBones/WebSocketEcho example modules removed.
 
 Build and runtime verification remains required before NEXJAST is considered complete.

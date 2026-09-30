@@ -229,8 +229,10 @@ Implemented during NEXJAST:
 - [x] Robust loads the World API connector on the public listener.
 - [x] `/api/v1`, `/health`, `/version`, `/capabilities` and `/openapi.json` implemented.
 - [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
-- [ ] authenticated identity/token validation connected.
-- [ ] privileged user administration endpoints connected.
+- [x] interim AuthenticationService bearer-token validation connected (privileged routes remain disabled by default on plaintext HTTP).
+- [x] initial user API connected: self/account lookup, admin search and UserLevel update.
+- [ ] NexVerse-native OIDC/scoped token issuance replaces the interim authentication bridge.
+- [ ] complete user lifecycle API connected: create, update, deactivate/delete, lock/unlock, ban/unban and password workflow.
 - [ ] distributed NexBus transport implemented.
 - [ ] production metrics/OpenTelemetry implemented.
 
@@ -243,6 +245,7 @@ Implemented during NEXJAST:
 - [x] generated `obj/` build artifacts removed from source control.
 - [x] simulator builds successfully (validated by NEXJAST CI Release build).
 - [x] Robust builds successfully (validated by NEXJAST CI Release build).
+- [x] World API runtime smoke test passes against a started Robust process.
 - [ ] HG login remains functional.
 - [ ] local grid login remains functional.
 - [ ] Firestorm baseline smoke tests pass.
