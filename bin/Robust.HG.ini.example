@@ -115,6 +115,7 @@
     InventoryInConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:XInventoryInConnector"
     GridServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:GridServiceConnector"
     GridInfoServerInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:GridInfoServerInConnector"
+    NexVerseWorldApiConnector = "NexVerseWorldApi@${Const|PublicPort}/NexVerse.Server.Api.dll:NexVerse.Server.Api.NexVerseWorldApiConnector"
     AuthenticationServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AuthenticationServiceConnector"
     AvatarServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AvatarServiceConnector"
     LLLoginServiceInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:LLLoginServiceInConnector"
@@ -570,6 +571,10 @@
     ;
     ; Additionally, if you run this server behind a proxy, set this to true
     ; HasProxy = false
+
+[NexVerseWorldApi]
+    Enabled = true
+    PublicBaseUrl = "http://world.stadt-nexverse.de"
 
 [GridInfoService]
     ; These settings are used to return information on a get_grid_info call.
