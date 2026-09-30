@@ -14,6 +14,7 @@ using NexVerse.Core.Security;
 using OpenMetaverse;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Services.Interfaces;
+using GridRegion = OpenSim.Services.Interfaces.GridRegion;
 
 namespace NexVerse.Server.Api
 {
