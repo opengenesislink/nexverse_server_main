@@ -23,12 +23,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url="https://opensimulator.dev/dist/opensim-0.9.3.0-source.tar.gz"
           expected="8dc78639e47859e76a36a03304c1d44c905aac7807f44c1c0af671d156342eab"
-          curl --insecure --fail --location --retry 5 --retry-delay 3 "$url" -o /tmp/opensim-source.tar.gz
-          actual="$(sha256sum /tmp/opensim-source.tar.gz | awk '{print $1}')"
-          test "$actual" = "$expected" || {
-            echo "SHA-256 mismatch: expected $expected, got $actual" >&2
+          urls=(
+            "https://opensimulator.org/dist/opensim-0.9.3.0-source.tar.gz"
+            "http://opensimulator.org/dist/opensim-0.9.3.0-source.tar.gz"
+            "https://opensimulator.dev/dist/opensim-0.9.3.0-source.tar.gz"
+            "http://opensimulator.dev/dist/opensim-0.9.3.0-source.tar.gz"
+          )
+          rm -f /tmp/opensim-source.tar.gz
+          for url in "${urls[@]}"; do
+            echo "Trying $url"
+            if curl --insecure --fail --location --retry 2 --retry-delay 2 "$url" -o /tmp/opensim-source.tar.gz; then
+              actual="$(sha256sum /tmp/opensim-source.tar.gz | awk '{print $1}')"
+              if [ "$actual" = "$expected" ]; then
+                echo "Verified OpenSimulator 0.9.3.0 archive."
+                break
+              fi
+              echo "Checksum mismatch from $url: $actual" >&2
+            fi
+            rm -f /tmp/opensim-source.tar.gz
+          done
+          test -f /tmp/opensim-source.tar.gz || {
+            echo "Could not obtain the pinned OpenSimulator 0.9.3.0 source archive." >&2
             exit 1
           }
           mkdir -p /tmp/opensim-source
