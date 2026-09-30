@@ -11,13 +11,13 @@ This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Rel
 - Release date: 8 November 2024
 - Imported archive: `opensim-0.9.3.0-source.tar.gz`
 - SHA-256: `8dc78639e47859e76a36a03304c1d44c905aac7807f44c1c0af671d156342eab`
-- Original OpenSimulator notices remain in the source tree, including `LICENSE.txt`, `CONTRIBUTORS.txt` and third-party notices.
+- Original OpenSimulator copyright and license notices remain preserved. The primary OpenSimulator BSD license is stored at `LICENSES/BSD/OpenSimulator-0.9.3.0.txt`; contributor and third-party notices remain available in `CONTRIBUTORS.txt`, `LICENSES/` and `ThirdPartyLicenses/`.
 
 ## NexVerse licensing
 
 New original NexVerse contributions are licensed under the **Mozilla Public License 2.0 (MPL-2.0)** unless a file or directory explicitly states otherwise.
 
-Imported OpenSimulator files do **not** lose or replace their existing BSD/third-party licensing. NexVerse changes to inherited files must preserve all applicable notices. See `LICENSE_POLICY.md` and `NOTICE.md`.
+Imported OpenSimulator files do **not** lose or replace their existing BSD/third-party licensing. NexVerse changes to inherited files must preserve all applicable copyright and license notices. See `LICENSE_POLICY.md`, `NOTICE.md` and `LICENSES/BSD/README.md`.
 
 ## Development model
 

@@ -8,11 +8,15 @@ Original source files and substantial original additions authored for NexVerse S
 
 This repository began from the published OpenSimulator 0.9.3.0 source release. That inherited code remains subject to its original copyright, BSD license terms, contributor notices, and any applicable third-party licenses. Those notices must not be removed merely because the repository is developed under the NexVerse name.
 
+The primary OpenSimulator BSD license and standalone BSD notices are collected under `LICENSES/BSD/`. Existing copyright/license headers embedded in inherited source files remain in the source files themselves.
+
 MPL-2.0 applies to new NexVerse-covered files and modifications to the extent legally applicable; it does not erase or supersede pre-existing third-party rights or license obligations.
 
 ## Third-party components
 
-Third-party libraries, generated material, assets, and bundled components remain under their respective licenses. Consult the notices shipped in the source tree before redistributing or relicensing a component.
+Third-party libraries, generated material, assets, and bundled components remain under their respective licenses. Consult `LICENSES/BSD/README.md`, `ThirdPartyLicenses/`, and any license notice shipped alongside a component before redistributing or relicensing it.
+
+Some license documents cover multiple licenses or exceptions. Those mixed notices are intentionally not classified as pure BSD documents merely because they contain or reference BSD-licensed material.
 
 ## Contributions
 
