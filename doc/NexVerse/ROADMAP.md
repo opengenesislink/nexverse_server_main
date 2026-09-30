@@ -266,6 +266,7 @@ Implemented during NEXJAST:
 - [x] Firestorm-compatible LLLogin XML-RPC endpoint is runtime smoke-tested with a real Robust process.
 - [ ] Firestorm baseline smoke tests pass through successful viewer/simulator login.
 - [x] core LSL XML-RPC RemoteData channel lifecycle and invalid-channel handler behavior are runtime-regression tested against the built XMLRPCModule.
+- [x] NexVerse simulator profile actively enables the local XmlRpcRouterModule and RemoteData listener on port 20800; deployments with multiple simulator processes on one host must override the port per process.
 - [ ] end-to-end LSL XML-RPC RemoteData callback with a running region/script remains to be runtime verified.
 - [x] development runtime version source identifies itself as NexVerse 0.9.3.1 Dev.
 

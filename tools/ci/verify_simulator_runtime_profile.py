@@ -16,6 +16,8 @@ EXPECTED = {
     ("Map", "TextureOnMapTile"): "true",
     ("Map", "TexturePrims"): "true",
     ("Map", "RenderMeshes"): "true",
+    ("XMLRPC", "XmlRpcRouterModule"): "XmlRpcRouterModule",
+    ("XMLRPC", "XmlRpcPort"): "20800",
 }
 
 def parse_ini(path: Path):
@@ -70,4 +72,4 @@ if errors:
         print("::error::" + error)
     sys.exit(1)
 
-print("NexVerse simulator runtime profile verified: ubODE + ubODEMeshmerizer + Warp3D map rendering.")
+print("NexVerse simulator runtime profile verified: ubODE + ubODEMeshmerizer + Warp3D + LSL XML-RPC RemoteData.")
