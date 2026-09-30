@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../NexVerse/Core/NexVersePlatform.cs" Link="NexVersePlatform.cs" />
+    <Compile Include="../../../NexVerse/Core/Security/NexSecurity.cs" Link="NexSecurity.cs" />
+    <Compile Include="../../../NexVerse/Core/Security/NexOAuthStore.cs" Link="NexOAuthStore.cs" />
+    <Compile Include="../../../NexVerse/Core/Security/NexOidcSigning.cs" Link="NexOidcSigning.cs" />
+  </ItemGroup>
+</Project>

@@ -236,8 +236,10 @@ Implemented during NEXJAST:
 - [x] complete current OSSL function surface enabled through an explicit NexVerse permission profile.
 - [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
 - [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.
-- [ ] NexVerse-native OIDC/scoped token issuance replaces the interim authentication bridge.
+- [ ] NexVerse-native OIDC/scoped token issuance fully replaces the interim authentication bridge.
 - [x] native HMAC-signed scoped access-token foundation and legacy-token exchange implemented; native tokens are lifecycle-stamp bound.
+- [x] persistent OAuth2/OIDC core implemented: Authorization Code + PKCE S256, refresh-token rotation/revocation, ES256 ID tokens/JWKS, persistent client registration and service-account client_credentials.
+- [x] password, account-state and explicit session revocation invalidate resident access/refresh sessions.
 - [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.
 - [x] account lifecycle state is persisted independently of UserLevel and enforced by Viewer login and World API authentication.
 - [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.

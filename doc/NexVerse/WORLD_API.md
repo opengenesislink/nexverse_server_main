@@ -215,3 +215,33 @@ The core user lifecycle is now connected. The next identity/API work is:
 - password-change/manual session revocation for already issued native tokens;
 - full OIDC authorization/client flows and persistent client registration;
 - rate limiting and production security controls.
+
+
+## OAuth 2.0 / OpenID Connect identity foundation
+
+When `EnableNativeTokens=true`, NexVerse now exposes a persistent OAuth 2.0 / OpenID Connect foundation.
+
+Public protocol endpoints:
+
+- `GET /.well-known/openid-configuration` — OIDC discovery metadata
+- `GET /oauth/jwks` — public ES256 JSON Web Key Set
+- `GET /oauth/authorize` — Authorization Code flow with mandatory PKCE S256
+- `POST /oauth/token` — `authorization_code`, `refresh_token` and `client_credentials`
+- `POST /oauth/revoke` — access- or refresh-token revocation
+
+Administrative identity endpoints:
+
+- `GET /api/v1/auth/clients` — list registered OAuth/service clients
+- `POST /api/v1/auth/clients` — register public, confidential or service clients
+- `PATCH /api/v1/auth/clients` — enable/disable a client and advance its security stamp
+- `POST /api/v1/auth/sessions/revoke` — revoke resident refresh sessions and invalidate current access tokens
+
+Interactive clients use Authorization Code + PKCE. Public clients have no client secret. Confidential clients use a generated secret which is returned only at registration time. Service accounts use the `client_credentials` grant and receive subjects in the form `service:<client_id>`.
+
+Client secrets are persisted only as PBKDF2-SHA256 hashes. Authorization codes and refresh tokens are persisted only as hashes. Refresh tokens rotate on every successful refresh. Individual native access tokens can be revoked by JTI.
+
+OIDC ID tokens are signed with ES256 using a persistent P-256 key. The private key is generated at the configured `OidcSigningKeyPath`; only the public key is exposed through JWKS. Runtime-generated auth state and private keys are excluded from Git.
+
+Resident password changes, account lock/ban/deactivation and explicit session revocation advance the resident security stamp. Existing native access tokens therefore fail validation and all persisted refresh sessions for the resident are revoked.
+
+The authorization endpoint currently expects an already authenticated NexVerse/legacy bearer session. A browser consent/login surface and complete replacement of the legacy bootstrap path remain separate roadmap work.
