@@ -549,7 +549,7 @@ namespace NexVerse.Server.Api
                             codename = "NEXJAST",
                             title = "Legacy Cleanup and Platform Foundation",
                             status = "active",
-                            checklist = new { completed = 41, total = 45, open = 4 },
+                            checklist = new { completed = 43, total = 45, open = 2 },
                             summary = "Clean-core foundation, native World API/authentication, NexBus, NodeAgent, observability and compatibility guards.",
                             evidence = new[]
                             {
