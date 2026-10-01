@@ -10,27 +10,48 @@ API = ROOT / "OpenSim/Region/ScriptEngine/Shared/Api/Implementation/OSSL_Api.cs"
 DEFAULT = ROOT / "bin/config-include/osslDefaultEnable.ini"
 OVERRIDE = ROOT / "bin/config-include/osslEnable.ini"
 
-FUNCTION_RE = re.compile(r'CheckThreatLevel\\(ThreatLevel\\.[A-Za-z]+,\\s*"([^"]+)"\\)')
-RULE_RE = re.compile(r'^\\s*Allow_(os[A-Za-z0-9_]+)\\s*=\\s*(.*?)\\s*$', re.MULTILINE)
+FUNCTION_RE = re.compile(
+    r'CheckThreatLevel\(ThreatLevel\.[A-Za-z]+,\s*"([^"]+)"\)'
+)
 
-functions = set(FUNCTION_RE.findall(API.read_text(encoding="utf-8")))
+functions = set(FUNCTION_RE.findall(API.read_text(encoding="utf-8-sig")))
 rules = {}
+
 for path in (DEFAULT, OVERRIDE):
-    content = path.read_text(encoding="utf-8")
-    for name, value in RULE_RE.findall(content):
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw.strip()
+        if not line or line.startswith(";") or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key.startswith("Allow_os"):
+            continue
+
+        name = key[len("Allow_"):].strip()
         value = value.split(";", 1)[0].strip()
         rules[name] = value
 
-missing = sorted(functions - rules.keys())
-disabled = sorted(name for name in functions if rules.get(name, "").lower() == "false")
-
 errors = []
+
+if not functions:
+    errors.append("No threat-checked OSSL functions were discovered; parser regression likely.")
+
+missing = sorted(functions - rules.keys())
+disabled = sorted(
+    name for name in functions
+    if rules.get(name, "").lower() == "false"
+)
+
 if missing:
     errors.append("Missing OSSL policy rules: " + ", ".join(missing))
 if disabled:
-    errors.append("Current OSSL functions disabled by effective policy: " + ", ".join(disabled))
+    errors.append(
+        "Current OSSL functions disabled by effective policy: " +
+        ", ".join(disabled)
+    )
 
-profile = OVERRIDE.read_text(encoding="utf-8")
+profile = OVERRIDE.read_text(encoding="utf-8-sig")
 required_profile_lines = (
     "AllowOSFunctions = true",
     "AllowMODFunctions = true",
@@ -39,21 +60,21 @@ required_profile_lines = (
 )
 for line in required_profile_lines:
     if line not in profile:
-        errors.append("Required NexVerse OSSL profile setting missing: " + line)
+        errors.append(
+            "Required NexVerse OSSL profile setting missing: " + line
+        )
 
-# These read-only helpers are widely used by established scripted products
-# (including PMAC).  Merely being non-false is insufficient: estate-only rules
-# still terminate ordinary YEngine scripts with an OSSL permission error.
 compatibility_open_functions = (
     "osGetNotecard",
     "osGetNotecardLine",
     "osGetNumberOfNotecardLines",
 )
 for name in compatibility_open_functions:
-    if rules.get(name, "").lower() != "true":
+    effective = rules.get(name, "")
+    if effective.lower() != "true":
         errors.append(
             f"OSSL compatibility function {name} must be explicitly true; "
-            f"effective value is {rules.get(name, '<missing>')}"
+            f"effective value is {effective or '<missing>'}"
         )
 
 if errors:
@@ -61,4 +82,7 @@ if errors:
         print("::error::" + error)
     sys.exit(1)
 
-print(f"NexVerse OSSL policy covers {len(functions)} threat-checked functions; all are enabled by explicit effective rules.")
+print(
+    f"NexVerse OSSL policy covers {len(functions)} threat-checked functions; "
+    "all are enabled by explicit effective rules."
+)
