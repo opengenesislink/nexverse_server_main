@@ -90,6 +90,7 @@ namespace OpenSim.Region.CoreModules.Scripting.XMLRPC
         private Dictionary<UUID, RPCChannelInfo> m_openChannels;
         private Dictionary<UUID, SendRemoteDataRequest> m_pendingSRDResponses;
         private int m_remoteDataPort = 0;
+        private bool m_logChannelLifecycle = false;
         public int Port
         {
             get { return m_remoteDataPort; }
@@ -118,6 +119,9 @@ namespace OpenSim.Region.CoreModules.Scripting.XMLRPC
                 try
                 {
                     m_remoteDataPort = config.Configs["XMLRPC"].GetInt("XmlRpcPort", m_remoteDataPort);
+                    m_logChannelLifecycle = config.Configs["XMLRPC"].GetBoolean(
+                        "LogChannelLifecycle",
+                        m_logChannelLifecycle);
                 }
                 catch (Exception)
                 {
@@ -240,6 +244,15 @@ namespace OpenSim.Region.CoreModules.Scripting.XMLRPC
                 {
                     m_openChannels.Add(newChannel, rpcChanInfo);
                 }
+
+                if (m_logChannelLifecycle)
+                {
+                    m_log.InfoFormat(
+                        "[XML RPC MODULE]: RemoteData channel opened channel={0} localID={1} itemID={2}",
+                        newChannel,
+                        localID,
+                        itemID);
+                }
             }
 
             return newChannel;
@@ -318,7 +331,16 @@ namespace OpenSim.Region.CoreModules.Scripting.XMLRPC
         public void CloseXMLRPCChannel(UUID channelKey)
         {
             if (m_openChannels.ContainsKey(channelKey))
+            {
                 m_openChannels.Remove(channelKey);
+
+                if (m_logChannelLifecycle)
+                {
+                    m_log.InfoFormat(
+                        "[XML RPC MODULE]: RemoteData channel closed channel={0}",
+                        channelKey);
+                }
+            }
         }
 
 
