@@ -18,6 +18,15 @@ OPENSIM_PID=""
 cleanup() {
   if [ -n "$OPENSIM_PID" ]; then
     kill "$OPENSIM_PID" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! kill -0 "$OPENSIM_PID" 2>/dev/null; then
+        break
+      fi
+      sleep 0.1
+    done
+    if kill -0 "$OPENSIM_PID" 2>/dev/null; then
+      kill -9 "$OPENSIM_PID" 2>/dev/null || true
+    fi
     wait "$OPENSIM_PID" 2>/dev/null || true
   fi
 
@@ -53,7 +62,7 @@ fi
 cp "$COMMON_TEMPLATE" "$COMMON"
 
 cd "$BIN"
-dotnet run --configuration Release \
+timeout 45s dotnet run --configuration Release \
   --project ../tools/ci/NexLoginPlacementSeed/NexLoginPlacementSeed.csproj \
   -- "$DB"
 dotnet OpenSim.dll \
