@@ -392,3 +392,20 @@ Supported machine scopes are explicit NexVerse functional scopes such as `region
 API-key principals use subjects in the form `api-key:<key_id>`. Disabling a key takes effect immediately because validation is performed against the persistent key store on every request.
 
 The selectable-region endpoint now requires `regions:read` rather than `admin:*`, making it usable by restricted machine integrations while administrator bearer tokens continue to satisfy the scope through their administrative wildcard.
+
+
+## OpenAPI 3.1 schema contract
+
+The runtime OpenAPI document now publishes reusable component schemas for the primary v1 models rather than endpoint summaries only.
+
+Current schema coverage includes:
+
+- standardized `Error` and `Pagination`;
+- `User`, `UserCreateRequest`, `UserCreateResponse` and profile/lifecycle request bodies;
+- `Region` and `RegionSearchResponse`;
+- `ApiKey`, API-key create/state requests and list/create responses;
+- `AuditEvent` and paginated audit search responses.
+
+Core operations reference their request and response schemas directly through `#/components/schemas/...`. User-ID routes declare the `principalId` UUID path parameter, while search endpoints document their actual query parameters and bounds. `POST /api/v1/users` also documents `Idempotency-Key`.
+
+NEXJAST CI starts a real Robust process, downloads `/api/v1/openapi.json`, parses the JSON document and verifies these component/ref contracts at runtime.

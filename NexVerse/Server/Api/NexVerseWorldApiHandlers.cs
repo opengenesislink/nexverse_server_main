@@ -165,6 +165,223 @@ namespace NexVerse.Server.Api
                     ("post", "Set or reset a user password", "self or admin:*", "200"))
             };
 
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users",
+                "get",
+                null,
+                "UserSearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users",
+                "post",
+                "UserCreateRequest",
+                "UserCreateResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/regions",
+                "get",
+                null,
+                "RegionSearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/me",
+                "get",
+                null,
+                "User",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}",
+                "get",
+                null,
+                "User",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}",
+                "patch",
+                "UserUpdateRequest",
+                null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}/state",
+                "patch",
+                "AccountStateRequest",
+                null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}/level",
+                "patch",
+                "UserLevelRequest",
+                null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}/password",
+                "post",
+                "PasswordRequest",
+                null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/auth/api-keys",
+                "get",
+                null,
+                "ApiKeyListResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/auth/api-keys",
+                "post",
+                "ApiKeyCreateRequest",
+                "ApiKeyCreateResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/auth/api-keys",
+                "patch",
+                "ApiKeyStateRequest",
+                null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/audit",
+                "get",
+                null,
+                "AuditSearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/users/{principalId}/audit",
+                "get",
+                null,
+                "AuditSearchResponse",
+                "200");
+
+            object principalIdParameter =
+                PathParameter(
+                    "principalId",
+                    "Resident principal UUID.");
+
+            foreach (string method in new[]
+                     {
+                         "get",
+                         "patch",
+                         "delete"
+                     })
+            {
+                AddOperationParameters(
+                    paths,
+                    "/api/v1/users/{principalId}",
+                    method,
+                    principalIdParameter);
+            }
+
+            foreach (string path in new[]
+                     {
+                         "/api/v1/users/{principalId}/audit",
+                         "/api/v1/users/{principalId}/state",
+                         "/api/v1/users/{principalId}/level",
+                         "/api/v1/users/{principalId}/password"
+                     })
+            {
+                string method =
+                    path.EndsWith("/audit", StringComparison.Ordinal)
+                        ? "get"
+                        : path.EndsWith("/password", StringComparison.Ordinal)
+                            ? "post"
+                            : "patch";
+
+                AddOperationParameters(
+                    paths,
+                    path,
+                    method,
+                    principalIdParameter);
+            }
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/users",
+                "get",
+                QueryParameter(
+                    "q",
+                    true,
+                    "User search query; minimum two characters."),
+                QueryParameter(
+                    "state",
+                    false,
+                    "Optional account-state filter."),
+                QueryParameter(
+                    "sort",
+                    false,
+                    "Sort by name, created, user_level or state."),
+                QueryParameter(
+                    "order",
+                    false,
+                    "Sort direction: asc or desc."),
+                PaginationParameter("limit", 50, 1, 100),
+                PaginationParameter("offset", 0, 0, 10000));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/users",
+                "post",
+                HeaderParameter(
+                    "Idempotency-Key",
+                    false,
+                    "Optional retry-safe request key; maximum 128 characters."));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/regions",
+                "get",
+                QueryParameter(
+                    "q",
+                    false,
+                    "Optional region name or UUID query."),
+                QueryParameter(
+                    "sort",
+                    false,
+                    "Sort by name, size_x or size_y."),
+                QueryParameter(
+                    "order",
+                    false,
+                    "Sort direction: asc or desc."),
+                PaginationParameter("limit", 50, 1, 100),
+                PaginationParameter("offset", 0, 0, 10000));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/audit",
+                "get",
+                QueryParameter(
+                    "resource",
+                    false,
+                    "Exact resource identifier."),
+                QueryParameter(
+                    "actor",
+                    false,
+                    "Exact audit actor."),
+                QueryParameter(
+                    "action",
+                    false,
+                    "Exact action or trailing-wildcard prefix such as users.*."),
+                PaginationParameter("limit", 50, 1, 100),
+                PaginationParameter("offset", 0, 0, 10000));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/users/{principalId}/audit",
+                "get",
+                PaginationParameter("limit", 50, 1, 100),
+                PaginationParameter("offset", 0, 0, 10000));
+
             WriteJson(response, new
             {
                 openapi = "3.1.0",
@@ -181,6 +398,7 @@ namespace NexVerse.Server.Api
                 paths,
                 components = new
                 {
+                    schemas = BuildSchemas(),
                     securitySchemes = new
                     {
                         bearerAuth = new
@@ -317,7 +535,9 @@ namespace NexVerse.Server.Api
                     responses = new Dictionary<string, object>
                     {
                         ["200"] = new { description = "Successful response" },
-                        ["429"] = new { description = "Rate limit exceeded" }
+                        ["429"] = JsonResponse(
+                            "Rate limit exceeded",
+                            "Error")
                     },
                     security = Array.Empty<object>()
                 }
@@ -348,11 +568,11 @@ namespace NexVerse.Server.Api
                     ["responses"] = new Dictionary<string, object>
                     {
                         [operationSpec.successCode] = new { description = "Successful response" },
-                        ["400"] = new { description = "Invalid request" },
-                        ["401"] = new { description = "Authentication required" },
-                        ["403"] = new { description = "Insufficient scope" },
-                        ["404"] = new { description = "Resource not found" },
-                        ["429"] = new { description = "Rate limit exceeded" }
+                        ["400"] = JsonResponse("Invalid request", "Error"),
+                        ["401"] = JsonResponse("Authentication required", "Error"),
+                        ["403"] = JsonResponse("Insufficient scope", "Error"),
+                        ["404"] = JsonResponse("Resource not found", "Error"),
+                        ["429"] = JsonResponse("Rate limit exceeded", "Error")
                     }
                 };
 
@@ -363,6 +583,541 @@ namespace NexVerse.Server.Api
             }
 
             return result;
+        }
+
+        private static void ApplyJsonContract(
+            Dictionary<string, object> paths,
+            string path,
+            string method,
+            string requestSchema,
+            string responseSchema,
+            string successCode)
+        {
+            if (!paths.TryGetValue(path, out object pathValue) ||
+                pathValue is not Dictionary<string, object> pathItem ||
+                !pathItem.TryGetValue(method, out object operationValue) ||
+                operationValue is not Dictionary<string, object> operation)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(requestSchema))
+            {
+                operation["requestBody"] = new
+                {
+                    required = true,
+                    content = new Dictionary<string, object>
+                    {
+                        ["application/json"] = new
+                        {
+                            schema = SchemaRef(requestSchema)
+                        }
+                    }
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(responseSchema) &&
+                operation.TryGetValue(
+                    "responses",
+                    out object responsesValue) &&
+                responsesValue is Dictionary<string, object> responses)
+            {
+                responses[successCode] =
+                    JsonResponse(
+                        "Successful response",
+                        responseSchema);
+            }
+        }
+
+        private static void AddOperationParameters(
+            Dictionary<string, object> paths,
+            string path,
+            string method,
+            params object[] parameters)
+        {
+            if (!paths.TryGetValue(path, out object pathValue) ||
+                pathValue is not Dictionary<string, object> pathItem ||
+                !pathItem.TryGetValue(method, out object operationValue) ||
+                operationValue is not Dictionary<string, object> operation)
+                return;
+
+            operation["parameters"] = parameters;
+        }
+
+        private static object PathParameter(
+            string name,
+            string description)
+        {
+            return new
+            {
+                name,
+                @in = "path",
+                required = true,
+                description,
+                schema = new
+                {
+                    type = "string",
+                    format = "uuid"
+                }
+            };
+        }
+
+        private static object QueryParameter(
+            string name,
+            bool required,
+            string description)
+        {
+            return new
+            {
+                name,
+                @in = "query",
+                required,
+                description,
+                schema = new
+                {
+                    type = "string"
+                }
+            };
+        }
+
+        private static object HeaderParameter(
+            string name,
+            bool required,
+            string description)
+        {
+            return new
+            {
+                name,
+                @in = "header",
+                required,
+                description,
+                schema = new
+                {
+                    type = "string"
+                }
+            };
+        }
+
+        private static object PaginationParameter(
+            string name,
+            int defaultValue,
+            int minimum,
+            int maximum)
+        {
+            return new
+            {
+                name,
+                @in = "query",
+                required = false,
+                schema = new
+                {
+                    type = "integer",
+                    @default = defaultValue,
+                    minimum,
+                    maximum
+                }
+            };
+        }
+
+        private static object JsonResponse(
+            string description,
+            string schemaName)
+        {
+            return new
+            {
+                description,
+                content = new Dictionary<string, object>
+                {
+                    ["application/json"] = new
+                    {
+                        schema = SchemaRef(schemaName)
+                    }
+                }
+            };
+        }
+
+        private static Dictionary<string, object> SchemaRef(
+            string schemaName)
+        {
+            return new Dictionary<string, object>
+            {
+                ["$ref"] =
+                    "#/components/schemas/" + schemaName
+            };
+        }
+
+        private static Dictionary<string, object> BuildSchemas()
+        {
+            object paginationRef = SchemaRef("Pagination");
+            object userRef = SchemaRef("User");
+            object regionRef = SchemaRef("Region");
+            object apiKeyRef = SchemaRef("ApiKey");
+            object auditEventRef = SchemaRef("AuditEvent");
+
+            return new Dictionary<string, object>
+            {
+                ["Error"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "error",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["error"] = new { type = "string" },
+                        ["message"] = new { type = "string" },
+                        ["error_description"] = new { type = "string" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["Pagination"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "limit",
+                        "offset",
+                        "returned",
+                        "has_more"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["limit"] = new { type = "integer", minimum = 1, maximum = 100 },
+                        ["offset"] = new { type = "integer", minimum = 0, maximum = 10000 },
+                        ["returned"] = new { type = "integer", minimum = 0 },
+                        ["has_more"] = new { type = "boolean" },
+                        ["next_offset"] = new
+                        {
+                            type = new[] { "integer", "null" }
+                        }
+                    }
+                },
+                ["Position"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["x"] = new { type = "number", format = "float" },
+                        ["y"] = new { type = "number", format = "float" },
+                        ["z"] = new { type = "number", format = "float" }
+                    }
+                },
+                ["Region"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "region_id",
+                        "name",
+                        "size_x",
+                        "size_y"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["server_uri"] = new { type = "string" },
+                        ["size_x"] = new { type = "integer" },
+                        ["size_y"] = new { type = "integer" }
+                    }
+                },
+                ["User"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "principal_id",
+                        "first_name",
+                        "last_name",
+                        "user_level",
+                        "active",
+                        "account_state"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["principal_id"] = new { type = "string", format = "uuid" },
+                        ["first_name"] = new { type = "string" },
+                        ["last_name"] = new { type = "string" },
+                        ["email"] = new { type = "string" },
+                        ["user_level"] = new { type = "integer" },
+                        ["user_flags"] = new { type = "integer" },
+                        ["user_title"] = new { type = "string" },
+                        ["user_country"] = new { type = "string" },
+                        ["local_to_grid"] = new { type = "boolean" },
+                        ["active"] = new { type = "boolean" },
+                        ["account_state"] = new
+                        {
+                            type = "string",
+                            @enum = new[]
+                            {
+                                "active",
+                                "locked",
+                                "banned",
+                                "deactivated",
+                                "provisioning",
+                                "provisioning_failed"
+                            }
+                        },
+                        ["account_state_reason"] = new { type = "string" },
+                        ["account_state_changed"] = new { type = "integer" },
+                        ["created"] = new { type = "integer" }
+                    }
+                },
+                ["UserCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "first_name",
+                        "last_name",
+                        "password",
+                        "home_region"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["first_name"] = new { type = "string", maxLength = 64 },
+                        ["last_name"] = new { type = "string", maxLength = 64 },
+                        ["email"] = new { type = "string", maxLength = 64 },
+                        ["password"] = new
+                        {
+                            type = "string",
+                            minLength = 8,
+                            maxLength = 256,
+                            writeOnly = true
+                        },
+                        ["home_region"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["id"] = new { type = "string", format = "uuid" },
+                                ["name"] = new { type = "string" },
+                                ["position"] = SchemaRef("Position")
+                            }
+                        }
+                    }
+                },
+                ["UserCreateResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "user",
+                        "provisioning",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["user"] = userRef,
+                        ["provisioning"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["ready"] = new { type = "boolean" },
+                                ["authentication_initialized"] = new { type = "boolean" },
+                                ["inventory_initialized"] = new { type = "boolean" },
+                                ["home_initialized"] = new { type = "boolean" },
+                                ["start_position_initialized"] = new { type = "boolean" },
+                                ["state_finalized"] = new { type = "boolean" },
+                                ["account_state"] = new { type = "string" },
+                                ["home_region"] = regionRef
+                            }
+                        },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["UserSearchResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["count"] = new { type = "integer" },
+                        ["users"] = new
+                        {
+                            type = "array",
+                            items = userRef
+                        },
+                        ["pagination"] = paginationRef
+                    }
+                },
+                ["RegionSearchResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["count"] = new { type = "integer" },
+                        ["regions"] = new
+                        {
+                            type = "array",
+                            items = regionRef
+                        },
+                        ["pagination"] = paginationRef
+                    }
+                },
+                ["UserUpdateRequest"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["email"] = new { type = "string", maxLength = 64 },
+                        ["user_title"] = new { type = "string", maxLength = 64 },
+                        ["user_country"] = new { type = "string", maxLength = 64 }
+                    }
+                },
+                ["AccountStateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "state" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["state"] = new
+                        {
+                            type = "string",
+                            @enum = new[]
+                            {
+                                "active",
+                                "locked",
+                                "banned",
+                                "deactivated"
+                            }
+                        },
+                        ["reason"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["UserLevelRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "user_level" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["user_level"] = new { type = "integer" }
+                    }
+                },
+                ["PasswordRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "password" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["password"] = new
+                        {
+                            type = "string",
+                            minLength = 8,
+                            maxLength = 256,
+                            writeOnly = true
+                        }
+                    }
+                },
+                ["ApiKey"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["key_id"] = new { type = "string" },
+                        ["name"] = new { type = "string" },
+                        ["scopes"] = new
+                        {
+                            type = "array",
+                            items = new { type = "string" }
+                        },
+                        ["enabled"] = new { type = "boolean" },
+                        ["created_at"] = new { type = "integer" },
+                        ["updated_at"] = new { type = "integer" }
+                    }
+                },
+                ["ApiKeyCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "scopes" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["name"] = new { type = "string" },
+                        ["scopes"] = new
+                        {
+                            type = "array",
+                            minItems = 1,
+                            items = new { type = "string" }
+                        }
+                    }
+                },
+                ["ApiKeyCreateResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["api_key"] = new
+                        {
+                            type = "string",
+                            writeOnly = true
+                        },
+                        ["api_key_note"] = new { type = "string" },
+                        ["key"] = apiKeyRef,
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["ApiKeyStateRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "key_id",
+                        "enabled"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["key_id"] = new { type = "string" },
+                        ["enabled"] = new { type = "boolean" }
+                    }
+                },
+                ["ApiKeyListResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["keys"] = new
+                        {
+                            type = "array",
+                            items = apiKeyRef
+                        }
+                    }
+                },
+                ["AuditEvent"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["event_id"] = new { type = "string", format = "uuid" },
+                        ["timestamp"] = new { type = "string", format = "date-time" },
+                        ["actor"] = new { type = "string" },
+                        ["action"] = new { type = "string" },
+                        ["resource"] = new { type = "string" },
+                        ["correlation_id"] = new { type = "string" },
+                        ["details"] = new
+                        {
+                            type = "object",
+                            additionalProperties = new
+                            {
+                                type = "string"
+                            }
+                        }
+                    }
+                },
+                ["AuditSearchResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["count"] = new { type = "integer" },
+                        ["events"] = new
+                        {
+                            type = "array",
+                            items = auditEventRef
+                        },
+                        ["pagination"] = paginationRef
+                    }
+                }
+            };
         }
 
         private static void WriteJson(IOSHttpResponse response, object payload)

@@ -193,3 +193,33 @@ jobs:
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/openapi.json > /tmp/nexverse-openapi.json
           grep -F '"openapi": "3.1.0"' /tmp/nexverse-openapi.json
+
+          python3 - <<'PY'
+          import json
+
+          with open("/tmp/nexverse-openapi.json", "r", encoding="utf-8") as handle:
+              doc = json.load(handle)
+
+          schemas = doc["components"]["schemas"]
+          for required in (
+              "Error",
+              "Pagination",
+              "User",
+              "Region",
+              "UserCreateRequest",
+              "UserCreateResponse",
+              "ApiKey",
+              "AuditEvent",
+          ):
+              assert required in schemas, f"missing OpenAPI schema: {required}"
+
+          user_post = doc["paths"]["/api/v1/users"]["post"]
+          assert user_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateRequest"
+          assert user_post["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateResponse"
+
+          region_get = doc["paths"]["/api/v1/regions"]["get"]
+          assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
+
+          assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
+          print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
+          PY

@@ -289,6 +289,7 @@ Implementation status:
 - [x] bounded `limit`/`offset` pagination is implemented for user and selectable-region searches.
 - [x] filtering/sorting is implemented for user and region searches, and backend search windows honor the public pagination range.
 - [x] `Idempotency-Key` is implemented for account provisioning with persistent response replay, payload-conflict detection and concurrent-request exclusion.
+- [x] OpenAPI 3.1 component schemas and operation-level request/response references are emitted for the core v1 user, region, audit and API-key contracts and runtime-smoke tested.
 
 - REST/JSON API;
 - OpenAPI 3.1 specification;
