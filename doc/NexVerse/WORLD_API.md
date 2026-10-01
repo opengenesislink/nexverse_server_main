@@ -319,3 +319,22 @@ The global endpoint supports exact `resource` and `actor` filters. `action` may 
 `GET /api/v1/audit?action=users.*&resource=<principal-uuid>&limit=50&offset=0`
 
 Audit records contain event ID, timestamp, actor, action, resource, correlation ID and non-secret details. Passwords, access tokens, refresh tokens and OAuth client secrets are not written into audit details.
+
+
+## Search filtering and sorting
+
+User search supports the optional account-state filter:
+
+`state=active|locked|banned|deactivated|provisioning|provisioning_failed`
+
+User sort fields:
+
+`sort=name|created|user_level|state`
+
+Selectable-region sort fields:
+
+`sort=name|size_x|size_y`
+
+Both searches accept `order=asc|desc` and default to ascending name order.
+
+The internal bounded search window now matches the public pagination contract through offset 10000; the earlier 100-result backend cap has been removed for these API searches.

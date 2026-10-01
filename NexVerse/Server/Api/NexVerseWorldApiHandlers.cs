@@ -198,6 +198,20 @@ namespace NexVerse.Server.Api
                     },
                     status = 429
                 },
+                x_nexverse_filtering_sorting = new
+                {
+                    users = new
+                    {
+                        filters = new[] { "state" },
+                        sort = new[] { "name", "created", "user_level", "state" },
+                        order = new[] { "asc", "desc" }
+                    },
+                    regions = new
+                    {
+                        sort = new[] { "name", "size_x", "size_y" },
+                        order = new[] { "asc", "desc" }
+                    }
+                },
                 x_nexverse_pagination = new
                 {
                     query_parameters = new[] { "limit", "offset" },

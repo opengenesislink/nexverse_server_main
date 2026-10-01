@@ -279,7 +279,7 @@ namespace NexVerse.Server.Api
             if (string.IsNullOrWhiteSpace(query))
                 return Array.Empty<NexUserRecord>();
 
-            int safeLimit = Math.Max(1, Math.Min(limit, 100));
+            int safeLimit = Math.Max(1, Math.Min(limit, 10001));
             List<UserAccount> accounts = m_UserAccounts.GetUserAccounts(UUID.Zero, query.Trim());
             if (accounts == null)
                 return Array.Empty<NexUserRecord>();
@@ -296,7 +296,7 @@ namespace NexVerse.Server.Api
             if (m_Grid == null)
                 return Array.Empty<NexRegionRecord>();
 
-            int safeLimit = Math.Max(1, Math.Min(limit, 100));
+            int safeLimit = Math.Max(1, Math.Min(limit, 10001));
             List<GridRegion> regions;
 
             if (string.IsNullOrWhiteSpace(query))
@@ -822,12 +822,37 @@ namespace NexVerse.Server.Api
             IReadOnlyList<NexRegionRecord> matches =
                 m_Users.SearchHomeRegions(query, fetchLimit);
 
-            NexRegionRecord[] regions = matches
+            if (!TryGetSort(
+                request,
+                response,
+                new[] { "name", "size_x", "size_y" },
+                "name",
+                out string sort,
+                out bool descending))
+                return;
+
+            IEnumerable<NexRegionRecord> orderedRegions = sort switch
+            {
+                "size_x" => descending
+                    ? matches.OrderByDescending(x => x.SizeX).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    : matches.OrderBy(x => x.SizeX).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase),
+                "size_y" => descending
+                    ? matches.OrderByDescending(x => x.SizeY).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    : matches.OrderBy(x => x.SizeY).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase),
+                _ => descending
+                    ? matches.OrderByDescending(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    : matches.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            };
+
+            NexRegionRecord[] regionResults = orderedRegions
                 .Skip(offset)
-                .Take(limit)
+                .Take(limit + 1)
                 .ToArray();
 
-            bool hasMore = matches.Count > offset + regions.Length;
+            bool hasMore = regionResults.Length > limit;
+            NexRegionRecord[] regions = regionResults
+                .Take(limit)
+                .ToArray();
 
             WriteJson(response, new
             {
@@ -881,12 +906,65 @@ namespace NexVerse.Server.Api
             IReadOnlyList<NexUserRecord> matches =
                 m_Users.Search(query, fetchLimit);
 
-            NexUserRecord[] users = matches
+            string state = request.QueryString?["state"];
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                state = state.Trim().ToLowerInvariant();
+                if (!IsKnownAccountState(state))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "invalid_filter",
+                        "state must be active, locked, banned, deactivated, provisioning or provisioning_failed.");
+                    return;
+                }
+            }
+
+            if (!TryGetSort(
+                request,
+                response,
+                new[] { "name", "created", "user_level", "state" },
+                "name",
+                out string sort,
+                out bool descending))
+                return;
+
+            IEnumerable<NexUserRecord> filtered = matches;
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                filtered = filtered.Where(x =>
+                    string.Equals(
+                        x.AccountState,
+                        state,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            IOrderedEnumerable<NexUserRecord> orderedUsers = sort switch
+            {
+                "created" => descending
+                    ? filtered.OrderByDescending(x => x.Created)
+                    : filtered.OrderBy(x => x.Created),
+                "user_level" => descending
+                    ? filtered.OrderByDescending(x => x.UserLevel).ThenBy(x => x.FirstName, StringComparer.OrdinalIgnoreCase)
+                    : filtered.OrderBy(x => x.UserLevel).ThenBy(x => x.FirstName, StringComparer.OrdinalIgnoreCase),
+                "state" => descending
+                    ? filtered.OrderByDescending(x => x.AccountState, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.FirstName, StringComparer.OrdinalIgnoreCase)
+                    : filtered.OrderBy(x => x.AccountState, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.FirstName, StringComparer.OrdinalIgnoreCase),
+                _ => descending
+                    ? filtered.OrderByDescending(x => x.FirstName, StringComparer.OrdinalIgnoreCase).ThenByDescending(x => x.LastName, StringComparer.OrdinalIgnoreCase)
+                    : filtered.OrderBy(x => x.FirstName, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.LastName, StringComparer.OrdinalIgnoreCase)
+            };
+
+            NexUserRecord[] userResults = orderedUsers
                 .Skip(offset)
-                .Take(limit)
+                .Take(limit + 1)
                 .ToArray();
 
-            bool hasMore = matches.Count > offset + users.Length;
+            bool hasMore = userResults.Length > limit;
+            NexUserRecord[] users = userResults
+                .Take(limit)
+                .ToArray();
 
             WriteJson(response, new
             {
@@ -1546,6 +1624,60 @@ namespace NexVerse.Server.Api
                 return null;
 
             return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+        }
+
+        private static bool TryGetSort(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            IReadOnlyCollection<string> allowed,
+            string defaultSort,
+            out string sort,
+            out bool descending)
+        {
+            sort = request?.QueryString?["sort"];
+            if (string.IsNullOrWhiteSpace(sort))
+                sort = defaultSort;
+
+            sort = sort.Trim().ToLowerInvariant();
+            if (!allowed.Contains(sort, StringComparer.OrdinalIgnoreCase))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_sort",
+                    "Unsupported sort field.");
+                descending = false;
+                return false;
+            }
+
+            string order = request?.QueryString?["order"];
+            if (string.IsNullOrWhiteSpace(order))
+                order = "asc";
+
+            order = order.Trim().ToLowerInvariant();
+            if (order != "asc" && order != "desc")
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_sort_order",
+                    "order must be asc or desc.");
+                descending = false;
+                return false;
+            }
+
+            descending = order == "desc";
+            return true;
+        }
+
+        private static bool IsKnownAccountState(string state)
+        {
+            return state == NexAccountStates.Active ||
+                   state == NexAccountStates.Locked ||
+                   state == NexAccountStates.Banned ||
+                   state == NexAccountStates.Deactivated ||
+                   state == NexAccountStates.Provisioning ||
+                   state == NexAccountStates.ProvisioningFailed;
         }
 
         private static bool TryGetPagination(
