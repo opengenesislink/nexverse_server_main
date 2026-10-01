@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using System;
+using System.Collections.Generic;
 using log4net;
 using Nini.Config;
 using NexVerse.Core.Audit;
@@ -17,6 +18,8 @@ namespace NexVerse.Server.Api
     public sealed class NexVerseWorldApiConnector : ServiceConnector
     {
         private static readonly ILog m_Log = LogManager.GetLogger(typeof(NexVerseWorldApiConnector));
+        private static readonly object s_TelemetrySync = new object();
+        private static NexOtlpHttpExporter s_OtlpExporter;
 
         public NexVerseWorldApiConnector(IConfigSource config, IHttpServer server, string configName)
             : base(config, server, configName)
@@ -56,6 +59,113 @@ namespace NexVerse.Server.Api
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(metricsPath, metricsEndpoint.Handle, "NexVerse Prometheus Metrics"));
                 m_Log.WarnFormat("[NEX-METRICS]: Metrics endpoint enabled at {0}. Restrict access with firewall/TLS policy.", metricsPath);
+            }
+
+            IConfig telemetryConfig = config.Configs["NexTelemetry"];
+            if (telemetryConfig != null &&
+                telemetryConfig.GetBoolean("Enabled", false))
+            {
+                string protocol =
+                    telemetryConfig.GetString(
+                        "Protocol",
+                        "http/json").Trim();
+
+                if (!string.Equals(
+                        protocol,
+                        "http/json",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "NexVerse currently supports OTLP protocol http/json.");
+                }
+
+                lock (s_TelemetrySync)
+                {
+                    if (s_OtlpExporter == null)
+                    {
+                        string instanceId =
+                            telemetryConfig.GetString(
+                                "ServiceInstanceId",
+                                string.Empty);
+
+                        if (string.IsNullOrWhiteSpace(instanceId))
+                            instanceId = Environment.MachineName;
+
+                        NexOtlpHttpOptions options =
+                            new NexOtlpHttpOptions
+                            {
+                                Endpoint =
+                                    ParseOptionalAbsoluteUri(
+                                        telemetryConfig.GetString(
+                                            "Endpoint",
+                                            "http://127.0.0.1:4318")),
+                                TracesEndpoint =
+                                    ParseOptionalAbsoluteUri(
+                                        telemetryConfig.GetString(
+                                            "TracesEndpoint",
+                                            string.Empty)),
+                                MetricsEndpoint =
+                                    ParseOptionalAbsoluteUri(
+                                        telemetryConfig.GetString(
+                                            "MetricsEndpoint",
+                                            string.Empty)),
+                                ServiceName =
+                                    telemetryConfig.GetString(
+                                        "ServiceName",
+                                        "NexVerse.Robust").Trim(),
+                                ServiceInstanceId =
+                                    instanceId.Trim(),
+                                Headers =
+                                    ParseOtlpHeaders(
+                                        telemetryConfig.GetString(
+                                            "Headers",
+                                            string.Empty)),
+                                ExportIntervalSeconds =
+                                    telemetryConfig.GetInt(
+                                        "ExportIntervalSeconds",
+                                        10),
+                                BatchSize =
+                                    telemetryConfig.GetInt(
+                                        "BatchSize",
+                                        256),
+                                QueueCapacity =
+                                    telemetryConfig.GetInt(
+                                        "QueueCapacity",
+                                        4096),
+                                TimeoutMilliseconds =
+                                    telemetryConfig.GetInt(
+                                        "TimeoutMilliseconds",
+                                        10000),
+                                MaxRetries =
+                                    telemetryConfig.GetInt(
+                                        "MaxRetries",
+                                        3),
+                                AllowInsecure =
+                                    telemetryConfig.GetBoolean(
+                                        "AllowInsecure",
+                                        false)
+                            };
+
+                        s_OtlpExporter =
+                            new NexOtlpHttpExporter(
+                                metrics,
+                                options);
+
+                        AppDomain.CurrentDomain.ProcessExit +=
+                            (_, __) =>
+                            {
+                                lock (s_TelemetrySync)
+                                {
+                                    s_OtlpExporter?.Dispose();
+                                    s_OtlpExporter = null;
+                                }
+                            };
+
+                        m_Log.InfoFormat(
+                            "[NEX-OTLP]: OTLP/HTTP JSON export enabled for service {0}.",
+                            options.ServiceName);
+                    }
+                }
             }
 
             INexEventBus eventBus = CreateEventBus(config, server);
@@ -316,6 +426,69 @@ namespace NexVerse.Server.Api
                 peers.Length);
 
             return distributed;
+        }
+
+        private static Uri ParseOptionalAbsoluteUri(
+            string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            if (!Uri.TryCreate(
+                    value.Trim(),
+                    UriKind.Absolute,
+                    out Uri parsed))
+            {
+                throw new InvalidOperationException(
+                    "Invalid NexTelemetry endpoint URL: " +
+                    value);
+            }
+
+            return parsed;
+        }
+
+        private static IReadOnlyDictionary<string, string> ParseOtlpHeaders(
+            string value)
+        {
+            Dictionary<string, string> headers =
+                new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(value))
+                return headers;
+
+            foreach (string rawPair in value.Split(
+                         ',',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                int separator = rawPair.IndexOf('=');
+                if (separator <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "NexTelemetry Headers must use comma-separated key=value pairs.");
+                }
+
+                string key =
+                    Uri.UnescapeDataString(
+                        rawPair.Substring(
+                            0,
+                            separator).Trim());
+
+                string headerValue =
+                    Uri.UnescapeDataString(
+                        rawPair.Substring(
+                            separator + 1).Trim());
+
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    throw new InvalidOperationException(
+                        "NexTelemetry header names must not be empty.");
+                }
+
+                headers[key] = headerValue;
+            }
+
+            return headers;
         }
 
         private static T LoadOptionalService<T>(IConfigSource config, string sectionName)

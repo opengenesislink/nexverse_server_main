@@ -247,8 +247,8 @@ Implemented during NEXJAST:
 - [x] distributed NexBus transport connected end-to-end between Robust and simulator nodes.
 - [x] distributed NexBus core plus authenticated HTTP/HMAC peer transport foundation implemented with relay-loop deduplication and bounded outbound queue.
 - [x] NexVerse NodeAgent region module publishes node/region lifecycle and health heartbeats and exposes local/inbound NexBus pub/sub to simulator modules.
-- [ ] production metrics/OpenTelemetry implemented end-to-end.
-- [x] NexMetrics Prometheus-compatible registry/export endpoint and OpenTelemetry-compatible ActivitySource foundation implemented; external collector/export pipeline remains pending.
+- [x] production metrics/OpenTelemetry implemented end-to-end through Prometheus export plus a bounded OTLP/HTTP JSON trace/metrics collector pipeline.
+- [x] NexMetrics Prometheus-compatible registry/export endpoint, OpenTelemetry-compatible ActivitySource, OTLP batching/retry/TLS controls and external collector export are implemented and CI-regression tested.
 
 ### 5.8 NEXJAST definition of done
 

@@ -15,6 +15,43 @@ namespace NexVerse.Core.Observability
         Gauge
     }
 
+    public sealed class NexMetricSampleSnapshot
+    {
+        public IReadOnlyDictionary<string, string> Labels { get; }
+        public double Value { get; }
+
+        public NexMetricSampleSnapshot(
+            IReadOnlyDictionary<string, string> labels,
+            double value)
+        {
+            Labels = labels ??
+                new Dictionary<string, string>(
+                    StringComparer.Ordinal);
+            Value = value;
+        }
+    }
+
+    public sealed class NexMetricSnapshot
+    {
+        public string Name { get; }
+        public string Help { get; }
+        public NexMetricType Type { get; }
+        public IReadOnlyList<NexMetricSampleSnapshot> Samples { get; }
+
+        public NexMetricSnapshot(
+            string name,
+            string help,
+            NexMetricType type,
+            IReadOnlyList<NexMetricSampleSnapshot> samples)
+        {
+            Name = name ?? string.Empty;
+            Help = help ?? string.Empty;
+            Type = type;
+            Samples = samples ??
+                Array.Empty<NexMetricSampleSnapshot>();
+        }
+    }
+
     public sealed class NexMetricsRegistry
     {
         private readonly ConcurrentDictionary<string, MetricFamily> m_Families =
@@ -46,6 +83,29 @@ namespace NexVerse.Core.Observability
 
             MetricFamily family = GetFamily(name, help, NexMetricType.Gauge);
             family.GetSample(labels).Set(value);
+        }
+
+        public IReadOnlyList<NexMetricSnapshot> Snapshot()
+        {
+            return m_Families.Values
+                .OrderBy(x => x.Name, StringComparer.Ordinal)
+                .Select(family =>
+                    new NexMetricSnapshot(
+                        family.Name,
+                        family.Help,
+                        family.Type,
+                        family.Samples
+                            .OrderBy(
+                                x => x.Key,
+                                StringComparer.Ordinal)
+                            .Select(sample =>
+                                new NexMetricSampleSnapshot(
+                                    new Dictionary<string, string>(
+                                        sample.Labels,
+                                        StringComparer.Ordinal),
+                                    sample.Value))
+                            .ToArray()))
+                .ToArray();
         }
 
         public string RenderPrometheus()

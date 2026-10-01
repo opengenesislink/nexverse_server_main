@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
-      - name: Verify NexMetrics foundation
+      - name: Verify NexMetrics OTLP pipeline
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexMetricsRegression/NexMetricsRegression.csproj
 

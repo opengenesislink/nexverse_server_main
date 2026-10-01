@@ -10,5 +10,6 @@
     <Compile Include="../../../NexVerse/Core/NexVersePlatform.cs" Link="NexVersePlatform.cs" />
     <Compile Include="../../../NexVerse/Core/Observability/NexMetrics.cs" Link="NexMetrics.cs" />
     <Compile Include="../../../NexVerse/Core/Observability/NexTelemetry.cs" Link="NexTelemetry.cs" />
+    <Compile Include="../../../NexVerse/Server/Api/NexOtlpHttpExporter.cs" Link="NexOtlpHttpExporter.cs" />
   </ItemGroup>
 </Project>
