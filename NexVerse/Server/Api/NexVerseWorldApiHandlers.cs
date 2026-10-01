@@ -565,7 +565,7 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "NexVerse World API v1",
                             status = "advanced",
-                            checklist = new { completed = 23, total = 23, open = 0 },
+                            checklist = new { completed = 25, total = 25, open = 0 },
                             summary = "The documented API-v1 checklist is implemented early while the product still identifies as 0.9.3.1 Dev.",
                             evidence = new[]
                             {
