@@ -44,7 +44,7 @@ for rel in tracked:
                 password = match.group(1).strip()
                 safe = (
                     password in allowed
-                    or password.startswith("\${Environment|")
+                    or password.startswith("${Environment|")
                     or (password.startswith("<") and password.endswith(">"))
                 )
                 if not safe:
@@ -59,7 +59,7 @@ for rel in tracked:
         }:
             safe = (
                 value in allowed
-                or value.startswith("\${Environment|")
+                or value.startswith("${Environment|")
                 or (value.startswith("<") and value.endswith(">"))
             )
             if not safe:
