@@ -556,6 +556,8 @@ namespace NexVerse.Server.Api
         private readonly INexAccessTokenService m_Tokens;
         private readonly INexOAuthStore m_OAuthStore;
         private readonly INexAuditStore m_AuditStore;
+        private readonly INexIdempotencyStore m_IdempotencyStore;
+        private readonly int m_IdempotencyTtlSeconds;
 
         public NexUserApiRouter(
             INexUserService users,
