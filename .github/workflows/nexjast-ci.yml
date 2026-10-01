@@ -141,6 +141,10 @@ jobs:
           test -f bin/NexVerse.Server.Api.dll
           test -f bin/NexVerse.RegionModules.dll
 
+      - name: Runtime smoke test successful simulator login placement
+        shell: bash
+        run: bash tools/ci/smoke_login_placement.sh
+
       - name: Runtime regression LSL XML-RPC RemoteData compatibility
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/XmlRpcRemoteDataRegression/XmlRpcRemoteDataRegression.csproj
