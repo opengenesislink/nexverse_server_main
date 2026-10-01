@@ -6,6 +6,9 @@ BIN="$ROOT/bin"
 COMMON="$BIN/config-include/StandaloneCommon.ini"
 COMMON_TEMPLATE="$ROOT/tools/ci/NexLoginPlacement/StandaloneCommon.ini"
 DB="/tmp/nexverse-login-placement.db"
+ESTATE_DB="/tmp/nexverse-login-placement-estate.db"
+ASSET_DB="/tmp/nexverse-login-placement-assets.db"
+SIM_DB="/tmp/nexverse-login-placement-sim.db"
 LOG="$ROOT/nexverse-login-placement-smoke.log"
 REQUEST="/tmp/nexverse-login-placement-request.xml"
 RESPONSE="/tmp/nexverse-login-placement-response.xml"
@@ -36,7 +39,9 @@ cleanup() {
     rm -f "$COMMON"
   fi
 
-  rm -f "$DB" "$DB-shm" "$DB-wal"
+  for file in "$DB" "$ESTATE_DB" "$ASSET_DB" "$SIM_DB"; do
+    rm -f "$file" "$file-shm" "$file-wal"
+  done
 }
 
 on_exit() {
@@ -54,7 +59,10 @@ on_exit() {
 }
 trap on_exit EXIT
 
-rm -f "$DB" "$DB-shm" "$DB-wal" "$LOG" "$REQUEST" "$RESPONSE" "$BACKUP"
+for file in "$DB" "$ESTATE_DB" "$ASSET_DB" "$SIM_DB"; do
+  rm -f "$file" "$file-shm" "$file-wal"
+done
+rm -f "$LOG" "$REQUEST" "$RESPONSE" "$BACKUP"
 
 if [ -f "$COMMON" ]; then
   cp "$COMMON" "$BACKUP"
