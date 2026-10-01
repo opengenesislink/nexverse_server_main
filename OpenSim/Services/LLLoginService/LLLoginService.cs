@@ -38,6 +38,7 @@ using Nini.Config;
 using OpenMetaverse;
 
 using OpenSim.Framework;
+using NexVerse.Core.Identity;
 using OpenSim.Server.Base;
 using OpenSim.Services.Connectors.InstantMessage;
 using OpenSim.Services.Interfaces;
@@ -92,6 +93,7 @@ namespace OpenSim.Services.LLLoginService
         protected string m_DSTZone;
 
         protected bool m_allowDuplicatePresences = false;
+        protected bool m_EnableNexVerseResidentNames = true;
         protected string m_messageKey;
         protected bool m_allowLoginFallbackToAnyRegion = true;  // if login requested region if not found and there are no Default or fallback regions,
                                                                 // try any online. This is legacy behaviour
@@ -121,6 +123,10 @@ namespace OpenSim.Services.LLLoginService
             m_RequireInventory = m_LoginServerConfig.GetBoolean("RequireInventory", true);
             m_AllowRemoteSetLoginLevel = m_LoginServerConfig.GetBoolean("AllowRemoteSetLoginLevel", false);
             m_MinLoginLevel = m_LoginServerConfig.GetInt("MinLoginLevel", 0);
+            m_EnableNexVerseResidentNames =
+                m_LoginServerConfig.GetBoolean(
+                    "EnableNexVerseResidentNames",
+                    true);
             m_GatekeeperURL = Util.GetConfigVarFromSections<string>(config, "GatekeeperURI",
                 new string[] { "Startup", "Hypergrid", "LoginService" }, string.Empty);
             m_MapTileURL = m_LoginServerConfig.GetString("MapTileURL", string.Empty);
@@ -332,6 +338,16 @@ namespace OpenSim.Services.LLLoginService
         public LoginResponse Login(string firstName, string lastName, string passwd, string startLocation, UUID scopeID,
             string clientVersion, string channel, string mac, string id0, IPEndPoint clientIP)
         {
+            if (m_EnableNexVerseResidentNames &&
+                NexResidentNameResolver.TryResolveLoginInput(
+                    firstName,
+                    lastName,
+                    out NexResidentName resolvedName))
+            {
+                firstName = resolvedName.FirstName;
+                lastName = resolvedName.LastName;
+            }
+
             bool success;
             UUID session = UUID.Random();
 
@@ -415,6 +431,12 @@ namespace OpenSim.Services.LLLoginService
                         "[LLOGIN SERVICE]: Login failed for {0} {1}, reason: user not found", firstName, lastName);
                     return LLFailedLoginResponse.UserProblem;
                 }
+
+                // From this point on use the canonical names stored with the
+                // account.  This keeps viewer/session responses stable even
+                // when the login input used the short or dotted alias.
+                firstName = account.FirstName;
+                lastName = account.LastName;
 
                 if (!account.LoginAllowed)
                 {

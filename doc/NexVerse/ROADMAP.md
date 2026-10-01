@@ -388,6 +388,12 @@ Each endpoint can document:
 
 ### 7.1 Resident-compatible usernames
 
+Implementation status:
+
+- [x] resident login resolver accepts short `Jam`, dotted `jam.resident` and legacy `Jam Resident` forms without rewriting stored accounts;
+- [x] LLLogin normalizes both XML-RPC and LLSD/WebSocket login inputs before account lookup and restores the stored account names after lookup;
+- [x] normalization behavior is covered by a dedicated CI regression.
+
 Support canonical internal usernames such as:
 
 - `antonia.resident`

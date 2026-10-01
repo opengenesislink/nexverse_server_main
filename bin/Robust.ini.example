@@ -396,6 +396,10 @@
     DefaultLibrary = "./inventory/Libraries.xml"
 
 [LoginService]
+    ; NexVerse resident-name compatibility:
+    ; Jam, jam.resident and Jam Resident resolve to the same account.
+    EnableNexVerseResidentNames = true
+
     ; for the server connector
     LocalServiceModule = "OpenSim.Services.LLLoginService.dll:LLLoginService"
     ; for the service
