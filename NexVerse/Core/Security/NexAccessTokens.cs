@@ -164,6 +164,23 @@ namespace NexVerse.Core.Security
             try
             {
                 suppliedSignature = Base64UrlDecode(parts[2]);
+
+                // Require canonical base64url segments.  Some decoders accept
+                // alternative trailing pad bits that decode to the same bytes,
+                // which makes an otherwise signed token string malleable.
+                if (!string.Equals(
+                    Base64UrlEncode(Base64UrlDecode(parts[0])),
+                    parts[0],
+                    StringComparison.Ordinal) ||
+                    !string.Equals(
+                    Base64UrlEncode(Base64UrlDecode(parts[1])),
+                    parts[1],
+                    StringComparison.Ordinal) ||
+                    !string.Equals(
+                    Base64UrlEncode(suppliedSignature),
+                    parts[2],
+                    StringComparison.Ordinal))
+                    return false;
             }
             catch
             {
