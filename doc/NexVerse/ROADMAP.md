@@ -347,6 +347,8 @@ Provide a modern web interface under `world.stadt-nexverse.de`.
 
 Implementation status:
 
+- [x] API Control Center dashboard with live health, server/API version, milestone and endpoint/operation counts;
+- [x] machine-readable `x_nexverse_changelog` release notes with a filterable "Was ist neu?" view;
 - [x] searchable endpoint catalogue driven by the live OpenAPI document;
 - [x] request/response schemas rendered from the live contract;
 - [x] same-origin live API explorer with Bearer/API-key/Idempotency-Key support;
