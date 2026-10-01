@@ -263,9 +263,9 @@ Implemented during NEXJAST:
 - [x] OSSL policy coverage is regression-checked by NEXJAST CI.
 - [x] HG local-grid URI identity normalization is regression-tested by NEXJAST CI.
 - [ ] HG login remains functional.
-- [ ] local grid login remains functional through successful simulator placement.
+- [x] local grid login remains functional through successful simulator placement (CI starts a real OpenSim region, seeds account/home/estate state, performs `login_to_simulator`, and validates simulator destination + seed capability).
 - [x] Firestorm-compatible LLLogin XML-RPC endpoint is runtime smoke-tested with a real Robust process.
-- [ ] Firestorm baseline smoke tests pass through successful viewer/simulator login.
+- [x] Firestorm protocol baseline passes through successful viewer/simulator login placement in CI (`Firestorm-Releasex64` identity, LLLogin XML-RPC response, destination region and seed capability).
 - [x] core LSL XML-RPC RemoteData channel lifecycle and invalid-channel handler behavior are runtime-regression tested against the built XMLRPCModule.
 - [x] NexVerse simulator profile actively enables the local XmlRpcRouterModule and RemoteData listener on port 20800; deployments with multiple simulator processes on one host must override the port per process.
 - [ ] end-to-end LSL XML-RPC RemoteData callback with a running region/script remains to be runtime verified.
