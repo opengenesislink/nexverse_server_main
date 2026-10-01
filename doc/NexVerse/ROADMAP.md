@@ -352,10 +352,17 @@ Implementation status:
 - [x] authentication requirements and permission scopes shown per operation;
 - [x] example JSON requests generated from schema metadata;
 - [x] error documentation and response schemas shown in the explorer;
-- [ ] API version-history view;
+- [x] API version-history view driven by `x_nexverse_version_history`;
 - [x] deprecation notices are surfaced when operations are marked deprecated.
 
 ### 6.5 Citizen/Admin AI instructions
+
+Implementation status:
+
+- [x] endpoint-level audience, purpose, AI guidance and security constraints are emitted in OpenAPI;
+- [x] citizen/self-service, administrator and machine/service usage are distinguished;
+- [x] the self-hosted API explorer renders these metadata fields per operation;
+- [x] NEXJAST runtime smoke verifies the admin metadata contract.
 
 OpenAPI metadata should distinguish citizen-facing and admin-facing usage.
 

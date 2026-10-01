@@ -431,3 +431,20 @@ The page loads the live `/api/v1/openapi.json` document from the same running Ro
 - deprecation indicator when an operation is marked deprecated.
 
 The explorer has no CDN or third-party JavaScript dependency. Credentials entered into the page are not persisted by the page. The docs response uses `Cache-Control: no-store`, a restrictive same-origin Content Security Policy and `Referrer-Policy: no-referrer`.
+
+
+## Version history and endpoint automation metadata
+
+The OpenAPI root now publishes `x_nexverse_version_history`. The self-hosted explorer renders that history directly, keeping the visible documentation tied to the running server contract.
+
+Every generated World API operation also carries endpoint-level NexVerse metadata:
+
+- `x-nexverse-audience` — citizen, admin and/or service;
+- `x-nexverse-purpose` — concise operation purpose;
+- `x-nexverse-ai-instruction` — guidance for ChatGPT/API-agent use;
+- `x-nexverse-security-constraints` — credential, authorization, audit and idempotency constraints where applicable;
+- `x-nexverse-scope` — explicit scope when the operation has one.
+
+Administrative operations explicitly state that authorization must never be inferred or escalated. Self-service operations instruct clients to default to the authenticated resident subject. Scoped service operations require the documented functional scope.
+
+The API explorer renders these fields for the selected operation and surfaces the standard OpenAPI `deprecated` flag when present.

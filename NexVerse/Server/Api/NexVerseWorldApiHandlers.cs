@@ -417,6 +417,17 @@ namespace NexVerse.Server.Api
                         }
                     }
                 },
+                x_nexverse_version_history = new object[]
+                {
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.1 Dev",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "development",
+                        compatibility = "Initial NexVerse World API v1 contract"
+                    }
+                },
                 x_nexverse_idempotency = new
                 {
                     header = "Idempotency-Key",
@@ -529,20 +540,46 @@ namespace NexVerse.Server.Api
 
         private static object GetOperation(string summary)
         {
-            return new
-            {
-                get = new
+            Dictionary<string, object> operation =
+                new Dictionary<string, object>
                 {
-                    summary,
-                    responses = new Dictionary<string, object>
-                    {
-                        ["200"] = new { description = "Successful response" },
-                        ["429"] = JsonResponse(
-                            "Rate limit exceeded",
-                            "Error")
-                    },
-                    security = Array.Empty<object>()
-                }
+                    ["summary"] = summary,
+                    ["responses"] =
+                        new Dictionary<string, object>
+                        {
+                            ["200"] =
+                                new
+                                {
+                                    description =
+                                        "Successful response"
+                                },
+                            ["429"] =
+                                JsonResponse(
+                                    "Rate limit exceeded",
+                                    "Error")
+                        },
+                    ["security"] = Array.Empty<object>(),
+                    ["x-nexverse-audience"] =
+                        new[]
+                        {
+                            "citizen",
+                            "admin",
+                            "service"
+                        },
+                    ["x-nexverse-purpose"] = summary,
+                    ["x-nexverse-ai-instruction"] =
+                        "This is a public read-only operation. Do not infer additional privileges from its availability.",
+                    ["x-nexverse-security-constraints"] =
+                        new[]
+                        {
+                            "Do not send credentials unless an operation explicitly requires them.",
+                            "Respect rate limits and correlation IDs."
+                        }
+                };
+
+            return new Dictionary<string, object>
+            {
+                ["get"] = operation
             };
         }
 
@@ -581,10 +618,110 @@ namespace NexVerse.Server.Api
                 if (!string.IsNullOrWhiteSpace(operationSpec.scope))
                     operation["x-nexverse-scope"] = operationSpec.scope;
 
+                operation["x-nexverse-audience"] =
+                    AudienceForScope(operationSpec.scope);
+                operation["x-nexverse-purpose"] =
+                    operationSpec.summary;
+                operation["x-nexverse-ai-instruction"] =
+                    AiInstructionForScope(operationSpec.scope);
+                operation["x-nexverse-security-constraints"] =
+                    SecurityConstraintsForScope(
+                        operationSpec.scope);
+
                 result[operationSpec.method] = operation;
             }
 
             return result;
+        }
+
+        private static string[] AudienceForScope(
+            string scope)
+        {
+            if (!string.IsNullOrWhiteSpace(scope) &&
+                scope.IndexOf(
+                    NexVerse.Core.Security.NexScopes.AdminAll,
+                    StringComparison.OrdinalIgnoreCase) >= 0 &&
+                !scope.StartsWith(
+                    "self",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new[] { "admin" };
+            }
+
+            if (!string.IsNullOrWhiteSpace(scope) &&
+                !scope.StartsWith(
+                    "self",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new[]
+                {
+                    "admin",
+                    "service"
+                };
+            }
+
+            return new[]
+            {
+                "citizen",
+                "admin"
+            };
+        }
+
+        private static string AiInstructionForScope(
+            string scope)
+        {
+            if (!string.IsNullOrWhiteSpace(scope) &&
+                scope.IndexOf(
+                    NexVerse.Core.Security.NexScopes.AdminAll,
+                    StringComparison.OrdinalIgnoreCase) >= 0 &&
+                !scope.StartsWith(
+                    "self",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return
+                    "Administrative operation. Require explicit authenticated admin authorization; never infer or escalate permissions.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(scope) &&
+                scope.StartsWith(
+                    "self",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return
+                    "Resident self-service operation. Default to the authenticated subject; accessing another resident requires the documented admin authorization.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(scope))
+            {
+                return
+                    "Scoped operation. Verify that the authenticated principal has the documented scope before acting.";
+            }
+
+            return
+                "Authenticated operation. Follow the documented authentication flow and never invent authorization.";
+        }
+
+        private static string[] SecurityConstraintsForScope(
+            string scope)
+        {
+            if (!string.IsNullOrWhiteSpace(scope) &&
+                scope.IndexOf(
+                    NexVerse.Core.Security.NexScopes.AdminAll,
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return new[]
+                {
+                    "Administrative authorization must be explicit.",
+                    "Never expose bearer tokens, API keys, passwords or client secrets.",
+                    "Preserve audit and correlation metadata for state-changing actions."
+                };
+            }
+
+            return new[]
+            {
+                "Never expose bearer tokens, API keys, passwords or client secrets.",
+                "Respect the documented scope, rate limits and idempotency requirements."
+            };
         }
 
         private static void ApplyJsonContract(

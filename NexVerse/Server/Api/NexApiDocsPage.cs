@@ -93,6 +93,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:#080d13;border:1px sol
 <section id="intro">
 <h2>Live API documentation</h2>
 <p>This explorer reads <code>/api/v1/openapi.json</code> from the running NexVerse server. Credentials are held only in this page's memory and are not persisted by the explorer.</p>
+<h3>API version history</h3>
+<div id="versions" class="small">Loading version metadata…</div>
 </section>
 <section id="detail" class="hidden">
 <div class="row"><h2 id="title"></h2><span id="deprecated"></span></div>
@@ -112,6 +114,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:#080d13;border:1px sol
 <pre id="parameters"></pre>
 <h3>Request schema</h3>
 <pre id="requestSchema"></pre>
+<h3>AI / automation guidance</h3>
+<pre id="aiInstruction"></pre>
 <h3>Responses / errors</h3>
 <pre id="responses"></pre>
 </section>
@@ -228,6 +232,9 @@ function selectEntry(entry){
   const badges=$('badges');badges.replaceChildren();
   const scope=entry.op['x-nexverse-scope'];
   if(scope){const b=document.createElement('span');b.className='badge';b.textContent='scope: '+scope;badges.append(b)}
+  for(const audience of entry.op['x-nexverse-audience']||[]){
+    const b=document.createElement('span');b.className='badge';b.textContent='audience: '+audience;badges.append(b)
+  }
   for(const sec of entry.op.security||[]){
     const names=Object.keys(sec);
     if(names.length){const b=document.createElement('span');b.className='badge';b.textContent='auth: '+names.join(' or ');badges.append(b)}
@@ -235,6 +242,13 @@ function selectEntry(entry){
   $('parameters').textContent=JSON.stringify(entry.op.parameters||[],null,2);
   const req=requestSchema(entry.op);
   $('requestSchema').textContent=req?JSON.stringify(resolveSchema(req),null,2):'No JSON request body.';
+  $('aiInstruction').textContent=JSON.stringify({
+    purpose:entry.op['x-nexverse-purpose']||entry.op.summary||'',
+    audience:entry.op['x-nexverse-audience']||[],
+    instruction:entry.op['x-nexverse-ai-instruction']||'',
+    security_constraints:entry.op['x-nexverse-security-constraints']||[],
+    deprecated:!!entry.op.deprecated
+  },null,2);
   $('responses').textContent=JSON.stringify(responseSchemas(entry.op),null,2);
   const ex=exampleFor(req);
   $('body').value=req&&ex!==null?JSON.stringify(ex,null,2):'';
@@ -268,6 +282,15 @@ async function init(){
     const response=await fetch('/api/v1/openapi.json',{cache:'no-store'});
     spec=await response.json();
     $('meta').textContent=(spec.info?.title||'NexVerse World API')+' '+(spec.info?.version||'')+' · live contract · '+location.origin;
+    const history=spec['x_nexverse_version_history']||[];
+    const versionHost=$('versions');versionHost.replaceChildren();
+    if(!history.length){versionHost.textContent='No version history published.'}
+    for(const item of history){
+      const line=document.createElement('div');
+      line.className='endpoint';
+      line.textContent=[item.api_version,item.server_line,item.codename,item.status,item.compatibility].filter(Boolean).join(' · ');
+      versionHost.append(line);
+    }
     buildEntries();renderList();
   }catch(err){
     $('meta').textContent='Unable to load live OpenAPI document: '+err;

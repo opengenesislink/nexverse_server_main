@@ -222,6 +222,10 @@ jobs:
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
+          assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
+          assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
+          assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
+          assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
           PY
 
