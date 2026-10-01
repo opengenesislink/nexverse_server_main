@@ -9,7 +9,11 @@ DB="/tmp/nexverse-login-placement.db"
 LOG="$ROOT/nexverse-login-placement-smoke.log"
 REQUEST="/tmp/nexverse-login-placement-request.xml"
 RESPONSE="/tmp/nexverse-login-placement-response.xml"
-BACKUP="/tmp/nexverse-standalone-common-backup.ini"\nLOGIN_PASSWORD="NexVerse-CI-Placement-${GITHUB_RUN_ID:-local}"\nexport NEXVERSE_CI_LOGIN_PASSWORD="$LOGIN_PASSWORD"\n\nOPENSIM_PID=""
+BACKUP="/tmp/nexverse-standalone-common-backup.ini"
+LOGIN_PASSWORD="NexVerse-CI-Placement-${GITHUB_RUN_ID:-local}"
+export NEXVERSE_CI_LOGIN_PASSWORD="$LOGIN_PASSWORD"
+
+OPENSIM_PID=""
 
 cleanup() {
   if [ -n "$OPENSIM_PID" ]; then
