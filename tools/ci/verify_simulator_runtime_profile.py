@@ -79,6 +79,14 @@ else:
     if "m_NoColide = true;" in create_geom:
         errors.append("ubODE CreateGeom still disables collision on fallback geometry")
 
+j2k_decoder = (ROOT / "OpenSim/Region/CoreModules/Agent/TextureSender/J2KDecoderModule.cs").read_text(encoding="utf-8")
+if "DecodeToImageWithOpenJPEG" not in j2k_decoder or "CSJ2K and OpenJPEG" not in j2k_decoder:
+    errors.append("J2K decoder must retain the CSJ2K -> OpenJPEG compatibility fallback")
+
+warp3d = (ROOT / "OpenSim/Region/CoreModules/World/Warp3DMap/Warp3DImageModule.cs").read_text(encoding="utf-8")
+if "m_textureDecodeWarnings" not in warp3d or "Further warnings for this texture UUID are suppressed" not in warp3d:
+    errors.append("Warp3D must suppress repeated decode warnings for the same texture UUID")
+
 launcher = (ROOT / "bin/opensim.sh").read_text(encoding="utf-8")
 match = re.search(r"^\s*ulimit\s+-s\s+(\d+)\s*$", launcher, re.MULTILINE)
 if match is None or int(match.group(1)) < 262144:
@@ -89,4 +97,4 @@ if errors:
         print("::error::" + error)
     sys.exit(1)
 
-print("NexVerse simulator runtime profile verified: ubODE + solid mesh fallback + ubODEMeshmerizer + Warp3D + LSL XML-RPC RemoteData.")
+print("NexVerse simulator runtime profile verified: ubODE + solid mesh fallback + ubODEMeshmerizer + Warp3D JPEG2000 fallback + LSL XML-RPC RemoteData.")

@@ -73,6 +73,13 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
         private Dictionary<UUID, warp_Texture> m_warpTextures;
         private Dictionary<UUID, int> m_colors;
 
+        // Keep map generation useful when an old/corrupt texture cannot be
+        // decoded.  Report a specific texture UUID only once per region module
+        // lifetime instead of flooding the simulator console on every tile
+        // render.
+        private readonly HashSet<UUID> m_textureDecodeWarnings = new HashSet<UUID>();
+        private readonly object m_textureDecodeWarningsLock = new object();
+
         private bool m_drawPrimVolume = true;   // true if should render the prims on the tile
         private bool m_textureTerrain = true;   // true if to create terrain splatting texture
         private bool m_textureAverageTerrain = false; // replace terrain textures by their average color
@@ -750,12 +757,29 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             {
                 try
                 {
-                    using (Bitmap img = (Bitmap)m_imgDecoder.DecodeToImage(asset.Data))
-                        ret = new warp_Texture(img, 8); // reduce textures size to 256 * 256
+                    Image decoded = m_imgDecoder?.DecodeToImage(asset.Data);
+                    if (decoded != null)
+                    {
+                        using (decoded)
+                        {
+                            if (decoded is Bitmap img)
+                                ret = new warp_Texture(img, 8); // reduce textures size to 256 * 256
+                            else
+                                using (Bitmap bitmap = new Bitmap(decoded))
+                                    ret = new warp_Texture(bitmap, 8);
+                        }
+                    }
+                    else
+                    {
+                        LogTextureDecodeFailureOnce(
+                            id,
+                            sop,
+                            "JPEG2000 decoder returned no image");
+                    }
                 }
                 catch (Exception e)
                 {
-                    m_log.WarnFormat("[Warp3D]: Failed to decode texture {0} for prim {1} at {2}, exception {3}", id.ToString(), sop.Name, sop.GetWorldPosition().ToString(), e.Message);
+                    LogTextureDecodeFailureOnce(id, sop, e.Message);
                 }
             }
             else
@@ -764,6 +788,27 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
             m_warpTextures[id] = ret;
             return ret;
+        }
+
+        private void LogTextureDecodeFailureOnce(
+            UUID id,
+            SceneObjectPart sop,
+            string reason)
+        {
+            lock (m_textureDecodeWarningsLock)
+            {
+                if (!m_textureDecodeWarnings.Add(id))
+                    return;
+            }
+
+            m_log.WarnFormat(
+                "[Warp3D]: Failed to decode texture {0} for prim {1} at {2}; " +
+                "CSJ2K/OpenJPEG fallback exhausted: {3}. Further warnings for " +
+                "this texture UUID are suppressed.",
+                id,
+                sop?.Name ?? "<unknown>",
+                sop?.GetWorldPosition().ToString() ?? "<unknown>",
+                reason);
         }
 
         #endregion Rendering Methods

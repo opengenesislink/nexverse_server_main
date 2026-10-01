@@ -185,20 +185,53 @@ namespace OpenSim.Region.CoreModules.Agent.TextureSender
 
         public Image DecodeToImage(byte[] j2kData)
         {
-            if (m_useCSJ2K)
-                return J2kImage.FromBytes(j2kData);
-            else
+            if (j2kData == null || j2kData.Length == 0)
+                return null;
+
+            if (!m_useCSJ2K)
+                return DecodeToImageWithOpenJPEG(j2kData);
+
+            try
             {
-                ManagedImage mimage;
-                Image image;
-                if (OpenJPEG.DecodeToImage(j2kData, out mimage, out image))
-                {
-                    mimage = null;
-                    return image;
-                }
-                else
-                    return null;
+                return J2kImage.FromBytes(j2kData);
             }
+            catch (Exception csj2kException)
+            {
+                // NexVerse compatibility fallback:
+                // Some legacy OpenSim/OAR texture assets are valid enough for
+                // OpenJPEG but use a JP2/J2K layout that CSJ2K rejects (for
+                // example "EOF reached before finding Contiguous Codestream
+                // Box").  Fall back transparently before declaring the asset
+                // unreadable.
+                try
+                {
+                    Image fallback = DecodeToImageWithOpenJPEG(j2kData);
+                    if (fallback != null)
+                        return fallback;
+                }
+                catch (Exception openJpegException)
+                {
+                    throw new InvalidDataException(
+                        "CSJ2K and OpenJPEG both failed to decode JPEG2000 texture data.",
+                        new AggregateException(csj2kException, openJpegException));
+                }
+
+                throw new InvalidDataException(
+                    "CSJ2K failed and OpenJPEG could not decode JPEG2000 texture data.",
+                    csj2kException);
+            }
+        }
+
+        private static Image DecodeToImageWithOpenJPEG(byte[] j2kData)
+        {
+            ManagedImage mimage;
+            Image image;
+
+            if (!OpenJPEG.DecodeToImage(j2kData, out mimage, out image))
+                return null;
+
+            mimage = null;
+            return image;
         }
 
 
