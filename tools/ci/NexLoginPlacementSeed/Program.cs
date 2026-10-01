@@ -82,7 +82,10 @@ internal static class Program
                 userService);
 
         Require(
-            authService.SetPassword(\n                UserId,\n                Environment.GetEnvironmentVariable("NEXVERSE_CI_LOGIN_PASSWORD")\n                    ?? throw new InvalidOperationException("NEXVERSE_CI_LOGIN_PASSWORD is required")),
+            authService.SetPassword(
+                UserId,
+                Environment.GetEnvironmentVariable("NEXVERSE_CI_LOGIN_PASSWORD")
+                    ?? throw new InvalidOperationException("NEXVERSE_CI_LOGIN_PASSWORD is required")),
             "failed to seed CI password");
 
         XInventoryService inventoryService =
