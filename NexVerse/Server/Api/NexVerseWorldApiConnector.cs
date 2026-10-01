@@ -69,8 +69,10 @@ namespace NexVerse.Server.Api
                 apiConfig.GetBoolean("TrustForwardedFor", false));
 
             NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, publicAuditSink);
+            NexApiDocsPage docsPage = new NexApiDocsPage();
 
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", apiGate.Wrap(handlers.Root), "NexVerse World API"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/docs", apiGate.Wrap(docsPage.Handle), "NexVerse World API Explorer"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/health", apiGate.Wrap(handlers.Health), "NexVerse World API Health"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", apiGate.Wrap(handlers.Version), "NexVerse World API Version"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", apiGate.Wrap(handlers.Capabilities), "NexVerse World API Capabilities"));

@@ -54,6 +54,7 @@ namespace NexVerse.Server.Api
                 version = m_PublicBaseUrl + "/api/v1/version",
                 capabilities = m_PublicBaseUrl + "/api/v1/capabilities",
                 openapi = m_PublicBaseUrl + "/api/v1/openapi.json",
+                docs = m_PublicBaseUrl + "/api/v1/docs",
                 correlation_id = correlationId
             });
         }
@@ -124,6 +125,7 @@ namespace NexVerse.Server.Api
                 ["/api/v1/version"] = GetOperation("NexVerse server and protocol versions"),
                 ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
+                ["/api/v1/docs"] = GetOperation("Self-hosted searchable API documentation and live explorer"),
                 ["/api/v1/auth/token"] = AuthenticatedOperations(
                     ("post", "Exchange a legacy AuthenticationService token for a NexVerse scoped access token", null, "200")),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(

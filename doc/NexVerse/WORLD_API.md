@@ -409,3 +409,25 @@ Current schema coverage includes:
 Core operations reference their request and response schemas directly through `#/components/schemas/...`. User-ID routes declare the `principalId` UUID path parameter, while search endpoints document their actual query parameters and bounds. `POST /api/v1/users` also documents `Idempotency-Key`.
 
 NEXJAST CI starts a real Robust process, downloads `/api/v1/openapi.json`, parses the JSON document and verifies these component/ref contracts at runtime.
+
+
+## Self-hosted API documentation and explorer
+
+NexVerse serves a dependency-free API documentation UI at:
+
+`/api/v1/docs`
+
+The page loads the live `/api/v1/openapi.json` document from the same running Robust instance. It provides:
+
+- searchable endpoint catalogue by path, method, summary and scope;
+- live display of path/query/header parameters;
+- resolved JSON request schemas and response/error schemas;
+- authentication and scope badges;
+- automatic example JSON bodies derived from the OpenAPI schema;
+- same-origin live request execution;
+- in-memory Bearer token and `X-NexVerse-Api-Key` fields;
+- optional `Idempotency-Key` support;
+- response status, correlation ID, headers and formatted JSON body;
+- deprecation indicator when an operation is marked deprecated.
+
+The explorer has no CDN or third-party JavaScript dependency. Credentials entered into the page are not persisted by the page. The docs response uses `Cache-Control: no-store`, a restrictive same-origin Content Security Policy and `Referrer-Policy: no-referrer`.

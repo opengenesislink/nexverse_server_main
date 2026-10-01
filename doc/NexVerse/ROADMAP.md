@@ -344,17 +344,16 @@ API coverage:
 
 Provide a modern web interface under `world.stadt-nexverse.de`.
 
-It should include:
+Implementation status:
 
-- searchable endpoint catalogue;
-- request/response schemas;
-- live API explorer;
-- authentication requirements;
-- permission scopes;
-- example requests;
-- error documentation;
-- version history;
-- deprecation notices.
+- [x] searchable endpoint catalogue driven by the live OpenAPI document;
+- [x] request/response schemas rendered from the live contract;
+- [x] same-origin live API explorer with Bearer/API-key/Idempotency-Key support;
+- [x] authentication requirements and permission scopes shown per operation;
+- [x] example JSON requests generated from schema metadata;
+- [x] error documentation and response schemas shown in the explorer;
+- [ ] API version-history view;
+- [x] deprecation notices are surfaced when operations are marked deprecated.
 
 ### 6.5 Citizen/Admin AI instructions
 

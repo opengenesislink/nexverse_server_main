@@ -221,5 +221,10 @@ jobs:
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
+          assert "/api/v1/docs" in doc["paths"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
           PY
+
+          curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/docs > /tmp/nexverse-api-docs.html
+          grep -F 'NexVerse World API Explorer' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/openapi.json' /tmp/nexverse-api-docs.html
