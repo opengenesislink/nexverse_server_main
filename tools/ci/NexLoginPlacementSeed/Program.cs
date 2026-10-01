@@ -43,8 +43,25 @@ internal static class Program
             throw new ArgumentException("Usage: NexLoginPlacementSeed <sqlite-db-path>");
 
         string databasePath = Path.GetFullPath(args[0]);
+        string databaseDirectory = Path.GetDirectoryName(databasePath)
+            ?? throw new InvalidOperationException("database directory is unavailable");
+        string databaseStem = Path.GetFileNameWithoutExtension(databasePath);
+
+        string estateDatabasePath =
+            Path.Combine(databaseDirectory, databaseStem + "-estate.db");
+        string assetDatabasePath =
+            Path.Combine(databaseDirectory, databaseStem + "-assets.db");
+        string simulationDatabasePath =
+            Path.Combine(databaseDirectory, databaseStem + "-sim.db");
+
         string connectionString =
             "URI=file:" + databasePath + ",version=3,UseUTF16Encoding=True";
+        string estateConnectionString =
+            "URI=file:" + estateDatabasePath + ",version=3,UseUTF16Encoding=True";
+        string assetConnectionString =
+            "URI=file:" + assetDatabasePath + ",version=3,UseUTF16Encoding=True";
+        string simulationConnectionString =
+            "URI=file:" + simulationDatabasePath + ",version=3,UseUTF16Encoding=True";
 
         MainConsole.Instance = new MockConsole();
 
@@ -53,7 +70,7 @@ internal static class Program
         IConfig database = config.AddConfig("DatabaseService");
         database.Set("StorageProvider", "OpenSim.Data.SQLite.dll");
         database.Set("ConnectionString", connectionString);
-        database.Set("EstateConnectionString", connectionString);
+        database.Set("EstateConnectionString", estateConnectionString);
 
         IConfig users = config.AddConfig("UserAccountService");
         users.Set(
@@ -82,12 +99,12 @@ internal static class Program
 
         IConfig assets = config.AddConfig("AssetService");
         assets.Set("StorageProvider", "OpenSim.Data.SQLite.dll");
-        assets.Set("ConnectionString", connectionString);
+        assets.Set("ConnectionString", assetConnectionString);
         assets.Set("DefaultAssetLoader", string.Empty);
 
         IConfig simulation = config.AddConfig("SimulationDataStore");
         simulation.Set("StorageProvider", "OpenSim.Data.SQLite.dll");
-        simulation.Set("ConnectionString", connectionString);
+        simulation.Set("ConnectionString", simulationConnectionString);
 
         UserAccountService userService =
             new UserAccountService(config);
