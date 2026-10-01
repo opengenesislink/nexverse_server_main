@@ -85,6 +85,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexAuditRegression/NexAuditRegression.csproj
 
+      - name: Verify idempotency store
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexIdempotencyRegression/NexIdempotencyRegression.csproj
+
       - name: Verify OAuth2 OIDC identity flows
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexOAuthRegression/NexOAuthRegression.csproj
