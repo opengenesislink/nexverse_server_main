@@ -194,7 +194,8 @@ namespace NexVerse.Server.Api
 
         private string BeginRequest(IOSHttpResponse response, string action, string resource)
         {
-            string correlationId = Guid.NewGuid().ToString("N");
+            string correlationId =
+                NexApiRequestContext.Ensure(response);
 
             NexMetricsRegistry.Default.IncrementCounter(
                 "nexverse_world_api_public_requests_total",
@@ -206,8 +207,6 @@ namespace NexVerse.Server.Api
                 });
 
             response.KeepAlive = false;
-            response.AddHeader("X-NexVerse-Api-Version", NexVersePlatform.ApiVersion);
-            response.AddHeader("X-Correlation-Id", correlationId);
 
             m_AuditSink.Record(new NexAuditEvent(
                 "anonymous",
@@ -238,7 +237,8 @@ namespace NexVerse.Server.Api
             response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(new
             {
                 error = "method_not_allowed",
-                message = "This endpoint currently accepts GET requests only."
+                message = "This endpoint currently accepts GET requests only.",
+                correlation_id = NexApiRequestContext.CurrentCorrelationId
             }, s_JsonOptions);
             return false;
         }

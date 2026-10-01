@@ -61,13 +61,20 @@ namespace NexVerse.Server.Api
             INexEventBus eventBus = CreateEventBus(config, server);
             INexAuditSink auditSink = new LogNexAuditSink();
             INexAuthorizationService authorization = new NexAuthorizationService();
+
+            NexApiRequestGate apiGate = new NexApiRequestGate(
+                apiConfig.GetBoolean("RateLimitEnabled", true),
+                apiConfig.GetInt("RateLimitRequests", 240),
+                apiConfig.GetInt("RateLimitWindowSeconds", 60),
+                apiConfig.GetBoolean("TrustForwardedFor", false));
+
             NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, auditSink);
 
-            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", handlers.Root, "NexVerse World API"));
-            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/health", handlers.Health, "NexVerse World API Health"));
-            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", handlers.Version, "NexVerse World API Version"));
-            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", handlers.Capabilities, "NexVerse World API Capabilities"));
-            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/openapi.json", handlers.OpenApi, "NexVerse World API OpenAPI"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", apiGate.Wrap(handlers.Root), "NexVerse World API"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/health", apiGate.Wrap(handlers.Health), "NexVerse World API Health"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", apiGate.Wrap(handlers.Version), "NexVerse World API Version"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", apiGate.Wrap(handlers.Capabilities), "NexVerse World API Capabilities"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/openapi.json", apiGate.Wrap(handlers.OpenApi), "NexVerse World API OpenAPI"));
 
             bool privilegedEndpoints = apiConfig.GetBoolean("EnablePrivilegedEndpoints", false);
             if (privilegedEndpoints)
@@ -186,36 +193,36 @@ namespace NexVerse.Server.Api
 
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/.well-known/openid-configuration",
-                        oauthRouter.Discovery,
+                        apiGate.Wrap(oauthRouter.Discovery),
                         "NexVerse OIDC Discovery"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/oauth/jwks",
-                        oauthRouter.Jwks,
+                        apiGate.Wrap(oauthRouter.Jwks),
                         "NexVerse OIDC JWKS"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/oauth/authorize",
-                        oauthRouter.Authorize,
+                        apiGate.Wrap(oauthRouter.Authorize),
                         "NexVerse OAuth Authorization"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/oauth/token",
-                        oauthRouter.Token,
+                        apiGate.Wrap(oauthRouter.Token),
                         "NexVerse OAuth Token"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/oauth/revoke",
-                        oauthRouter.Revoke,
+                        apiGate.Wrap(oauthRouter.Revoke),
                         "NexVerse OAuth Revocation"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/api/v1/auth/clients",
-                        oauthRouter.Clients,
+                        apiGate.Wrap(oauthRouter.Clients),
                         "NexVerse OAuth Client Administration"));
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/api/v1/auth/sessions/revoke",
-                        oauthRouter.RevokeSessions,
+                        apiGate.Wrap(oauthRouter.RevokeSessions),
                         "NexVerse Session Revocation"));
                 }
 
                 server.AddSimpleStreamHandler(
-                    new SimpleStreamHandler("/api", userRouter.Handle, "NexVerse World API privileged router"),
+                    new SimpleStreamHandler("/api", apiGate.Wrap(userRouter.Handle), "NexVerse World API privileged router"),
                     true);
 
                 m_Log.Warn("[NEX-WORLD-API]: Privileged endpoints are enabled. Use only over a transport that protects bearer tokens.");

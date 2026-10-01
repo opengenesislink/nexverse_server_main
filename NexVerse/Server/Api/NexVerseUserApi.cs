@@ -1512,10 +1512,7 @@ namespace NexVerse.Server.Api
 
         private static string AddCorrelation(IOSHttpResponse response)
         {
-            string correlationId = Guid.NewGuid().ToString("N");
-            response.AddHeader("X-NexVerse-Api-Version", Core.NexVersePlatform.ApiVersion);
-            response.AddHeader("X-Correlation-Id", correlationId);
-            return correlationId;
+            return NexApiRequestContext.Ensure(response);
         }
 
         private static void WriteJson(
@@ -1534,7 +1531,15 @@ namespace NexVerse.Server.Api
             response.KeepAlive = false;
             response.StatusCode = (int)status;
             response.ContentType = "application/json; charset=utf-8";
-            response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(new { error, message }, s_Json);
+            response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(
+                new
+                {
+                    error,
+                    message,
+                    correlation_id =
+                        NexApiRequestContext.CurrentCorrelationId
+                },
+                s_Json);
         }
     }
 }

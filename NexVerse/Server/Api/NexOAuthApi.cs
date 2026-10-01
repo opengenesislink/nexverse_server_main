@@ -814,9 +814,7 @@ namespace NexVerse.Server.Api
 
         private static string Correlation(IOSHttpResponse response)
         {
-            string correlationId = Guid.NewGuid().ToString("N");
-            response.AddHeader("X-Correlation-Id", correlationId);
-            return correlationId;
+            return NexApiRequestContext.Ensure(response);
         }
 
         private static void WriteOAuthError(
@@ -828,7 +826,9 @@ namespace NexVerse.Server.Api
             WriteJson(response, new
             {
                 error,
-                error_description = description
+                error_description = description,
+                correlation_id =
+                    NexApiRequestContext.CurrentCorrelationId
             }, status);
         }
 
