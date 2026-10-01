@@ -5,6 +5,7 @@ using OpenMetaverse;
 using OpenSim.Framework;
 using OpenSim.Framework.Console;
 using OpenSim.Services.AuthenticationService;
+using OpenSim.Services.EstateService;
 using OpenSim.Services.InventoryService;
 using OpenSim.Services.Interfaces;
 using OpenSim.Services.UserAccountService;
@@ -13,6 +14,9 @@ internal static class Program
 {
     private static readonly UUID UserId =
         new UUID("6f4d3a90-3b71-4f15-a804-2d94c8d7a201");
+
+    private static readonly UUID RegionId =
+        new UUID("1c6aa9e1-6cef-4c01-a4e4-6b4d19449ef1");
 
     private static void Require(bool condition, string message)
     {
@@ -52,6 +56,16 @@ internal static class Program
         inventory.Set(
             "LocalServiceModule",
             "OpenSim.Services.InventoryService.dll:XInventoryService");
+
+        IConfig gridUsers = config.AddConfig("GridUserService");
+        gridUsers.Set(
+            "LocalServiceModule",
+            "OpenSim.Services.UserAccountService.dll:GridUserService");
+
+        IConfig estates = config.AddConfig("EstateDataStore");
+        estates.Set(
+            "LocalServiceModule",
+            "OpenSim.Services.EstateService.dll:EstateDataService");
 
         UserAccountService userService =
             new UserAccountService(config);
@@ -96,6 +110,35 @@ internal static class Program
         Require(
             inventoryService.GetRootFolder(UserId) != null,
             "failed to seed CI inventory root");
+
+        GridUserService gridUserService =
+            new GridUserService(config);
+
+        Require(
+            gridUserService.SetHome(
+                UserId.ToString(),
+                RegionId,
+                new Vector3(128f, 128f, 25f),
+                new Vector3(0f, 1f, 0f)),
+            "failed to seed CI home position");
+
+        Require(
+            gridUserService.SetLastPosition(
+                UserId.ToString(),
+                UUID.Zero,
+                RegionId,
+                new Vector3(128f, 128f, 25f),
+                new Vector3(0f, 1f, 0f)),
+            "failed to seed CI last position");
+
+        EstateDataService estateService =
+            new EstateDataService(config);
+
+        EstateSettings estate =
+            estateService.CreateNewEstate(100);
+        estate.EstateName = "NexVerse CI Estate";
+        estate.EstateOwner = UserId;
+        estateService.StoreEstateSettings(estate);
 
         Console.WriteLine(
             "NexVerse login placement seed: OK " +
