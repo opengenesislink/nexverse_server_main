@@ -86,6 +86,19 @@ namespace NexVerse.Server.Api
                 INexAuditStore auditStore =
                     new PersistentNexAuditStore(auditStorePath);
 
+                string idempotencyStorePath =
+                    apiConfig.GetString(
+                        "IdempotencyStorePath",
+                        "data/nexverse-idempotency.json");
+                int idempotencyTtlSeconds =
+                    apiConfig.GetInt(
+                        "IdempotencyTtlSeconds",
+                        86400);
+
+                INexIdempotencyStore idempotencyStore =
+                    new PersistentNexIdempotencyStore(
+                        idempotencyStorePath);
+
                 INexAuditSink auditSink =
                     new CompositeNexAuditSink(
                         publicAuditSink,
@@ -185,7 +198,9 @@ namespace NexVerse.Server.Api
                     auditSink,
                     nativeTokens,
                     oauthStore,
-                    auditStore);
+                    auditStore,
+                    idempotencyStore,
+                    idempotencyTtlSeconds);
 
                 if (nativeTokens != null && oauthStore != null && oidcSigner != null)
                 {

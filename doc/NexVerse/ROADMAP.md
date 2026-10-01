@@ -288,6 +288,7 @@ Implementation status:
 - [x] request correlation IDs are emitted consistently across guarded API responses and error payloads.
 - [x] bounded `limit`/`offset` pagination is implemented for user and selectable-region searches.
 - [x] filtering/sorting is implemented for user and region searches, and backend search windows honor the public pagination range.
+- [x] `Idempotency-Key` is implemented for account provisioning with persistent response replay, payload-conflict detection and concurrent-request exclusion.
 
 - REST/JSON API;
 - OpenAPI 3.1 specification;

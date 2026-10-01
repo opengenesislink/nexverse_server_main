@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NexVerse.Core.Audit;
@@ -28,6 +29,8 @@ namespace NexVerse.Server.Api
         private readonly INexAccessTokenService m_NativeTokens;
         private readonly INexOAuthStore m_OAuthStore;
         private readonly INexAuditStore m_AuditStore;
+        private readonly INexIdempotencyStore m_IdempotencyStore;
+        private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
         private readonly int m_TokenLifetimeSeconds;
 
@@ -561,7 +564,9 @@ namespace NexVerse.Server.Api
             INexAuditSink audit,
             INexAccessTokenService tokens,
             INexOAuthStore oauthStore,
-            INexAuditStore auditStore)
+            INexAuditStore auditStore,
+            INexIdempotencyStore idempotencyStore,
+            int idempotencyTtlSeconds)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
@@ -570,6 +575,8 @@ namespace NexVerse.Server.Api
             m_Tokens = tokens;
             m_OAuthStore = oauthStore;
             m_AuditStore = auditStore;
+            m_IdempotencyStore = idempotencyStore;
+            m_IdempotencyTtlSeconds = Math.Max(60, idempotencyTtlSeconds);
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -1071,13 +1078,117 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
-                if (m_Users.GetByName(firstName, lastName) != null)
+                string idempotencyKey =
+                    request?.Headers?["Idempotency-Key"]?.Trim();
+                string idempotencyScope = string.Empty;
+                string idempotencyHash = string.Empty;
+                bool idempotencyReserved = false;
+                bool idempotencyCompleted = false;
+
+                if (!string.IsNullOrWhiteSpace(idempotencyKey))
                 {
-                    WriteError(response, HttpStatusCode.Conflict, "user_exists", "A user with this name already exists.");
-                    return;
+                    if (idempotencyKey.Length > 128)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "invalid_idempotency_key",
+                            "Idempotency-Key may contain at most 128 characters.");
+                        return;
+                    }
+
+                    if (m_IdempotencyStore == null)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.ServiceUnavailable,
+                            "idempotency_unavailable",
+                            "Persistent idempotency storage is not available.");
+                        return;
+                    }
+
+                    string canonicalPayload =
+                        JsonSerializer.Serialize(root);
+
+                    idempotencyHash = Convert
+                        .ToHexString(
+                            SHA256.HashData(
+                                Encoding.UTF8.GetBytes(
+                                    canonicalPayload)))
+                        .ToLowerInvariant();
+
+                    idempotencyScope =
+                        principal.Subject +
+                        "|POST|/api/v1/users";
+
+                    NexIdempotencyBeginResult begin =
+                        m_IdempotencyStore.TryBegin(
+                            idempotencyScope,
+                            idempotencyKey,
+                            idempotencyHash,
+                            m_IdempotencyTtlSeconds);
+
+                    if (begin.State ==
+                        NexIdempotencyBeginState.Replay)
+                    {
+                        response.AddHeader(
+                            "Idempotency-Replayed",
+                            "true");
+                        response.KeepAlive = false;
+                        response.StatusCode =
+                            begin.Response.StatusCode;
+                        response.ContentType =
+                            begin.Response.ContentType;
+                        response.RawBuffer =
+                            begin.Response.Body;
+                        return;
+                    }
+
+                    if (begin.State ==
+                        NexIdempotencyBeginState.Conflict)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "idempotency_key_conflict",
+                            "Idempotency-Key was already used with a different request payload.");
+                        return;
+                    }
+
+                    if (begin.State ==
+                        NexIdempotencyBeginState.InProgress)
+                    {
+                        response.AddHeader("Retry-After", "1");
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "idempotency_in_progress",
+                            "A request with this Idempotency-Key is already in progress.");
+                        return;
+                    }
+
+                    idempotencyReserved = true;
+                    response.AddHeader(
+                        "Idempotency-Replayed",
+                        "false");
                 }
 
-                NexUserProvisionResult result = m_Users.Create(
+                try
+                {
+                    if (m_Users.GetByName(firstName, lastName) != null)
+                    {
+                        WriteError(response, HttpStatusCode.Conflict, "user_exists", "A user with this name already exists.");
+                        CompleteIdempotency(
+                            response,
+                            idempotencyReserved,
+                            idempotencyScope,
+                            idempotencyKey,
+                            idempotencyHash);
+                        idempotencyCompleted = true;
+                        return;
+                    }
+
+                    NexUserProvisionResult result = m_Users.Create(
                     firstName,
                     lastName,
                     email,
@@ -1086,13 +1197,20 @@ namespace NexVerse.Server.Api
                     homeX,
                     homeY,
                     homeZ);
-                if (result?.User == null)
-                {
-                    WriteError(response, HttpStatusCode.InternalServerError, "user_create_failed", "The user account could not be created.");
-                    return;
-                }
+                    if (result?.User == null)
+                    {
+                        WriteError(response, HttpStatusCode.InternalServerError, "user_create_failed", "The user account could not be created.");
+                        CompleteIdempotency(
+                            response,
+                            idempotencyReserved,
+                            idempotencyScope,
+                            idempotencyKey,
+                            idempotencyHash);
+                        idempotencyCompleted = true;
+                        return;
+                    }
 
-                string correlationId = AddCorrelation(response);
+                    string correlationId = AddCorrelation(response);
                 m_Audit.Record(new NexAuditEvent(
                     principal.Subject,
                     "users.create",
@@ -1116,22 +1234,42 @@ namespace NexVerse.Server.Api
                     },
                     correlationId));
 
-                WriteJson(response, new
-                {
-                    user = UserPayload(result.User),
-                    provisioning = new
+                    WriteJson(response, new
                     {
-                        ready = result.Ready,
-                        authentication_initialized = result.AuthenticationInitialized,
-                        inventory_initialized = result.InventoryInitialized,
-                        home_initialized = result.HomeInitialized,
-                        start_position_initialized = result.StartPositionInitialized,
-                        state_finalized = result.StateFinalized,
-                        account_state = result.User.AccountState,
-                        home_region = RegionPayload(result.HomeRegion)
-                    },
-                    correlation_id = correlationId
-                }, HttpStatusCode.Created);
+                        user = UserPayload(result.User),
+                        provisioning = new
+                        {
+                            ready = result.Ready,
+                            authentication_initialized = result.AuthenticationInitialized,
+                            inventory_initialized = result.InventoryInitialized,
+                            home_initialized = result.HomeInitialized,
+                            start_position_initialized = result.StartPositionInitialized,
+                            state_finalized = result.StateFinalized,
+                            account_state = result.User.AccountState,
+                            home_region = RegionPayload(result.HomeRegion)
+                        },
+                        correlation_id = correlationId
+                    }, HttpStatusCode.Created);
+
+                    CompleteIdempotency(
+                        response,
+                        idempotencyReserved,
+                        idempotencyScope,
+                        idempotencyKey,
+                        idempotencyHash);
+                    idempotencyCompleted = true;
+                }
+                finally
+                {
+                    if (idempotencyReserved &&
+                        !idempotencyCompleted)
+                    {
+                        m_IdempotencyStore.Abort(
+                            idempotencyScope,
+                            idempotencyKey,
+                            idempotencyHash);
+                    }
+                }
             }
         }
 
@@ -1625,6 +1763,27 @@ namespace NexVerse.Server.Api
                 return null;
 
             return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+        }
+
+        private void CompleteIdempotency(
+            IOSHttpResponse response,
+            bool reserved,
+            string scope,
+            string key,
+            string requestHash)
+        {
+            if (!reserved ||
+                m_IdempotencyStore == null)
+                return;
+
+            m_IdempotencyStore.Complete(
+                scope,
+                key,
+                requestHash,
+                response.StatusCode,
+                response.ContentType,
+                response.RawBuffer,
+                m_IdempotencyTtlSeconds);
         }
 
         private static bool TryGetSort(

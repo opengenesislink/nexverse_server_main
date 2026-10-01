@@ -187,6 +187,16 @@ namespace NexVerse.Server.Api
                         }
                     }
                 },
+                x_nexverse_idempotency = new
+                {
+                    header = "Idempotency-Key",
+                    maximum_key_length = 128,
+                    replay_header = "Idempotency-Replayed",
+                    protected_operations = new[]
+                    {
+                        "POST /api/v1/users"
+                    }
+                },
                 x_nexverse_rate_limit = new
                 {
                     headers = new[]

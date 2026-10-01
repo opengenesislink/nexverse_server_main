@@ -338,3 +338,25 @@ Selectable-region sort fields:
 Both searches accept `order=asc|desc` and default to ascending name order.
 
 The internal bounded search window now matches the public pagination contract through offset 10000; the earlier 100-result backend cap has been removed for these API searches.
+
+
+## Idempotent user provisioning
+
+`POST /api/v1/users` supports the `Idempotency-Key` request header.
+
+A validated create request reserves the key inside the authenticated administrator/endpoint scope. The default retention is 86400 seconds and can be changed with:
+
+```ini
+IdempotencyStorePath = "data/nexverse-idempotency.json"
+IdempotencyTtlSeconds = 86400
+```
+
+Behavior:
+
+- first request: provisioning executes and `Idempotency-Replayed: false` is returned;
+- same key and equivalent JSON payload: the persisted original HTTP response is replayed with `Idempotency-Replayed: true`;
+- same key with a different payload: HTTP `409 idempotency_key_conflict`;
+- concurrent duplicate while the first request is executing: HTTP `409 idempotency_in_progress` with `Retry-After: 1`;
+- pending in-process reservations are discarded after a process restart; completed responses are persisted.
+
+The idempotency store never contains plaintext passwords separately. Its request fingerprint is SHA-256 over the validated JSON request representation; persisted response data contains only the normal API response.
