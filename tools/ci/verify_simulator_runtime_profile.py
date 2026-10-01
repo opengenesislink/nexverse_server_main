@@ -18,6 +18,11 @@ EXPECTED = {
     ("Map", "RenderMeshes"): "true",
     ("XMLRPC", "XmlRpcRouterModule"): "XmlRpcRouterModule",
     ("XMLRPC", "XmlRpcPort"): "20800",
+    ("Mesh", "UseMeshiesPhysicsMesh"): "true",
+    ("Mesh", "ConvexPrims"): "true",
+    ("Mesh", "ConvexSculpts"): "true",
+    ("Mesh", "MeshFileCache"): "true",
+    ("Mesh", "MeshFileCachePath"): "MeshCache",
 }
 
 def parse_ini(path: Path):
@@ -62,6 +67,18 @@ for rel in required_files:
     if not (ROOT / rel).is_file():
         errors.append(f"required simulator runtime component missing: {rel}")
 
+ode_prim = (ROOT / "OpenSim/Region/PhysicsModules/ubOde/ODEPrim.cs").read_text(encoding="utf-8")
+create_geom_start = ode_prim.find("private void CreateGeom(bool OverrideToBox)")
+create_geom_end = ode_prim.find("private void RemoveGeom()", create_geom_start)
+if create_geom_start < 0 or create_geom_end < 0:
+    errors.append("unable to locate ubODE CreateGeom collision fallback")
+else:
+    create_geom = ode_prim[create_geom_start:create_geom_end]
+    if "bool meshUnavailable =" not in create_geom:
+        errors.append("ubODE solid mesh-fallback guard is missing")
+    if "m_NoColide = true;" in create_geom:
+        errors.append("ubODE CreateGeom still disables collision on fallback geometry")
+
 launcher = (ROOT / "bin/opensim.sh").read_text(encoding="utf-8")
 match = re.search(r"^\s*ulimit\s+-s\s+(\d+)\s*$", launcher, re.MULTILINE)
 if match is None or int(match.group(1)) < 262144:
@@ -72,4 +89,4 @@ if errors:
         print("::error::" + error)
     sys.exit(1)
 
-print("NexVerse simulator runtime profile verified: ubODE + ubODEMeshmerizer + Warp3D + LSL XML-RPC RemoteData.")
+print("NexVerse simulator runtime profile verified: ubODE + solid mesh fallback + ubODEMeshmerizer + Warp3D + LSL XML-RPC RemoteData.")

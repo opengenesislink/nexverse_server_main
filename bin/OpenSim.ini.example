@@ -1270,3 +1270,17 @@
     ; Include-Architecture = "config-include/StandaloneHypergrid.ini"
     ; Include-Architecture = "config-include/Grid.ini"
     ; Include-Architecture = "config-include/GridHypergrid.ini"
+
+
+; NexVerse ubODE mesh collision profile.
+; Detailed uploaded physics meshes are preferred.  While an asset is loading
+; or cannot be meshed, ubODE now keeps its box/sphere fallback solid.
+[Mesh]
+    AllowMeshUpload = true
+    UseMeshiesPhysicsMesh = true
+    ConvexPrims = true
+    ConvexSculpts = true
+    MeshFileCache = true
+    MeshFileCachePath = MeshCache
+    MeshFileCacheDoExpire = true
+    MeshFileCacheExpireHours = 48

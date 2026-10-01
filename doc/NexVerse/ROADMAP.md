@@ -1551,3 +1551,5 @@ Rules for changes:
 5. Prefer measurable completion criteria over vague "implemented" labels.
 6. Compatibility regressions must be treated as defects unless intentionally documented.
 7. Production releases require build, migration and smoke-test verification.
+
+- [x] ubODE mesh collision fail-safe keeps non-phantom mesh objects solid with box/sphere fallback while detailed physics mesh assets are loading or cannot be generated; explicit ubODE mesh/cache settings are CI-enforced.
