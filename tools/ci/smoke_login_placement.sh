@@ -102,7 +102,7 @@ cat > "$REQUEST" <<XML
       <value>
         <struct>
           <member><name>first</name><value><string>NexVerseCI</string></value></member>
-          <member><name>last</name><value><string></string></value></member>
+          <member><name>last</name><value><string>Resident</string></value></member>
           <member><name>passwd</name><value><string>\$1\$$PASSWORD_HASH</string></value></member>
           <member><name>start</name><value><string>home</string></value></member>
           <member><name>scope_id</name><value><string>00000000-0000-0000-0000-000000000000</string></value></member>
