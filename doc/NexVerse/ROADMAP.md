@@ -282,6 +282,12 @@ Introduce the modern authenticated API hosted by Robust and exposed through:
 
 ### 6.1 API architecture
 
+Implementation status:
+
+- [x] fixed-window rate limiting is enforced before World API/OAuth authentication with standard rate-limit headers and trusted-proxy controls.
+- [x] request correlation IDs are emitted consistently across guarded API responses and error payloads.
+- [x] bounded `limit`/`offset` pagination is implemented for user and selectable-region searches.
+
 - REST/JSON API;
 - OpenAPI 3.1 specification;
 - versioned endpoints;

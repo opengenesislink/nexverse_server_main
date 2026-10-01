@@ -245,3 +245,53 @@ OIDC ID tokens are signed with ES256 using a persistent P-256 key. The private k
 Resident password changes, account lock/ban/deactivation and explicit session revocation advance the resident security stamp. Existing native access tokens therefore fail validation and all persisted refresh sessions for the resident are revoked.
 
 The authorization endpoint currently expects an already authenticated NexVerse/legacy bearer session. A browser consent/login surface and complete replacement of the legacy bootstrap path remain separate roadmap work.
+
+
+## API rate limiting and request metadata
+
+World API and OAuth HTTP handlers are protected by a per-client fixed-window limiter before authentication is processed. The default profile permits 240 requests per 60 seconds per client address.
+
+Configuration:
+
+```ini
+[NexVerseWorldApi]
+RateLimitEnabled = true
+RateLimitRequests = 240
+RateLimitWindowSeconds = 60
+TrustForwardedFor = false
+```
+
+Every guarded response exposes a NexVerse API version and correlation identifier. Rate-limited responses use HTTP `429 Too Many Requests`, include `Retry-After`, and expose both standard-style `RateLimit-*` and compatibility `X-RateLimit-*` headers.
+
+`X-Forwarded-For` is ignored by default to prevent clients spoofing their limiter identity. `TrustForwardedFor=true` may only be enabled when Robust is reachable exclusively through a trusted reverse proxy which overwrites that header.
+
+Error responses from the privileged World API and OAuth endpoints include the same request correlation ID as the response header.
+
+## Search pagination
+
+User and selectable-region searches now support:
+
+- `limit` — 1 through 100, default 50
+- `offset` — 0 through 10000, default 0
+
+Examples:
+
+`GET /api/v1/users?q=resident&limit=25&offset=0`
+
+`GET /api/v1/regions?q=NexVerse&limit=50&offset=0`
+
+Search responses include:
+
+```json
+{
+  "pagination": {
+    "limit": 25,
+    "offset": 0,
+    "returned": 25,
+    "has_more": true,
+    "next_offset": 25
+  }
+}
+```
+
+The current v1 foundation uses bounded offset pagination. Large high-churn collections may move to cursor pagination in a later API revision without removing the current bounded contract.

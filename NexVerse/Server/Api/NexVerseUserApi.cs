@@ -730,11 +730,29 @@ namespace NexVerse.Server.Api
                 return;
             }
 
-            IReadOnlyList<NexRegionRecord> regions = m_Users.SearchHomeRegions(query, 50);
+            if (!TryGetPagination(request, response, out int limit, out int offset))
+                return;
+
+            int fetchLimit = Math.Min(10001, offset + limit + 1);
+            IReadOnlyList<NexRegionRecord> matches =
+                m_Users.SearchHomeRegions(query, fetchLimit);
+
+            NexRegionRecord[] regions = matches
+                .Skip(offset)
+                .Take(limit)
+                .ToArray();
+
+            bool hasMore = matches.Count > offset + regions.Length;
+
             WriteJson(response, new
             {
-                count = regions.Count,
-                regions = regions.Select(RegionPayload).ToArray()
+                count = regions.Length,
+                regions = regions.Select(RegionPayload).ToArray(),
+                pagination = PaginationPayload(
+                    limit,
+                    offset,
+                    regions.Length,
+                    hasMore)
             });
         }
 
@@ -771,11 +789,29 @@ namespace NexVerse.Server.Api
                 return;
             }
 
-            IReadOnlyList<NexUserRecord> users = m_Users.Search(query, 50);
+            if (!TryGetPagination(request, response, out int limit, out int offset))
+                return;
+
+            int fetchLimit = Math.Min(10001, offset + limit + 1);
+            IReadOnlyList<NexUserRecord> matches =
+                m_Users.Search(query, fetchLimit);
+
+            NexUserRecord[] users = matches
+                .Skip(offset)
+                .Take(limit)
+                .ToArray();
+
+            bool hasMore = matches.Count > offset + users.Length;
+
             WriteJson(response, new
             {
-                count = users.Count,
-                users = users.Select(UserPayload).ToArray()
+                count = users.Length,
+                users = users.Select(UserPayload).ToArray(),
+                pagination = PaginationPayload(
+                    limit,
+                    offset,
+                    users.Length,
+                    hasMore)
             });
         }
 
@@ -1425,6 +1461,64 @@ namespace NexVerse.Server.Api
                 return null;
 
             return element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+        }
+
+        private static bool TryGetPagination(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            out int limit,
+            out int offset)
+        {
+            limit = 50;
+            offset = 0;
+
+            string limitRaw = request?.QueryString?["limit"];
+            if (!string.IsNullOrWhiteSpace(limitRaw) &&
+                (!Int32.TryParse(limitRaw, out limit) ||
+                 limit < 1 ||
+                 limit > 100))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_pagination",
+                    "limit must be an integer between 1 and 100.");
+                return false;
+            }
+
+            string offsetRaw = request?.QueryString?["offset"];
+            if (!string.IsNullOrWhiteSpace(offsetRaw) &&
+                (!Int32.TryParse(offsetRaw, out offset) ||
+                 offset < 0 ||
+                 offset > 10000))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_pagination",
+                    "offset must be an integer between 0 and 10000.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static object PaginationPayload(
+            int limit,
+            int offset,
+            int returned,
+            bool hasMore)
+        {
+            return new
+            {
+                limit,
+                offset,
+                returned,
+                has_more = hasMore,
+                next_offset = hasMore
+                    ? offset + returned
+                    : (int?)null
+            };
         }
 
         private static bool TryGetOptionalSingle(JsonElement root, string propertyName, ref float value)

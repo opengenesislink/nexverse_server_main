@@ -183,6 +183,32 @@ namespace NexVerse.Server.Api
                         }
                     }
                 },
+                x_nexverse_rate_limit = new
+                {
+                    headers = new[]
+                    {
+                        "RateLimit-Limit",
+                        "RateLimit-Remaining",
+                        "RateLimit-Reset",
+                        "Retry-After"
+                    },
+                    status = 429
+                },
+                x_nexverse_pagination = new
+                {
+                    query_parameters = new[] { "limit", "offset" },
+                    default_limit = 50,
+                    maximum_limit = 100,
+                    maximum_offset = 10000,
+                    response_fields = new[]
+                    {
+                        "limit",
+                        "offset",
+                        "returned",
+                        "has_more",
+                        "next_offset"
+                    }
+                },
                 x_nexverse_audience = new[] { "citizen", "admin" },
                 x_nexverse_ai_instruction = new
                 {
@@ -252,7 +278,8 @@ namespace NexVerse.Server.Api
                     summary,
                     responses = new Dictionary<string, object>
                     {
-                        ["200"] = new { description = "Successful response" }
+                        ["200"] = new { description = "Successful response" },
+                        ["429"] = new { description = "Rate limit exceeded" }
                     },
                     security = Array.Empty<object>()
                 }
@@ -282,7 +309,8 @@ namespace NexVerse.Server.Api
                         ["400"] = new { description = "Invalid request" },
                         ["401"] = new { description = "Authentication required" },
                         ["403"] = new { description = "Insufficient scope" },
-                        ["404"] = new { description = "Resource not found" }
+                        ["404"] = new { description = "Resource not found" },
+                        ["429"] = new { description = "Rate limit exceeded" }
                     }
                 };
 
