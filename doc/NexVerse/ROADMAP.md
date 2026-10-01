@@ -349,6 +349,8 @@ Implementation status:
 
 - [x] API Control Center dashboard with live health, server/API version, milestone and endpoint/operation counts;
 - [x] machine-readable `x_nexverse_changelog` release notes with a filterable "Was ist neu?" view;
+- [x] roadmap/project-status view driven by machine-readable `x_nexverse_roadmap` metadata, with checklist progress only where the roadmap contains explicit checkboxes;
+- [x] CI verifies published roadmap checklist counts against `doc/NexVerse/ROADMAP.md` to prevent status drift.
 - [x] searchable endpoint catalogue driven by the live OpenAPI document;
 - [x] request/response schemas rendered from the live contract;
 - [x] same-origin live API explorer with Bearer/API-key/Idempotency-Key support;
