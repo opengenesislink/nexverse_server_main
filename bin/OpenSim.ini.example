@@ -259,10 +259,10 @@
     ;; using the basic shapes that it supports.
     ;; Usually this is only a box.
     ;; Default is Meshmerizer
-    ;; NexVerse runtime profile: ubODE requires its dedicated mesher.
-    meshing = ubODEMeshmerizer
-    ; meshing = Meshmerizer
+    ;; NexVerse runtime profile: BulletSim uses the standard Meshmerizer.
+    meshing = Meshmerizer
     ; meshing = ZeroMesher
+    ; meshing = ubODEMeshmerizer
 
     ;; Choose one of the physics engines below
     ;# {physics} {} {Select physics engine} {OpenDynamicsEngine BulletSim basicphysics POS} BulletSim
@@ -271,11 +271,11 @@
     ;; OpenDynamicsEngine was the previous default physics engine in OpenSimulator 0.7.6.1 and before.
     ;; It continues to provide a workable physics implementation.  It does not currently support varregions.
     ;; basicphysics effectively does not model physics at all, making all objects phantom.
-    ;; NexVerse runtime profile: ubODE is the default physics engine.
-    physics = ubODE
-    ; physics = BulletSim
+    ;; NexVerse runtime profile: BulletSim is the default physics engine.
+    physics = BulletSim
     ; physics = basicphysics
     ; physics = POS
+    ; physics = ubODE
 
     ; ubODE does allocate a lot of memory on stack. On linux you may need to increase its limit
     ; script opensim-ode-sh starts opensim setting that limit. You may need to increase it even more on large regions
@@ -1271,16 +1271,3 @@
     ; Include-Architecture = "config-include/Grid.ini"
     ; Include-Architecture = "config-include/GridHypergrid.ini"
 
-
-; NexVerse ubODE mesh collision profile.
-; Detailed uploaded physics meshes are preferred.  While an asset is loading
-; or cannot be meshed, ubODE now keeps its box/sphere fallback solid.
-[Mesh]
-    AllowMeshUpload = true
-    UseMeshiesPhysicsMesh = true
-    ConvexPrims = true
-    ConvexSculpts = true
-    MeshFileCache = true
-    MeshFileCachePath = MeshCache
-    MeshFileCacheDoExpire = true
-    MeshFileCacheExpireHours = 48

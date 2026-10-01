@@ -1725,25 +1725,19 @@ namespace OpenSim.Region.PhysicsModule.ubOde
         {
             bool hasMesh = false;
 
-            // NexVerse: fail-safe mesh collision.
-            //
-            // Upstream ubODE marks a mesh as MeshNoColide while its physics
-            // asset is still loading or when detailed meshing fails.  A box
-            // fallback is then created, but m_NoColide disables its collision
-            // bits and the visible object behaves like a phantom.
-            //
-            // Keep the fallback geometry collidable. Explicit Phantom and
-            // PhysicsShapeType=None are handled by the scene/object layer.
             m_NoColide = false;
 
-            bool meshUnavailable =
-                (m_meshState & MeshState.MeshNoColide) != 0;
+            if ((m_meshState & MeshState.MeshNoColide) != 0)
+                m_NoColide = true;
 
-            if (!OverrideToBox && !meshUnavailable && m_mesh != null)
+            else if(!OverrideToBox && m_mesh != null)
             {
                 if (GetMeshGeom())
                     hasMesh = true;
+                else
+                    m_NoColide = true;
             }
+
 
             if (!hasMesh)
             {

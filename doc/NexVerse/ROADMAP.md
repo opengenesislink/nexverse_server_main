@@ -25,7 +25,7 @@ The target architecture is centered around:
 - search, places, land and destination services;
 - strong monitoring, auditing and operational tooling;
 - a documented extension and developer platform.
-- a defined simulator runtime profile using ubODE physics, ubODEMeshmerizer and Warp3D-generated map tiles.
+- a defined simulator runtime profile using BulletSim physics, Meshmerizer and Warp3D-generated map tiles.
 
 ## 2. Development principles
 
@@ -1413,13 +1413,12 @@ The following workstreams span multiple milestones and must not be postponed unt
 
 The NexVerse simulator baseline is intentionally standardized to:
 
-- `physics = ubODE`;
-- `meshing = ubODEMeshmerizer`;
+- `physics = BulletSim`;
+- `meshing = Meshmerizer`;
 - `MapImageModule = Warp3DImageModule`;
 - generated map tiles with terrain, prim textures and mesh rendering enabled;
-- an ubODE-safe Linux stack limit in `bin/opensim.sh`.
 
-NEXJAST CI verifies this profile and the required native ubODE libraries so accidental fallback to BulletSim, the generic Meshmerizer or the legacy map image module is treated as a regression.
+NEXJAST CI verifies this profile and the required BulletSim/Meshmerizer components so accidental fallback to ubODE, ubODEMeshmerizer or the legacy map image module is treated as a regression.
 
 ## 22.2 Firestorm compatibility
 
@@ -1573,4 +1572,3 @@ Rules for changes:
 6. Compatibility regressions must be treated as defects unless intentionally documented.
 7. Production releases require build, migration and smoke-test verification.
 
-- [x] ubODE mesh collision fail-safe keeps non-phantom mesh objects solid with box/sphere fallback while detailed physics mesh assets are loading or cannot be generated; explicit ubODE mesh/cache settings are CI-enforced.
