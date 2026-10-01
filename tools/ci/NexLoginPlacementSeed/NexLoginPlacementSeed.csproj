@@ -6,7 +6,22 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Nini">
+      <HintPath>../../../bin/Nini.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="OpenMetaverse">
+      <HintPath>../../../bin/OpenMetaverse.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="OpenMetaverseTypes">
+      <HintPath>../../../bin/OpenMetaverseTypes.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../../OpenSim/Framework/OpenSim.Framework.csproj" />
+    <ProjectReference Include="../../../OpenSim/Framework/Console/OpenSim.Framework.Console.csproj" />
     <ProjectReference Include="../../../OpenSim/Services/UserAccountService/OpenSim.Services.UserAccountService.csproj" />
     <ProjectReference Include="../../../OpenSim/Services/AuthenticationService/OpenSim.Services.AuthenticationService.csproj" />
     <ProjectReference Include="../../../OpenSim/Services/InventoryService/OpenSim.Services.InventoryService.csproj" />
