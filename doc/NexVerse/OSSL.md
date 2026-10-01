@@ -85,3 +85,10 @@ NexVerse deliberately exposes the three read-only synchronous notecard helpers t
 Upstream defaults classify these as VeryHigh and restrict them to estate roles because synchronous asset reads can be expensive. That restriction breaks established OpenSim products such as PMAC 2.x when their owner is not an estate manager. NexVerse therefore overrides all three to `true`.
 
 Administrative, force-avatar and console functions remain role-restricted. CI explicitly verifies that the notecard compatibility functions stay globally enabled.
+
+
+## Pose-system animation compatibility
+
+NexVerse exposes `osAvatarPlayAnimation` and `osAvatarStopAnimation` to ordinary scripts. This is required by established pose systems such as PMAC 2.x, which animate avatars using OSSL after the avatar participates in the pose system.
+
+This exception applies only to the animation start/stop helpers. Higher-impact force operations such as forced attachment, forced detach and forced sit remain restricted to trusted estate roles.

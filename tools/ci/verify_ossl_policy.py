@@ -68,6 +68,8 @@ compatibility_open_functions = (
     "osGetNotecard",
     "osGetNotecardLine",
     "osGetNumberOfNotecardLines",
+    "osAvatarPlayAnimation",
+    "osAvatarStopAnimation",
 )
 for name in compatibility_open_functions:
     effective = rules.get(name, "")
