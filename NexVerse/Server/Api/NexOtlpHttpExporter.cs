@@ -613,9 +613,11 @@ namespace NexVerse.Server.Api
                     }
 
                     using HttpResponseMessage response =
-                        m_Client.Send(
+                        m_Client.SendAsync(
                             request,
-                            HttpCompletionOption.ResponseHeadersRead);
+                            HttpCompletionOption.ResponseHeadersRead)
+                        .GetAwaiter()
+                        .GetResult();
 
                     if (response.IsSuccessStatusCode)
                     {
