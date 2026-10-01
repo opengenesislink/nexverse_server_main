@@ -59,7 +59,7 @@ namespace NexVerse.Server.Api
             }
 
             INexEventBus eventBus = CreateEventBus(config, server);
-            INexAuditSink auditSink = new LogNexAuditSink();
+            INexAuditSink publicAuditSink = new LogNexAuditSink();
             INexAuthorizationService authorization = new NexAuthorizationService();
 
             NexApiRequestGate apiGate = new NexApiRequestGate(
@@ -68,7 +68,7 @@ namespace NexVerse.Server.Api
                 apiConfig.GetInt("RateLimitWindowSeconds", 60),
                 apiConfig.GetBoolean("TrustForwardedFor", false));
 
-            NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, auditSink);
+            NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, publicAuditSink);
 
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", apiGate.Wrap(handlers.Root), "NexVerse World API"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/health", apiGate.Wrap(handlers.Health), "NexVerse World API Health"));
@@ -79,6 +79,18 @@ namespace NexVerse.Server.Api
             bool privilegedEndpoints = apiConfig.GetBoolean("EnablePrivilegedEndpoints", false);
             if (privilegedEndpoints)
             {
+                string auditStorePath = apiConfig.GetString(
+                    "AuditStorePath",
+                    "data/nexverse-audit.jsonl");
+
+                INexAuditStore auditStore =
+                    new PersistentNexAuditStore(auditStorePath);
+
+                INexAuditSink auditSink =
+                    new CompositeNexAuditSink(
+                        publicAuditSink,
+                        auditStore);
+
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];
 
@@ -172,7 +184,8 @@ namespace NexVerse.Server.Api
                     eventBus,
                     auditSink,
                     nativeTokens,
-                    oauthStore);
+                    oauthStore,
+                    auditStore);
 
                 if (nativeTokens != null && oauthStore != null && oidcSigner != null)
                 {

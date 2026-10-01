@@ -83,6 +83,25 @@ namespace NexVerse.Core.Audit
             int offset);
     }
 
+    public sealed class CompositeNexAuditSink : INexAuditSink
+    {
+        private readonly INexAuditSink[] m_Sinks;
+
+        public CompositeNexAuditSink(params INexAuditSink[] sinks)
+        {
+            m_Sinks = sinks ?? Array.Empty<INexAuditSink>();
+        }
+
+        public void Record(NexAuditEvent auditEvent)
+        {
+            if (auditEvent == null)
+                return;
+
+            foreach (INexAuditSink sink in m_Sinks)
+                sink?.Record(auditEvent);
+        }
+    }
+
     public sealed class NullNexAuditSink : INexAuditSink
     {
         public static NullNexAuditSink Instance { get; } = new NullNexAuditSink();

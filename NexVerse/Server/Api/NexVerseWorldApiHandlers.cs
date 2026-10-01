@@ -138,6 +138,8 @@ namespace NexVerse.Server.Api
                     ("patch", "Enable or disable OAuth/service client", "admin:*", "200")),
                 ["/api/v1/auth/sessions/revoke"] = AuthenticatedOperations(
                     ("post", "Revoke resident sessions and advance security stamp", "self or admin:*", "200")),
+                ["/api/v1/audit"] = AuthenticatedOperations(
+                    ("get", "Query persistent administrative audit history", "admin:*", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Search selectable home/start regions", "admin:*", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -149,6 +151,8 @@ namespace NexVerse.Server.Api
                     ("get", "Read a user account", "self or admin:*", "200"),
                     ("patch", "Update account profile fields", "self or admin:*", "200"),
                     ("delete", "Soft-delete/deactivate a user account", "admin:*", "200")),
+                ["/api/v1/users/{principalId}/audit"] = AuthenticatedOperations(
+                    ("get", "Read persistent audit history for one resident", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/state"] = AuthenticatedOperations(
                     ("patch", "Lock, ban, deactivate or reactivate a user account", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/level"] = AuthenticatedOperations(

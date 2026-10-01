@@ -528,6 +528,7 @@
     RateLimitRequests = 240
     RateLimitWindowSeconds = 60
     TrustForwardedFor = false
+    AuditStorePath = "data/nexverse-audit.jsonl"
 
     ; Native NexVerse scoped access tokens. Keep disabled until TLS is active and
     ; provide a unique random signing key of at least 32 bytes via protected config.

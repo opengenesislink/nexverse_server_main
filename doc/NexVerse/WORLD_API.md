@@ -295,3 +295,27 @@ Search responses include:
 ```
 
 The current v1 foundation uses bounded offset pagination. Large high-churn collections may move to cursor pagination in a later API revision without removing the current bounded contract.
+
+
+## Persistent administrative audit history
+
+Privileged World API and OAuth administrative actions are written to an append-only JSON Lines audit store in addition to the normal server log.
+
+Default runtime path:
+
+`data/nexverse-audit.jsonl`
+
+The path can be changed with `AuditStorePath` in `[NexVerseWorldApi]`. Runtime audit data is excluded from Git.
+
+Administrative query endpoints:
+
+- `GET /api/v1/audit`
+- `GET /api/v1/users/{principalId}/audit`
+
+Both require `admin:*` and use the normal `limit`/`offset` pagination contract.
+
+The global endpoint supports exact `resource` and `actor` filters. `action` may be exact or use a trailing wildcard, for example:
+
+`GET /api/v1/audit?action=users.*&resource=<principal-uuid>&limit=50&offset=0`
+
+Audit records contain event ID, timestamp, actor, action, resource, correlation ID and non-secret details. Passwords, access tokens, refresh tokens and OAuth client secrets are not written into audit details.

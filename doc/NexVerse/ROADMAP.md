@@ -334,8 +334,8 @@ API coverage:
 - password/admin reset flows;
 - change UserLevel;
 - account search;
-- account history;
-- account audit records.
+- [x] account history exposed through persistent administrative audit queries;
+- [x] account audit records persisted append-only with correlation IDs and pagination.
 
 ### 6.4 API web interface
 

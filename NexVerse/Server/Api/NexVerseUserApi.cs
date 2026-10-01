@@ -27,6 +27,7 @@ namespace NexVerse.Server.Api
         private readonly INexAuthorizationService m_Authorization;
         private readonly INexAccessTokenService m_NativeTokens;
         private readonly INexOAuthStore m_OAuthStore;
+        private readonly INexAuditStore m_AuditStore;
         private readonly int m_AdminMinimumLevel;
         private readonly int m_TokenLifetimeSeconds;
 
@@ -558,7 +559,8 @@ namespace NexVerse.Server.Api
             INexEventBus eventBus,
             INexAuditSink audit,
             INexAccessTokenService tokens,
-            INexOAuthStore oauthStore)
+            INexOAuthStore oauthStore,
+            INexAuditStore auditStore)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
@@ -566,6 +568,7 @@ namespace NexVerse.Server.Api
             m_Audit = audit ?? NullNexAuditSink.Instance;
             m_Tokens = tokens;
             m_OAuthStore = oauthStore;
+            m_AuditStore = auditStore;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -590,6 +593,12 @@ namespace NexVerse.Server.Api
             if (string.Equals(path, "/api/v1/auth/token", StringComparison.OrdinalIgnoreCase))
             {
                 HandleTokenExchange(request, response);
+                return;
+            }
+
+            if (string.Equals(path, "/api/v1/audit", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleAuditSearch(request, response, null);
                 return;
             }
 
@@ -632,6 +641,12 @@ namespace NexVerse.Server.Api
                         HandleDeactivate(request, response, parts[0]);
                     else
                         WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "HTTP method is not allowed for this endpoint.");
+                    return;
+                }
+
+                if (parts.Length == 2 && string.Equals(parts[1], "audit", StringComparison.OrdinalIgnoreCase))
+                {
+                    HandleAuditSearch(request, response, parts[0]);
                     return;
                 }
 
@@ -712,6 +727,76 @@ namespace NexVerse.Server.Api
                 expires_in = m_Tokens.LifetimeSeconds,
                 scope = string.Join(" ", principal.Scopes),
                 correlation_id = correlationId
+            });
+        }
+
+        private void HandleAuditSearch(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            string forcedResource)
+        {
+            if (!RequireMethod(request, response, "GET"))
+                return;
+
+            if (!Authenticate(
+                request,
+                response,
+                NexScopes.AdminAll,
+                out NexPrincipal _,
+                out UserAccount _))
+                return;
+
+            if (m_AuditStore == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "audit_store_unavailable",
+                    "Persistent audit storage is not available.");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(forcedResource) &&
+                m_Users.GetById(forcedResource) == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.NotFound,
+                    "user_not_found",
+                    "User account was not found.");
+                return;
+            }
+
+            if (!TryGetPagination(
+                request,
+                response,
+                out int limit,
+                out int offset))
+                return;
+
+            string resource = string.IsNullOrWhiteSpace(forcedResource)
+                ? request.QueryString?["resource"]
+                : forcedResource;
+
+            string actor = request.QueryString?["actor"];
+            string action = request.QueryString?["action"];
+
+            NexAuditQueryResult result = m_AuditStore.Query(
+                resource,
+                actor,
+                action,
+                limit,
+                offset);
+
+            WriteJson(response, new
+            {
+                count = result.Events.Count,
+                events = result.Events.Select(AuditPayload).ToArray(),
+                pagination = PaginationPayload(
+                    limit,
+                    offset,
+                    result.Events.Count,
+                    result.HasMore)
             });
         }
 
@@ -1561,6 +1646,21 @@ namespace NexVerse.Server.Api
                    value.IndexOf('@') > 0 &&
                    value.IndexOf('\r') < 0 &&
                    value.IndexOf('\n') < 0;
+        }
+
+        private static Dictionary<string, object> AuditPayload(
+            NexAuditEvent auditEvent)
+        {
+            return new Dictionary<string, object>
+            {
+                ["event_id"] = auditEvent.EventId,
+                ["timestamp"] = auditEvent.Timestamp,
+                ["actor"] = auditEvent.Actor,
+                ["action"] = auditEvent.Action,
+                ["resource"] = auditEvent.Resource,
+                ["correlation_id"] = auditEvent.CorrelationId,
+                ["details"] = auditEvent.Details
+            };
         }
 
         private static Dictionary<string, object> RegionPayload(NexRegionRecord region)
