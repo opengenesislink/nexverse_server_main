@@ -53,102 +53,144 @@ namespace NexVerse.Server.Api
 
         private const string s_Html = """
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NexVerse World API Explorer</title>
+<title>NexVerse World API Control Center</title>
 <style>
-:root{color-scheme:dark;--bg:#090d13;--panel:#111923;--panel2:#182331;--line:#26364a;--text:#e8f0f7;--muted:#92a6b9;--accent:#70c7ff;--good:#64d49a;--warn:#ffd166;--danger:#ff7b7b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,sans-serif}
-header{padding:24px 28px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#101a28,#0c1119)}
-header h1{margin:0 0 6px;font-size:24px}header p{margin:0;color:var(--muted)}
-main{display:grid;grid-template-columns:minmax(280px,32%) 1fr;min-height:calc(100vh - 100px)}
-aside{border-right:1px solid var(--line);padding:18px;overflow:auto}.work{padding:22px;overflow:auto}
-input,textarea,button{font:inherit}input,textarea{width:100%;background:#0b121b;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px}
-textarea{min-height:150px;font-family:ui-monospace,monospace;resize:vertical}button{background:#173047;color:var(--text);border:1px solid #31506b;border-radius:7px;padding:8px 12px;cursor:pointer}
-button:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
-.endpoint{padding:10px;margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
-.endpoint:hover,.endpoint.active{border-color:var(--accent);background:var(--panel2)}
-.method{display:inline-block;min-width:54px;font-weight:700;color:var(--accent)}.path{font-family:ui-monospace,monospace}
-.small{font-size:12px;color:var(--muted)}.badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#223247;color:#cfe7f8;margin:2px 4px 2px 0;font-size:12px}
-section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
-h2,h3{margin-top:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.label{display:block;color:var(--muted);margin:8px 0 5px}
-pre{white-space:pre-wrap;word-break:break-word;background:#080d13;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:360px;overflow:auto}
-.status-good{color:var(--good)}.status-bad{color:var(--danger)}.hidden{display:none}
-@media(max-width:900px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line);max-height:42vh}.grid{grid-template-columns:1fr}}
+:root{color-scheme:dark;--bg:#071019;--panel:#0f1a26;--panel2:#142335;--line:#24384d;--text:#e9f1f8;--muted:#8fa5b8;--accent:#66c7ff;--accent2:#8be0c2;--good:#62d49b;--warn:#ffd166;--danger:#ff7d7d;--shadow:0 18px 55px rgba(0,0,0,.28)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 0,#112b3d 0,transparent 34%),var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea{font:inherit}button{cursor:pointer}
+.shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}
+nav{position:sticky;top:0;height:100vh;padding:24px 18px;border-right:1px solid var(--line);background:rgba(8,15,24,.94);backdrop-filter:blur(12px)}
+.brand{padding:0 8px 24px}.brand strong{display:block;font-size:19px;letter-spacing:.2px}.brand span{color:var(--muted);font-size:12px}
+.navbtn{width:100%;text-align:left;margin:4px 0;padding:10px 12px;border:1px solid transparent;border-radius:9px;color:var(--muted);background:transparent}
+.navbtn:hover,.navbtn.active{color:var(--text);background:var(--panel2);border-color:var(--line)}
+.navmeta{position:absolute;left:26px;right:26px;bottom:24px;color:var(--muted);font-size:12px}
+main{min-width:0;padding:34px}.page{display:none;max-width:1280px;margin:0 auto}.page.active{display:block}
+.hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:24px}.eyebrow{color:var(--accent);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em}.hero h1{font-size:32px;line-height:1.15;margin:7px 0 8px}.hero p{margin:0;color:var(--muted);max-width:760px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:var(--panel);font-size:12px;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}.dot.bad{background:var(--danger)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0 26px}.card,.section{border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,35,53,.95),rgba(13,24,35,.95));border-radius:12px;box-shadow:var(--shadow)}
+.card{padding:16px}.card .label{color:var(--muted);font-size:12px}.card .value{font-size:21px;font-weight:700;margin-top:6px;word-break:break-word}.card .sub{color:var(--muted);font-size:12px;margin-top:4px}
+.section{padding:20px;margin-bottom:18px}.section h2{margin:0 0 5px;font-size:19px}.sectionlead{color:var(--muted);margin:0 0 16px}
+.changegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.change{border:1px solid var(--line);background:#0b1621;border-radius:10px;padding:14px}.changehead{display:flex;justify-content:space-between;gap:12px;align-items:start}.change h3{font-size:15px;margin:0 0 7px}.change p{color:var(--muted);margin:0}.meta{font-size:12px;color:var(--muted);margin-top:10px}.tag{display:inline-block;border-radius:999px;padding:3px 7px;margin:2px 4px 2px 0;background:#1b3044;color:#cfe7f8;font-size:11px}.tag.good{background:#153727;color:#aaf0ca}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.filter{border:1px solid var(--line);background:#0b1621;color:var(--muted);border-radius:999px;padding:6px 10px}.filter.active{border-color:var(--accent);color:var(--text)}
+.version{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}.version:last-child{border-bottom:0}.version strong{display:block}.version ul{margin:6px 0 0;padding-left:18px;color:var(--muted)}
+.explorer{display:grid;grid-template-columns:minmax(290px,32%) 1fr;gap:16px}.endpointlist,.detail{min-width:0}.search{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
+.endpoint{padding:10px;margin:7px 0;border:1px solid var(--line);border-radius:9px;background:#0b1621;cursor:pointer}.endpoint:hover,.endpoint.active{border-color:var(--accent);background:var(--panel2)}
+.method{display:inline-block;min-width:58px;font-weight:800;color:var(--accent)}.path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.small{font-size:12px;color:var(--muted)}
+input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}textarea{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.label2{display:block;color:var(--muted);margin:8px 0 5px}pre{white-space:pre-wrap;word-break:break-word;background:#06101a;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:350px;overflow:auto}
+.action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
+.empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}}
+@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards{grid-template-columns:1fr}.grid2,.version{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-<h1>NexVerse World API Explorer</h1>
-<p id="meta">Loading live OpenAPI contract…</p>
-</header>
+<div class="shell">
+<nav>
+<div class="brand"><strong>NexVerse API</strong><span>World API Control Center</span></div>
+<button class="navbtn active" data-page="overview">Übersicht</button>
+<button class="navbtn" data-page="changes">Was ist neu?</button>
+<button class="navbtn" data-page="versions">Versionen</button>
+<button class="navbtn" data-page="explorer">API Explorer</button>
+<div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
+</nav>
 <main>
-<aside>
-<input id="search" placeholder="Search endpoint, method, scope…">
+<section class="page active" id="page-overview">
+<div class="hero">
+<div><div class="eyebrow">NexVerse World API</div><h1>API-Status auf einen Blick</h1><p>Live-Übersicht über Serverversion, API-Vertrag, aktuelle Erweiterungen und verfügbare Endpunkte.</p></div>
+<div class="pill"><span class="dot" id="healthDot"></span><span id="healthText">Prüfe Health…</span></div>
+</div>
+<div class="cards">
+<div class="card"><div class="label">Server</div><div class="value" id="serverVersion">–</div><div class="sub" id="milestone">Milestone –</div></div>
+<div class="card"><div class="label">API</div><div class="value" id="apiVersion">–</div><div class="sub">OpenAPI 3.1 Live Contract</div></div>
+<div class="card"><div class="label">Endpunkte</div><div class="value" id="endpointCount">–</div><div class="sub" id="operationCount">– Operationen</div></div>
+<div class="card"><div class="label">Letzte Änderung</div><div class="value" id="lastChangeDate">–</div><div class="sub" id="lastChangeTitle">Keine Release Notes</div></div>
+</div>
+<div class="section">
+<h2>Neu in der aktuellen Entwicklungsline</h2><p class="sectionlead">Die Einträge werden direkt aus <code>x_nexverse_changelog</code> im laufenden OpenAPI-Dokument gelesen.</p>
+<div class="changegrid" id="overviewChanges"></div>
+</div>
+<div class="section">
+<h2>Schnellzugriff</h2><p class="sectionlead">Die wichtigsten technischen Oberflächen des laufenden Servers.</p>
+<div class="filters">
+<button class="filter" data-goto="changes">Alle Neuerungen</button>
+<button class="filter" data-goto="versions">Versionshistorie</button>
+<button class="filter" data-goto="explorer">Endpoint Explorer</button>
+</div>
+</div>
+</section>
+
+<section class="page" id="page-changes">
+<div class="hero"><div><div class="eyebrow">Changelog</div><h1>Was ist neu?</h1><p>Nachvollziehbare, maschinenlesbare Änderungen der World API und ihrer Plattform-Grundlagen.</p></div></div>
+<div class="section">
+<div class="filters" id="changeFilters"></div>
+<div class="changegrid" id="allChanges"></div>
+</div>
+</section>
+
+<section class="page" id="page-versions">
+<div class="hero"><div><div class="eyebrow">Compatibility</div><h1>Versionen</h1><p>API-Versionen, Server-Linien, Codenamen und veröffentlichte Highlights.</p></div></div>
+<div class="section" id="versionList"></div>
+</section>
+
+<section class="page" id="page-explorer">
+<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API Explorer</h1><p>Durchsuche den Live-Vertrag, prüfe Scopes und führe autorisierte Requests direkt gegen denselben Server aus.</p></div></div>
+<div class="explorer">
+<div class="endpointlist section">
+<input class="search" id="search" placeholder="Endpoint, Methode, Scope suchen…">
 <div id="endpoints"></div>
-</aside>
-<div class="work">
-<section id="intro">
-<h2>Live API documentation</h2>
-<p>This explorer reads <code>/api/v1/openapi.json</code> from the running NexVerse server. Credentials are held only in this page's memory and are not persisted by the explorer.</p>
-<h3>API version history</h3>
-<div id="versions" class="small">Loading version metadata…</div>
-</section>
-<section id="detail" class="hidden">
+</div>
+<div class="detail">
+<div class="section hidden" id="detail">
 <div class="row"><h2 id="title"></h2><span id="deprecated"></span></div>
-<p id="summary"></p>
+<p id="summary" class="sectionlead"></p>
 <div id="badges"></div>
-<div class="grid">
-<div>
-<label class="label">Request URL</label>
-<input id="url">
+<div class="grid2">
+<div><label class="label2">Request URL</label><input id="url"></div>
+<div><label class="label2">Method</label><input id="method" readonly></div>
 </div>
-<div>
-<label class="label">Method</label>
-<input id="method" readonly>
+<h3>Parameter</h3><pre id="parameters"></pre>
+<h3>Request Schema</h3><pre id="requestSchema"></pre>
+<h3>AI / Automation Guidance</h3><pre id="aiInstruction"></pre>
+<h3>Responses / Errors</h3><pre id="responses"></pre>
+</div>
+<div class="section">
+<h2>Authentifizierung</h2>
+<div class="grid2">
+<div><label class="label2">Bearer Token</label><input id="bearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">X-NexVerse-Api-Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="Optional"></div>
+</div>
+<label class="label2">Idempotency-Key</label><input id="idem" autocomplete="off" placeholder="Optional">
+</div>
+<div class="section hidden" id="runner">
+<h2>Live Request</h2>
+<label class="label2">JSON Body</label><textarea id="body" spellcheck="false"></textarea>
+<div class="row" style="margin-top:10px"><button class="action" id="run">Request ausführen</button><button class="action" id="clear">Credentials löschen</button></div>
+<h3 style="margin-top:18px">Response</h3><div id="status" class="small"></div><pre id="output">Noch kein Request ausgeführt.</pre>
 </div>
 </div>
-<h3>Parameters</h3>
-<pre id="parameters"></pre>
-<h3>Request schema</h3>
-<pre id="requestSchema"></pre>
-<h3>AI / automation guidance</h3>
-<pre id="aiInstruction"></pre>
-<h3>Responses / errors</h3>
-<pre id="responses"></pre>
+</div>
 </section>
-
-<section id="auth">
-<h2>Authentication for live requests</h2>
-<div class="grid">
-<div><label class="label">Bearer token</label><input id="bearer" type="password" autocomplete="off" placeholder="Optional"></div>
-<div><label class="label">X-NexVerse-Api-Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="Optional"></div>
-</div>
-<label class="label">Idempotency-Key</label>
-<input id="idem" autocomplete="off" placeholder="Optional; useful for POST /api/v1/users">
-</section>
-
-<section id="runner" class="hidden">
-<h2>Live request</h2>
-<label class="label">JSON body</label>
-<textarea id="body" spellcheck="false"></textarea>
-<div class="row" style="margin-top:10px">
-<button id="run">Execute request</button>
-<button id="clear">Clear credentials</button>
-</div>
-<h3 style="margin-top:18px">Response</h3>
-<div id="status" class="small"></div>
-<pre id="output">No request executed.</pre>
-</section>
-</div>
 </main>
+</div>
+
 <script>
 'use strict';
-let spec=null,entries=[],selected=null;
+let spec=null,entries=[],selected=null,changes=[];
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+name));
+  document.querySelectorAll('.navbtn').forEach(x=>x.classList.toggle('active',x.dataset.page===name));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.navbtn').forEach(x=>x.addEventListener('click',()=>showPage(x.dataset.page)));
+document.querySelectorAll('[data-goto]').forEach(x=>x.addEventListener('click',()=>showPage(x.dataset.goto)));
 
 function resolveSchema(schema){
   if(!schema)return null;
@@ -178,16 +220,11 @@ function exampleFor(schema,depth=0){
   if(schema.format==='date-time')return new Date(0).toISOString();
   return '';
 }
-function requestSchema(op){
-  return op.requestBody?.content?.['application/json']?.schema||null;
-}
+function requestSchema(op){return op.requestBody?.content?.['application/json']?.schema||null}
 function responseSchemas(op){
   const result={};
   for(const [code,response] of Object.entries(op.responses||{})){
-    result[code]={
-      description:response.description||'',
-      schema:resolveSchema(response.content?.['application/json']?.schema)
-    };
+    result[code]={description:response.description||'',schema:resolveSchema(response.content?.['application/json']?.schema)};
   }
   return result;
 }
@@ -201,104 +238,114 @@ function buildEntries(){
   }
   entries.sort((a,b)=>a.path.localeCompare(b.path)||a.method.localeCompare(b.method));
 }
-function renderList(){
+function renderEndpointList(){
   const q=$('search').value.trim().toLowerCase();
   const host=$('endpoints');host.replaceChildren();
   for(const entry of entries){
     const scope=entry.op['x-nexverse-scope']||'';
     const hay=[entry.method,entry.path,entry.op.summary||'',scope].join(' ').toLowerCase();
     if(q&&!hay.includes(q))continue;
-    const div=document.createElement('div');
-    div.className='endpoint'+(selected===entry?' active':'');
+    const div=document.createElement('div');div.className='endpoint'+(selected===entry?' active':'');
     const top=document.createElement('div');
     const m=document.createElement('span');m.className='method';m.textContent=entry.method;
     const p=document.createElement('span');p.className='path';p.textContent=entry.path;
     top.append(m,p);div.append(top);
     const summary=document.createElement('div');summary.className='small';summary.textContent=entry.op.summary||'';
-    div.append(summary);
-    div.addEventListener('click',()=>selectEntry(entry));
-    host.append(div);
+    div.append(summary);div.addEventListener('click',()=>selectEntry(entry));host.append(div);
   }
 }
 function selectEntry(entry){
-  selected=entry;renderList();
-  $('intro').classList.add('hidden');$('detail').classList.remove('hidden');$('runner').classList.remove('hidden');
-  $('title').textContent=entry.method+' '+entry.path;
-  $('summary').textContent=entry.op.summary||'';
-  $('method').value=entry.method;
-  $('url').value=entry.path;
-  $('deprecated').textContent=entry.op.deprecated?'DEPRECATED':'';
-  $('deprecated').className=entry.op.deprecated?'badge status-bad':'';
+  selected=entry;renderEndpointList();$('detail').classList.remove('hidden');$('runner').classList.remove('hidden');
+  $('title').textContent=entry.method+' '+entry.path;$('summary').textContent=entry.op.summary||'';$('method').value=entry.method;$('url').value=entry.path;
+  $('deprecated').textContent=entry.op.deprecated?'DEPRECATED':'';$('deprecated').className=entry.op.deprecated?'tag':'';
   const badges=$('badges');badges.replaceChildren();
   const scope=entry.op['x-nexverse-scope'];
-  if(scope){const b=document.createElement('span');b.className='badge';b.textContent='scope: '+scope;badges.append(b)}
-  for(const audience of entry.op['x-nexverse-audience']||[]){
-    const b=document.createElement('span');b.className='badge';b.textContent='audience: '+audience;badges.append(b)
-  }
-  for(const sec of entry.op.security||[]){
-    const names=Object.keys(sec);
-    if(names.length){const b=document.createElement('span');b.className='badge';b.textContent='auth: '+names.join(' or ');badges.append(b)}
-  }
+  if(scope){const b=document.createElement('span');b.className='tag';b.textContent='scope: '+scope;badges.append(b)}
+  for(const audience of entry.op['x-nexverse-audience']||[]){const b=document.createElement('span');b.className='tag';b.textContent='audience: '+audience;badges.append(b)}
+  for(const sec of entry.op.security||[]){const names=Object.keys(sec);if(names.length){const b=document.createElement('span');b.className='tag';b.textContent='auth: '+names.join(' or ');badges.append(b)}}
   $('parameters').textContent=JSON.stringify(entry.op.parameters||[],null,2);
-  const req=requestSchema(entry.op);
-  $('requestSchema').textContent=req?JSON.stringify(resolveSchema(req),null,2):'No JSON request body.';
-  $('aiInstruction').textContent=JSON.stringify({
-    purpose:entry.op['x-nexverse-purpose']||entry.op.summary||'',
-    audience:entry.op['x-nexverse-audience']||[],
-    instruction:entry.op['x-nexverse-ai-instruction']||'',
-    security_constraints:entry.op['x-nexverse-security-constraints']||[],
-    deprecated:!!entry.op.deprecated
-  },null,2);
+  const req=requestSchema(entry.op);$('requestSchema').textContent=req?JSON.stringify(resolveSchema(req),null,2):'Kein JSON Request Body.';
+  $('aiInstruction').textContent=JSON.stringify({purpose:entry.op['x-nexverse-purpose']||entry.op.summary||'',audience:entry.op['x-nexverse-audience']||[],instruction:entry.op['x-nexverse-ai-instruction']||'',security_constraints:entry.op['x-nexverse-security-constraints']||[],deprecated:!!entry.op.deprecated},null,2);
   $('responses').textContent=JSON.stringify(responseSchemas(entry.op),null,2);
-  const ex=exampleFor(req);
-  $('body').value=req&&ex!==null?JSON.stringify(ex,null,2):'';
+  const ex=exampleFor(req);$('body').value=req&&ex!==null?JSON.stringify(ex,null,2):'';
+}
+function makeChange(item){
+  const box=document.createElement('article');box.className='change';
+  const head=document.createElement('div');head.className='changehead';
+  const title=document.createElement('h3');title.textContent=item.title||'Änderung';
+  const status=document.createElement('span');status.className='tag '+(item.status==='implemented'?'good':'');status.textContent=item.status||'';
+  head.append(title,status);box.append(head);
+  const summary=document.createElement('p');summary.textContent=item.summary||'';box.append(summary);
+  const tags=document.createElement('div');tags.className='meta';
+  for(const value of [item.date,item.version,item.category]){if(value){const t=document.createElement('span');t.className='tag';t.textContent=value;tags.append(t)}}
+  box.append(tags);
+  if(item.endpoints?.length){const eps=document.createElement('div');eps.className='small';eps.style.marginTop='8px';eps.textContent='Betrifft: '+item.endpoints.join(', ');box.append(eps)}
+  return box;
+}
+function renderChanges(category){
+  const list=category&&category!=='all'?changes.filter(x=>x.category===category):changes;
+  const all=$('allChanges');all.replaceChildren();
+  if(!list.length){all.innerHTML='<div class="empty">Keine Änderungen für diesen Filter.</div>';return}
+  list.forEach(x=>all.append(makeChange(x)));
+}
+function renderChangeFilters(){
+  const host=$('changeFilters');host.replaceChildren();
+  const cats=['all',...new Set(changes.map(x=>x.category).filter(Boolean))];
+  cats.forEach((cat,index)=>{
+    const b=document.createElement('button');b.className='filter'+(index===0?' active':'');b.textContent=cat==='all'?'Alle':cat;
+    b.addEventListener('click',()=>{host.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderChanges(cat)});
+    host.append(b);
+  });
+}
+function renderVersions(){
+  const host=$('versionList');host.replaceChildren();
+  const history=spec['x_nexverse_version_history']||[];
+  if(!history.length){host.innerHTML='<div class="empty">Keine Versionshistorie veröffentlicht.</div>';return}
+  history.forEach(item=>{
+    const row=document.createElement('div');row.className='version';
+    const left=document.createElement('div');left.innerHTML='<strong></strong><span class="small"></span>';left.querySelector('strong').textContent=item.api_version||'';left.querySelector('span').textContent=item.published||item.status||'';
+    const right=document.createElement('div');const h=document.createElement('strong');h.textContent=[item.server_line,item.codename].filter(Boolean).join(' · ');right.append(h);
+    const p=document.createElement('div');p.className='small';p.textContent=item.compatibility||'';right.append(p);
+    if(item.highlights?.length){const ul=document.createElement('ul');item.highlights.forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li)});right.append(ul)}
+    row.append(left,right);host.append(row);
+  });
 }
 async function execute(){
   if(!selected)return;
-  const headers={'Accept':'application/json'};
-  const bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
-  if(bearer)headers.Authorization='Bearer '+bearer;
-  if(key)headers['X-NexVerse-Api-Key']=key;
-  if(idem)headers['Idempotency-Key']=idem;
-  const body=$('body').value.trim();
-  const opts={method:selected.method,headers};
+  const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
+  if(bearer)headers.Authorization='Bearer '+bearer;if(key)headers['X-NexVerse-Api-Key']=key;if(idem)headers['Idempotency-Key']=idem;
+  const body=$('body').value.trim(),opts={method:selected.method,headers};
   if(body&&!['GET','HEAD'].includes(selected.method)){headers['Content-Type']='application/json';opts.body=body}
-  $('status').textContent='Request running…';$('output').textContent='';
+  $('status').textContent='Request läuft…';$('output').textContent='';
   try{
-    const res=await fetch($('url').value,{...opts,credentials:'same-origin'});
-    const text=await res.text();
-    $('status').textContent=res.status+' '+res.statusText+' | correlation: '+(res.headers.get('X-Correlation-Id')||'-');
-    $('status').className=res.ok?'small status-good':'small status-bad';
-    let formatted=text;
-    try{formatted=JSON.stringify(JSON.parse(text),null,2)}catch{}
-    const headerLines=[];res.headers.forEach((v,k)=>headerLines.push(k+': '+v));
-    $('output').textContent=headerLines.join('\n')+'\n\n'+formatted;
-  }catch(err){
-    $('status').textContent='Request failed';$('status').className='small status-bad';$('output').textContent=String(err);
-  }
+    const res=await fetch($('url').value,{...opts,credentials:'same-origin'}),txt=await res.text();
+    $('status').textContent=res.status+' '+res.statusText+' | correlation: '+(res.headers.get('X-Correlation-Id')||'-');$('status').className=res.ok?'small status-good':'small status-bad';
+    let formatted=txt;try{formatted=JSON.stringify(JSON.parse(txt),null,2)}catch{}
+    const headerLines=[];res.headers.forEach((v,k)=>headerLines.push(k+': '+v));$('output').textContent=headerLines.join('\n')+'\n\n'+formatted;
+  }catch(err){$('status').textContent='Request fehlgeschlagen';$('status').className='small status-bad';$('output').textContent=String(err)}
 }
 async function init(){
   try{
-    const response=await fetch('/api/v1/openapi.json',{cache:'no-store'});
-    spec=await response.json();
-    $('meta').textContent=(spec.info?.title||'NexVerse World API')+' '+(spec.info?.version||'')+' · live contract · '+location.origin;
-    const history=spec['x_nexverse_version_history']||[];
-    const versionHost=$('versions');versionHost.replaceChildren();
-    if(!history.length){versionHost.textContent='No version history published.'}
-    for(const item of history){
-      const line=document.createElement('div');
-      line.className='endpoint';
-      line.textContent=[item.api_version,item.server_line,item.codename,item.status,item.compatibility].filter(Boolean).join(' · ');
-      versionHost.append(line);
-    }
-    buildEntries();renderList();
+    const results=await Promise.all([
+      fetch('/api/v1/openapi.json',{cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/v1/health',{cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/v1/version',{cache:'no-store'}).then(r=>r.json())
+    ]);
+    spec=results[0];const health=results[1],version=results[2];
+    changes=spec['x_nexverse_changelog']||[];
+    buildEntries();
+    $('healthText').textContent=health.status==='ok'?'API online':'API Status: '+(health.status||'unbekannt');$('healthDot').className='dot '+(health.status==='ok'?'good':'bad');
+    $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Milestone '+(version.milestone||'–');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
+    $('endpointCount').textContent=Object.keys(spec.paths||{}).length;$('operationCount').textContent=entries.length+' Operationen';
+    $('navmeta').textContent=(version.server_version||'NexVerse')+' · '+(version.api_version||'API');
+    if(changes.length){$('lastChangeDate').textContent=changes[0].date||'–';$('lastChangeTitle').textContent=changes[0].title||''}
+    const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Release Notes veröffentlicht.</div>';
+    renderChangeFilters();renderChanges('all');renderVersions();renderEndpointList();
   }catch(err){
-    $('meta').textContent='Unable to load live OpenAPI document: '+err;
+    $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
 }
-$('search').addEventListener('input',renderList);
-$('run').addEventListener('click',execute);
-$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
+$('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 init();
 </script>
 </body>
