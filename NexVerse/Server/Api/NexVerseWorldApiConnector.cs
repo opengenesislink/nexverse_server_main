@@ -186,14 +186,12 @@ namespace NexVerse.Server.Api
                 }
 
                 NexApiAuthenticator authenticator = new NexApiAuthenticator(
-                    authentication,
                     userAccounts,
                     authorization,
                     nativeTokens,
                     oauthStore,
                     apiKeyStore,
-                    adminMinimumLevel,
-                    tokenLifetimeSeconds);
+                    adminMinimumLevel);
 
                 OpenSimNexUserService userService = new OpenSimNexUserService(
                     userAccounts,
@@ -212,7 +210,8 @@ namespace NexVerse.Server.Api
                     auditStore,
                     idempotencyStore,
                     idempotencyTtlSeconds,
-                    apiKeyStore);
+                    apiKeyStore,
+                    adminMinimumLevel);
 
                 if (nativeTokens != null && oauthStore != null && oidcSigner != null)
                 {

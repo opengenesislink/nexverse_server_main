@@ -153,6 +153,7 @@ namespace NexVerse.Core.Identity
             string userTitle,
             string userCountry);
 
+        bool VerifyPassword(string principalId, string password);
         bool SetUserLevel(string principalId, int userLevel);
         bool SetPassword(string principalId, string password);
         NexUserRecord SetAccountState(string principalId, string state, string reason);

@@ -93,43 +93,36 @@ Supported administrator states are `active`, `locked`, `banned` and `deactivated
 
 The API does not access the database directly. It uses a NexVerse `INexUserService` abstraction backed by the existing `IUserAccountService` while the identity subsystem is being migrated.
 
-## NexVerse native access-token transition
+## NexVerse native resident sessions and access tokens
 
-NexVerse now has a native signed/scoped access-token foundation. Native tokens use an HMAC-SHA256 signed JWT-shaped format containing issuer, audience, subject, issue/expiry timestamps, token ID, scopes and an account security stamp.
+NexVerse now uses native signed/scoped access tokens for World API resident authentication. Native tokens use an HMAC-SHA256 signed JWT-shaped format containing issuer, audience, subject, issue/expiry timestamps, token ID, scopes and an account security stamp.
 
-When native tokens are enabled, an existing AuthenticationService bearer token can be exchanged at:
+Resident bootstrap is native:
 
-`POST /api/v1/auth/token`
+`POST /api/v1/auth/session`
 
-The exchange request uses the transitional headers:
+Request body:
 
-```text
-Authorization: Bearer <authentication-service-token>
-X-NexVerse-Principal: <principal-uuid>
+```json
+{
+  "username": "Antonia.Porta",
+  "password": "resident-password"
+}
 ```
 
-The response returns a NexVerse `access_token`, `token_type=Bearer`, `expires_in` and the granted scope set. Subsequent World API requests using the NexVerse token no longer require `X-NexVerse-Principal`.
+Single-name residents may use their normal Resident-compatible login name. The server resolves the canonical NexVerse resident identity, verifies the password internally against the existing credential store, and directly issues a NexVerse access token. It does not mint or expose an AuthenticationService bearer token during this flow.
+
+The response contains `access_token`, `token_type=Bearer`, `expires_in`, the granted scope set, the resident principal UUID and the request correlation ID. Token responses use `Cache-Control: no-store`.
+
+The retired bootstrap endpoint `POST /api/v1/auth/token` and the transitional `X-NexVerse-Principal` header are no longer accepted by the World API. Existing AuthenticationService bearer tokens are not valid World API credentials.
 
 Native token issuance is disabled by default and requires `EnableNativeTokens=true` plus a protected signing key of at least 32 UTF-8 bytes. The signing key must not be committed to the repository.
 
-A native token is bound to the account lifecycle security stamp. Lock, ban, deactivation, unlock, unban and reactivation advance that stamp monotonically, invalidating tokens issued against an older account state.
+A native token is bound to the account lifecycle security stamp. Lock, ban, deactivation, unlock, unban, reactivation, password change and explicit session revocation advance that stamp and invalidate older resident sessions.
 
-### Interim bootstrap bridge
+Administrators at or above `AdminMinimumUserLevel` receive the NexVerse `admin:*` scope. The default minimum is 200. Normal resident bootstrap sessions receive `users:read` and `users:write`.
 
-The current transition layer still accepts an existing AuthenticationService token as a bootstrap mechanism while full NexVerse OIDC/client authorization is developed.
-
-Required request headers when privileged endpoints are enabled:
-
-```text
-Authorization: Bearer <authentication-service-token>
-X-NexVerse-Principal: <principal-uuid>
-```
-
-A legacy bootstrap token is verified by `IAuthenticationService.Verify`. A native NexVerse token is verified cryptographically and its subject is loaded from `IUserAccountService`. Tokens belonging to locked, banned, deactivated or incomplete-provisioning accounts are rejected. Native tokens with a stale account security stamp are also rejected.
-
-For the initial bridge, an account at or above `AdminMinimumUserLevel` receives the NexVerse `admin:*` scope. The default minimum is 200.
-
-This is not the final NexVerse identity model. The roadmap target remains a NexVerse-native scoped token/OIDC-style authentication system.
+World API bearer authentication now accepts only native NexVerse access tokens. Restricted machine integrations use `X-NexVerse-Api-Key`; OAuth service clients use `client_credentials`.
 
 ## Transport safety
 
@@ -144,7 +137,7 @@ This is intentional because the current production Robust endpoint is plain HTTP
 
 Bearer tokens must not be enabled on a public plaintext transport. Privileged endpoints should only be enabled once the API is protected by TLS or an equivalent trusted/private transport.
 
-No password-login endpoint is exposed by the World API over HTTP.
+The resident session endpoint carries a password and therefore must never be exposed over public plaintext HTTP. It is available only with privileged World API endpoints and must be protected by TLS or an equivalent trusted transport.
 
 ## Architecture
 
@@ -161,8 +154,8 @@ The current foundation provides:
 - correlation IDs;
 - API version response headers;
 - citizen/admin AI metadata;
-- interim AuthenticationService token validation;
-- initial authenticated user-management routes.
+- native resident session authentication without a legacy bearer-token bridge;
+- authenticated user-management routes.
 
 ## Audit and events
 
@@ -209,12 +202,9 @@ Selecting a free cell in the raster will prefill the create-region form. Region-
 
 ## Next API work
 
-The core user lifecycle is now connected. The next identity/API work is:
+The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-- durable account audit/history queries;
-- password-change/manual session revocation for already issued native tokens;
-- full OIDC authorization/client flows and persistent client registration;
-- rate limiting and production security controls.
+The next identity/API work is the browser-facing authorization/login and consent surface, followed by production external OpenTelemetry collection and the Region Control Plane.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
@@ -244,7 +234,7 @@ OIDC ID tokens are signed with ES256 using a persistent P-256 key. The private k
 
 Resident password changes, account lock/ban/deactivation and explicit session revocation advance the resident security stamp. Existing native access tokens therefore fail validation and all persisted refresh sessions for the resident are revoked.
 
-The authorization endpoint currently expects an already authenticated NexVerse/legacy bearer session. A browser consent/login surface and complete replacement of the legacy bootstrap path remain separate roadmap work.
+The authorization endpoint now accepts an already authenticated native NexVerse resident bearer session. Legacy AuthenticationService bearer tokens are rejected. A browser-facing login/consent surface remains separate roadmap work.
 
 
 ## API rate limiting and request metadata
@@ -402,6 +392,7 @@ Current schema coverage includes:
 
 - standardized `Error` and `Pagination`;
 - `User`, `UserCreateRequest`, `UserCreateResponse` and profile/lifecycle request bodies;
+- `ResidentSessionRequest` and `ResidentSessionResponse` for native resident login;
 - `Region` and `RegionSearchResponse`;
 - `ApiKey`, API-key create/state requests and list/create responses;
 - `AuditEvent` and paginated audit search responses.

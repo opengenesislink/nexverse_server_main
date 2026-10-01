@@ -230,14 +230,15 @@ Implemented during NEXJAST:
 - [x] Robust loads the World API connector on the public listener.
 - [x] `/api/v1`, `/health`, `/version`, `/capabilities` and `/openapi.json` implemented.
 - [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
-- [x] interim AuthenticationService bearer-token validation connected (privileged routes remain disabled by default on plaintext HTTP).
+- [x] interim AuthenticationService bearer-token bootstrap retired from World API authentication after native resident-session cutover.
 - [x] user API phase 1 connected: self/account lookup, admin search, account creation/provisioning, account profile update, password set/reset and UserLevel update.
 - [x] account creation requires an explicit selectable Home/Start region and initializes both Home and initial Last/Start position.
 - [x] complete current OSSL function surface enabled through an explicit NexVerse permission profile.
 - [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
 - [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.
-- [ ] NexVerse-native OIDC/scoped token issuance fully replaces the interim authentication bridge.
-- [x] native HMAC-signed scoped access-token foundation and legacy-token exchange implemented; native tokens are lifecycle-stamp bound.
+- [x] NexVerse-native resident sessions plus OIDC/scoped token issuance fully replace the interim AuthenticationService bearer-token bridge.
+- [x] native HMAC-signed scoped access-token foundation implemented; native tokens are lifecycle-stamp bound.
+- [x] native resident session login verifies credentials internally and issues NexVerse tokens without exposing legacy AuthenticationService tokens.
 - [x] persistent OAuth2/OIDC core implemented: Authorization Code + PKCE S256, refresh-token rotation/revocation, ES256 ID tokens/JWKS, persistent client registration and service-account client_credentials.
 - [x] password, account-state and explicit session revocation invalidate resident access/refresh sessions.
 - [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.

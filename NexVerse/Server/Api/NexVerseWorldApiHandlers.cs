@@ -126,8 +126,8 @@ namespace NexVerse.Server.Api
                 ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
                 ["/api/v1/docs"] = GetOperation("Self-hosted searchable API documentation and live explorer"),
-                ["/api/v1/auth/token"] = AuthenticatedOperations(
-                    ("post", "Exchange a legacy AuthenticationService token for a NexVerse scoped access token", null, "200")),
+                ["/api/v1/auth/session"] = CredentialPostOperation(
+                    "Create a native NexVerse resident session"),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
                     ("get", "List restricted machine API keys", "admin:*", "200"),
                     ("post", "Create a restricted scoped machine API key", "admin:*", "201"),
@@ -229,6 +229,13 @@ namespace NexVerse.Server.Api
                 "post",
                 "PasswordRequest",
                 null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/auth/session",
+                "post",
+                "ResidentSessionRequest",
+                "ResidentSessionResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -580,6 +587,64 @@ namespace NexVerse.Server.Api
             return new Dictionary<string, object>
             {
                 ["get"] = operation
+            };
+        }
+
+        private static object CredentialPostOperation(
+            string summary)
+        {
+            Dictionary<string, object> operation =
+                new Dictionary<string, object>
+                {
+                    ["summary"] = summary,
+                    ["security"] = Array.Empty<object>(),
+                    ["responses"] =
+                        new Dictionary<string, object>
+                        {
+                            ["200"] =
+                                new
+                                {
+                                    description =
+                                        "Successful response"
+                                },
+                            ["400"] =
+                                JsonResponse(
+                                    "Invalid request",
+                                    "Error"),
+                            ["401"] =
+                                JsonResponse(
+                                    "Invalid resident credentials",
+                                    "Error"),
+                            ["429"] =
+                                JsonResponse(
+                                    "Rate limit exceeded",
+                                    "Error"),
+                            ["503"] =
+                                JsonResponse(
+                                    "Native token service unavailable",
+                                    "Error")
+                        },
+                    ["x-nexverse-audience"] =
+                        new[]
+                        {
+                            "citizen",
+                            "admin"
+                        },
+                    ["x-nexverse-purpose"] = summary,
+                    ["x-nexverse-ai-instruction"] =
+                        "Use this endpoint only to create a resident session from credentials explicitly supplied for that purpose. Never infer, reuse, persist or expose a password.",
+                    ["x-nexverse-security-constraints"] =
+                        new[]
+                        {
+                            "TLS or an equivalent protected transport is mandatory.",
+                            "Send the password only in the JSON request body.",
+                            "Never log, cache or persist the password or returned access token."
+                        }
+                };
+
+            return new Dictionary<string, object>
+            {
+                ["post"] = operation
             };
         }
 
@@ -1131,6 +1196,66 @@ namespace NexVerse.Server.Api
                     properties = new Dictionary<string, object>
                     {
                         ["user_level"] = new { type = "integer" }
+                    }
+                },
+                ["ResidentSessionRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "username",
+                        "password"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["username"] = new
+                        {
+                            type = "string",
+                            minLength = 1,
+                            maxLength = 129,
+                            description = "Canonical NexVerse resident login name, for example Antonia.Porta or a single-name Resident login."
+                        },
+                        ["password"] = new
+                        {
+                            type = "string",
+                            minLength = 1,
+                            maxLength = 256,
+                            writeOnly = true
+                        }
+                    }
+                },
+                ["ResidentSessionResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "access_token",
+                        "token_type",
+                        "expires_in",
+                        "scope",
+                        "principal_id",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["access_token"] = new
+                        {
+                            type = "string",
+                            description = "Native lifecycle-bound NexVerse bearer token."
+                        },
+                        ["token_type"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "Bearer" }
+                        },
+                        ["expires_in"] = new { type = "integer" },
+                        ["scope"] = new { type = "string" },
+                        ["principal_id"] = new
+                        {
+                            type = "string",
+                            format = "uuid"
+                        },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["PasswordRequest"] = new
