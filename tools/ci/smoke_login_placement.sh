@@ -9,9 +9,7 @@ DB="/tmp/nexverse-login-placement.db"
 LOG="$ROOT/nexverse-login-placement-smoke.log"
 REQUEST="/tmp/nexverse-login-placement-request.xml"
 RESPONSE="/tmp/nexverse-login-placement-response.xml"
-BACKUP="/tmp/nexverse-standalone-common-backup.ini"
-
-OPENSIM_PID=""
+BACKUP="/tmp/nexverse-standalone-common-backup.ini"\nLOGIN_PASSWORD="NexVerse-CI-Placement-${GITHUB_RUN_ID:-local}"\nexport NEXVERSE_CI_LOGIN_PASSWORD="$LOGIN_PASSWORD"\n\nOPENSIM_PID=""
 
 cleanup() {
   if [ -n "$OPENSIM_PID" ]; then
@@ -82,7 +80,7 @@ if [ "$READY" -ne 1 ]; then
   exit 1
 fi
 
-PASSWORD_HASH="$(printf '%s' 'NexVerse-CI-Login-2026' | md5sum | awk '{print $1}')"
+PASSWORD_HASH="$(printf '%s' "$LOGIN_PASSWORD" | md5sum | awk '{print $1}')"
 
 cat > "$REQUEST" <<XML
 <?xml version="1.0"?>
