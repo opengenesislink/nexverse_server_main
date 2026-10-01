@@ -6,6 +6,7 @@ using OpenSim.Framework;
 using OpenSim.Framework.Console;
 using OpenSim.Services.AuthenticationService;
 using OpenSim.Services.InventoryService;
+using OpenSim.Services.Interfaces;
 using OpenSim.Services.UserAccountService;
 
 internal static class Program
@@ -81,9 +82,7 @@ internal static class Program
                 userService);
 
         Require(
-            authService.SetPassword(
-                UserId,
-                "NexVerse-CI-Login-2026"),
+            authService.SetPassword(\n                UserId,\n                Environment.GetEnvironmentVariable("NEXVERSE_CI_LOGIN_PASSWORD")\n                    ?? throw new InvalidOperationException("NEXVERSE_CI_LOGIN_PASSWORD is required")),
             "failed to seed CI password");
 
         XInventoryService inventoryService =
