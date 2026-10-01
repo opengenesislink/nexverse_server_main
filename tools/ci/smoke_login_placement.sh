@@ -43,10 +43,10 @@ on_exit() {
   status=$?
   if [ "$status" -ne 0 ]; then
     echo "::group::NexVerse successful login placement OpenSim log"
-    cat "$LOG" 2>/dev/null || true
+    tail -n 400 "$LOG" 2>/dev/null || true
     echo "::endgroup::"
     echo "::group::NexVerse successful login placement XML-RPC response"
-    cat "$RESPONSE" 2>/dev/null || true
+    tail -c 32768 "$RESPONSE" 2>/dev/null || true
     echo "::endgroup::"
   fi
   cleanup
