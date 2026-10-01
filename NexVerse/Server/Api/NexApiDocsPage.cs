@@ -77,6 +77,7 @@ main{min-width:0;padding:34px}.page{display:none;max-width:1280px;margin:0 auto}
 .changegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.change{border:1px solid var(--line);background:#0b1621;border-radius:10px;padding:14px}.changehead{display:flex;justify-content:space-between;gap:12px;align-items:start}.change h3{font-size:15px;margin:0 0 7px}.change p{color:var(--muted);margin:0}.meta{font-size:12px;color:var(--muted);margin-top:10px}.tag{display:inline-block;border-radius:999px;padding:3px 7px;margin:2px 4px 2px 0;background:#1b3044;color:#cfe7f8;font-size:11px}.tag.good{background:#153727;color:#aaf0ca}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.filter{border:1px solid var(--line);background:#0b1621;color:var(--muted);border-radius:999px;padding:6px 10px}.filter.active{border-color:var(--accent);color:var(--text)}
 .version{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}.version:last-child{border-bottom:0}.version strong{display:block}.version ul{margin:6px 0 0;padding-left:18px;color:var(--muted)}
+.roadmap-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.roadmap-list{display:grid;gap:12px}.milestone{border:1px solid var(--line);background:#0b1621;border-radius:11px;padding:16px}.milestone.current{border-color:var(--accent);box-shadow:0 0 0 1px rgba(102,199,255,.12)}.milestonehead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.milestone h3{margin:0 0 4px;font-size:16px}.milestone p{margin:8px 0;color:var(--muted)}.milestone .evidence{margin:8px 0 0;padding-left:18px;color:var(--muted)}.status{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.status-active{color:#b9ecff;border-color:#2c6f91;background:#102c3e}.status-advanced{color:#bdf4dc;border-color:#2d7053;background:#113326}.status-started,.status-foundation{color:#ffe6a6;border-color:#7c6131;background:#342914}.status-planned{color:#aebdca;background:#111b25}.progressline{margin-top:12px}.progressmeta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin-bottom:5px}.progressbar{height:7px;background:#07111b;border-radius:999px;overflow:hidden;border:1px solid var(--line)}.progressbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .explorer{display:grid;grid-template-columns:minmax(290px,32%) 1fr;gap:16px}.endpointlist,.detail{min-width:0}.search{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
 .endpoint{padding:10px;margin:7px 0;border:1px solid var(--line);border-radius:9px;background:#0b1621;cursor:pointer}.endpoint:hover,.endpoint.active{border-color:var(--accent);background:var(--panel2)}
 .method{display:inline-block;min-width:58px;font-weight:800;color:var(--accent)}.path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.small{font-size:12px;color:var(--muted)}
@@ -84,8 +85,8 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.label2{display:block;color:var(--muted);margin:8px 0 5px}pre{white-space:pre-wrap;word-break:break-word;background:#06101a;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:350px;overflow:auto}
 .action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
 .empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
-@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}}
-@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards{grid-template-columns:1fr}.grid2,.version{grid-template-columns:1fr}}
+@media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}}
+@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version{grid-template-columns:1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
 </style>
 </head>
 <body>
@@ -95,6 +96,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <button class="navbtn active" data-page="overview">Übersicht</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
+<button class="navbtn" data-page="roadmap">Roadmap</button>
 <button class="navbtn" data-page="explorer">API Explorer</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
 </nav>
@@ -119,6 +121,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="filters">
 <button class="filter" data-goto="changes">Alle Neuerungen</button>
 <button class="filter" data-goto="versions">Versionshistorie</button>
+<button class="filter" data-goto="roadmap">Roadmap / Projektstatus</button>
 <button class="filter" data-goto="explorer">Endpoint Explorer</button>
 </div>
 </div>
@@ -135,6 +138,22 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <section class="page" id="page-versions">
 <div class="hero"><div><div class="eyebrow">Compatibility</div><h1>Versionen</h1><p>API-Versionen, Server-Linien, Codenamen und veröffentlichte Highlights.</p></div></div>
 <div class="section" id="versionList"></div>
+</section>
+
+<section class="page" id="page-roadmap">
+<div class="hero"><div><div class="eyebrow">Projektstatus</div><h1>NexVerse Roadmap</h1><p>Milestone-Status auf Basis der veröffentlichten Roadmap und konkreter Implementierungsevidenz. Prozentwerte werden nur angezeigt, wenn der Milestone tatsächlich eine gepflegte Checkbox-Checkliste besitzt.</p></div></div>
+<div class="roadmap-summary">
+<div class="card"><div class="label">Aktueller Milestone</div><div class="value" id="roadmapCurrent">–</div><div class="sub" id="roadmapCodename">–</div></div>
+<div class="card"><div class="label">Aktiv</div><div class="value" id="roadmapActiveCount">–</div><div class="sub">aktueller Produkt-Milestone</div></div>
+<div class="card"><div class="label">Vorgezogen / begonnen</div><div class="value" id="roadmapStartedCount">–</div><div class="sub">advanced, started oder foundation</div></div>
+<div class="card"><div class="label">Geplant</div><div class="value" id="roadmapPlannedCount">–</div><div class="sub">noch nicht als implementiert beansprucht</div></div>
+</div>
+<div class="section">
+<h2>Statusmodell</h2>
+<p class="sectionlead">Die Statusbegriffe vermeiden erfundene Gesamtfortschritte. „Advanced“ bedeutet beispielsweise, dass Arbeit aus einem späteren Milestone bereits vorgezogen wurde, nicht dass der Milestone vollständig abgeschlossen ist.</p>
+<div class="filters" id="roadmapLegend"></div>
+</div>
+<div class="roadmap-list" id="roadmapList"></div>
 </section>
 
 <section class="page" id="page-explorer">
@@ -310,6 +329,41 @@ function renderVersions(){
     row.append(left,right);host.append(row);
   });
 }
+function renderRoadmap(){
+  const roadmap=spec['x_nexverse_roadmap'];
+  const host=$('roadmapList');host.replaceChildren();
+  if(!roadmap?.milestones?.length){host.innerHTML='<div class="empty">Kein maschinenlesbarer Roadmap-Status veröffentlicht.</div>';return}
+  $('roadmapCurrent').textContent=roadmap.current_milestone||'–';$('roadmapCodename').textContent=roadmap.current_codename||'';
+  const milestones=roadmap.milestones;
+  $('roadmapActiveCount').textContent=milestones.filter(x=>x.status==='active').length;
+  $('roadmapStartedCount').textContent=milestones.filter(x=>['advanced','started','foundation'].includes(x.status)).length;
+  $('roadmapPlannedCount').textContent=milestones.filter(x=>x.status==='planned').length;
+  const legend=$('roadmapLegend');legend.replaceChildren();
+  for(const [key,value] of Object.entries(roadmap.status_model||{})){
+    const item=document.createElement('span');item.className='tag';item.textContent=key+' — '+value;legend.append(item);
+  }
+  milestones.forEach(item=>{
+    const box=document.createElement('article');box.className='milestone'+(item.status==='active'?' current':'');
+    const head=document.createElement('div');head.className='milestonehead';
+    const title=document.createElement('div');const h=document.createElement('h3');h.textContent=item.version+' · '+item.title;title.append(h);
+    if(item.codename){const code=document.createElement('div');code.className='small';code.textContent='Codename: '+item.codename;title.append(code)}
+    const status=document.createElement('span');status.className='status status-'+item.status;status.textContent=item.status;
+    head.append(title,status);box.append(head);
+    const p=document.createElement('p');p.textContent=item.summary||'';box.append(p);
+    if(item.checklist&&item.checklist.total>0){
+      const wrap=document.createElement('div');wrap.className='progressline';
+      const meta=document.createElement('div');meta.className='progressmeta';
+      const done=document.createElement('span');done.textContent='Roadmap-Checkliste: '+item.checklist.completed+' / '+item.checklist.total+' erledigt';
+      const open=document.createElement('span');open.textContent=item.checklist.open+' offen';meta.append(done,open);
+      const bar=document.createElement('div');bar.className='progressbar';const fill=document.createElement('span');
+      const pct=Math.max(0,Math.min(100,(item.checklist.completed/item.checklist.total)*100));fill.style.width=pct+'%';bar.append(fill);wrap.append(meta,bar);box.append(wrap);
+    }
+    if(item.evidence?.length){
+      const ul=document.createElement('ul');ul.className='evidence';item.evidence.forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li)});box.append(ul);
+    }
+    host.append(box);
+  });
+}
 async function execute(){
   if(!selected)return;
   const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
@@ -340,7 +394,7 @@ async function init(){
     $('navmeta').textContent=(version.server_version||'NexVerse')+' · '+(version.api_version||'API');
     if(changes.length){$('lastChangeDate').textContent=changes[0].date||'–';$('lastChangeTitle').textContent=changes[0].title||''}
     const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Release Notes veröffentlicht.</div>';
-    renderChangeFilters();renderChanges('all');renderVersions();renderEndpointList();
+    renderChangeFilters();renderChanges('all');renderVersions();renderRoadmap();renderEndpointList();
   }catch(err){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
