@@ -48,12 +48,10 @@ if [ -f "$COMMON" ]; then
 fi
 cp "$COMMON_TEMPLATE" "$COMMON"
 
-cd "$ROOT"
-dotnet run --configuration Release \
-  --project tools/ci/NexLoginPlacementSeed/NexLoginPlacementSeed.csproj \
-  -- "$DB"
-
 cd "$BIN"
+dotnet run --configuration Release \
+  --project ../tools/ci/NexLoginPlacementSeed/NexLoginPlacementSeed.csproj \
+  -- "$DB"
 dotnet OpenSim.dll \
   -inifile OpenSim.NexVerseLoginPlacement.Tests.ini \
   > "$LOG" 2>&1 &
