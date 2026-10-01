@@ -231,6 +231,9 @@ jobs:
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
+          assert doc["x_nexverse_changelog"]
+          assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
+          assert "title" in doc["x_nexverse_changelog"][0]
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
@@ -238,5 +241,7 @@ jobs:
           PY
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/docs > /tmp/nexverse-api-docs.html
-          grep -F 'NexVerse World API Explorer' /tmp/nexverse-api-docs.html
+          grep -F 'NexVerse World API Control Center' /tmp/nexverse-api-docs.html
+          grep -F 'Was ist neu?' /tmp/nexverse-api-docs.html
+          grep -F 'x_nexverse_changelog' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/openapi.json' /tmp/nexverse-api-docs.html
