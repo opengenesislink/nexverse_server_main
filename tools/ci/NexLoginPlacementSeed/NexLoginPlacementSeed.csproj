@@ -6,17 +6,21 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net">
+      <HintPath>../../../bin/log4net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Nini">
       <HintPath>../../../bin/Nini.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
     <Reference Include="OpenMetaverse">
       <HintPath>../../../bin/OpenMetaverse.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
     <Reference Include="OpenMetaverseTypes">
       <HintPath>../../../bin/OpenMetaverseTypes.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
