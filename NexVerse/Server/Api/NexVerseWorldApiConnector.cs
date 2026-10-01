@@ -86,6 +86,14 @@ namespace NexVerse.Server.Api
                 INexAuditStore auditStore =
                     new PersistentNexAuditStore(auditStorePath);
 
+                string apiKeyStorePath =
+                    apiConfig.GetString(
+                        "ApiKeyStorePath",
+                        "data/nexverse-api-keys.json");
+                INexApiKeyStore apiKeyStore =
+                    new PersistentNexApiKeyStore(
+                        apiKeyStorePath);
+
                 string idempotencyStorePath =
                     apiConfig.GetString(
                         "IdempotencyStorePath",
@@ -181,6 +189,7 @@ namespace NexVerse.Server.Api
                     authorization,
                     nativeTokens,
                     oauthStore,
+                    apiKeyStore,
                     adminMinimumLevel,
                     tokenLifetimeSeconds);
 
@@ -200,7 +209,8 @@ namespace NexVerse.Server.Api
                     oauthStore,
                     auditStore,
                     idempotencyStore,
-                    idempotencyTtlSeconds);
+                    idempotencyTtlSeconds,
+                    apiKeyStore);
 
                 if (nativeTokens != null && oauthStore != null && oidcSigner != null)
                 {

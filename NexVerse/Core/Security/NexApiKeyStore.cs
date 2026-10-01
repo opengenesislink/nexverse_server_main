@@ -81,31 +81,28 @@ namespace NexVerse.Core.Security
                     "At least one API key scope is required.",
                     nameof(scopes));
 
+            HashSet<string> supportedScopes = new HashSet<string>(
+                new[]
+                {
+                    NexScopes.UsersRead,
+                    NexScopes.UsersWrite,
+                    NexScopes.InventoryRead,
+                    NexScopes.InventoryWrite,
+                    NexScopes.FriendsManage,
+                    NexScopes.RegionsRead,
+                    NexScopes.RegionsManage,
+                    NexScopes.EstatesManage,
+                    NexScopes.EconomyRead,
+                    NexScopes.EconomyTransfer
+                },
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (string scope in normalizedScopes)
             {
-                if (string.Equals(
-                        scope,
-                        NexScopes.AdminAll,
-                        StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(
-                        scope,
-                        "*",
-                        StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(
-                        scope,
-                        NexScopes.OpenId,
-                        StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(
-                        scope,
-                        NexScopes.Profile,
-                        StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(
-                        scope,
-                        NexScopes.OfflineAccess,
-                        StringComparison.OrdinalIgnoreCase))
+                if (!supportedScopes.Contains(scope))
                 {
                     throw new ArgumentException(
-                        "API keys may not receive wildcard, admin or interactive identity scopes.",
+                        "API keys may only receive explicit supported machine scopes; wildcard, admin and interactive identity scopes are forbidden.",
                         nameof(scopes));
                 }
             }

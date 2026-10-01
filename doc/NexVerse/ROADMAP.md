@@ -306,7 +306,7 @@ Implementation status:
 - OAuth2/OIDC-style flows where appropriate;
 - signed access tokens;
 - service accounts;
-- API keys for restricted machine use;
+- [x] API keys for restricted machine use with hashed secrets, explicit scopes, immediate disable and audited administration;
 - scopes;
 - RBAC;
 - future MFA/passkey integration.

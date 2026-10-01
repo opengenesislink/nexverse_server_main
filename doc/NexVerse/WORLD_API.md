@@ -360,3 +360,35 @@ Behavior:
 - pending in-process reservations are discarded after a process restart; completed responses are persisted.
 
 The idempotency store never contains plaintext passwords separately. Its request fingerprint is SHA-256 over the validated JSON request representation; persisted response data contains only the normal API response.
+
+
+## Restricted machine API keys
+
+NexVerse supports persistent machine credentials through the `X-NexVerse-Api-Key` header.
+
+Administrative management endpoint:
+
+- `GET /api/v1/auth/api-keys`
+- `POST /api/v1/auth/api-keys`
+- `PATCH /api/v1/auth/api-keys`
+
+All three management operations require `admin:*` through a resident/OAuth administrator credential. API keys themselves can never receive `admin:*`, wildcard or interactive OIDC scopes.
+
+A creation body is:
+
+```json
+{
+  "name": "Region dashboard",
+  "scopes": ["regions:read"]
+}
+```
+
+The full key is returned exactly once. Its secret is persisted only as a PBKDF2-SHA256 hash. Runtime storage defaults to:
+
+`data/nexverse-api-keys.json`
+
+Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts.
+
+API-key principals use subjects in the form `api-key:<key_id>`. Disabling a key takes effect immediately because validation is performed against the persistent key store on every request.
+
+The selectable-region endpoint now requires `regions:read` rather than `admin:*`, making it usable by restricted machine integrations while administrator bearer tokens continue to satisfy the scope through their administrative wildcard.

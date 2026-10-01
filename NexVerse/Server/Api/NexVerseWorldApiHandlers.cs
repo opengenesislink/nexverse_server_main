@@ -126,6 +126,10 @@ namespace NexVerse.Server.Api
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
                 ["/api/v1/auth/token"] = AuthenticatedOperations(
                     ("post", "Exchange a legacy AuthenticationService token for a NexVerse scoped access token", null, "200")),
+                ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
+                    ("get", "List restricted machine API keys", "admin:*", "200"),
+                    ("post", "Create a restricted scoped machine API key", "admin:*", "201"),
+                    ("patch", "Enable or disable a machine API key", "admin:*", "200")),
                 ["/oauth/authorize"] = AuthenticatedOperations(
                     ("get", "OAuth 2.0 Authorization Code + PKCE authorization endpoint", null, "302")),
                 ["/oauth/token"] = AuthenticatedOperations(
@@ -141,7 +145,7 @@ namespace NexVerse.Server.Api
                 ["/api/v1/audit"] = AuthenticatedOperations(
                     ("get", "Query persistent administrative audit history", "admin:*", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
-                    ("get", "Search selectable home/start regions", "admin:*", "200")),
+                    ("get", "Search selectable home/start regions", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
                     ("get", "Read the authenticated resident account", null, "200")),
                 ["/api/v1/users"] = AuthenticatedOperations(
@@ -184,6 +188,12 @@ namespace NexVerse.Server.Api
                             type = "http",
                             scheme = "bearer",
                             bearerFormat = "JWT"
+                        },
+                        apiKeyAuth = new
+                        {
+                            type = "apiKey",
+                            @in = "header",
+                            name = "X-NexVerse-Api-Key"
                         }
                     }
                 },
@@ -329,6 +339,10 @@ namespace NexVerse.Server.Api
                         new Dictionary<string, string[]>
                         {
                             ["bearerAuth"] = Array.Empty<string>()
+                        },
+                        new Dictionary<string, string[]>
+                        {
+                            ["apiKeyAuth"] = Array.Empty<string>()
                         }
                     },
                     ["responses"] = new Dictionary<string, object>

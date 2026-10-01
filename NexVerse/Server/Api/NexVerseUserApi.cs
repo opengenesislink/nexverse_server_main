@@ -28,9 +28,7 @@ namespace NexVerse.Server.Api
         private readonly INexAuthorizationService m_Authorization;
         private readonly INexAccessTokenService m_NativeTokens;
         private readonly INexOAuthStore m_OAuthStore;
-        private readonly INexAuditStore m_AuditStore;
-        private readonly INexIdempotencyStore m_IdempotencyStore;
-        private readonly int m_IdempotencyTtlSeconds;
+        private readonly INexApiKeyStore m_ApiKeys;
         private readonly int m_AdminMinimumLevel;
         private readonly int m_TokenLifetimeSeconds;
 
@@ -40,6 +38,7 @@ namespace NexVerse.Server.Api
             INexAuthorizationService authorization,
             INexAccessTokenService nativeTokens,
             INexOAuthStore oauthStore,
+            INexApiKeyStore apiKeys,
             int adminMinimumLevel,
             int tokenLifetimeSeconds)
         {
@@ -48,6 +47,7 @@ namespace NexVerse.Server.Api
             m_Authorization = authorization ?? throw new ArgumentNullException(nameof(authorization));
             m_NativeTokens = nativeTokens;
             m_OAuthStore = oauthStore;
+            m_ApiKeys = apiKeys;
             m_AdminMinimumLevel = adminMinimumLevel;
             m_TokenLifetimeSeconds = Math.Max(60, tokenLifetimeSeconds);
         }
@@ -64,6 +64,41 @@ namespace NexVerse.Server.Api
             account = null;
             statusCode = (int)HttpStatusCode.Unauthorized;
             error = "authentication_required";
+
+            string apiKey =
+                request?.Headers?["X-NexVerse-Api-Key"]?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                if (m_ApiKeys == null ||
+                    !m_ApiKeys.TryValidate(
+                        apiKey,
+                        out NexApiKeyRecord apiKeyRecord))
+                {
+                    error = "invalid_api_key";
+                    return false;
+                }
+
+                principal = new NexPrincipal(
+                    "api-key:" + apiKeyRecord.KeyId,
+                    apiKeyRecord.Scopes,
+                    true);
+
+                if (!string.IsNullOrWhiteSpace(requiredScope) &&
+                    !m_Authorization.IsAllowed(
+                        principal,
+                        requiredScope))
+                {
+                    statusCode =
+                        (int)HttpStatusCode.Forbidden;
+                    error = "insufficient_scope";
+                    return false;
+                }
+
+                statusCode = (int)HttpStatusCode.OK;
+                error = string.Empty;
+                return true;
+            }
 
             if (!TryReadBearer(request, out string token))
                 return false;
@@ -557,6 +592,7 @@ namespace NexVerse.Server.Api
         private readonly INexOAuthStore m_OAuthStore;
         private readonly INexAuditStore m_AuditStore;
         private readonly INexIdempotencyStore m_IdempotencyStore;
+        private readonly INexApiKeyStore m_ApiKeys;
         private readonly int m_IdempotencyTtlSeconds;
 
         public NexUserApiRouter(
@@ -568,7 +604,8 @@ namespace NexVerse.Server.Api
             INexOAuthStore oauthStore,
             INexAuditStore auditStore,
             INexIdempotencyStore idempotencyStore,
-            int idempotencyTtlSeconds)
+            int idempotencyTtlSeconds,
+            INexApiKeyStore apiKeys)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
@@ -579,6 +616,7 @@ namespace NexVerse.Server.Api
             m_AuditStore = auditStore;
             m_IdempotencyStore = idempotencyStore;
             m_IdempotencyTtlSeconds = Math.Max(60, idempotencyTtlSeconds);
+            m_ApiKeys = apiKeys;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -603,6 +641,12 @@ namespace NexVerse.Server.Api
             if (string.Equals(path, "/api/v1/auth/token", StringComparison.OrdinalIgnoreCase))
             {
                 HandleTokenExchange(request, response);
+                return;
+            }
+
+            if (string.Equals(path, "/api/v1/auth/api-keys", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleApiKeys(request, response);
                 return;
             }
 
@@ -680,6 +724,233 @@ namespace NexVerse.Server.Api
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown NexVerse API endpoint.");
+        }
+
+        private void HandleApiKeys(
+            IOSHttpRequest request,
+            IOSHttpResponse response)
+        {
+            if (!Authenticate(
+                request,
+                response,
+                NexScopes.AdminAll,
+                out NexPrincipal principal,
+                out UserAccount _))
+                return;
+
+            if (m_ApiKeys == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "api_key_store_unavailable",
+                    "API key storage is not available.");
+                return;
+            }
+
+            if (IsMethod(request, "GET"))
+            {
+                WriteJson(response, new
+                {
+                    keys = m_ApiKeys
+                        .List()
+                        .Select(ApiKeyPayload)
+                        .ToArray()
+                });
+                return;
+            }
+
+            if (!TryReadJson(
+                request,
+                response,
+                out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                JsonElement root = document.RootElement;
+
+                if (IsMethod(request, "POST"))
+                {
+                    string name =
+                        GetOptionalString(root, "name") ??
+                        "NexVerse API key";
+
+                    if (!root.TryGetProperty(
+                            "scopes",
+                            out JsonElement scopesElement) ||
+                        scopesElement.ValueKind !=
+                            JsonValueKind.Array)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "scopes_required",
+                            "scopes must be a JSON array.");
+                        return;
+                    }
+
+                    string[] scopes = scopesElement
+                        .EnumerateArray()
+                        .Where(x =>
+                            x.ValueKind ==
+                            JsonValueKind.String)
+                        .Select(x =>
+                            x.GetString() ?? string.Empty)
+                        .Where(x =>
+                            !string.IsNullOrWhiteSpace(x))
+                        .ToArray();
+
+                    try
+                    {
+                        NexApiKeyRegistration registration =
+                            m_ApiKeys.Create(
+                                name,
+                                scopes);
+
+                        string correlationId =
+                            AddCorrelation(response);
+
+                        m_Audit.Record(
+                            new NexAuditEvent(
+                                principal.Subject,
+                                "auth.api_key.create",
+                                registration.Record.KeyId,
+                                correlationId,
+                                new Dictionary<string, string>
+                                {
+                                    ["name"] =
+                                        registration.Record.Name,
+                                    ["scopes"] =
+                                        string.Join(
+                                            " ",
+                                            registration.Record.Scopes)
+                                }));
+
+                        m_EventBus.Publish(
+                            new NexEvent(
+                                "auth.api_key.created",
+                                "nexverse.world-api",
+                                new Dictionary<string, string>
+                                {
+                                    ["key_id"] =
+                                        registration.Record.KeyId
+                                },
+                                correlationId));
+
+                        WriteJson(
+                            response,
+                            new
+                            {
+                                api_key =
+                                    registration.ApiKey,
+                                api_key_note =
+                                    "shown once; store securely",
+                                key =
+                                    ApiKeyPayload(
+                                        registration.Record),
+                                correlation_id =
+                                    correlationId
+                            },
+                            HttpStatusCode.Created);
+                    }
+                    catch (ArgumentException e)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "invalid_api_key_metadata",
+                            e.Message);
+                    }
+
+                    return;
+                }
+
+                if (IsMethod(request, "PATCH"))
+                {
+                    string keyId =
+                        GetOptionalString(root, "key_id");
+
+                    if (string.IsNullOrWhiteSpace(keyId) ||
+                        !root.TryGetProperty(
+                            "enabled",
+                            out JsonElement enabledElement) ||
+                        (enabledElement.ValueKind !=
+                             JsonValueKind.True &&
+                         enabledElement.ValueKind !=
+                             JsonValueKind.False))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "invalid_request",
+                            "key_id and boolean enabled are required.");
+                        return;
+                    }
+
+                    bool enabled =
+                        enabledElement.GetBoolean();
+
+                    if (!m_ApiKeys.SetEnabled(
+                        keyId,
+                        enabled))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.NotFound,
+                            "api_key_not_found",
+                            "API key was not found.");
+                        return;
+                    }
+
+                    NexApiKeyRecord updated =
+                        m_ApiKeys.List().FirstOrDefault(x =>
+                            string.Equals(
+                                x.KeyId,
+                                keyId,
+                                StringComparison.Ordinal));
+
+                    string correlationId =
+                        AddCorrelation(response);
+
+                    m_Audit.Record(
+                        new NexAuditEvent(
+                            principal.Subject,
+                            "auth.api_key.state.update",
+                            keyId,
+                            correlationId,
+                            new Dictionary<string, string>
+                            {
+                                ["enabled"] =
+                                    enabled.ToString()
+                            }));
+
+                    m_EventBus.Publish(
+                        new NexEvent(
+                            "auth.api_key.state.changed",
+                            "nexverse.world-api",
+                            new Dictionary<string, string>
+                            {
+                                ["key_id"] = keyId,
+                                ["enabled"] =
+                                    enabled.ToString()
+                            },
+                            correlationId));
+
+                    WriteJson(response, new
+                    {
+                        key = ApiKeyPayload(updated),
+                        correlation_id = correlationId
+                    });
+                    return;
+                }
+            }
+
+            WriteError(
+                response,
+                HttpStatusCode.MethodNotAllowed,
+                "method_not_allowed",
+                "GET, POST or PATCH is required.");
         }
 
         private void HandleTokenExchange(IOSHttpRequest request, IOSHttpResponse response)
@@ -815,7 +1086,7 @@ namespace NexVerse.Server.Api
             if (!RequireMethod(request, response, "GET"))
                 return;
 
-            if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal _, out UserAccount _))
+            if (!Authenticate(request, response, NexScopes.RegionsRead, out NexPrincipal _, out UserAccount _))
                 return;
 
             string query = request.QueryString?["q"] ?? string.Empty;
@@ -1940,6 +2211,23 @@ namespace NexVerse.Server.Api
                    value.IndexOf('@') > 0 &&
                    value.IndexOf('\r') < 0 &&
                    value.IndexOf('\n') < 0;
+        }
+
+        private static object ApiKeyPayload(
+            NexApiKeyRecord record)
+        {
+            if (record == null)
+                return null;
+
+            return new
+            {
+                key_id = record.KeyId,
+                name = record.Name,
+                scopes = record.Scopes,
+                enabled = record.Enabled,
+                created_at = record.CreatedAt,
+                updated_at = record.UpdatedAt
+            };
         }
 
         private static Dictionary<string, object> AuditPayload(
