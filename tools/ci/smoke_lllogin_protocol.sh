@@ -74,7 +74,35 @@ cat > /tmp/nexverse-login-request.xml <<'XML'
 </methodCall>
 XML
 
-curl --silent --show-error --fail --max-time 5   -H 'Content-Type: text/xml'   --data-binary @/tmp/nexverse-login-request.xml   http://127.0.0.1:19092/ > "$RESPONSE"
+HANDLER_READY=0
+for i in $(seq 1 40); do
+  if ! kill -0 "$ROBUST_PID" 2>/dev/null; then
+    echo "::error::Robust exited while waiting for login_to_simulator registration."
+    exit 1
+  fi
+
+  curl --silent --show-error --max-time 5 \
+    -H 'Content-Type: text/xml' \
+    --data-binary @/tmp/nexverse-login-request.xml \
+    http://127.0.0.1:19092/ > "$RESPONSE" || true
+
+  if grep -F 'Requested method [login_to_simulator] not found' "$RESPONSE" >/dev/null 2>&1; then
+    sleep 0.25
+    continue
+  fi
+
+  if grep -F '<methodResponse>' "$RESPONSE" >/dev/null 2>&1; then
+    HANDLER_READY=1
+    break
+  fi
+
+  sleep 0.25
+done
+
+if [ "$HANDLER_READY" -ne 1 ]; then
+  echo "::error::login_to_simulator XML-RPC handler did not become ready."
+  exit 1
+fi
 
 grep -F '<methodResponse>' "$RESPONSE"
 grep -F '<name>login</name>' "$RESPONSE"
