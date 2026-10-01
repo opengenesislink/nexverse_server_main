@@ -81,6 +81,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexRateLimitRegression/NexRateLimitRegression.csproj
 
+      - name: Verify persistent audit store
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexAuditRegression/NexAuditRegression.csproj
+
       - name: Verify OAuth2 OIDC identity flows
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexOAuthRegression/NexOAuthRegression.csproj

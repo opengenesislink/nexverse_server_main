@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../NexVerse/Core/Audit/NexAudit.cs" Link="NexAudit.cs" />
+    <Compile Include="../../../NexVerse/Core/Audit/PersistentNexAuditStore.cs" Link="PersistentNexAuditStore.cs" />
+  </ItemGroup>
+</Project>
