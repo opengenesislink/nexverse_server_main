@@ -186,9 +186,61 @@ assert "/CAPS/" in seed, seed
 print("NexVerse successful Firestorm-protocol simulator placement response: OK")
 PY
 
+REMOTE_CHANNEL=""
+REMOTE_DEADLINE=$((SECONDS + 45))
+while [ "$SECONDS" -lt "$REMOTE_DEADLINE" ]; do
+  REMOTE_LINE="$(grep -m1 -F "[XML RPC MODULE]: RemoteData channel opened channel=" "$LOG" 2>/dev/null || true)"
+  if [ -n "$REMOTE_LINE" ]; then
+    REMOTE_CHANNEL="$(printf '%s\n' "$REMOTE_LINE" | sed -nE 's/.*channel=([0-9A-Fa-f-]{36}).*/\1/p')"
+    if [ -n "$REMOTE_CHANNEL" ]; then
+      break
+    fi
+  fi
+  sleep 0.25
+done
+
+if [ -z "$REMOTE_CHANNEL" ]; then
+  echo "::error::Running LSL RemoteData probe did not open an XML-RPC channel."
+  exit 1
+fi
+
+python3 - "$REMOTE_CHANNEL" <<'PY'
+import sys
+import xmlrpc.client
+
+channel = sys.argv[1]
+proxy = xmlrpc.client.ServerProxy(
+    "http://127.0.0.1:19102/",
+    allow_none=True,
+)
+
+response = proxy.llRemoteData(
+    {
+        "Channel": channel,
+        "IntValue": 41,
+        "StringValue": "nexverse-e2e",
+    }
+)
+
+if isinstance(response, (list, tuple)):
+    assert len(response) == 1, response
+    payload = response[0]
+else:
+    payload = response
+
+assert payload["StringValue"] == "nexverse-ci-reply:nexverse-e2e", payload
+assert int(payload["IntValue"]) == 42, payload
+
+print(
+    "NexVerse running-region LSL XML-RPC RemoteData request/reply: OK",
+    channel,
+)
+PY
+
 grep -F "NexVerseCI Resident" "$LOG"
 grep -F "Firestorm-Release CI Placement" "$LOG"
 grep -F "Found destination NexVerse CI Landing" "$LOG"
 grep -F "All clear. Sending login response to NexVerseCI Resident" "$LOG"
+grep -F "[XML RPC MODULE]: RemoteData channel opened channel=$REMOTE_CHANNEL" "$LOG"
 
-echo "NexVerse successful simulator login placement smoke: OK"
+echo "NexVerse successful simulator login placement + LSL RemoteData smoke: OK"
