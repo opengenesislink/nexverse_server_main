@@ -528,6 +528,118 @@ namespace NexVerse.Server.Api
                         endpoints = Array.Empty<string>()
                     }
                 },
+                x_nexverse_roadmap = new
+                {
+                    source = "doc/NexVerse/ROADMAP.md",
+                    current_milestone = "0.9.3.1 Dev",
+                    current_codename = NexVersePlatform.MilestoneCodename,
+                    status_model = new
+                    {
+                        active = "Current product milestone.",
+                        advanced = "Substantial implementation has been pulled forward before the formal milestone switch.",
+                        started = "A defined subset is implemented, but major scope remains.",
+                        foundation = "Core infrastructure exists, while the milestone's product scope remains largely open.",
+                        planned = "Roadmap scope is defined; no NexVerse-native milestone implementation is claimed yet."
+                    },
+                    milestones = new object[]
+                    {
+                        new
+                        {
+                            version = "0.9.3.1 Dev",
+                            codename = "NEXJAST",
+                            title = "Legacy Cleanup and Platform Foundation",
+                            status = "active",
+                            checklist = new { completed = 41, total = 45, open = 4 },
+                            summary = "Clean-core foundation, native World API/authentication, NexBus, NodeAgent, observability and compatibility guards.",
+                            evidence = new[]
+                            {
+                                "RemoteAdmin, Vivox, FreeSwitch and IRC bridge removed",
+                                "Native World API, OAuth2/OIDC, API keys and user lifecycle implemented",
+                                "Distributed NexBus, NodeAgent and NexMetrics/OTLP implemented",
+                                "Four end-to-end runtime validation items remain open"
+                            }
+                        },
+                        new
+                        {
+                            version = "0.9.3.2",
+                            codename = "",
+                            title = "NexVerse World API v1",
+                            status = "advanced",
+                            checklist = new { completed = 23, total = 23, open = 0 },
+                            summary = "The documented API-v1 checklist is implemented early while the product still identifies as 0.9.3.1 Dev.",
+                            evidence = new[]
+                            {
+                                "REST/JSON, OpenAPI 3.1, pagination, filtering, rate limits and idempotency",
+                                "OAuth2/OIDC, service clients, scoped API keys and audit history",
+                                "API Control Center, version history and machine-readable changelog"
+                            }
+                        },
+                        new
+                        {
+                            version = "0.9.3.3",
+                            codename = "",
+                            title = "Identity, Display Names, Profiles and Social Graph",
+                            status = "started",
+                            checklist = new { completed = 3, total = 3, open = 0 },
+                            summary = "Resident-compatible username normalization is implemented; Display Names, WebProfileV3 and the social graph remain future scope.",
+                            evidence = new[]
+                            {
+                                "Short, dotted and legacy Resident login forms are normalized and CI tested"
+                            }
+                        },
+                        new
+                        {
+                            version = "0.9.3.4",
+                            codename = "",
+                            title = "Simulator, Region and Estate Control Plane",
+                            status = "foundation",
+                            checklist = (object)null,
+                            summary = "NodeAgent heartbeats and lifecycle events exist; full simulator, region, grid-planner and estate management remain open.",
+                            evidence = new[]
+                            {
+                                "NexVerseNodeAgentModule publishes node/region lifecycle and health heartbeats"
+                            }
+                        },
+                        new
+                        {
+                            version = "0.9.3.5",
+                            codename = "",
+                            title = "Inventory, OAR/IAR, Job Engine and NexBus",
+                            status = "foundation",
+                            checklist = (object)null,
+                            summary = "Distributed NexBus is implemented as infrastructure; inventory archive APIs, Job Engine and supported cross-region object messaging remain open.",
+                            evidence = new[]
+                            {
+                                "Authenticated HMAC peer transport, event deduplication and bounded outbound delivery"
+                            }
+                        },
+                        new { version = "0.9.3.6", codename = "", title = "NV$ Economy, Banking, Commerce and Land", status = "planned", checklist = (object)null, summary = "Native ledger, banking, viewer economy compatibility and land commerce.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.7", codename = "", title = "NexGroups and NexExperiences", status = "planned", checklist = (object)null, summary = "Native group and Experience services plus their viewer/LSL integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.8", codename = "", title = "Search, Places, Land and Destination Guide", status = "planned", checklist = (object)null, summary = "Search, places, land portal and destination discovery services.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC/Janus voice platform replacing removed legacy voice systems.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.10", codename = "", title = "Pathfinding", status = "planned", checklist = (object)null, summary = "Pathfinding service, navmesh behavior and LSL integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.11", codename = "", title = "LSL Parity I — Core Conformance", status = "planned", checklist = (object)null, summary = "Machine-readable LSL matrix, conformance tests and script sandbox hardening.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.12", codename = "", title = "LSL Parity II — Advanced Systems", status = "planned", checklist = (object)null, summary = "Advanced LSL systems, profiler and developer tooling.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.13", codename = "", title = "Assets, Rendering, Marketplace and Media", status = "planned", checklist = (object)null, summary = "NexAsset, modern materials/content pipeline, marketplace and media.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.14", codename = "", title = "NexAds, Events and Notifications", status = "planned", checklist = (object)null, summary = "Advertising, event and notification platform services.", evidence = Array.Empty<string>() },
+                        new
+                        {
+                            version = "0.9.3.15",
+                            codename = "",
+                            title = "Monitoring, Security and Operations",
+                            status = "foundation",
+                            checklist = (object)null,
+                            summary = "Observability and several security controls were pulled forward; dashboards, alerting, backup, moderation and rolling updates remain future scope.",
+                            evidence = new[]
+                            {
+                                "Prometheus-compatible NexMetrics and OpenTelemetry/OTLP export",
+                                "Correlation IDs, API rate limiting, audit records and scoped credentials"
+                            }
+                        },
+                        new { version = "0.9.3.16", codename = "", title = "Developer Platform, SDKs and Extensibility", status = "planned", checklist = (object)null, summary = "Developer portal, official SDKs, webhooks/realtime APIs and module contracts.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.4.0", codename = "", title = "NexVerse Platform Generation 1", status = "planned", checklist = (object)null, summary = "Consolidation milestone for the first complete NexVerse platform generation.", evidence = Array.Empty<string>() }
+                    }
+                },
                 x_nexverse_idempotency = new
                 {
                     header = "Idempotency-Key",
