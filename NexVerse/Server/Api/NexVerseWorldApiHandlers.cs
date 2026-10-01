@@ -432,7 +432,100 @@ namespace NexVerse.Server.Api
                         server_line = "0.9.3.1 Dev",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
-                        compatibility = "Initial NexVerse World API v1 contract"
+                        published = "2026-10-01",
+                        compatibility = "Initial NexVerse World API v1 contract",
+                        highlights = new[]
+                        {
+                            "Native resident sessions and scoped access tokens",
+                            "OAuth2/OIDC Authorization Code + PKCE and service clients",
+                            "Persistent audit history, API keys and idempotent provisioning",
+                            "Self-hosted API Control Center and live explorer",
+                            "Distributed NexBus and NodeAgent foundation",
+                            "Prometheus/OpenTelemetry/OTLP observability foundation"
+                        }
+                    }
+                },
+                x_nexverse_changelog = new object[]
+                {
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "observability",
+                        status = "implemented",
+                        title = "Production OTLP observability pipeline",
+                        summary = "Prometheus-compatible NexMetrics plus OpenTelemetry-compatible tracing and bounded OTLP/HTTP JSON export with retry and TLS controls.",
+                        endpoints = new[] { "/internal/metrics" }
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "security",
+                        status = "implemented",
+                        title = "Native authentication cutover",
+                        summary = "World API authentication no longer depends on the interim legacy AuthenticationService bearer-token bootstrap.",
+                        endpoints = new[] { "/api/v1/auth/session", "/oauth/token", "/oauth/revoke", "/api/v1/auth/sessions/revoke" }
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "api",
+                        status = "implemented",
+                        title = "OAuth2/OIDC, API keys and persistent API safety controls",
+                        summary = "Authorization Code + PKCE, refresh-token rotation, ES256 ID tokens/JWKS, service-account client credentials, hashed scoped API keys, rate limiting and persistent idempotency are available.",
+                        endpoints = new[] { "/oauth/authorize", "/oauth/token", "/oauth/jwks", "/api/v1/auth/api-keys", "/api/v1/auth/clients" }
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "api",
+                        status = "implemented",
+                        title = "OpenAPI 3.1 contract and API Control Center",
+                        summary = "The live contract exposes concrete schemas, endpoint audience/security metadata, version history and machine-readable release notes used by the self-hosted web interface.",
+                        endpoints = new[] { "/api/v1/openapi.json", "/api/v1/docs" }
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "identity",
+                        status = "implemented",
+                        title = "Resident-compatible login names",
+                        summary = "Short, dotted and legacy Resident login forms are normalized without rewriting stored account names.",
+                        endpoints = Array.Empty<string>()
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "platform",
+                        status = "implemented",
+                        title = "Distributed NexBus and simulator NodeAgent foundation",
+                        summary = "Authenticated HMAC peer transport, bounded delivery, event deduplication, node heartbeats and region lifecycle events connect Robust and simulator nodes.",
+                        endpoints = new[] { "/internal/nexbus/v1/events" }
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "runtime",
+                        status = "implemented",
+                        title = "BulletSim and Meshmerizer runtime baseline restored",
+                        summary = "The NexVerse simulator profile again standardizes BulletSim physics with Meshmerizer and keeps Warp3D map rendering as the supported runtime baseline.",
+                        endpoints = Array.Empty<string>()
+                    },
+                    new
+                    {
+                        date = "2026-10-01",
+                        version = "0.9.3.1 Dev",
+                        category = "scripting",
+                        status = "implemented",
+                        title = "LSL/OSSL compatibility work",
+                        summary = "RemoteData XML-RPC regression coverage, the simulator XML-RPC compatibility profile and additional OSSL helpers for scripted content are enabled and CI guarded.",
+                        endpoints = Array.Empty<string>()
                     }
                 },
                 x_nexverse_idempotency = new
