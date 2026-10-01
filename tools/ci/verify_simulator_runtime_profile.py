@@ -84,7 +84,7 @@ if "DecodeToImageWithOpenJPEG" not in j2k_decoder or "CSJ2K and OpenJPEG" not in
     errors.append("J2K decoder must retain the CSJ2K -> OpenJPEG compatibility fallback")
 
 warp3d = (ROOT / "OpenSim/Region/CoreModules/World/Warp3DMap/Warp3DImageModule.cs").read_text(encoding="utf-8")
-if "m_textureDecodeWarnings" not in warp3d or "Further warnings for this texture UUID are suppressed" not in warp3d:
+if "m_textureDecodeWarnings" not in warp3d or "LogTextureDecodeFailureOnce" not in warp3d:
     errors.append("Warp3D must suppress repeated decode warnings for the same texture UUID")
 
 launcher = (ROOT / "bin/opensim.sh").read_text(encoding="utf-8")
