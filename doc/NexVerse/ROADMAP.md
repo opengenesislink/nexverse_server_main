@@ -120,9 +120,9 @@ Development progression:
 
 Each development milestone increments the NexVerse product version.
 
-The first active NexVerse development milestone is:
+The first NexVerse development milestone was completed as:
 
-**NexVerse 0.9.3.1 Dev — NEXJAST**
+**NexVerse 0.9.3.1 — NEXJAST**
 
 A larger architectural platform generation will advance to **NexVerse 0.9.4.0**.
 
