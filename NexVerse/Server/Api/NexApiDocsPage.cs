@@ -136,7 +136,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="pill"><span class="dot" id="statsDot"></span><span id="statsStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende ein Admin-Zugriffstoken (Bearer) oder einen API-Schlüssel mit <code>statistics:read</code>.</p>
+<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende ein Administrator-Zugriffstoken (Bearer) oder einen API-Schlüssel mit <code>statistics:read</code>.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="statsApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
@@ -159,7 +159,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="tablewrap"><table class="datatable"><thead><tr><th>Name</th><th>Typ</th><th>Region</th><th>Heimat-Grid</th><th>Login</th></tr></thead><tbody id="statsOnlineBody"></tbody></table></div>
 </div>
 <div class="section">
-<h2>Hypergrid-Herkunft</h2><p class="sectionlead">Bekannte eindeutige Besucher nach Home Grid. Dies sind keine kumulierten Besuchssessions.</p>
+<h2>Hypergrid-Herkunft</h2><p class="sectionlead">Bekannte eindeutige Besucher nach Heimat-Grid. Dies sind keine kumulierten Besuchssessions.</p>
 <div class="tablewrap"><table class="datatable"><thead><tr><th>Heimat-Grid</th><th>Bekannt</th><th>Online</th><th>7 Tage</th><th>30 Tage</th></tr></thead><tbody id="statsHgBody"></tbody></table></div>
 </div>
 <div class="section">
@@ -201,7 +201,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </section>
 
 <section class="page" id="page-explorer">
-<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den Live-Vertrag, prüfe Berechtigungen (Scopes) und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
+<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den Live-Vertrag, prüfe Berechtigungsumfänge (Scopes) und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
 <div class="explorer">
 <div class="endpointlist section">
 <input class="search" id="search" placeholder="Endpunkt, Methode, Berechtigung suchen…">
