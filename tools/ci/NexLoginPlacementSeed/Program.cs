@@ -259,9 +259,23 @@ internal static class Program
             new SimulationDataService(config);
 
         simulationData.StoreObject(probe, RegionId);
+        simulationData.StorePrimInventory(
+            probe.RootPart.UUID,
+            probe.RootPart.Inventory.GetInventoryItems());
+
+        System.Collections.Generic.List<SceneObjectGroup> loadedObjects =
+            simulationData.LoadObjects(RegionId);
 
         Require(
-            simulationData.LoadObjects(RegionId).Count > 0,
+            loadedObjects.Count > 0,
             "failed to persist RemoteData probe object");
+
+        SceneObjectGroup loadedProbe =
+            loadedObjects.Find(x => x.UUID == RemoteDataObjectId);
+
+        Require(
+            loadedProbe != null &&
+            loadedProbe.RootPart.Inventory.GetInventoryItem(RemoteDataScriptItemId) != null,
+            "failed to persist RemoteData probe task inventory");
     }
 }
