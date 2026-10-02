@@ -726,13 +726,21 @@ namespace OpenSim.Services.HypergridService
 
         public TravelingAgentInfo(HGTravelingData t)
         {
+            if (t is null)
+                return;
+
+            SessionID = new UUID(t.SessionID);
+            UserID = new UUID(t.UserID);
+
             if (t.Data is not null)
             {
-                SessionID = new UUID(t.SessionID);
-                UserID = new UUID(t.UserID);
-                GridExternalName = t.Data["GridExternalName"];
-                ServiceToken = t.Data["ServiceToken"];
-                ClientIPAddress = t.Data["ClientIPAddress"];
+                t.Data.TryGetValue("GridExternalName", out GridExternalName);
+                t.Data.TryGetValue("ServiceToken", out ServiceToken);
+                t.Data.TryGetValue("ClientIPAddress", out ClientIPAddress);
+
+                GridExternalName ??= string.Empty;
+                ServiceToken ??= string.Empty;
+                ClientIPAddress ??= string.Empty;
             }
         }
 
