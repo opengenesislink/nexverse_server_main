@@ -114,7 +114,7 @@ for _ in $(seq 1 180); do
   fi
 
   if (echo > /dev/tcp/127.0.0.1/19300) >/dev/null 2>&1 &&
-     grep -F "NexVerse HG Landing" "$DEST_LOG" >/dev/null 2>&1; then
+     grep -F 'INITIALIZATION COMPLETE FOR NexVerse HG Landing - LOGINS ENABLED' "$DEST_LOG" >/dev/null 2>&1; then
     DEST_READY=1
     break
   fi
