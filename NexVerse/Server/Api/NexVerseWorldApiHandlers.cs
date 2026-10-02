@@ -584,6 +584,21 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
+                        title = "Interaktiver Grid-Planer im API Control Center",
+                        summary = "Das API Control Center besitzt jetzt eine read-only Rasteransicht mit Viewport-Navigation, Zellstatus, Hover-/Klickdetails, Größenwahl und Live-Placement-Vorschau über die Region-Control-Plane-Endpunkte.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/docs",
+                            "/api/v1/grid/layout",
+                            "/api/v1/grid/validate-placement"
+                        }
+                    },
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "regions",
+                        status = "implemented",
                         title = "Region Control Plane: Raster- und Placement-Grundlage",
                         summary = "Die Welt-API kann gebundene 256m-Rasterfenster lesen, einzelne Zellen inspizieren und Regionsplatzierungen inklusive VarRegion-Footprints, Reservierungen und Überlappungen vorab validieren.",
                         endpoints = new[]

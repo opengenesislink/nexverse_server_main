@@ -219,11 +219,11 @@ Planned mutation endpoints:
 - `POST /api/v1/regions` — create a region at validated coordinates
 - `PATCH /api/v1/regions/{regionId}/placement` — move a region after validation
 
-The corresponding admin UI at `world.stadt-nexverse.de` will render this data as an interactive raster map. Hovering a cell must show exact grid coordinates and absolute world coordinates. Free, occupied, reserved and unavailable cells must be visually distinct.
+The API Control Center at `/api/v1/docs` now contains the first interactive read-only Grid Planner. It renders the bounded layout as a raster, supports viewport panning and display scaling, shows free/occupied/reserved/conflict states, exposes exact grid/world coordinates on hover or click, and can live-validate a selected origin with a chosen region width/height.
 
-VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells must be considered occupied during placement validation.
+VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells are considered occupied during placement validation. The planner highlights the complete proposed footprint and reports conflicting regions.
 
-Selecting a free cell in the raster will prefill the create-region form. Region-size selection should show the intended footprint before creation and refuse any overlap.
+The later create-region form will reuse the selected cell and validated footprint once the `regions:manage` mutation path and managed simulator-node execution are implemented.
 
 ## Next API work
 
