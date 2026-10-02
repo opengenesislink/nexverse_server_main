@@ -145,6 +145,10 @@ jobs:
           test -f bin/NexVerse.Server.Api.dll
           test -f bin/NexVerse.RegionModules.dll
 
+      - name: Runtime regression local secret env loading
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexRuntimeSecretRegression/NexRuntimeSecretRegression.csproj
+
       - name: Runtime smoke test successful simulator login placement
         shell: bash
         run: bash tools/ci/smoke_login_placement.sh
