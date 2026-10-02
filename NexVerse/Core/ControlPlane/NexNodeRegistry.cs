@@ -100,6 +100,9 @@ namespace NexVerse.Core.ControlPlane
         private readonly TimeSpan m_StaleAfter;
         private int m_Disposed;
 
+        public int StaleAfterSeconds =>
+            (int)m_StaleAfter.TotalSeconds;
+
         public NexNodeRegistry(
             INexEventBus eventBus,
             int staleAfterSeconds = 90)
