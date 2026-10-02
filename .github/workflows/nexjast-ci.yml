@@ -247,8 +247,11 @@ jobs:
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
+          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.2"
+          assert doc["x_nexverse_version_history"][0]["status"] == "development"
           assert doc["x_nexverse_changelog"]
-          assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
+          assert doc["x_nexverse_changelog"][0]["version"] == "0.9.3.2"
+          assert doc["x_nexverse_changelog"][0]["status"] == "development"
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
@@ -286,11 +289,26 @@ jobs:
               assert published["total"] == parsed["total"]
               assert published["open"] == parsed["total"] - parsed["completed"]
 
+          stats_get = doc["paths"]["/api/v1/statistics/summary"]["get"]
+          assert stats_get["x-nexverse-scope"] == "statistics:read"
+          assert {} in stats_get["security"], "statistics aggregate mode must permit anonymous access"
+          stats_schema = schemas["StatisticsSummaryResponse"]
+          for required in ("detail_level", "protected_details"):
+              assert required in stats_schema["required"], f"statistics schema missing required field: {required}"
+
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
           PY
+
+          STATS_STATUS=$(curl --silent --max-time 2 -o /tmp/nexverse-statistics.json -w '%{http_code}' http://127.0.0.1:19090/api/v1/statistics/summary)
+          test "$STATS_STATUS" = "503"
+          grep -F '"error": "statistics_data_unavailable"' /tmp/nexverse-statistics.json
+          if [ "$STATS_STATUS" = "404" ]; then
+            echo "::error::Statistics route disappeared while privileged endpoints are disabled."
+            exit 1
+          fi
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/docs > /tmp/nexverse-api-docs.html
           grep -F 'NexVerse World-API-Kontrollzentrum' /tmp/nexverse-api-docs.html
