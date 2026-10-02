@@ -556,9 +556,10 @@ Region-Control-Plane foundation implemented during the 0.9.3.2 World API line:
 - multi-cell VarRegion footprints and partial-overlap detection;
 - existing GridService reservation flags and the historical low-Y Hypergrid link band represented as reserved cells;
 - a maximum 128x128-cell layout viewport to keep control-plane reads bounded;
-- `regions:read` authorization for all three read-only control-plane operations.
+- `regions:read` authorization for all three read-only control-plane operations;
+- a first interactive read-only Grid Planner in the API Control Center with viewport navigation, status filtering, adjustable cell scale, cell hover/click inspection and live VarRegion placement preview.
 
-Region creation/move mutations and the interactive planner UI remain subsequent work.
+Region creation/move mutations, global region jump/search and node/estate filtering remain subsequent work.
 
 The planner must provide:
 
