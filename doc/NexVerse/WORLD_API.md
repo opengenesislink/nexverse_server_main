@@ -200,15 +200,22 @@ NexVerse CI starts a minimal Robust process using `bin/Robust.NexVerseApi.Tests.
 
 The smoke-test configuration keeps all privileged endpoints disabled and has no production database dependency. Because that profile intentionally has no statistics database services, the statistics request is expected to return `503 statistics_data_unavailable`; CI explicitly verifies that the route exists and does not regress to the former 404 behavior.
 
-## Planned region-grid administration API
+## Region-grid administration API
 
-The Region Control Plane will expose a raster-layout API used by the administrator web interface.
+The first read-only Region Control Plane foundation is implemented and is used as the data contract for the later administrator raster planner.
 
-Planned endpoints:
+Implemented endpoints:
 
-- `GET /api/v1/grid/layout?min_x=<x>&max_x=<x>&min_y=<y>&max_y=<y>` — bounded world-grid layout and occupancy data
-- `GET /api/v1/grid/cells/{x}/{y}` — cell inspection
+- `GET /api/v1/grid/layout?min_x=<x>&max_x=<x>&min_y=<y>&max_y=<y>` — bounded world-grid layout and per-cell occupancy data
+- `GET /api/v1/grid/cells/{x}/{y}` — exact cell inspection
 - `GET /api/v1/grid/validate-placement?x=<x>&y=<y>&size_x=<meters>&size_y=<meters>` — overlap/placement validation
+
+These operations require `regions:read`. Grid coordinates are 256m base cells; responses also expose absolute world-meter coordinates. Layout windows are capped at 128x128 cells. VarRegions occupy every base cell touched by their actual width and height, so a 512x512m region occupies four cells. Partial overlap is rejected by the placement validator.
+
+Cells can currently report `free`, `occupied`, `reserved` or `conflict`. Existing GridService reservation flags are respected, and the historical low-Y band reserved by GridService for Hypergrid links is surfaced as reserved.
+
+Planned mutation endpoints:
+
 - `POST /api/v1/regions` — create a region at validated coordinates
 - `PATCH /api/v1/regions/{regionId}/placement` — move a region after validation
 
