@@ -21,7 +21,7 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current development version is **NexVerse 0.9.3.1 Dev**, codename **NEXJAST**.
+The current release is **NexVerse 0.9.3.1**, codename **NEXJAST**.
 
 NexVerse 0.9.3.0 is the first NexVerse release and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
 
@@ -37,9 +37,9 @@ The active development roadmap is maintained in:
 
 The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the NexVerse 0.9.4.0 consolidation target.
 
-## Current NEXJAST foundation
+## NexVerse 0.9.3.1 NEXJAST release foundation
 
-The current development line now contains the first NexVerse-native assemblies:
+The NexVerse 0.9.3.1 release contains the first NexVerse-native assemblies:
 
 - `NexVerse.Core` — platform metadata, RBAC/scope contracts, audit contracts and NexBus foundation.
 - `NexVerse.Server.Api` — Robust-hosted World API foundation.
