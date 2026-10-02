@@ -48,8 +48,10 @@ namespace NexVerse.Server.Api
                 service = "NexVerse World API",
                 product = NexVersePlatform.ProductName,
                 api_version = NexVersePlatform.ApiVersion,
-                milestone = NexVersePlatform.MilestoneCodename,
-                status = "release",
+                milestone = NexVersePlatform.MilestoneVersion,
+                milestone_codename = NexVersePlatform.MilestoneCodename,
+                milestone_title = NexVersePlatform.MilestoneTitle,
+                status = "development",
                 health = m_PublicBaseUrl + "/api/v1/health",
                 version = m_PublicBaseUrl + "/api/v1/version",
                 capabilities = m_PublicBaseUrl + "/api/v1/capabilities",
@@ -71,7 +73,9 @@ namespace NexVerse.Server.Api
                 status = "ok",
                 product = NexVersePlatform.ProductName,
                 api_version = NexVersePlatform.ApiVersion,
-                milestone = NexVersePlatform.MilestoneCodename,
+                milestone = NexVersePlatform.MilestoneVersion,
+                milestone_codename = NexVersePlatform.MilestoneCodename,
+                milestone_title = NexVersePlatform.MilestoneTitle,
                 timestamp = DateTimeOffset.UtcNow,
                 correlation_id = correlationId
             });
@@ -91,7 +95,9 @@ namespace NexVerse.Server.Api
                 api_version = NexVersePlatform.ApiVersion,
                 protocol_version = NexVersePlatform.ProtocolVersion,
                 nexbus_schema_version = NexVersePlatform.NexBusSchemaVersion,
-                milestone = NexVersePlatform.MilestoneCodename,
+                milestone = NexVersePlatform.MilestoneVersion,
+                milestone_codename = NexVersePlatform.MilestoneCodename,
+                milestone_title = NexVersePlatform.MilestoneTitle,
                 correlation_id = correlationId
             });
         }
@@ -146,8 +152,7 @@ namespace NexVerse.Server.Api
                     ("post", "Einwohnersitzungen widerrufen und Sicherheitsstempel fortschreiben", "self or admin:*", "200")),
                 ["/api/v1/audit"] = AuthenticatedOperations(
                     ("get", "Persistente administrative Audit-Historie abfragen", "admin:*", "200")),
-                ["/api/v1/statistics/summary"] = AuthenticatedOperations(
-                    ("get", "Einwohner-, Aktivitäts-, Online- und Hypergrid-Statistik lesen", "statistics:read", "200")),
+                ["/api/v1/statistics/summary"] = StatisticsOperation(),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -438,18 +443,32 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.1",
+                        server_line = "0.9.3.2",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
                         published = "2026-10-02",
-                        compatibility = "Erster NexVerse-World-API-v1-Vertrag",
+                        compatibility = "Aktive NexVerse-World-API-v1-Entwicklungslinie",
+                        highlights = new[]
+                        {
+                            "Formaler Wechsel auf NexVerse 0.9.3.2 Dev",
+                            "Härtung und Abschluss des World-API-v1-Vertrags",
+                            "Statistik-, Authentifizierungs- und Betriebsverhalten werden releasefähig gemacht"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.1",
+                        codename = "NEXJAST",
+                        status = "release",
+                        published = "2026-10-02",
+                        compatibility = "Erster NexVerse-World-API-v1-Vertrag und Plattform-Grundlage",
                         highlights = new[]
                         {
                             "Native Einwohnersitzungen und Zugriffstokens mit Berechtigungsumfang",
                             "OAuth2/OIDC Authorization Code + PKCE und Dienst-Clients",
                             "Persistente Audit-Historie, API-Schlüssel und idempotente Provisionierung",
                             "Selbst gehostetes API-Kontrollzentrum, Live-Explorer und Statistik-Dashboard",
-                            "Einwohneraktivität und Hypergrid-Besucherstatistik",
                             "Verteilte NexBus- und NodeAgent-Grundlage",
                             "Prometheus-/OpenTelemetry-/OTLP-Beobachtbarkeitsgrundlage"
                         }
@@ -457,6 +476,16 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-02",
+                        version = "0.9.3.2",
+                        category = "api",
+                        status = "development",
+                        title = "NexVerse 0.9.3.2 Dev gestartet",
+                        summary = "Die World-API-v1-Arbeit ist jetzt die aktive Produktlinie. Runtime-Version, Roadmap-Metadaten, API-Status und CI-Vertrag wurden auf 0.9.3.2 Dev umgestellt.",
+                        endpoints = new[] { "/api/v1/version", "/api/v1/openapi.json", "/api/v1/docs" }
+                    },
                     new
                     {
                         date = "2026-10-02",
@@ -551,7 +580,7 @@ namespace NexVerse.Server.Api
                 x_nexverse_roadmap = new
                 {
                     source = "doc/NexVerse/ROADMAP.md",
-                    current_milestone = "0.9.3.1",
+                    current_milestone = NexVersePlatform.MilestoneVersion,
                     current_codename = NexVersePlatform.MilestoneCodename,
                     status_model = new
                     {
@@ -585,9 +614,9 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.2",
                             codename = "",
                             title = "NexVerse World API v1",
-                            status = "advanced",
+                            status = "active",
                             checklist = new { completed = 27, total = 27, open = 0 },
-                            summary = "Die dokumentierte API-v1-Checkliste wurde vorgezogen vollständig umgesetzt; der formale Wechsel auf den Meilenstein 0.9.3.2 erfolgt separat.",
+                            summary = "Aktiver Produkt-Meilenstein. Die dokumentierte API-v1-Checkliste ist umgesetzt; die aktuelle Arbeit konzentriert sich auf Release-Härtung, Laufzeitkonsistenz und Produktionsbetrieb.",
                             evidence = new[]
                             {
                                 "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Rate-Limits und Idempotenz",
@@ -809,6 +838,53 @@ namespace NexVerse.Server.Api
                             "Keine Zugangsdaten senden, sofern eine Operation sie nicht ausdrücklich erfordert.",
                             "Rate-Limits und Korrelations-IDs beachten."
                         }
+                };
+
+            return new Dictionary<string, object>
+            {
+                ["get"] = operation
+            };
+        }
+
+        private static object StatisticsOperation()
+        {
+            Dictionary<string, object> operation =
+                new Dictionary<string, object>
+                {
+                    ["summary"] =
+                        "Öffentliche Aggregatstatistik lesen; geschützte Online-Details optional mit statistics:read",
+                    ["security"] = new object[]
+                    {
+                        new Dictionary<string, string[]>(),
+                        new Dictionary<string, string[]>
+                        {
+                            ["bearerAuth"] = Array.Empty<string>()
+                        },
+                        new Dictionary<string, string[]>
+                        {
+                            ["apiKeyAuth"] = Array.Empty<string>()
+                        }
+                    },
+                    ["responses"] = new Dictionary<string, object>
+                    {
+                        ["200"] = new { description = "Aggregierte oder authentifizierte Statistikantwort" },
+                        ["401"] = JsonResponse("Ungültige oder erforderliche Authentifizierung", "Error"),
+                        ["403"] = JsonResponse("Unzureichender Berechtigungsumfang", "Error"),
+                        ["429"] = JsonResponse("Rate-Limit überschritten", "Error"),
+                        ["503"] = JsonResponse("Statistikdaten oder geschützte Authentifizierung nicht verfügbar", "Error")
+                    },
+                    ["x-nexverse-scope"] = NexVerse.Core.Security.NexScopes.StatisticsRead,
+                    ["x-nexverse-audience"] = new[] { "citizen", "admin", "service" },
+                    ["x-nexverse-purpose"] =
+                        "Liefert ohne Zugangsdaten ausschließlich aggregierte Grid-Kennzahlen. Mit gültigem statistics:read dürfen zusätzlich geschützte Online-, Regions- und Hypergrid-Detaildaten zurückgegeben werden.",
+                    ["x-nexverse-ai-instruction"] =
+                        "Für allgemeine Kennzahlen keine Zugangsdaten senden. Personenbezogene oder standortbezogene Detaildaten nur mit ausdrücklich bereitgestellter statistics:read-Autorisierung abrufen.",
+                    ["x-nexverse-security-constraints"] = new[]
+                    {
+                        "Anonyme Antworten dürfen keine Namen, Principal-IDs, konkreten Online-Regionen oder Hypergrid-Herkunftslisten enthalten.",
+                        "Geschützte Details erfordern statistics:read und einen TLS- oder gleichwertig geschützten Transport.",
+                        "Bearer-Tokens und API-Schlüssel niemals offenlegen oder protokollieren."
+                    }
                 };
 
             return new Dictionary<string, object>
@@ -1404,10 +1480,12 @@ namespace NexVerse.Server.Api
                 ["StatisticsSummaryResponse"] = new
                 {
                     type = "object",
-                    required = new[] { "generated_at", "residents", "hypergrid", "online", "regions", "correlation_id" },
+                    required = new[] { "generated_at", "detail_level", "protected_details", "residents", "hypergrid", "online", "regions", "correlation_id" },
                     properties = new Dictionary<string, object>
                     {
                         ["generated_at"] = new { type = "string", format = "date-time" },
+                        ["detail_level"] = new { type = "string", @enum = new[] { "aggregate", "authenticated" } },
+                        ["protected_details"] = new { type = "boolean" },
                         ["residents"] = new
                         {
                             type = "object",

@@ -2,6 +2,8 @@
 
 The NexVerse World API is the new Robust-hosted control-plane API.
 
+Active server development line: **NexVerse 0.9.3.2 Dev — World API v1**
+
 Current development endpoint:
 
 `http://world.stadt-nexverse.de/api/v1`
@@ -17,6 +19,21 @@ NexVerse currently runs Robust directly on TCP port 80 without a reverse proxy. 
 - `GET /api/v1/openapi.json` — OpenAPI 3.1 document
 
 These endpoints are public and read-only.
+
+## Statistics endpoint and privacy levels
+
+`GET /api/v1/statistics/summary` is registered independently of `EnablePrivilegedEndpoints`.
+
+Without credentials, the endpoint returns a privacy-safe aggregate view when the configured account/GridUser data services are available. Aggregate mode contains headline counts such as registered residents, current total presence, recent activity and Hypergrid totals, but deliberately omits individual names, principal IDs, concrete online-region rows and Hypergrid home-grid detail lists.
+
+When privileged World API authentication is enabled, a Bearer token or `X-NexVerse-Api-Key` with `statistics:read` may request the protected detail view. Protected credentials must only be used over TLS or an equivalent trusted transport.
+
+If credentials are supplied while privileged authentication is disabled, the server returns a controlled service/authentication error rather than silently ignoring the credential or falling back to an anonymous response. A missing statistics data backend returns `503 statistics_data_unavailable`; the route itself must not disappear as a 404 merely because privileged endpoints are disabled.
+
+The response reports its effective privacy level through:
+
+- `detail_level=aggregate|authenticated`
+- `protected_details=false|true`
 
 ## Privileged user API foundation
 
@@ -174,13 +191,14 @@ Passwords are never written to audit records or NexBus payloads.
 
 ## CI runtime verification
 
-NEXJAST CI starts a minimal Robust process using `bin/Robust.NexVerseApi.Tests.ini` and verifies live HTTP responses from:
+NexVerse CI starts a minimal Robust process using `bin/Robust.NexVerseApi.Tests.ini` and verifies live HTTP responses from:
 
 - `/api/v1/health`
 - `/api/v1/version`
 - `/api/v1/openapi.json`
+- `/api/v1/statistics/summary`
 
-The smoke-test configuration keeps all privileged endpoints disabled and has no production database dependency.
+The smoke-test configuration keeps all privileged endpoints disabled and has no production database dependency. Because that profile intentionally has no statistics database services, the statistics request is expected to return `503 statistics_data_unavailable`; CI explicitly verifies that the route exists and does not regress to the former 404 behavior.
 
 ## Planned region-grid administration API
 
@@ -399,7 +417,7 @@ Current schema coverage includes:
 
 Core operations reference their request and response schemas directly through `#/components/schemas/...`. User-ID routes declare the `principalId` UUID path parameter, while search endpoints document their actual query parameters and bounds. `POST /api/v1/users` also documents `Idempotency-Key`.
 
-NEXJAST CI starts a real Robust process, downloads `/api/v1/openapi.json`, parses the JSON document and verifies these component/ref contracts at runtime.
+NexVerse CI starts a real Robust process, downloads `/api/v1/openapi.json`, parses the JSON document and verifies these component/ref contracts at runtime.
 
 
 ## Self-hosted API documentation and explorer

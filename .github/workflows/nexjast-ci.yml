@@ -1,4 +1,4 @@
-name: NEXJAST CI
+name: NexVerse CI
 
 on:
   push:
@@ -165,8 +165,8 @@ jobs:
         shell: bash
         run: |
           grep -F 'public const string ProductName = "NexVerse";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string VersionNumber = "0.9.3.1";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Release;' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string VersionNumber = "0.9.3.2";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
 
       - name: Runtime smoke test LLLogin protocol
         shell: bash
@@ -212,7 +212,7 @@ jobs:
           grep -F '"status": "ok"' /tmp/nexverse-health.json
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/version > /tmp/nexverse-version.json
-          grep -F '"server_version": "NexVerse 0.9.3.1"' /tmp/nexverse-version.json
+          grep -F '"server_version": "NexVerse 0.9.3.2 Dev"' /tmp/nexverse-version.json
           grep -F '"api_version": "v1"' /tmp/nexverse-version.json
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/openapi.json > /tmp/nexverse-openapi.json
@@ -247,16 +247,19 @@ jobs:
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
+          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.2"
+          assert doc["x_nexverse_version_history"][0]["status"] == "development"
           assert doc["x_nexverse_changelog"]
-          assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
+          assert doc["x_nexverse_changelog"][0]["version"] == "0.9.3.2"
+          assert doc["x_nexverse_changelog"][0]["status"] == "development"
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
-          assert roadmap["current_milestone"] == "0.9.3.1"
-          assert roadmap["current_codename"] == "NEXJAST"
+          assert roadmap["current_milestone"] == "0.9.3.2"
+          assert roadmap["current_codename"] == ""
           milestones = {item["version"]: item for item in roadmap["milestones"]}
           assert milestones["0.9.3.1"]["status"] == "released"
-          assert milestones["0.9.3.2"]["status"] == "advanced"
+          assert milestones["0.9.3.2"]["status"] == "active"
           assert milestones["0.9.3.3"]["status"] == "started"
           assert milestones["0.9.3.4"]["status"] == "foundation"
           assert milestones["0.9.3.6"]["status"] == "planned"
@@ -286,11 +289,26 @@ jobs:
               assert published["total"] == parsed["total"]
               assert published["open"] == parsed["total"] - parsed["completed"]
 
+          stats_get = doc["paths"]["/api/v1/statistics/summary"]["get"]
+          assert stats_get["x-nexverse-scope"] == "statistics:read"
+          assert {} in stats_get["security"], "statistics aggregate mode must permit anonymous access"
+          stats_schema = schemas["StatisticsSummaryResponse"]
+          for required in ("detail_level", "protected_details"):
+              assert required in stats_schema["required"], f"statistics schema missing required field: {required}"
+
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
           PY
+
+          STATS_STATUS=$(curl --silent --max-time 2 -o /tmp/nexverse-statistics.json -w '%{http_code}' http://127.0.0.1:19090/api/v1/statistics/summary)
+          test "$STATS_STATUS" = "503"
+          grep -F '"error": "statistics_data_unavailable"' /tmp/nexverse-statistics.json
+          if [ "$STATS_STATUS" = "404" ]; then
+            echo "::error::Statistics route disappeared while privileged endpoints are disabled."
+            exit 1
+          fi
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/docs > /tmp/nexverse-api-docs.html
           grep -F 'NexVerse World-API-Kontrollzentrum' /tmp/nexverse-api-docs.html

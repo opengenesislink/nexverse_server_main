@@ -1,9 +1,9 @@
 # NexVerse versioning
 
-Current release: **NexVerse 0.9.3.1**  
-Completed milestone codename: **NEXJAST**  
-Next planned development milestone: **NexVerse 0.9.3.2**  
-Previous release: **NexVerse 0.9.3.0**
+Current stable release: **NexVerse 0.9.3.1**  
+Active development line: **NexVerse 0.9.3.2 Dev**  
+Active milestone: **World API v1**  
+Completed milestone codename: **NEXJAST**
 
 NexVerse starts from the OpenSimulator 0.9.3.0 source baseline but is maintained as an independent product line.
 
@@ -23,6 +23,7 @@ NexVerse starts from the OpenSimulator 0.9.3.0 source baseline but is maintained
 
 - `NexVerse 0.9.3.0` — first NexVerse release based on the imported OpenSimulator 0.9.3.0 baseline.
 - `NexVerse 0.9.3.1` — **NEXJAST**, released 2 October 2026 after completing the legacy-cleanup and platform-foundation milestone.
+- `NexVerse 0.9.3.2 Dev` — active development line for **NexVerse World API v1**, formally started 2 October 2026.
 
 The four-component version format is retained for compatibility with the existing build and assembly versioning scheme.
 

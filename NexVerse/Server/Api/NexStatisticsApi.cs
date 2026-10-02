@@ -27,19 +27,22 @@ namespace NexVerse.Server.Api
         private readonly IPresenceService m_Presence;
         private readonly IGridService m_Grid;
         private readonly NexApiAuthenticator m_Authenticator;
+        private readonly bool m_AllowPublicAggregates;
 
         public NexStatisticsApi(
             IUserAccountService userAccounts,
             IGridUserData gridUsers,
             IPresenceService presence,
             IGridService grid,
-            NexApiAuthenticator authenticator)
+            NexApiAuthenticator authenticator,
+            bool allowPublicAggregates)
         {
-            m_UserAccounts = userAccounts ?? throw new ArgumentNullException(nameof(userAccounts));
+            m_UserAccounts = userAccounts;
             m_GridUsers = gridUsers;
             m_Presence = presence;
             m_Grid = grid;
-            m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
+            m_Authenticator = authenticator;
+            m_AllowPublicAggregates = allowPublicAggregates;
         }
 
         public void Summary(IOSHttpRequest request, IOSHttpResponse response)
@@ -51,36 +54,64 @@ namespace NexVerse.Server.Api
                 return;
             }
 
-            if (!m_Authenticator.TryAuthenticate(
-                    request,
-                    NexScopes.StatisticsRead,
-                    out NexPrincipal _,
-                    out UserAccount _,
-                    out int statusCode,
-                    out string authError))
+            bool hasCredentials = HasCredentials(request);
+            bool includeProtectedDetails = false;
+
+            if (hasCredentials)
+            {
+                if (m_Authenticator == null)
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.ServiceUnavailable,
+                        "statistics_authentication_unavailable",
+                        "Protected statistics details are unavailable because privileged World API authentication is disabled.");
+                    return;
+                }
+
+                if (!m_Authenticator.TryAuthenticate(
+                        request,
+                        NexScopes.StatisticsRead,
+                        out NexPrincipal _,
+                        out UserAccount _,
+                        out int statusCode,
+                        out string authError))
+                {
+                    response.AddHeader("WWW-Authenticate", "Bearer");
+                    WriteError(
+                        response,
+                        (HttpStatusCode)statusCode,
+                        authError,
+                        "Authentication or statistics:read authorization is required for protected details.");
+                    return;
+                }
+
+                includeProtectedDetails = true;
+            }
+            else if (!m_AllowPublicAggregates)
             {
                 response.AddHeader("WWW-Authenticate", "Bearer");
                 WriteError(
                     response,
-                    (HttpStatusCode)statusCode,
-                    authError,
+                    HttpStatusCode.Unauthorized,
+                    "authentication_required",
                     "Authentication or statistics:read authorization is required.");
                 return;
             }
 
-            if (m_GridUsers == null)
+            if (m_UserAccounts == null || m_GridUsers == null)
             {
                 WriteError(
                     response,
                     HttpStatusCode.ServiceUnavailable,
                     "statistics_data_unavailable",
-                    "GridUser statistics storage is not available.");
+                    "UserAccount or GridUser statistics storage is not available.");
                 return;
             }
 
             try
             {
-                BuildSummary(response);
+                BuildSummary(response, includeProtectedDetails);
             }
             catch (Exception e)
             {
@@ -93,7 +124,9 @@ namespace NexVerse.Server.Api
             }
         }
 
-        private void BuildSummary(IOSHttpResponse response)
+        private void BuildSummary(
+            IOSHttpResponse response,
+            bool includeProtectedDetails)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
             DateTimeOffset dayCutoff = now.AddHours(-24);
@@ -278,14 +311,22 @@ namespace NexVerse.Server.Api
                             .Distinct(StringComparer.OrdinalIgnoreCase)
                             .Count()
                 },
+                detail_level = includeProtectedDetails ? "authenticated" : "aggregate",
+                protected_details = includeProtectedDetails,
                 online = new
                 {
                     total = allOnline.Count,
-                    users = allOnline.Select(OnlinePayload).ToArray()
+                    users = includeProtectedDetails
+                        ? allOnline.Select(OnlinePayload).ToArray()
+                        : Array.Empty<object>()
                 },
                 account_states = accountStates,
-                regions = regionBreakdown,
-                hypergrid_home_grids = homeGridBreakdown,
+                regions = includeProtectedDetails
+                    ? regionBreakdown
+                    : Array.Empty<object>(),
+                hypergrid_home_grids = includeProtectedDetails
+                    ? homeGridBreakdown
+                    : Array.Empty<object>(),
                 data_quality = new
                 {
                     registered_source =
@@ -534,6 +575,18 @@ namespace NexVerse.Server.Api
         {
             return (principalId ?? string.Empty) + "|" +
                    (homeGrid ?? string.Empty).Trim().TrimEnd('/');
+        }
+
+        private static bool HasCredentials(IOSHttpRequest request)
+        {
+            if (request?.Headers == null)
+                return false;
+
+            string bearer = request.Headers["Authorization"];
+            string apiKey = request.Headers["X-NexVerse-Api-Key"];
+
+            return !string.IsNullOrWhiteSpace(bearer) ||
+                   !string.IsNullOrWhiteSpace(apiKey);
         }
 
         private static object OnlinePayload(OnlineRecord record)
