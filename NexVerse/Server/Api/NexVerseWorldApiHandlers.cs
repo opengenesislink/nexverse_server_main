@@ -49,7 +49,7 @@ namespace NexVerse.Server.Api
                 product = NexVersePlatform.ProductName,
                 api_version = NexVersePlatform.ApiVersion,
                 milestone = NexVersePlatform.MilestoneCodename,
-                status = "development",
+                status = "release",
                 health = m_PublicBaseUrl + "/api/v1/health",
                 version = m_PublicBaseUrl + "/api/v1/version",
                 capabilities = m_PublicBaseUrl + "/api/v1/capabilities",
@@ -120,53 +120,53 @@ namespace NexVerse.Server.Api
 
             Dictionary<string, object> paths = new Dictionary<string, object>
             {
-                ["/api/v1"] = GetOperation("World API service metadata"),
-                ["/api/v1/health"] = GetOperation("World API health"),
-                ["/api/v1/version"] = GetOperation("NexVerse server and protocol versions"),
-                ["/api/v1/capabilities"] = GetOperation("NexVerse capability and compatibility levels"),
-                ["/api/v1/openapi.json"] = GetOperation("OpenAPI document"),
-                ["/api/v1/docs"] = GetOperation("Self-hosted searchable API documentation and live explorer"),
+                ["/api/v1"] = GetOperation("Metadaten des World-API-Dienstes"),
+                ["/api/v1/health"] = GetOperation("Status der World API"),
+                ["/api/v1/version"] = GetOperation("NexVerse-Server- und Protokollversionen"),
+                ["/api/v1/capabilities"] = GetOperation("NexVerse-Funktions- und Kompatibilitätsstufen"),
+                ["/api/v1/openapi.json"] = GetOperation("OpenAPI-Dokument"),
+                ["/api/v1/docs"] = GetOperation("Selbst gehostete, durchsuchbare API-Dokumentation mit Live-Explorer"),
                 ["/api/v1/auth/session"] = CredentialPostOperation(
-                    "Create a native NexVerse resident session"),
+                    "Native NexVerse-Einwohnersitzung erstellen"),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
-                    ("get", "List restricted machine API keys", "admin:*", "200"),
-                    ("post", "Create a restricted scoped machine API key", "admin:*", "201"),
-                    ("patch", "Enable or disable a machine API key", "admin:*", "200")),
+                    ("get", "Eingeschränkte Maschinen-API-Schlüssel auflisten", "admin:*", "200"),
+                    ("post", "Eingeschränkten Maschinen-API-Schlüssel mit Berechtigungsumfang erstellen", "admin:*", "201"),
+                    ("patch", "Maschinen-API-Schlüssel aktivieren oder deaktivieren", "admin:*", "200")),
                 ["/oauth/authorize"] = AuthenticatedOperations(
-                    ("get", "OAuth 2.0 Authorization Code + PKCE authorization endpoint", null, "302")),
+                    ("get", "OAuth-2.0-Autorisierungsendpunkt für Authorization Code + PKCE", null, "302")),
                 ["/oauth/token"] = AuthenticatedOperations(
-                    ("post", "OAuth 2.0 token endpoint: authorization_code, refresh_token and client_credentials", null, "200")),
+                    ("post", "OAuth-2.0-Token-Endpunkt für authorization_code, refresh_token und client_credentials", null, "200")),
                 ["/oauth/revoke"] = AuthenticatedOperations(
-                    ("post", "OAuth 2.0 token revocation endpoint", null, "200")),
+                    ("post", "OAuth-2.0-Endpunkt zum Widerrufen von Tokens", null, "200")),
                 ["/api/v1/auth/clients"] = AuthenticatedOperations(
-                    ("get", "List OAuth/service clients", "admin:*", "200"),
-                    ("post", "Register OAuth/service client", "admin:*", "201"),
-                    ("patch", "Enable or disable OAuth/service client", "admin:*", "200")),
+                    ("get", "OAuth-/Dienst-Clients auflisten", "admin:*", "200"),
+                    ("post", "OAuth-/Dienst-Client registrieren", "admin:*", "201"),
+                    ("patch", "OAuth-/Dienst-Client aktivieren oder deaktivieren", "admin:*", "200")),
                 ["/api/v1/auth/sessions/revoke"] = AuthenticatedOperations(
-                    ("post", "Revoke resident sessions and advance security stamp", "self or admin:*", "200")),
+                    ("post", "Einwohnersitzungen widerrufen und Sicherheitsstempel fortschreiben", "self or admin:*", "200")),
                 ["/api/v1/audit"] = AuthenticatedOperations(
-                    ("get", "Query persistent administrative audit history", "admin:*", "200")),
+                    ("get", "Persistente administrative Audit-Historie abfragen", "admin:*", "200")),
                 ["/api/v1/statistics/summary"] = AuthenticatedOperations(
-                    ("get", "Read resident, activity, online and Hypergrid statistics", "statistics:read", "200")),
+                    ("get", "Einwohner-, Aktivitäts-, Online- und Hypergrid-Statistik lesen", "statistics:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
-                    ("get", "Search selectable home/start regions", "regions:read", "200")),
+                    ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
-                    ("get", "Read the authenticated resident account", null, "200")),
+                    ("get", "Authentifiziertes Einwohnerkonto lesen", null, "200")),
                 ["/api/v1/users"] = AuthenticatedOperations(
-                    ("get", "Search user accounts", "admin:*", "200"),
-                    ("post", "Create and provision a user account", "admin:*", "201")),
+                    ("get", "Benutzerkonten durchsuchen", "admin:*", "200"),
+                    ("post", "Benutzerkonto erstellen und provisionieren", "admin:*", "201")),
                 ["/api/v1/users/{principalId}"] = AuthenticatedOperations(
-                    ("get", "Read a user account", "self or admin:*", "200"),
-                    ("patch", "Update account profile fields", "self or admin:*", "200"),
-                    ("delete", "Soft-delete/deactivate a user account", "admin:*", "200")),
+                    ("get", "Benutzerkonto lesen", "self or admin:*", "200"),
+                    ("patch", "Profilfelder eines Kontos aktualisieren", "self or admin:*", "200"),
+                    ("delete", "Benutzerkonto deaktivieren (Soft-Delete)", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/audit"] = AuthenticatedOperations(
-                    ("get", "Read persistent audit history for one resident", "admin:*", "200")),
+                    ("get", "Persistente Audit-Historie eines Einwohners lesen", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/state"] = AuthenticatedOperations(
-                    ("patch", "Lock, ban, deactivate or reactivate a user account", "admin:*", "200")),
+                    ("patch", "Benutzerkonto sperren, bannen, deaktivieren oder reaktivieren", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/level"] = AuthenticatedOperations(
-                    ("patch", "Change UserLevel", "admin:*", "200")),
+                    ("patch", "UserLevel ändern", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/password"] = AuthenticatedOperations(
-                    ("post", "Set or reset a user password", "self or admin:*", "200"))
+                    ("post", "Benutzerpasswort setzen oder zurücksetzen", "self or admin:*", "200"))
             };
 
             ApplyJsonContract(
@@ -285,7 +285,7 @@ namespace NexVerse.Server.Api
             object principalIdParameter =
                 PathParameter(
                     "principalId",
-                    "Resident principal UUID.");
+                    "UUID des Einwohner-Principals.");
 
             foreach (string method in new[]
                      {
@@ -330,19 +330,19 @@ namespace NexVerse.Server.Api
                 QueryParameter(
                     "q",
                     true,
-                    "User search query; minimum two characters."),
+                    "Suchbegriff für Benutzer; mindestens zwei Zeichen."),
                 QueryParameter(
                     "state",
                     false,
-                    "Optional account-state filter."),
+                    "Optionaler Filter nach Kontostatus."),
                 QueryParameter(
                     "sort",
                     false,
-                    "Sort by name, created, user_level or state."),
+                    "Sortierung nach name, created, user_level oder state."),
                 QueryParameter(
                     "order",
                     false,
-                    "Sort direction: asc or desc."),
+                    "Sortierrichtung: asc oder desc."),
                 PaginationParameter("limit", 50, 1, 100),
                 PaginationParameter("offset", 0, 0, 10000));
 
@@ -353,7 +353,7 @@ namespace NexVerse.Server.Api
                 HeaderParameter(
                     "Idempotency-Key",
                     false,
-                    "Optional retry-safe request key; maximum 128 characters."));
+                    "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
 
             AddOperationParameters(
                 paths,
@@ -362,15 +362,15 @@ namespace NexVerse.Server.Api
                 QueryParameter(
                     "q",
                     false,
-                    "Optional region name or UUID query."),
+                    "Optionaler Suchbegriff für Regionsname oder UUID."),
                 QueryParameter(
                     "sort",
                     false,
-                    "Sort by name, size_x or size_y."),
+                    "Sortierung nach name, size_x oder size_y."),
                 QueryParameter(
                     "order",
                     false,
-                    "Sort direction: asc or desc."),
+                    "Sortierrichtung: asc oder desc."),
                 PaginationParameter("limit", 50, 1, 100),
                 PaginationParameter("offset", 0, 0, 10000));
 
@@ -381,15 +381,15 @@ namespace NexVerse.Server.Api
                 QueryParameter(
                     "resource",
                     false,
-                    "Exact resource identifier."),
+                    "Exakte Ressourcenkennung."),
                 QueryParameter(
                     "actor",
                     false,
-                    "Exact audit actor."),
+                    "Exakter Audit-Akteur."),
                 QueryParameter(
                     "action",
                     false,
-                    "Exact action or trailing-wildcard prefix such as users.*."),
+                    "Exakte Aktion oder Präfix mit abschließendem Platzhalter, zum Beispiel users.*."),
                 PaginationParameter("limit", 50, 1, 100),
                 PaginationParameter("offset", 0, 0, 10000));
 
@@ -407,7 +407,7 @@ namespace NexVerse.Server.Api
                 {
                     title = "NexVerse World API",
                     version = NexVersePlatform.ApiVersion,
-                    description = "NexVerse Robust control-plane API. Administrative endpoints will require scoped authentication."
+                    description = "NexVerse-Robust-Steuerungs-API. Administrative Endpunkte erfordern eine Authentifizierung mit passendem Berechtigungsumfang."
                 },
                 servers = new[]
                 {
@@ -438,20 +438,20 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.1 Dev",
+                        server_line = "0.9.3.1",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
-                        published = "2026-10-01",
-                        compatibility = "Initial NexVerse World API v1 contract",
+                        published = "2026-10-02",
+                        compatibility = "Erster NexVerse-World-API-v1-Vertrag",
                         highlights = new[]
                         {
-                            "Native resident sessions and scoped access tokens",
-                            "OAuth2/OIDC Authorization Code + PKCE and service clients",
-                            "Persistent audit history, API keys and idempotent provisioning",
-                            "Self-hosted API Control Center, live explorer and statistics dashboard",
-                            "Resident activity and Hypergrid visitor statistics",
-                            "Distributed NexBus and NodeAgent foundation",
-                            "Prometheus/OpenTelemetry/OTLP observability foundation"
+                            "Native Einwohnersitzungen und Zugriffstokens mit Berechtigungsumfang",
+                            "OAuth2/OIDC Authorization Code + PKCE und Dienst-Clients",
+                            "Persistente Audit-Historie, API-Schlüssel und idempotente Provisionierung",
+                            "Selbst gehostetes API-Kontrollzentrum, Live-Explorer und Statistik-Dashboard",
+                            "Einwohneraktivität und Hypergrid-Besucherstatistik",
+                            "Verteilte NexBus- und NodeAgent-Grundlage",
+                            "Prometheus-/OpenTelemetry-/OTLP-Beobachtbarkeitsgrundlage"
                         }
                     }
                 },
@@ -460,123 +460,124 @@ namespace NexVerse.Server.Api
                     new
                     {
                         date = "2026-10-02",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "analytics",
                         status = "implemented",
-                        title = "Resident and Hypergrid statistics dashboard",
-                        summary = "Authenticated World API statistics expose registered residents, current presence, 7/30-day activity, Hypergrid visitors, home-grid breakdowns and region occupancy in the API Control Center.",
+                        title = "Einwohner- und Hypergrid-Statistik-Dashboard",
+                        summary = "Authentifizierte World-API-Statistiken zeigen registrierte Einwohner, aktuelle Anwesenheit, Aktivität der letzten 7/30 Tage, Hypergrid-Besucher, Home-Grid-Aufschlüsselungen und Regionsbelegung im API-Kontrollzentrum.",
                         endpoints = new[] { "/api/v1/statistics/summary", "/api/v1/docs" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "observability",
                         status = "implemented",
-                        title = "Production OTLP observability pipeline",
-                        summary = "Prometheus-compatible NexMetrics plus OpenTelemetry-compatible tracing and bounded OTLP/HTTP JSON export with retry and TLS controls.",
+                        title = "Produktive OTLP-Beobachtbarkeitspipeline",
+                        summary = "Prometheus-kompatible NexMetrics, OpenTelemetry-kompatibles Tracing sowie begrenzter OTLP/HTTP-JSON-Export mit Wiederholungs- und TLS-Steuerung.",
                         endpoints = new[] { "/internal/metrics" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "security",
                         status = "implemented",
-                        title = "Native authentication cutover",
-                        summary = "World API authentication no longer depends on the interim legacy AuthenticationService bearer-token bootstrap.",
+                        title = "Umstellung auf native Authentifizierung",
+                        summary = "Die World-API-Authentifizierung hängt nicht mehr vom vorläufigen Legacy-Bearer-Token-Bootstrap des AuthenticationService ab.",
                         endpoints = new[] { "/api/v1/auth/session", "/oauth/token", "/oauth/revoke", "/api/v1/auth/sessions/revoke" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "api",
                         status = "implemented",
-                        title = "OAuth2/OIDC, API keys and persistent API safety controls",
-                        summary = "Authorization Code + PKCE, refresh-token rotation, ES256 ID tokens/JWKS, service-account client credentials, hashed scoped API keys, rate limiting and persistent idempotency are available.",
+                        title = "OAuth2/OIDC, API-Schlüssel und persistente API-Sicherheitskontrollen",
+                        summary = "Authorization Code + PKCE, Refresh-Token-Rotation, ES256-ID-Tokens/JWKS, Dienstkonto-Zugangsdaten, gehashte API-Schlüssel mit Berechtigungsumfang, Rate-Limits und persistente Idempotenz sind verfügbar.",
                         endpoints = new[] { "/oauth/authorize", "/oauth/token", "/oauth/jwks", "/api/v1/auth/api-keys", "/api/v1/auth/clients" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "api",
                         status = "implemented",
-                        title = "OpenAPI 3.1 contract and API Control Center",
-                        summary = "The live contract exposes concrete schemas, endpoint audience/security metadata, version history and machine-readable release notes used by the self-hosted web interface.",
+                        title = "OpenAPI-3.1-Vertrag und API-Kontrollzentrum",
+                        summary = "Der Live-Vertrag liefert konkrete Schemas, Zielgruppen-/Sicherheitsmetadaten der Endpunkte, Versionshistorie und maschinenlesbare Versionshinweise für die selbst gehostete Weboberfläche.",
                         endpoints = new[] { "/api/v1/openapi.json", "/api/v1/docs" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "identity",
                         status = "implemented",
-                        title = "Resident-compatible login names",
-                        summary = "Short, dotted and legacy Resident login forms are normalized without rewriting stored account names.",
+                        title = "Einwohnerkompatible Anmeldenamen",
+                        summary = "Kurze, punktgetrennte und ältere Resident-Anmeldeformen werden normalisiert, ohne gespeicherte Kontonamen umzuschreiben.",
                         endpoints = Array.Empty<string>()
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "platform",
                         status = "implemented",
-                        title = "Distributed NexBus and simulator NodeAgent foundation",
-                        summary = "Authenticated HMAC peer transport, bounded delivery, event deduplication, node heartbeats and region lifecycle events connect Robust and simulator nodes.",
+                        title = "Verteilte NexBus- und Simulator-NodeAgent-Grundlage",
+                        summary = "Authentifizierter HMAC-Peer-Transport, begrenzte Zustellung, Ereignis-Deduplizierung, Node-Heartbeats und Regions-Lebenszyklusereignisse verbinden Robust und Simulator-Nodes.",
                         endpoints = new[] { "/internal/nexbus/v1/events" }
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "runtime",
                         status = "implemented",
-                        title = "BulletSim and Meshmerizer runtime baseline restored",
-                        summary = "The NexVerse simulator profile again standardizes BulletSim physics with Meshmerizer and keeps Warp3D map rendering as the supported runtime baseline.",
+                        title = "BulletSim- und Meshmerizer-Laufzeitbasis wiederhergestellt",
+                        summary = "Das NexVerse-Simulatorprofil standardisiert wieder BulletSim-Physik mit Meshmerizer und behält Warp3D-Kartenrendering als unterstützte Laufzeitbasis bei.",
                         endpoints = Array.Empty<string>()
                     },
                     new
                     {
                         date = "2026-10-01",
-                        version = "0.9.3.1 Dev",
+                        version = "0.9.3.1",
                         category = "scripting",
                         status = "implemented",
-                        title = "LSL/OSSL compatibility work",
-                        summary = "RemoteData XML-RPC regression coverage, the simulator XML-RPC compatibility profile and additional OSSL helpers for scripted content are enabled and CI guarded.",
+                        title = "LSL-/OSSL-Kompatibilitätsarbeit",
+                        summary = "RemoteData-XML-RPC-Regressionstests, das XML-RPC-Kompatibilitätsprofil des Simulators und zusätzliche OSSL-Helfer für geskriptete Inhalte sind aktiviert und durch CI abgesichert.",
                         endpoints = Array.Empty<string>()
                     }
                 },
                 x_nexverse_roadmap = new
                 {
                     source = "doc/NexVerse/ROADMAP.md",
-                    current_milestone = "0.9.3.1 Dev",
+                    current_milestone = "0.9.3.1",
                     current_codename = NexVersePlatform.MilestoneCodename,
                     status_model = new
                     {
-                        active = "Current product milestone.",
-                        advanced = "Substantial implementation has been pulled forward before the formal milestone switch.",
-                        started = "A defined subset is implemented, but major scope remains.",
-                        foundation = "Core infrastructure exists, while the milestone's product scope remains largely open.",
-                        planned = "Roadmap scope is defined; no NexVerse-native milestone implementation is claimed yet."
+                        released = "Abgeschlossener und veröffentlichter Produkt-Meilenstein.",
+                        active = "Aktueller Produkt-Meilenstein.",
+                        advanced = "Wesentliche Implementierungen wurden vor dem formalen Wechsel des Meilensteins vorgezogen.",
+                        started = "Ein definierter Teil ist umgesetzt, wesentlicher Umfang steht jedoch noch aus.",
+                        foundation = "Die Kerninfrastruktur ist vorhanden, während der Produktumfang des Meilensteins größtenteils noch offen ist.",
+                        planned = "Der Roadmap-Umfang ist definiert; eine NexVerse-native Umsetzung dieses Meilensteins wird noch nicht beansprucht."
                     },
                     milestones = new object[]
                     {
                         new
                         {
-                            version = "0.9.3.1 Dev",
+                            version = "0.9.3.1",
                             codename = "NEXJAST",
-                            title = "Legacy Cleanup and Platform Foundation",
-                            status = "active",
-                            checklist = new { completed = 43, total = 45, open = 2 },
-                            summary = "Clean-core foundation, native World API/authentication, NexBus, NodeAgent, observability and compatibility guards.",
+                            title = "Legacy-Bereinigung und Plattform-Grundlage",
+                            status = "released",
+                            checklist = new { completed = 45, total = 45, open = 0 },
+                            summary = "Clean-Core-Grundlage, native World API/Authentifizierung, NexBus, NodeAgent, Beobachtbarkeit und Kompatibilitätsschutz.",
                             evidence = new[]
                             {
-                                "RemoteAdmin, Vivox, FreeSwitch and IRC bridge removed",
-                                "Native World API, OAuth2/OIDC, API keys and user lifecycle implemented",
-                                "Distributed NexBus, NodeAgent and NexMetrics/OTLP implemented",
-                                "Two end-to-end runtime validation items remain open"
+                                "RemoteAdmin, Vivox, FreeSwitch und IRC-Bridge entfernt",
+                                "Native World API, OAuth2/OIDC, API-Schlüssel und Benutzerlebenszyklus umgesetzt",
+                                "Verteilte NexBus-, NodeAgent- und NexMetrics/OTLP-Grundlage umgesetzt",
+                                "Hypergrid-Anmeldung und RemoteData mit laufendem Script sind end-to-end durch CI verifiziert"
                             }
                         },
                         new
@@ -586,79 +587,79 @@ namespace NexVerse.Server.Api
                             title = "NexVerse World API v1",
                             status = "advanced",
                             checklist = new { completed = 27, total = 27, open = 0 },
-                            summary = "The documented API-v1 checklist is implemented early while the product still identifies as 0.9.3.1 Dev.",
+                            summary = "Die dokumentierte API-v1-Checkliste wurde vorgezogen vollständig umgesetzt; der formale Wechsel auf den Meilenstein 0.9.3.2 erfolgt separat.",
                             evidence = new[]
                             {
-                                "REST/JSON, OpenAPI 3.1, pagination, filtering, rate limits and idempotency",
-                                "OAuth2/OIDC, service clients, scoped API keys and audit history",
-                                "API Control Center, version history and machine-readable changelog",
-                                "Authenticated resident activity, presence and Hypergrid statistics dashboard"
+                                "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Rate-Limits und Idempotenz",
+                                "OAuth2/OIDC, Dienst-Clients, API-Schlüssel mit Berechtigungsumfang und Audit-Historie",
+                                "API-Kontrollzentrum, Versionshistorie und maschinenlesbares Änderungsprotokoll",
+                                "Authentifiziertes Statistik-Dashboard für Einwohneraktivität, Anwesenheit und Hypergrid"
                             }
                         },
                         new
                         {
                             version = "0.9.3.3",
                             codename = "",
-                            title = "Identity, Display Names, Profiles and Social Graph",
+                            title = "Identität, Anzeigenamen, Profile und soziales Netzwerk",
                             status = "started",
                             checklist = new { completed = 3, total = 3, open = 0 },
-                            summary = "Resident-compatible username normalization is implemented; Display Names, WebProfileV3 and the social graph remain future scope.",
+                            summary = "Die einwohnerkompatible Normalisierung von Benutzernamen ist umgesetzt; Anzeigenamen, WebProfileV3 und das soziale Netzwerk bleiben zukünftiger Umfang.",
                             evidence = new[]
                             {
-                                "Short, dotted and legacy Resident login forms are normalized and CI tested"
+                                "Kurze, punktgetrennte und ältere Resident-Anmeldeformen sind normalisiert und CI-getestet"
                             }
                         },
                         new
                         {
                             version = "0.9.3.4",
                             codename = "",
-                            title = "Simulator, Region and Estate Control Plane",
+                            title = "Simulator-, Regionen- und Estate-Steuerung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent heartbeats and lifecycle events exist; full simulator, region, grid-planner and estate management remain open.",
+                            summary = "NodeAgent-Heartbeats und Lebenszyklusereignisse sind vorhanden; vollständige Simulator-, Regionen-, Grid-Planer- und Estate-Verwaltung stehen noch aus.",
                             evidence = new[]
                             {
-                                "NexVerseNodeAgentModule publishes node/region lifecycle and health heartbeats"
+                                "NexVerseNodeAgentModule veröffentlicht Node-/Regions-Lebenszyklus und Status-Heartbeats"
                             }
                         },
                         new
                         {
                             version = "0.9.3.5",
                             codename = "",
-                            title = "Inventory, OAR/IAR, Job Engine and NexBus",
+                            title = "Inventar, OAR/IAR, Job-Engine und NexBus",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "Distributed NexBus is implemented as infrastructure; inventory archive APIs, Job Engine and supported cross-region object messaging remain open.",
+                            summary = "Der verteilte NexBus ist als Infrastruktur umgesetzt; Inventararchiv-APIs, Job-Engine und unterstützte regionsübergreifende Objektkommunikation stehen noch aus.",
                             evidence = new[]
                             {
-                                "Authenticated HMAC peer transport, event deduplication and bounded outbound delivery"
+                                "Authentifizierter HMAC-Peer-Transport, Ereignis-Deduplizierung und begrenzte ausgehende Zustellung"
                             }
                         },
-                        new { version = "0.9.3.6", codename = "", title = "NV$ Economy, Banking, Commerce and Land", status = "planned", checklist = (object)null, summary = "Native ledger, banking, viewer economy compatibility and land commerce.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.7", codename = "", title = "NexGroups and NexExperiences", status = "planned", checklist = (object)null, summary = "Native group and Experience services plus their viewer/LSL integration.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.8", codename = "", title = "Search, Places, Land and Destination Guide", status = "planned", checklist = (object)null, summary = "Search, places, land portal and destination discovery services.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC/Janus voice platform replacing removed legacy voice systems.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.10", codename = "", title = "Pathfinding", status = "planned", checklist = (object)null, summary = "Pathfinding service, navmesh behavior and LSL integration.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.11", codename = "", title = "LSL Parity I — Core Conformance", status = "planned", checklist = (object)null, summary = "Machine-readable LSL matrix, conformance tests and script sandbox hardening.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.12", codename = "", title = "LSL Parity II — Advanced Systems", status = "planned", checklist = (object)null, summary = "Advanced LSL systems, profiler and developer tooling.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.13", codename = "", title = "Assets, Rendering, Marketplace and Media", status = "planned", checklist = (object)null, summary = "NexAsset, modern materials/content pipeline, marketplace and media.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.14", codename = "", title = "NexAds, Events and Notifications", status = "planned", checklist = (object)null, summary = "Advertising, event and notification platform services.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Banking, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Ledger, Banking, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.7", codename = "", title = "NexGroups and NexExperiences", status = "planned", checklist = (object)null, summary = "Native Gruppen- und Experience-Dienste einschließlich Viewer-/LSL-Integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "planned", checklist = (object)null, summary = "Suche, Orte, Landportal und Dienste zur Zielentdeckung.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC-/Janus-Sprachplattform als Ersatz für entfernte Legacy-Sprachsysteme.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.10", codename = "", title = "Pathfinding", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.11", codename = "", title = "LSL-Parität I — Kernkonformität", status = "planned", checklist = (object)null, summary = "Maschinenlesbare LSL-Matrix, Konformitätstests und Härtung der Script-Sandbox.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.12", codename = "", title = "LSL-Parität II — Erweiterte Systeme", status = "planned", checklist = (object)null, summary = "Erweiterte LSL-Systeme, Profiler und Entwicklerwerkzeuge.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.13", codename = "", title = "Assets, Rendering, Marktplatz und Medien", status = "planned", checklist = (object)null, summary = "NexAsset, moderne Material-/Inhaltspipeline, Marktplatz und Medien.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.14", codename = "", title = "NexAds, Veranstaltungen und Benachrichtigungen", status = "planned", checklist = (object)null, summary = "Plattformdienste für Werbung, Veranstaltungen und Benachrichtigungen.", evidence = Array.Empty<string>() },
                         new
                         {
                             version = "0.9.3.15",
                             codename = "",
-                            title = "Monitoring, Security and Operations",
+                            title = "Monitoring, Sicherheit und Betrieb",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "Observability and several security controls were pulled forward; dashboards, alerting, backup, moderation and rolling updates remain future scope.",
+                            summary = "Beobachtbarkeit und mehrere Sicherheitskontrollen wurden vorgezogen; Dashboards, Alarmierung, Backups, Moderation und Rolling Updates bleiben zukünftiger Umfang.",
                             evidence = new[]
                             {
-                                "Prometheus-compatible NexMetrics and OpenTelemetry/OTLP export",
-                                "Correlation IDs, API rate limiting, audit records and scoped credentials"
+                                "Prometheus-kompatible NexMetrics und OpenTelemetry-/OTLP-Export",
+                                "Korrelations-IDs, API-Rate-Limits, Audit-Datensätze und Zugangsdaten mit Berechtigungsumfang"
                             }
                         },
-                        new { version = "0.9.3.16", codename = "", title = "Developer Platform, SDKs and Extensibility", status = "planned", checklist = (object)null, summary = "Developer portal, official SDKs, webhooks/realtime APIs and module contracts.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.4.0", codename = "", title = "NexVerse Platform Generation 1", status = "planned", checklist = (object)null, summary = "Consolidation milestone for the first complete NexVerse platform generation.", evidence = Array.Empty<string>() }
+                        new { version = "0.9.3.16", codename = "", title = "Entwicklerplattform, SDKs und Erweiterbarkeit", status = "planned", checklist = (object)null, summary = "Entwicklerportal, offizielle SDKs, Webhooks/Echtzeit-APIs und Modulverträge.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.4.0", codename = "", title = "NexVerse Plattformgeneration 1", status = "planned", checklist = (object)null, summary = "Konsolidierungsmeilenstein für die erste vollständige NexVerse-Plattformgeneration.", evidence = Array.Empty<string>() }
                     }
                 },
                 x_nexverse_idempotency = new
@@ -765,7 +766,7 @@ namespace NexVerse.Server.Api
             response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(new
             {
                 error = "method_not_allowed",
-                message = "This endpoint currently accepts GET requests only.",
+                message = "Dieser Endpunkt akzeptiert derzeit ausschließlich GET-Anfragen.",
                 correlation_id = NexApiRequestContext.CurrentCorrelationId
             }, s_JsonOptions);
             return false;
@@ -784,11 +785,11 @@ namespace NexVerse.Server.Api
                                 new
                                 {
                                     description =
-                                        "Successful response"
+                                        "Erfolgreiche Antwort"
                                 },
                             ["429"] =
                                 JsonResponse(
-                                    "Rate limit exceeded",
+                                    "Rate-Limit überschritten",
                                     "Error")
                         },
                     ["security"] = Array.Empty<object>(),
@@ -801,12 +802,12 @@ namespace NexVerse.Server.Api
                         },
                     ["x-nexverse-purpose"] = summary,
                     ["x-nexverse-ai-instruction"] =
-                        "This is a public read-only operation. Do not infer additional privileges from its availability.",
+                        "Dies ist eine öffentliche, schreibgeschützte Operation. Aus ihrer Verfügbarkeit dürfen keine zusätzlichen Rechte abgeleitet werden.",
                     ["x-nexverse-security-constraints"] =
                         new[]
                         {
-                            "Do not send credentials unless an operation explicitly requires them.",
-                            "Respect rate limits and correlation IDs."
+                            "Keine Zugangsdaten senden, sofern eine Operation sie nicht ausdrücklich erfordert.",
+                            "Rate-Limits und Korrelations-IDs beachten."
                         }
                 };
 
@@ -831,23 +832,23 @@ namespace NexVerse.Server.Api
                                 new
                                 {
                                     description =
-                                        "Successful response"
+                                        "Erfolgreiche Antwort"
                                 },
                             ["400"] =
                                 JsonResponse(
-                                    "Invalid request",
+                                    "Ungültige Anfrage",
                                     "Error"),
                             ["401"] =
                                 JsonResponse(
-                                    "Invalid resident credentials",
+                                    "Ungültige Einwohner-Zugangsdaten",
                                     "Error"),
                             ["429"] =
                                 JsonResponse(
-                                    "Rate limit exceeded",
+                                    "Rate-Limit überschritten",
                                     "Error"),
                             ["503"] =
                                 JsonResponse(
-                                    "Native token service unavailable",
+                                    "Nativer Token-Dienst nicht verfügbar",
                                     "Error")
                         },
                     ["x-nexverse-audience"] =
@@ -858,13 +859,13 @@ namespace NexVerse.Server.Api
                         },
                     ["x-nexverse-purpose"] = summary,
                     ["x-nexverse-ai-instruction"] =
-                        "Use this endpoint only to create a resident session from credentials explicitly supplied for that purpose. Never infer, reuse, persist or expose a password.",
+                        "Diesen Endpunkt nur verwenden, um mit ausdrücklich dafür bereitgestellten Zugangsdaten eine Einwohnersitzung zu erstellen. Passwörter niemals ableiten, wiederverwenden, speichern oder offenlegen.",
                     ["x-nexverse-security-constraints"] =
                         new[]
                         {
-                            "TLS or an equivalent protected transport is mandatory.",
-                            "Send the password only in the JSON request body.",
-                            "Never log, cache or persist the password or returned access token."
+                            "TLS oder ein gleichwertig geschützter Transport ist zwingend erforderlich.",
+                            "Das Passwort ausschließlich im JSON-Anfrageinhalt senden.",
+                            "Passwort und zurückgegebenes Zugriffstoken niemals protokollieren, zwischenspeichern oder dauerhaft speichern."
                         }
                 };
 
@@ -897,12 +898,12 @@ namespace NexVerse.Server.Api
                     },
                     ["responses"] = new Dictionary<string, object>
                     {
-                        [operationSpec.successCode] = new { description = "Successful response" },
-                        ["400"] = JsonResponse("Invalid request", "Error"),
-                        ["401"] = JsonResponse("Authentication required", "Error"),
-                        ["403"] = JsonResponse("Insufficient scope", "Error"),
-                        ["404"] = JsonResponse("Resource not found", "Error"),
-                        ["429"] = JsonResponse("Rate limit exceeded", "Error")
+                        [operationSpec.successCode] = new { description = "Erfolgreiche Antwort" },
+                        ["400"] = JsonResponse("Ungültige Anfrage", "Error"),
+                        ["401"] = JsonResponse("Authentifizierung erforderlich", "Error"),
+                        ["403"] = JsonResponse("Unzureichender Berechtigungsumfang", "Error"),
+                        ["404"] = JsonResponse("Ressource nicht gefunden", "Error"),
+                        ["429"] = JsonResponse("Rate-Limit überschritten", "Error")
                     }
                 };
 
@@ -970,7 +971,7 @@ namespace NexVerse.Server.Api
                     StringComparison.OrdinalIgnoreCase))
             {
                 return
-                    "Administrative operation. Require explicit authenticated admin authorization; never infer or escalate permissions.";
+                    "Administrative Operation. Eine ausdrückliche authentifizierte Admin-Autorisierung verlangen; Berechtigungen niemals ableiten oder erweitern.";
             }
 
             if (!string.IsNullOrWhiteSpace(scope) &&
@@ -979,17 +980,17 @@ namespace NexVerse.Server.Api
                     StringComparison.OrdinalIgnoreCase))
             {
                 return
-                    "Resident self-service operation. Default to the authenticated subject; accessing another resident requires the documented admin authorization.";
+                    "Einwohner-Selbstbedienungsoperation. Standardmäßig den authentifizierten Benutzer verwenden; der Zugriff auf einen anderen Einwohner erfordert die dokumentierte Admin-Autorisierung.";
             }
 
             if (!string.IsNullOrWhiteSpace(scope))
             {
                 return
-                    "Scoped operation. Verify that the authenticated principal has the documented scope before acting.";
+                    "Operation mit Berechtigungsumfang. Vor der Ausführung prüfen, ob der authentifizierte Principal über den dokumentierten Scope verfügt.";
             }
 
             return
-                "Authenticated operation. Follow the documented authentication flow and never invent authorization.";
+                "Authentifizierte Operation. Dem dokumentierten Authentifizierungsablauf folgen und niemals Autorisierung erfinden.";
         }
 
         private static string[] SecurityConstraintsForScope(
@@ -1002,16 +1003,16 @@ namespace NexVerse.Server.Api
             {
                 return new[]
                 {
-                    "Administrative authorization must be explicit.",
-                    "Never expose bearer tokens, API keys, passwords or client secrets.",
-                    "Preserve audit and correlation metadata for state-changing actions."
+                    "Administrative Autorisierung muss ausdrücklich vorliegen.",
+                    "Bearer-Tokens, API-Schlüssel, Passwörter oder Client-Secrets niemals offenlegen.",
+                    "Audit- und Korrelationsmetadaten bei zustandsändernden Aktionen erhalten."
                 };
             }
 
             return new[]
             {
-                "Never expose bearer tokens, API keys, passwords or client secrets.",
-                "Respect the documented scope, rate limits and idempotency requirements."
+                "Bearer-Tokens, API-Schlüssel, Passwörter oder Client-Secrets niemals offenlegen.",
+                "Dokumentierten Scope, Rate-Limits und Idempotenzanforderungen beachten."
             };
         }
 
@@ -1052,7 +1053,7 @@ namespace NexVerse.Server.Api
             {
                 responses[successCode] =
                     JsonResponse(
-                        "Successful response",
+                        "Erfolgreiche Antwort",
                         responseSchema);
             }
         }
@@ -1511,7 +1512,7 @@ namespace NexVerse.Server.Api
                             type = "string",
                             minLength = 1,
                             maxLength = 129,
-                            description = "Canonical NexVerse resident login name, for example Antonia.Porta or a single-name Resident login."
+                            description = "Kanonischer NexVerse-Einwohner-Anmeldename, zum Beispiel Antonia.Porta oder eine einteilige Resident-Anmeldung."
                         },
                         ["password"] = new
                         {
@@ -1539,7 +1540,7 @@ namespace NexVerse.Server.Api
                         ["access_token"] = new
                         {
                             type = "string",
-                            description = "Native lifecycle-bound NexVerse bearer token."
+                            description = "Natives, an den Kontolebenszyklus gebundenes NexVerse-Bearer-Token."
                         },
                         ["token_type"] = new
                         {
