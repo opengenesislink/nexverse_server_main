@@ -1993,6 +1993,7 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenSim.Framework"/>
+      <Reference name="OpenSim.Data"/>
       <Reference name="OpenSim.Framework.Servers.HttpServer"/>
       <Reference name="OpenSim.Server.Handlers"/>
       <Reference name="OpenSim.Server.Base"/>

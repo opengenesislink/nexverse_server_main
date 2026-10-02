@@ -8,6 +8,7 @@ using NexVerse.Core.Audit;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
+using OpenSim.Data;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
@@ -256,6 +257,8 @@ namespace NexVerse.Server.Api
                 IInventoryService inventory = LoadOptionalService<IInventoryService>(config, "InventoryService");
                 IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
                 IGridService grid = LoadOptionalService<IGridService>(config, "GridService");
+                IPresenceService presence = LoadOptionalService<IPresenceService>(config, "PresenceService");
+                IGridUserData gridUserData = LoadGridUserData(config);
 
                 int adminMinimumLevel = apiConfig.GetInt("AdminMinimumUserLevel", 200);
                 int tokenLifetimeSeconds = apiConfig.GetInt("TokenLifetimeSeconds", 1800);
@@ -322,6 +325,18 @@ namespace NexVerse.Server.Api
                     idempotencyTtlSeconds,
                     apiKeyStore,
                     adminMinimumLevel);
+
+                NexStatisticsApi statisticsApi = new NexStatisticsApi(
+                    userAccounts,
+                    gridUserData,
+                    presence,
+                    grid,
+                    authenticator);
+
+                server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                    "/api/v1/statistics/summary",
+                    apiGate.Wrap(statisticsApi.Summary),
+                    "NexVerse statistics summary"));
 
                 if (nativeTokens != null && oauthStore != null && oidcSigner != null)
                 {
@@ -489,6 +504,48 @@ namespace NexVerse.Server.Api
             }
 
             return headers;
+        }
+
+        private static IGridUserData LoadGridUserData(IConfigSource config)
+        {
+            string dllName = string.Empty;
+            string connectionString = string.Empty;
+            string realm = "GridUser";
+
+            IConfig database = config.Configs["DatabaseService"];
+            if (database != null)
+            {
+                dllName = database.GetString("StorageProvider", dllName);
+                connectionString = database.GetString("ConnectionString", connectionString);
+            }
+
+            IConfig gridUsers = config.Configs["GridUserService"];
+            if (gridUsers != null)
+            {
+                dllName = gridUsers.GetString("StorageProvider", dllName);
+                connectionString = gridUsers.GetString("ConnectionString", connectionString);
+                realm = gridUsers.GetString("Realm", realm);
+            }
+
+            if (string.IsNullOrWhiteSpace(dllName))
+            {
+                m_Log.Warn("[NEX-WORLD-API]: Statistics GridUser data source is unavailable because no StorageProvider is configured.");
+                return null;
+            }
+
+            try
+            {
+                return ServerUtils.LoadPlugin<IGridUserData>(
+                    dllName,
+                    new object[] { connectionString, realm });
+            }
+            catch (Exception e)
+            {
+                m_Log.WarnFormat(
+                    "[NEX-WORLD-API]: Statistics GridUser data source could not be loaded: {0}",
+                    e.Message);
+                return null;
+            }
         }
 
         private static T LoadOptionalService<T>(IConfigSource config, string sectionName)

@@ -85,6 +85,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.label2{display:block;color:var(--muted);margin:8px 0 5px}pre{white-space:pre-wrap;word-break:break-word;background:#06101a;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:350px;overflow:auto}
 .action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
 .empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.datatable{width:100%;border-collapse:collapse;min-width:720px}.datatable th,.datatable td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.datatable th{font-size:12px;color:var(--muted);background:#0a1520}.datatable tr:last-child td{border-bottom:0}.datatable td:first-child{font-weight:600}.authnote{margin-top:10px;color:var(--muted);font-size:12px}
 @media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}}
 @media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version{grid-template-columns:1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
 </style>
@@ -94,6 +95,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <nav>
 <div class="brand"><strong>NexVerse API</strong><span>World API Control Center</span></div>
 <button class="navbtn active" data-page="overview">Übersicht</button>
+<button class="navbtn" data-page="statistics">Statistik</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Roadmap</button>
@@ -124,6 +126,48 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <button class="filter" data-goto="roadmap">Roadmap / Projektstatus</button>
 <button class="filter" data-goto="explorer">Endpoint Explorer</button>
 </div>
+</div>
+</section>
+
+
+<section class="page" id="page-statistics">
+<div class="hero">
+<div><div class="eyebrow">Live Analytics</div><h1>Grid-Statistik</h1><p>Aktuelle Einwohner-, Aktivitäts-, Presence- und Hypergrid-Kennzahlen direkt aus den laufenden NexVerse-Diensten.</p></div>
+<div class="pill"><span class="dot" id="statsDot"></span><span id="statsStatus">Noch nicht geladen</span></div>
+</div>
+<div class="section">
+<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende einen Admin-Bearer-Token oder einen API-Key mit <code>statistics:read</code>.</p>
+<div class="grid2">
+<div><label class="label2">Bearer Token</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">X-NexVerse-Api-Key</label><input id="statsApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
+</div>
+<div class="row" style="margin-top:10px"><button class="action" id="loadStats">Statistik laden</button><button class="action" id="clearStats">Credentials löschen</button></div>
+<div class="authnote">Die Zugangsdaten bleiben nur in dieser geöffneten Seite und werden nicht gespeichert.</div>
+</div>
+<div class="cards">
+<div class="card"><div class="label">Registriert</div><div class="value" id="statRegistered">–</div><div class="sub">lokale Einwohnerkonten</div></div>
+<div class="card"><div class="label">Gerade online</div><div class="value" id="statOnlineTotal">–</div><div class="sub">Einwohner + Hypergrid</div></div>
+<div class="card"><div class="label">Einwohner online</div><div class="value" id="statResidentsOnline">–</div><div class="sub">auf diesem Grid</div></div>
+<div class="card"><div class="label">Aktiv letzte 7 Tage</div><div class="value" id="statActive7">–</div><div class="sub">eindeutige Einwohner</div></div>
+<div class="card"><div class="label">Aktiv letzte 30 Tage</div><div class="value" id="statActive30">–</div><div class="sub">eindeutige Einwohner</div></div>
+<div class="card"><div class="label">Hypergrid online</div><div class="value" id="statHgOnline">–</div><div class="sub">fremde Besucher jetzt</div></div>
+<div class="card"><div class="label">HG-Besucher bekannt</div><div class="value" id="statHgKnown">–</div><div class="sub">eindeutige Besucher</div></div>
+<div class="card"><div class="label">HG letzte 30 Tage</div><div class="value" id="statHg30">–</div><div class="sub">eindeutige Besucher</div></div>
+</div>
+<div class="section">
+<h2>Gerade online</h2><p class="sectionlead">Lokale Einwohner und Hypergrid-Besucher mit aktuell ermittelter Region.</p>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Name</th><th>Typ</th><th>Region</th><th>Home Grid</th><th>Login</th></tr></thead><tbody id="statsOnlineBody"></tbody></table></div>
+</div>
+<div class="section">
+<h2>Hypergrid-Herkunft</h2><p class="sectionlead">Bekannte eindeutige Besucher nach Home Grid. Dies sind keine kumulierten Besuchssessions.</p>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Home Grid</th><th>Bekannt</th><th>Online</th><th>7 Tage</th><th>30 Tage</th></tr></thead><tbody id="statsHgBody"></tbody></table></div>
+</div>
+<div class="section">
+<h2>Regionen jetzt</h2><p class="sectionlead">Aktuelle Belegung nach Region, getrennt nach lokalen Einwohnern und Hypergrid-Besuchern.</p>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Region</th><th>Gesamt</th><th>Einwohner</th><th>Hypergrid</th></tr></thead><tbody id="statsRegionBody"></tbody></table></div>
+</div>
+<div class="section">
+<h2>Datenbasis</h2><pre id="statsQuality">Statistik noch nicht geladen.</pre>
 </div>
 </section>
 
@@ -364,6 +408,77 @@ function renderRoadmap(){
     host.append(box);
   });
 }
+
+function statText(id,value){$(id).textContent=value===null||value===undefined?'–':String(value)}
+function appendStatsRow(hostId,values){
+  const host=$(hostId),tr=document.createElement('tr');
+  values.forEach(value=>{const td=document.createElement('td');td.textContent=value===null||value===undefined||value===''?'–':String(value);tr.append(td)});
+  host.append(tr);
+}
+function formatStatDate(value){
+  if(!value)return '–';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?String(value):d.toLocaleString('de-DE');
+}
+function renderStatistics(data){
+  const residents=data.residents||{},hg=data.hypergrid||{},online=data.online||{};
+  statText('statRegistered',residents.registered_total);
+  statText('statOnlineTotal',online.total);
+  statText('statResidentsOnline',residents.online_now);
+  statText('statActive7',residents.active_last_7_days);
+  statText('statActive30',residents.active_last_30_days);
+  statText('statHgOnline',hg.online_now);
+  statText('statHgKnown',hg.known_visitors_total);
+  statText('statHg30',hg.visitors_last_30_days);
+  $('statsOnlineBody').replaceChildren();
+  (online.users||[]).forEach(user=>appendStatsRow('statsOnlineBody',[
+    user.name,
+    user.type==='hypergrid'?'Hypergrid':'Einwohner',
+    user.region_name||user.region_id,
+    user.home_grid||'lokal',
+    formatStatDate(user.login_at)
+  ]));
+  if(!(online.users||[]).length)appendStatsRow('statsOnlineBody',['Niemand online','','','','']);
+  $('statsHgBody').replaceChildren();
+  (data.hypergrid_home_grids||[]).forEach(item=>appendStatsRow('statsHgBody',[
+    item.home_grid,item.known_visitors,item.online_now,item.last_7_days,item.last_30_days
+  ]));
+  if(!(data.hypergrid_home_grids||[]).length)appendStatsRow('statsHgBody',['Keine Hypergrid-Daten','','','','']);
+  $('statsRegionBody').replaceChildren();
+  (data.regions||[]).forEach(item=>appendStatsRow('statsRegionBody',[
+    item.region_name||item.region_id,item.online_total,item.residents,item.hypergrid
+  ]));
+  if(!(data.regions||[]).length)appendStatsRow('statsRegionBody',['Keine Online-Belegung','','','']);
+  $('statsQuality').textContent=JSON.stringify({
+    generated_at:data.generated_at,
+    account_states:data.account_states,
+    data_quality:data.data_quality
+  },null,2);
+}
+async function loadStatistics(){
+  const headers={'Accept':'application/json'};
+  const bearer=$('statsBearer').value.trim()||$('bearer').value.trim();
+  const key=$('statsApiKey').value.trim()||$('apiKey').value.trim();
+  if(bearer)headers.Authorization='Bearer '+bearer;
+  if(key)headers['X-NexVerse-Api-Key']=key;
+  $('statsStatus').textContent='Lade Statistik…';$('statsDot').className='dot';
+  try{
+    const res=await fetch('/api/v1/statistics/summary',{headers,cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){
+      $('statsStatus').textContent=res.status===401||res.status===403?'Authentifizierung erforderlich':'Statistik nicht verfügbar';
+      $('statsDot').className='dot bad';
+      $('statsQuality').textContent=data?JSON.stringify(data,null,2):txt;
+      return;
+    }
+    renderStatistics(data||{});
+    $('statsStatus').textContent='Live · '+formatStatDate(data.generated_at);
+    $('statsDot').className='dot good';
+  }catch(err){
+    $('statsStatus').textContent='Statistik nicht erreichbar';$('statsDot').className='dot bad';$('statsQuality').textContent=String(err);
+  }
+}
+
 async function execute(){
   if(!selected)return;
   const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
@@ -400,6 +515,7 @@ async function init(){
   }
 }
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
+$('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 init();
 </script>
 </body>
