@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using log4net;
+using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Security;
 using OpenMetaverse;
 using OpenSim.Framework;
@@ -32,15 +33,20 @@ namespace NexVerse.Server.Api
 
         private readonly IGridService m_Grid;
         private readonly NexApiAuthenticator m_Authenticator;
+        private readonly NexNodeRegistry m_Nodes;
 
         public NexGridControlApi(
             IGridService grid,
-            NexApiAuthenticator authenticator)
+            NexApiAuthenticator authenticator,
+            NexNodeRegistry nodes)
         {
             m_Grid = grid;
             m_Authenticator =
                 authenticator ??
                 throw new ArgumentNullException(nameof(authenticator));
+            m_Nodes =
+                nodes ??
+                throw new ArgumentNullException(nameof(nodes));
         }
 
         public void Handle(
@@ -616,11 +622,15 @@ namespace NexVerse.Server.Api
             };
         }
 
-        private static object RegionPayload(
+        private object RegionPayload(
             GridRegion region)
         {
             GridFootprint footprint =
                 Footprint(region);
+
+            NexNodeSnapshot node =
+                m_Nodes.FindNodeForRegion(
+                    region.RegionID.ToString());
 
             bool? online = null;
 
@@ -671,6 +681,10 @@ namespace NexVerse.Server.Api
                 online,
                 reserved =
                     IsReservation(region),
+                node_id =
+                    node?.NodeId,
+                node_state =
+                    node?.State,
                 server_uri =
                     region.ServerURI
             };
