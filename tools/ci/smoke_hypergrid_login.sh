@@ -103,7 +103,7 @@ if [ "$SOURCE_READY" -ne 1 ]; then
   exit 1
 fi
 
-dotnet OpenSim.dll   -inifile OpenSim.NexVerseHypergridDestination.Tests.ini   > "$DEST_LOG" 2>&1 &
+dotnet OpenSim.dll   -background=true   -inifile OpenSim.NexVerseHypergridDestination.Tests.ini   > "$DEST_LOG" 2>&1 &
 DEST_PID=$!
 
 DEST_READY=0
