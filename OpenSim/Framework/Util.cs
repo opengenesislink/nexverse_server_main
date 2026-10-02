@@ -2259,9 +2259,9 @@ namespace OpenSim.Framework
                 {
                     if (!string.IsNullOrWhiteSpace(explicitPath) &&
                         string.Equals(
-                            path,
-                            Path.GetFullPath(explicitPath),
-                            StringComparison.OrdinalIgnoreCase))
+                            candidate,
+                            explicitPath,
+                            StringComparison.Ordinal))
                     {
                         m_log.WarnFormat(
                             "[NEXVERSE SECRETS]: NEXVERSE_ENV_FILE does not exist: {0}",
