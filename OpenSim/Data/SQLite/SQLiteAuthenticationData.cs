@@ -81,50 +81,45 @@ namespace OpenSim.Data.SQLite
         {
             AuthenticationData ret = new AuthenticationData();
             ret.Data = new Dictionary<string, object>();
-            IDataReader result;
 
             using (SqliteCommand cmd = new SqliteCommand("select * from `" + m_Realm + "` where UUID = :PrincipalID"))
             {
                 cmd.Parameters.Add(new SqliteParameter(":PrincipalID", principalID.ToString()));
 
-                result = ExecuteReader(cmd, m_Connection);
-            }
-
-            try
-            {
-                if (result.Read())
+                using (IDataReader result = ExecuteReader(cmd, m_Connection))
                 {
-                    ret.PrincipalID = principalID;
-
-                    if (m_ColumnNames == null)
+                    try
                     {
-                        m_ColumnNames = new List<string>();
+                        if (result == null || !result.Read())
+                            return null;
 
-                        DataTable schemaTable = result.GetSchemaTable();
-                        foreach (DataRow row in schemaTable.Rows)
-                            m_ColumnNames.Add(row["ColumnName"].ToString());
+                        ret.PrincipalID = principalID;
+
+                        if (m_ColumnNames == null)
+                        {
+                            m_ColumnNames = new List<string>();
+
+                            DataTable schemaTable = result.GetSchemaTable();
+                            foreach (DataRow row in schemaTable.Rows)
+                                m_ColumnNames.Add(row["ColumnName"].ToString());
+                        }
+
+                        foreach (string s in m_ColumnNames)
+                        {
+                            if (s == "UUID")
+                                continue;
+
+                            ret.Data[s] = result[s].ToString();
+                        }
+
+                        return ret;
                     }
-
-                    foreach (string s in m_ColumnNames)
+                    catch
                     {
-                        if (s == "UUID")
-                            continue;
-
-                        ret.Data[s] = result[s].ToString();
+                        return null;
                     }
-
-                    return ret;
-                }
-                else
-                {
-                    return null;
                 }
             }
-            catch
-            {
-            }
-
-            return null;
         }
 
         public bool Store(AuthenticationData data)
