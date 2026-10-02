@@ -93,6 +93,8 @@ namespace NexVerse.Server.Api
                     NexScopes.FriendsManage,
                     NexScopes.RegionsRead,
                     NexScopes.RegionsManage,
+                    NexScopes.SimulatorsRead,
+                    NexScopes.SimulatorsManage,
                     NexScopes.StatisticsRead,
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
