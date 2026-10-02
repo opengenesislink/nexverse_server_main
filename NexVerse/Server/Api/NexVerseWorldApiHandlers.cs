@@ -45,12 +45,13 @@ namespace NexVerse.Server.Api
 
             WriteJson(response, new
             {
-                service = "NexVerse World API",
+                service = "NexVerse Welt-API",
                 product = NexVersePlatform.ProductName,
                 api_version = NexVersePlatform.ApiVersion,
                 milestone = NexVersePlatform.MilestoneVersion,
                 milestone_codename = NexVersePlatform.MilestoneCodename,
                 milestone_title = NexVersePlatform.MilestoneTitle,
+                language = NexVersePlatform.UiLanguage,
                 status = "development",
                 health = m_PublicBaseUrl + "/api/v1/health",
                 version = m_PublicBaseUrl + "/api/v1/version",
@@ -76,6 +77,7 @@ namespace NexVerse.Server.Api
                 milestone = NexVersePlatform.MilestoneVersion,
                 milestone_codename = NexVersePlatform.MilestoneCodename,
                 milestone_title = NexVersePlatform.MilestoneTitle,
+                language = NexVersePlatform.UiLanguage,
                 timestamp = DateTimeOffset.UtcNow,
                 correlation_id = correlationId
             });
@@ -98,6 +100,7 @@ namespace NexVerse.Server.Api
                 milestone = NexVersePlatform.MilestoneVersion,
                 milestone_codename = NexVersePlatform.MilestoneCodename,
                 milestone_title = NexVersePlatform.MilestoneTitle,
+                language = NexVersePlatform.UiLanguage,
                 correlation_id = correlationId
             });
         }
@@ -410,9 +413,9 @@ namespace NexVerse.Server.Api
                 openapi = "3.1.0",
                 info = new
                 {
-                    title = "NexVerse World API",
+                    title = "NexVerse Welt-API",
                     version = NexVersePlatform.ApiVersion,
-                    description = "NexVerse-Robust-Steuerungs-API. Administrative Endpunkte erfordern eine Authentifizierung mit passendem Berechtigungsumfang."
+                    description = "NexVerse-Robust-Steuerungs-API in deutscher Oberfläche. Administrative Endpunkte erfordern eine Authentifizierung mit passendem Berechtigungsumfang."
                 },
                 servers = new[]
                 {
@@ -438,6 +441,7 @@ namespace NexVerse.Server.Api
                         }
                     }
                 },
+                x_nexverse_language = NexVersePlatform.UiLanguage,
                 x_nexverse_version_history = new object[]
                 {
                     new
@@ -447,12 +451,12 @@ namespace NexVerse.Server.Api
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
                         published = "2026-10-02",
-                        compatibility = "Aktive NexVerse-World-API-v1-Entwicklungslinie",
+                        compatibility = "Aktive Entwicklungslinie der NexVerse Welt-API v1",
                         highlights = new[]
                         {
                             "Formaler Wechsel auf NexVerse 0.9.3.2 Dev",
-                            "Härtung und Abschluss des World-API-v1-Vertrags",
-                            "Statistik-, Authentifizierungs- und Betriebsverhalten werden releasefähig gemacht"
+                            "Härtung und Abschluss des Vertrags der Welt-API v1",
+                            "Statistik-, Authentifizierungs- und Betriebsverhalten werden für die Veröffentlichung gehärtet"
                         }
                     },
                     new
@@ -462,13 +466,13 @@ namespace NexVerse.Server.Api
                         codename = "NEXJAST",
                         status = "release",
                         published = "2026-10-02",
-                        compatibility = "Erster NexVerse-World-API-v1-Vertrag und Plattform-Grundlage",
+                        compatibility = "Erster Vertrag der NexVerse Welt-API v1 und Plattform-Grundlage",
                         highlights = new[]
                         {
                             "Native Einwohnersitzungen und Zugriffstokens mit Berechtigungsumfang",
-                            "OAuth2/OIDC Authorization Code + PKCE und Dienst-Clients",
+                            "OAuth2/OIDC-Autorisierungscode mit PKCE und Dienstzugängen",
                             "Persistente Audit-Historie, API-Schlüssel und idempotente Provisionierung",
-                            "Selbst gehostetes API-Kontrollzentrum, Live-Explorer und Statistik-Dashboard",
+                            "Selbst gehostetes API-Kontrollzentrum, interaktiver API-Prüfer und Statistikübersicht",
                             "Verteilte NexBus- und NodeAgent-Grundlage",
                             "Prometheus-/OpenTelemetry-/OTLP-Beobachtbarkeitsgrundlage"
                         }
@@ -483,7 +487,7 @@ namespace NexVerse.Server.Api
                         category = "api",
                         status = "development",
                         title = "NexVerse 0.9.3.2 Dev gestartet",
-                        summary = "Die World-API-v1-Arbeit ist jetzt die aktive Produktlinie. Runtime-Version, Roadmap-Metadaten, API-Status und CI-Vertrag wurden auf 0.9.3.2 Dev umgestellt.",
+                        summary = "Die Welt-API-v1-Arbeit ist jetzt die aktive Produktlinie. Laufzeitversion, Entwicklungsplan-Metadaten, API-Status und CI-Vertrag wurden auf 0.9.3.2 Dev umgestellt.",
                         endpoints = new[] { "/api/v1/version", "/api/v1/openapi.json", "/api/v1/docs" }
                     },
                     new
@@ -493,7 +497,7 @@ namespace NexVerse.Server.Api
                         category = "analytics",
                         status = "implemented",
                         title = "Einwohner- und Hypergrid-Statistik-Dashboard",
-                        summary = "Authentifizierte World-API-Statistiken zeigen registrierte Einwohner, aktuelle Anwesenheit, Aktivität der letzten 7/30 Tage, Hypergrid-Besucher, Home-Grid-Aufschlüsselungen und Regionsbelegung im API-Kontrollzentrum.",
+                        summary = "Authentifizierte Statistiken der Welt-API zeigen registrierte Einwohner, aktuelle Anwesenheit, Aktivität der letzten 7/30 Tage, Hypergrid-Besucher, Aufschlüsselungen nach Heimat-Grid und Regionsbelegung im API-Kontrollzentrum.",
                         endpoints = new[] { "/api/v1/statistics/summary", "/api/v1/docs" }
                     },
                     new
@@ -513,7 +517,7 @@ namespace NexVerse.Server.Api
                         category = "security",
                         status = "implemented",
                         title = "Umstellung auf native Authentifizierung",
-                        summary = "Die World-API-Authentifizierung hängt nicht mehr vom vorläufigen Legacy-Bearer-Token-Bootstrap des AuthenticationService ab.",
+                        summary = "Die Authentifizierung der Welt-API hängt nicht mehr von der vorläufigen alten Bearer-Token-Anmeldung des AuthenticationService ab.",
                         endpoints = new[] { "/api/v1/auth/session", "/oauth/token", "/oauth/revoke", "/api/v1/auth/sessions/revoke" }
                     },
                     new
@@ -597,32 +601,32 @@ namespace NexVerse.Server.Api
                         {
                             version = "0.9.3.1",
                             codename = "NEXJAST",
-                            title = "Legacy-Bereinigung und Plattform-Grundlage",
+                            title = "Altlasten-Bereinigung und Plattform-Grundlage",
                             status = "released",
                             checklist = new { completed = 45, total = 45, open = 0 },
-                            summary = "Clean-Core-Grundlage, native World API/Authentifizierung, NexBus, NodeAgent, Beobachtbarkeit und Kompatibilitätsschutz.",
+                            summary = "Bereinigte Kernbasis, native Welt-API und Authentifizierung, NexBus, NodeAgent, Beobachtbarkeit und Kompatibilitätsschutz.",
                             evidence = new[]
                             {
                                 "RemoteAdmin, Vivox, FreeSwitch und IRC-Bridge entfernt",
-                                "Native World API, OAuth2/OIDC, API-Schlüssel und Benutzerlebenszyklus umgesetzt",
+                                "Native Welt-API, OAuth2/OIDC, API-Schlüssel und Benutzerlebenszyklus umgesetzt",
                                 "Verteilte NexBus-, NodeAgent- und NexMetrics/OTLP-Grundlage umgesetzt",
-                                "Hypergrid-Anmeldung und RemoteData mit laufendem Script sind end-to-end durch CI verifiziert"
+                                "Hypergrid-Anmeldung und RemoteData mit laufendem Skript sind durchgängig durch CI verifiziert"
                             }
                         },
                         new
                         {
                             version = "0.9.3.2",
                             codename = "",
-                            title = "NexVerse World API v1",
+                            title = "NexVerse Welt-API v1",
                             status = "active",
                             checklist = new { completed = 27, total = 27, open = 0 },
                             summary = "Aktiver Produkt-Meilenstein. Die dokumentierte API-v1-Checkliste ist umgesetzt; die aktuelle Arbeit konzentriert sich auf Release-Härtung, Laufzeitkonsistenz und Produktionsbetrieb.",
                             evidence = new[]
                             {
-                                "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Rate-Limits und Idempotenz",
-                                "OAuth2/OIDC, Dienst-Clients, API-Schlüssel mit Berechtigungsumfang und Audit-Historie",
+                                "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Anfragelimits und Idempotenz",
+                                "OAuth2/OIDC, Dienstzugänge, API-Schlüssel mit Berechtigungsumfang und Prüfprotokoll-Historie",
                                 "API-Kontrollzentrum, Versionshistorie und maschinenlesbares Änderungsprotokoll",
-                                "Authentifiziertes Statistik-Dashboard für Einwohneraktivität, Anwesenheit und Hypergrid"
+                                "Authentifizierte Statistikübersicht für Einwohneraktivität, Anwesenheit und Hypergrid"
                             }
                         },
                         new
@@ -642,52 +646,52 @@ namespace NexVerse.Server.Api
                         {
                             version = "0.9.3.4",
                             codename = "",
-                            title = "Simulator-, Regionen- und Estate-Steuerung",
+                            title = "Simulator-, Regionen- und Estate-Verwaltung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent-Heartbeats und Lebenszyklusereignisse sind vorhanden; vollständige Simulator-, Regionen-, Grid-Planer- und Estate-Verwaltung stehen noch aus.",
+                            summary = "NodeAgent-Statusmeldungen und Lebenszyklusereignisse sind vorhanden; vollständige Simulator-, Regionen-, Grid-Planer- und Estate-Verwaltung stehen noch aus.",
                             evidence = new[]
                             {
-                                "NexVerseNodeAgentModule veröffentlicht Node-/Regions-Lebenszyklus und Status-Heartbeats"
+                                "NexVerseNodeAgentModule veröffentlicht Lebenszyklusereignisse von Knoten/Regionen und regelmäßige Statusmeldungen"
                             }
                         },
                         new
                         {
                             version = "0.9.3.5",
                             codename = "",
-                            title = "Inventar, OAR/IAR, Job-Engine und NexBus",
+                            title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "Der verteilte NexBus ist als Infrastruktur umgesetzt; Inventararchiv-APIs, Job-Engine und unterstützte regionsübergreifende Objektkommunikation stehen noch aus.",
+                            summary = "Der verteilte NexBus ist als Infrastruktur umgesetzt; Inventararchiv-APIs, Auftragssteuerung und unterstützte regionsübergreifende Objektkommunikation stehen noch aus.",
                             evidence = new[]
                             {
                                 "Authentifizierter HMAC-Peer-Transport, Ereignis-Deduplizierung und begrenzte ausgehende Zustellung"
                             }
                         },
-                        new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Banking, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Ledger, Banking, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "planned", checklist = (object)null, summary = "Native Gruppen- und Experience-Dienste einschließlich Viewer-/LSL-Integration.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "planned", checklist = (object)null, summary = "Suche, Orte, Landportal und Dienste zur Zielentdeckung.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC-/Janus-Sprachplattform als Ersatz für entfernte Legacy-Sprachsysteme.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.11", codename = "", title = "LSL-Parität I — Kernkonformität", status = "planned", checklist = (object)null, summary = "Maschinenlesbare LSL-Matrix, Konformitätstests und Härtung der Script-Sandbox.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.12", codename = "", title = "LSL-Parität II — Erweiterte Systeme", status = "planned", checklist = (object)null, summary = "Erweiterte LSL-Systeme, Profiler und Entwicklerwerkzeuge.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.13", codename = "", title = "Assets, Rendering, Marktplatz und Medien", status = "planned", checklist = (object)null, summary = "NexAsset, moderne Material-/Inhaltspipeline, Marktplatz und Medien.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.13", codename = "", title = "Assets, Darstellung, Marktplatz und Medien", status = "planned", checklist = (object)null, summary = "NexAsset, moderne Material- und Inhaltspipeline, Marktplatz und Medien.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.14", codename = "", title = "NexAds, Veranstaltungen und Benachrichtigungen", status = "planned", checklist = (object)null, summary = "Plattformdienste für Werbung, Veranstaltungen und Benachrichtigungen.", evidence = Array.Empty<string>() },
                         new
                         {
                             version = "0.9.3.15",
                             codename = "",
-                            title = "Monitoring, Sicherheit und Betrieb",
+                            title = "Überwachung, Sicherheit und Betrieb",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "Beobachtbarkeit und mehrere Sicherheitskontrollen wurden vorgezogen; Dashboards, Alarmierung, Backups, Moderation und Rolling Updates bleiben zukünftiger Umfang.",
+                            summary = "Beobachtbarkeit und mehrere Sicherheitskontrollen wurden vorgezogen; Übersichten, Alarmierung, Sicherungen, Moderation und gestaffelte Aktualisierungen bleiben zukünftiger Umfang.",
                             evidence = new[]
                             {
                                 "Prometheus-kompatible NexMetrics und OpenTelemetry-/OTLP-Export",
                                 "Korrelations-IDs, API-Rate-Limits, Audit-Datensätze und Zugangsdaten mit Berechtigungsumfang"
                             }
                         },
-                        new { version = "0.9.3.16", codename = "", title = "Entwicklerplattform, SDKs und Erweiterbarkeit", status = "planned", checklist = (object)null, summary = "Entwicklerportal, offizielle SDKs, Webhooks/Echtzeit-APIs und Modulverträge.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.16", codename = "", title = "Entwicklerplattform, SDKs und Erweiterbarkeit", status = "planned", checklist = (object)null, summary = "Entwicklerportal, offizielle SDKs, Webhooks, Echtzeit-APIs und Modulverträge.", evidence = Array.Empty<string>() },
                         new { version = "0.9.4.0", codename = "", title = "NexVerse Plattformgeneration 1", status = "planned", checklist = (object)null, summary = "Konsolidierungsmeilenstein für die erste vollständige NexVerse-Plattformgeneration.", evidence = Array.Empty<string>() }
                     }
                 },

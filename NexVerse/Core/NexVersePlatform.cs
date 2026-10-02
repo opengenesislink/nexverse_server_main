@@ -10,7 +10,8 @@ namespace NexVerse.Core
         public const string ProductName = "NexVerse";
         public const string MilestoneVersion = "0.9.3.2";
         public const string MilestoneCodename = "";
-        public const string MilestoneTitle = "NexVerse World API v1";
+        public const string MilestoneTitle = "NexVerse Welt-API v1";
+        public const string UiLanguage = "de-DE";
         public const string ApiVersion = "v1";
         public const string ProtocolVersion = "1";
         public const string NexBusSchemaVersion = "1";
