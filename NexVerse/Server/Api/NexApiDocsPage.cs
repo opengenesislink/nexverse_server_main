@@ -81,13 +81,14 @@ main{min-width:0;padding:34px}.page{display:none;max-width:1280px;margin:0 auto}
 .explorer{display:grid;grid-template-columns:minmax(290px,32%) 1fr;gap:16px}.endpointlist,.detail{min-width:0}.search{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
 .endpoint{padding:10px;margin:7px 0;border:1px solid var(--line);border-radius:9px;background:#0b1621;cursor:pointer}.endpoint:hover,.endpoint.active{border-color:var(--accent);background:var(--panel2)}
 .method{display:inline-block;min-width:58px;font-weight:800;color:var(--accent)}.path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.small{font-size:12px;color:var(--muted)}
-input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}textarea{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}textarea{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.label2{display:block;color:var(--muted);margin:8px 0 5px}pre{white-space:pre-wrap;word-break:break-word;background:#06101a;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:350px;overflow:auto}
 .action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
 .empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.datatable{width:100%;border-collapse:collapse;min-width:720px}.datatable th,.datatable td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.datatable th{font-size:12px;color:var(--muted);background:#0a1520}.datatable tr:last-child td{border-bottom:0}.datatable td:first-child{font-weight:600}.authnote{margin-top:10px;color:var(--muted);font-size:12px}
-@media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}}
-@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version{grid-template-columns:1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
+.planner-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.planner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.planner-actions .action{flex:0 0 auto}.gridlegend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.legenditem{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.legendswatch{width:13px;height:13px;border-radius:3px;border:1px solid var(--line)}.gridboardwrap{overflow:auto;max-height:680px;border:1px solid var(--line);border-radius:10px;background:#06101a;padding:12px}.gridboard{--cell:30px;display:grid;gap:2px;width:max-content;min-width:100%}.gridcell{width:var(--cell);height:var(--cell);min-width:var(--cell);padding:0;border:1px solid #22384b;border-radius:3px;background:#0c1a26;color:transparent;position:relative}.gridcell:hover{outline:2px solid var(--accent);z-index:2}.gridcell.free{background:#123326}.gridcell.occupied{background:#1d4c6a}.gridcell.reserved{background:#5a461c}.gridcell.conflict{background:#6a2323}.gridcell.selected{outline:2px solid #fff;z-index:3}.gridcell.preview-ok{box-shadow:inset 0 0 0 2px var(--good)}.gridcell.preview-bad{box-shadow:inset 0 0 0 2px var(--danger)}.gridcell.dimmed{opacity:.22}.gridcell[data-region-name]:after{content:'';position:absolute;inset:35%;border-radius:50%;background:rgba(255,255,255,.72)}.gridinfo{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gridinfo pre{margin:0;min-height:150px}.gridcoord{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.planner-note{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0a1520;color:var(--muted);font-size:12px}
+@media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}.planner-controls{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version,.gridinfo{grid-template-columns:1fr}.planner-controls{grid-template-columns:1fr 1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
 </style>
 </head>
 <body>
@@ -96,6 +97,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="brand"><strong>NexVerse API</strong><span>Welt-API-Kontrollzentrum</span></div>
 <button class="navbtn active" data-page="overview">Übersicht</button>
 <button class="navbtn" data-page="statistics">Statistik</button>
+<button class="navbtn" data-page="grid">Grid-Planer</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
@@ -171,6 +173,56 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </div>
 </section>
 
+<section class="page" id="page-grid">
+<div class="hero">
+<div><div class="eyebrow">Region Control Plane</div><h1>Interaktiver Grid-Planer</h1><p>Rasteransicht der NexVerse-Welt auf 256-Meter-Basis. Belegte, freie, reservierte und widersprüchliche Zellen werden direkt aus der World API gelesen.</p></div>
+<div class="pill"><span class="dot" id="gridDot"></span><span id="gridStatus">Noch nicht geladen</span></div>
+</div>
+<div class="section">
+<h2>Zugriff</h2><p class="sectionlead">Der Planer verwendet ausschließlich die geschützten Read-only-Endpunkte der Region Control Plane. Er benötigt <code>regions:read</code> und einen TLS- oder gleichwertig geschützten Transport.</p>
+<div class="grid2">
+<div><label class="label2">Zugriffstoken (Bearer)</label><input id="gridBearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">X-NexVerse-Api-Key</label><input id="gridApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
+</div>
+<div class="planner-actions"><button class="action" id="loadGrid">Grid laden</button><button class="action" id="clearGridCredentials">Zugangsdaten löschen</button></div>
+<div class="authnote">Zugangsdaten werden nicht gespeichert. Bei deaktivierten privilegierten Endpunkten bleibt diese Ansicht sichtbar, kann aber keine Grid-Daten abrufen.</div>
+</div>
+<div class="section">
+<h2>Viewport und Platzierung</h2><p class="sectionlead">Der API-Viewport ist auf maximal 128 × 128 Zellen begrenzt. Eine Zelle entspricht exakt 256 × 256 Metern.</p>
+<div class="planner-controls">
+<div><label class="label2">Min. Grid X</label><input id="gridMinX" type="number" min="0" step="1" value="1000"></div>
+<div><label class="label2">Min. Grid Y</label><input id="gridMinY" type="number" min="0" step="1" value="1000"></div>
+<div><label class="label2">Breite in Zellen</label><input id="gridWidth" type="number" min="1" max="128" step="1" value="24"></div>
+<div><label class="label2">Höhe in Zellen</label><input id="gridHeight" type="number" min="1" max="128" step="1" value="18"></div>
+<div><label class="label2">Vorschau Breite (m)</label><input id="gridRegionSizeX" type="number" min="256" max="4096" step="256" value="256"></div>
+<div><label class="label2">Vorschau Höhe (m)</label><input id="gridRegionSizeY" type="number" min="256" max="4096" step="256" value="256"></div>
+<div><label class="label2">Zellgröße Anzeige</label><input id="gridCellPixels" type="range" min="18" max="48" step="2" value="30"></div>
+<div><label class="label2">Statusfilter</label><select id="gridFilter"><option value="all">Alle</option><option value="free">Frei</option><option value="occupied">Belegt</option><option value="reserved">Reserviert</option><option value="conflict">Konflikt</option></select></div>
+</div>
+<div class="planner-actions">
+<button class="action" id="gridWest">← West</button><button class="action" id="gridEast">Ost →</button><button class="action" id="gridSouth">↓ Süd</button><button class="action" id="gridNorth">Nord ↑</button><button class="action" id="validateGridPlacement">Platzierung prüfen</button>
+</div>
+</div>
+<div class="section">
+<h2>Raster</h2>
+<div class="gridlegend">
+<span class="legenditem"><span class="legendswatch" style="background:#123326"></span>Frei</span>
+<span class="legenditem"><span class="legendswatch" style="background:#1d4c6a"></span>Belegt</span>
+<span class="legenditem"><span class="legendswatch" style="background:#5a461c"></span>Reserviert</span>
+<span class="legenditem"><span class="legendswatch" style="background:#6a2323"></span>Konflikt</span>
+</div>
+<div class="gridboardwrap"><div class="gridboard" id="gridBoard"><div class="empty">Noch keine Grid-Daten geladen.</div></div></div>
+</div>
+<div class="section">
+<h2>Zell- und Placement-Details</h2>
+<div class="gridinfo">
+<div><div class="small" style="margin-bottom:6px">Ausgewählte Zelle</div><pre id="gridCellDetail">Keine Zelle ausgewählt.</pre></div>
+<div><div class="small" style="margin-bottom:6px">Placement-Prüfung</div><pre id="gridPlacementDetail">Noch keine Platzierung geprüft.</pre></div>
+</div>
+</div>
+<div class="planner-note">Der aktuelle Planer ist absichtlich read-only. Regions-Erstellung und Verschieben werden erst über separate <code>regions:manage</code>-Mutationen freigeschaltet, wenn die Node-/Simulator-Steuerung den Vorgang atomar ausführen kann.</div>
+</section>
+
 <section class="page" id="page-changes">
 <div class="hero"><div><div class="eyebrow">Änderungsprotokoll</div><h1>Was ist neu?</h1><p>Nachvollziehbare, maschinenlesbare Änderungen der World API und ihrer Plattform-Grundlagen.</p></div></div>
 <div class="section">
@@ -243,11 +295,11 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 
 <script>
 'use strict';
-let spec=null,entries=[],selected=null,changes=[];
+let spec=null,entries=[],selected=null,changes=[],gridLayout=null,gridSelected=null,gridValidation=null;
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
-const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Skripting'};
+const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Skripting',regions:'Regionen'};
 const audienceLabels={citizen:'Einwohner',admin:'Administration',service:'Dienst'};
 const languageLabels={'de-DE':'Deutsch (Deutschland)'};
 const accountStateLabels={active:'aktiv',locked:'gesperrt',banned:'gebannt',deactivated:'deaktiviert',provisioning:'Provisionierung',provisioning_failed:'Provisionierung fehlgeschlagen'};
@@ -506,6 +558,141 @@ async function loadStatistics(){
   }
 }
 
+
+function gridHeaders(){
+  const headers={'Accept':'application/json'};
+  const bearer=$('gridBearer').value.trim()||$('bearer').value.trim();
+  const key=$('gridApiKey').value.trim()||$('apiKey').value.trim();
+  if(bearer)headers.Authorization='Bearer '+bearer;
+  if(key)headers['X-NexVerse-Api-Key']=key;
+  return headers;
+}
+function setGridStatus(text,kind){
+  $('gridStatus').textContent=text;
+  $('gridDot').className='dot'+(kind?' '+kind:'');
+}
+function gridViewport(){
+  const minX=Math.max(0,parseInt($('gridMinX').value||'0',10)||0);
+  const minY=Math.max(0,parseInt($('gridMinY').value||'0',10)||0);
+  const width=Math.min(128,Math.max(1,parseInt($('gridWidth').value||'24',10)||24));
+  const height=Math.min(128,Math.max(1,parseInt($('gridHeight').value||'18',10)||18));
+  $('gridMinX').value=minX;$('gridMinY').value=minY;$('gridWidth').value=width;$('gridHeight').value=height;
+  return {minX,minY,maxX:minX+width-1,maxY:minY+height-1,width,height};
+}
+function gridCellKey(x,y){return x+':'+y}
+function applyGridFilter(){
+  const filter=$('gridFilter').value;
+  document.querySelectorAll('#gridBoard .gridcell').forEach(cell=>{
+    cell.classList.toggle('dimmed',filter!=='all'&&!cell.classList.contains(filter));
+  });
+}
+function clearGridPreview(){
+  document.querySelectorAll('#gridBoard .gridcell').forEach(cell=>cell.classList.remove('preview-ok','preview-bad','selected'));
+}
+function renderGridCellDetail(cell){
+  $('gridCellDetail').textContent=JSON.stringify({
+    grid:{x:cell.grid_x,y:cell.grid_y},
+    welt_meter:{x:cell.world_x,y:cell.world_y},
+    status:cell.status,
+    region_id:cell.region_id||null,
+    region_name:cell.region_name||null,
+    region_ids:cell.region_ids||[]
+  },null,2);
+}
+function markGridPreview(validation){
+  document.querySelectorAll('#gridBoard .gridcell').forEach(cell=>cell.classList.remove('preview-ok','preview-bad'));
+  if(!validation?.footprint)return;
+  const cls=validation.valid?'preview-ok':'preview-bad';
+  for(let y=validation.footprint.min_y;y<=validation.footprint.max_y;y++){
+    for(let x=validation.footprint.min_x;x<=validation.footprint.max_x;x++){
+      const cell=document.querySelector('#gridBoard .gridcell[data-key="'+gridCellKey(x,y)+'"]');
+      if(cell)cell.classList.add(cls);
+    }
+  }
+}
+async function validateGridPlacement(){
+  if(!gridSelected){$('gridPlacementDetail').textContent='Bitte zuerst eine Rasterzelle auswählen.';return}
+  const sizeX=parseInt($('gridRegionSizeX').value||'256',10);
+  const sizeY=parseInt($('gridRegionSizeY').value||'256',10);
+  if(sizeX<256||sizeX>4096||sizeX%256||sizeY<256||sizeY>4096||sizeY%256){
+    $('gridPlacementDetail').textContent='Regionsgrößen müssen zwischen 256 und 4096 Metern liegen und durch 256 teilbar sein.';return;
+  }
+  const qs=new URLSearchParams({x:gridSelected.grid_x,y:gridSelected.grid_y,size_x:sizeX,size_y:sizeY});
+  $('gridPlacementDetail').textContent='Prüfe Platzierung…';
+  try{
+    const res=await fetch('/api/v1/grid/validate-placement?'+qs,{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){$('gridPlacementDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    gridValidation=data;markGridPreview(data);
+    $('gridPlacementDetail').textContent=JSON.stringify({
+      gueltig:data.valid,
+      grund:data.reason,
+      ursprung:data.origin,
+      groesse:data.size,
+      footprint:data.footprint,
+      konflikte:(data.conflicts||[]).map(x=>({region_id:x.region_id,name:x.name,occupied:x.occupied}))
+    },null,2);
+  }catch(err){$('gridPlacementDetail').textContent=String(err)}
+}
+function selectGridCell(cell){
+  gridSelected=cell;
+  document.querySelectorAll('#gridBoard .gridcell').forEach(x=>x.classList.remove('selected'));
+  const el=document.querySelector('#gridBoard .gridcell[data-key="'+gridCellKey(cell.grid_x,cell.grid_y)+'"]');
+  if(el)el.classList.add('selected');
+  renderGridCellDetail(cell);
+  validateGridPlacement();
+}
+function renderGridLayout(data){
+  gridLayout=data;gridSelected=null;gridValidation=null;
+  $('gridCellDetail').textContent='Keine Zelle ausgewählt.';
+  $('gridPlacementDetail').textContent='Noch keine Platzierung geprüft.';
+  const board=$('gridBoard');board.replaceChildren();
+  const bounds=data.bounds||{};
+  const cells=new Map((data.cells||[]).map(cell=>[gridCellKey(cell.grid_x,cell.grid_y),cell]));
+  const width=(bounds.max_x??-1)-(bounds.min_x??0)+1;
+  board.style.gridTemplateColumns='repeat('+Math.max(1,width)+', var(--cell))';
+  board.style.setProperty('--cell',$('gridCellPixels').value+'px');
+  for(let y=bounds.max_y;y>=bounds.min_y;y--){
+    for(let x=bounds.min_x;x<=bounds.max_x;x++){
+      const cell=cells.get(gridCellKey(x,y));
+      if(!cell)continue;
+      const b=document.createElement('button');
+      b.type='button';b.className='gridcell '+cell.status;b.dataset.key=gridCellKey(x,y);b.dataset.x=x;b.dataset.y=y;
+      if(cell.region_name)b.dataset.regionName=cell.region_name;
+      b.title='Grid '+x+'/'+y+' · Welt '+cell.world_x+'/'+cell.world_y+' m · '+cell.status+(cell.region_name?' · '+cell.region_name:'');
+      b.addEventListener('mouseenter',()=>renderGridCellDetail(cell));
+      b.addEventListener('click',()=>selectGridCell(cell));
+      board.append(b);
+    }
+  }
+  applyGridFilter();
+  const counts=data.counts||{};
+  setGridStatus('Live · '+(counts.regions||0)+' Regionen · '+(counts.free||0)+' frei · '+(counts.occupied||0)+' belegt','good');
+}
+async function loadGridLayout(){
+  const v=gridViewport();
+  const qs=new URLSearchParams({min_x:v.minX,max_x:v.maxX,min_y:v.minY,max_y:v.maxY});
+  setGridStatus('Lade Raster…','');
+  try{
+    const res=await fetch('/api/v1/grid/layout?'+qs,{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){
+      setGridStatus(res.status===401||res.status===403?'regions:read erforderlich':'Grid nicht verfügbar','bad');
+      $('gridBoard').innerHTML='<div class="empty"></div>';$('gridBoard').firstChild.textContent=data?.message||data?.error||txt||('HTTP '+res.status);
+      return;
+    }
+    renderGridLayout(data||{});
+  }catch(err){
+    setGridStatus('Grid nicht erreichbar','bad');$('gridBoard').innerHTML='<div class="empty"></div>';$('gridBoard').firstChild.textContent=String(err);
+  }
+}
+function panGrid(dx,dy){
+  const v=gridViewport();
+  $('gridMinX').value=Math.max(0,v.minX+dx*v.width);
+  $('gridMinY').value=Math.max(0,v.minY+dy*v.height);
+  loadGridLayout();
+}
+
 async function execute(){
   if(!selected)return;
   const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
@@ -544,6 +731,10 @@ async function init(){
 }
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
+$('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value=''});
+$('gridWest').addEventListener('click',()=>panGrid(-1,0));$('gridEast').addEventListener('click',()=>panGrid(1,0));$('gridSouth').addEventListener('click',()=>panGrid(0,-1));$('gridNorth').addEventListener('click',()=>panGrid(0,1));
+$('validateGridPlacement').addEventListener('click',validateGridPlacement);$('gridRegionSizeX').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});$('gridRegionSizeY').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});
+$('gridCellPixels').addEventListener('input',()=>{$('gridBoard').style.setProperty('--cell',$('gridCellPixels').value+'px')});$('gridFilter').addEventListener('change',applyGridFilter);
 init();
 </script>
 </body>
