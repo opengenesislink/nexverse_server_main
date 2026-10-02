@@ -336,7 +336,7 @@ namespace NexVerse.Server.Api
                 "200");
 
             object nodeIdParameter =
-                PathParameter(
+                StringPathParameter(
                     "nodeId",
                     "Stabile NodeId des NexVerse Simulator-NodeAgents.");
             AddOperationParameters(
@@ -1338,6 +1338,24 @@ namespace NexVerse.Server.Api
                 {
                     type = "string",
                     format = "uuid"
+                }
+            };
+        }
+
+        private static object StringPathParameter(
+            string name,
+            string description)
+        {
+            return new
+            {
+                name,
+                @in = "path",
+                required = true,
+                description,
+                schema = new
+                {
+                    type = "string",
+                    minLength = 1
                 }
             };
         }
