@@ -547,6 +547,19 @@ World API functions:
 
 Add an administrator-facing raster world map to the NexVerse World API web interface for region placement and capacity planning.
 
+Region-Control-Plane foundation implemented during the 0.9.3.2 World API line:
+
+- read-only bounded raster layout through `GET /api/v1/grid/layout`;
+- exact single-cell inspection through `GET /api/v1/grid/cells/{x}/{y}`;
+- preflight placement validation through `GET /api/v1/grid/validate-placement`;
+- 256m base-cell normalization with actual world-meter coordinates in responses;
+- multi-cell VarRegion footprints and partial-overlap detection;
+- existing GridService reservation flags and the historical low-Y Hypergrid link band represented as reserved cells;
+- a maximum 128x128-cell layout viewport to keep control-plane reads bounded;
+- `regions:read` authorization for all three read-only control-plane operations.
+
+Region creation/move mutations and the interactive planner UI remain subsequent work.
+
 The planner must provide:
 
 - a scrollable and zoomable grid based on the OpenSim 256m base region cell;

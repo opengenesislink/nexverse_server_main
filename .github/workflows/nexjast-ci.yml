@@ -235,6 +235,11 @@ jobs:
               "Pagination",
               "User",
               "Region",
+              "GridRegionPlacement",
+              "GridCell",
+              "GridLayoutResponse",
+              "GridCellResponse",
+              "GridPlacementValidationResponse",
               "UserCreateRequest",
               "UserCreateResponse",
               "ApiKey",
@@ -249,6 +254,23 @@ jobs:
           region_get = doc["paths"]["/api/v1/regions"]["get"]
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
 
+          grid_layout = doc["paths"]["/api/v1/grid/layout"]["get"]
+          assert grid_layout["x-nexverse-scope"] == "regions:read"
+          assert grid_layout["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/GridLayoutResponse"
+          assert {p["name"] for p in grid_layout["parameters"]} == {"min_x", "max_x", "min_y", "max_y"}
+          assert all(p["schema"]["type"] == "integer" for p in grid_layout["parameters"])
+
+          grid_cell = doc["paths"]["/api/v1/grid/cells/{x}/{y}"]["get"]
+          assert grid_cell["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/GridCellResponse"
+          assert [p["name"] for p in grid_cell["parameters"]] == ["x", "y"]
+          assert all(p["in"] == "path" and p["required"] for p in grid_cell["parameters"])
+
+          placement = doc["paths"]["/api/v1/grid/validate-placement"]["get"]
+          assert placement["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/GridPlacementValidationResponse"
+          assert {p["name"] for p in placement["parameters"]} == {"x", "y", "size_x", "size_y"}
+          assert schemas["GridCell"]["properties"]["status"]["enum"] == ["free", "occupied", "reserved", "conflict"]
+          assert schemas["GridRegionPlacement"]["properties"]["size_x"]["maximum"] == 4096
+
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_language"] == "de-DE"
@@ -260,7 +282,9 @@ jobs:
           assert "0.9.3.1 Dev" not in json.dumps(doc, ensure_ascii=False)
           assert "Resident and Hypergrid statistics dashboard" not in json.dumps(doc, ensure_ascii=False)
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
-          assert doc["x_nexverse_changelog"][0]["status"] == "development"
+          assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
+          assert doc["x_nexverse_changelog"][0]["category"] == "regions"
+          assert "/api/v1/grid/layout" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
