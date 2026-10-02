@@ -162,6 +162,10 @@ namespace NexVerse.Server.Api
                     ("get", "Einzelne Welt-Rasterzelle und Belegung lesen", "regions:read", "200")),
                 ["/api/v1/grid/validate-placement"] = AuthenticatedOperations(
                     ("get", "Regionsplatzierung inklusive VarRegion-Footprint validieren", "regions:read", "200")),
+                ["/api/v1/nodes"] = AuthenticatedOperations(
+                    ("get", "Vom NexVerse NodeAgent beobachtete Simulator-Nodes auflisten", "simulators:read", "200")),
+                ["/api/v1/nodes/{nodeId}"] = AuthenticatedOperations(
+                    ("get", "Simulator-Node mit Gesundheits- und Regionszustand lesen", "simulators:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -217,6 +221,20 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "GridPlacementValidationResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/nodes",
+                "get",
+                null,
+                "NodeListResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/nodes/{nodeId}",
+                "get",
+                null,
+                "NodeResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -316,6 +334,16 @@ namespace NexVerse.Server.Api
                 null,
                 "AuditSearchResponse",
                 "200");
+
+            object nodeIdParameter =
+                PathParameter(
+                    "nodeId",
+                    "Stabile NodeId des NexVerse Simulator-NodeAgents.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/nodes/{nodeId}",
+                "get",
+                nodeIdParameter);
 
             object principalIdParameter =
                 PathParameter(
@@ -578,6 +606,21 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "platform",
+                        status = "implemented",
+                        title = "Robust NodeAgent Registry und Simulator-Lese-API",
+                        summary = "Robust projiziert NodeAgent-Heartbeats und Regions-Lebenszyklusereignisse jetzt in eine laufende Simulator-Registry mit online/stale/offline-Zustand. Geschützte API-Endpunkte liefern Node-, Prozess-, Agenten- und Regionsdaten mit simulators:read.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/nodes",
+                            "/api/v1/nodes/{nodeId}",
+                            "/api/v1/grid/layout"
+                        }
+                    },
                     new
                     {
                         date = "2026-10-03",
@@ -1551,7 +1594,127 @@ namespace NexVerse.Server.Api
                         },
                         ["online"] = new { type = new[] { "boolean", "null" } },
                         ["reserved"] = new { type = "boolean" },
+                        ["node_id"] = new { type = new[] { "string", "null" } },
+                        ["node_state"] = new
+                        {
+                            type = new[] { "string", "null" },
+                            @enum = new object[] { "online", "stale", "offline", null }
+                        },
                         ["server_uri"] = new { type = "string" }
+                    }
+                },
+                ["NodeRegion"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "region_id",
+                        "name",
+                        "server_uri",
+                        "size_x",
+                        "size_y",
+                        "agent_count",
+                        "last_seen"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["server_uri"] = new { type = "string" },
+                        ["size_x"] = new { type = "integer", minimum = 0 },
+                        ["size_y"] = new { type = "integer", minimum = 0 },
+                        ["agent_count"] = new { type = "integer", minimum = 0 },
+                        ["last_seen"] = new { type = "string", format = "date-time" }
+                    }
+                },
+                ["Node"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "node_id",
+                        "hostname",
+                        "server_version",
+                        "state",
+                        "uptime_seconds",
+                        "process_id",
+                        "working_set_bytes",
+                        "cpu_seconds",
+                        "region_count",
+                        "agent_count",
+                        "last_seen",
+                        "last_event_at",
+                        "regions"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["node_id"] = new { type = "string" },
+                        ["hostname"] = new { type = "string" },
+                        ["server_version"] = new { type = "string" },
+                        ["state"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "online", "stale", "offline" }
+                        },
+                        ["uptime_seconds"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["process_id"] = new { type = "integer", minimum = 0 },
+                        ["working_set_bytes"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["cpu_seconds"] = new { type = "number", format = "double", minimum = 0 },
+                        ["region_count"] = new { type = "integer", minimum = 0 },
+                        ["agent_count"] = new { type = "integer", minimum = 0 },
+                        ["last_seen"] = new { type = "string", format = "date-time" },
+                        ["last_event_at"] = new { type = "string", format = "date-time" },
+                        ["regions"] = new
+                        {
+                            type = "array",
+                            items = SchemaRef("NodeRegion")
+                        }
+                    }
+                },
+                ["NodeListResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "generated_at",
+                        "transport_enabled",
+                        "stale_after_seconds",
+                        "count",
+                        "nodes",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["generated_at"] = new { type = "string", format = "date-time" },
+                        ["transport_enabled"] = new { type = "boolean" },
+                        ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
+                        ["count"] = new { type = "integer", minimum = 0 },
+                        ["nodes"] = new
+                        {
+                            type = "array",
+                            items = SchemaRef("Node")
+                        },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["NodeResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "generated_at",
+                        "transport_enabled",
+                        "stale_after_seconds",
+                        "node",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["generated_at"] = new { type = "string", format = "date-time" },
+                        ["transport_enabled"] = new { type = "boolean" },
+                        ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
+                        ["node"] = SchemaRef("Node"),
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["GridCell"] = new
