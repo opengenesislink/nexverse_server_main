@@ -136,7 +136,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="pill"><span class="dot" id="statsDot"></span><span id="statsStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende einen Admin-Bearer-Token oder einen API-Key mit <code>statistics:read</code>.</p>
+<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende ein Admin-Zugriffstoken (Bearer) oder einen API-Schlüssel mit <code>statistics:read</code>.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="statsApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
@@ -185,7 +185,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </section>
 
 <section class="page" id="page-roadmap">
-<div class="hero"><div><div class="eyebrow">Projektstatus</div><h1>NexVerse-Entwicklungsplan</h1><p>Meilenstein-Status auf Basis der veröffentlichten Roadmap und konkreter Implementierungsevidenz. Prozentwerte werden nur angezeigt, wenn der Meilenstein tatsächlich eine gepflegte Checkbox-Checkliste besitzt.</p></div></div>
+<div class="hero"><div><div class="eyebrow">Projektstatus</div><h1>NexVerse-Entwicklungsplan</h1><p>Meilenstein-Status auf Basis des veröffentlichten Entwicklungsplans und konkreter Implementierungsnachweise. Prozentwerte werden nur angezeigt, wenn der Meilenstein tatsächlich eine gepflegte Checkbox-Checkliste besitzt.</p></div></div>
 <div class="roadmap-summary">
 <div class="card"><div class="label">Aktueller Meilenstein</div><div class="value" id="roadmapCurrent">–</div><div class="sub" id="roadmapCodename">–</div></div>
 <div class="card"><div class="label">Aktiv</div><div class="value" id="roadmapActiveCount">–</div><div class="sub">aktueller Produkt-Meilenstein</div></div>
