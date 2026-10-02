@@ -152,8 +152,7 @@ namespace NexVerse.Server.Api
                     ("post", "Einwohnersitzungen widerrufen und Sicherheitsstempel fortschreiben", "self or admin:*", "200")),
                 ["/api/v1/audit"] = AuthenticatedOperations(
                     ("get", "Persistente administrative Audit-Historie abfragen", "admin:*", "200")),
-                ["/api/v1/statistics/summary"] = AuthenticatedOperations(
-                    ("get", "Einwohner-, Aktivitäts-, Online- und Hypergrid-Statistik lesen", "statistics:read", "200")),
+                ["/api/v1/statistics/summary"] = StatisticsOperation(),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -847,6 +846,53 @@ namespace NexVerse.Server.Api
             };
         }
 
+        private static object StatisticsOperation()
+        {
+            Dictionary<string, object> operation =
+                new Dictionary<string, object>
+                {
+                    ["summary"] =
+                        "Öffentliche Aggregatstatistik lesen; geschützte Online-Details optional mit statistics:read",
+                    ["security"] = new object[]
+                    {
+                        new Dictionary<string, string[]>(),
+                        new Dictionary<string, string[]>
+                        {
+                            ["bearerAuth"] = Array.Empty<string>()
+                        },
+                        new Dictionary<string, string[]>
+                        {
+                            ["apiKeyAuth"] = Array.Empty<string>()
+                        }
+                    },
+                    ["responses"] = new Dictionary<string, object>
+                    {
+                        ["200"] = new { description = "Aggregierte oder authentifizierte Statistikantwort" },
+                        ["401"] = JsonResponse("Ungültige oder erforderliche Authentifizierung", "Error"),
+                        ["403"] = JsonResponse("Unzureichender Berechtigungsumfang", "Error"),
+                        ["429"] = JsonResponse("Rate-Limit überschritten", "Error"),
+                        ["503"] = JsonResponse("Statistikdaten oder geschützte Authentifizierung nicht verfügbar", "Error")
+                    },
+                    ["x-nexverse-scope"] = NexVerse.Core.Security.NexScopes.StatisticsRead,
+                    ["x-nexverse-audience"] = new[] { "citizen", "admin", "service" },
+                    ["x-nexverse-purpose"] =
+                        "Liefert ohne Zugangsdaten ausschließlich aggregierte Grid-Kennzahlen. Mit gültigem statistics:read dürfen zusätzlich geschützte Online-, Regions- und Hypergrid-Detaildaten zurückgegeben werden.",
+                    ["x-nexverse-ai-instruction"] =
+                        "Für allgemeine Kennzahlen keine Zugangsdaten senden. Personenbezogene oder standortbezogene Detaildaten nur mit ausdrücklich bereitgestellter statistics:read-Autorisierung abrufen.",
+                    ["x-nexverse-security-constraints"] = new[]
+                    {
+                        "Anonyme Antworten dürfen keine Namen, Principal-IDs, konkreten Online-Regionen oder Hypergrid-Herkunftslisten enthalten.",
+                        "Geschützte Details erfordern statistics:read und einen TLS- oder gleichwertig geschützten Transport.",
+                        "Bearer-Tokens und API-Schlüssel niemals offenlegen oder protokollieren."
+                    }
+                };
+
+            return new Dictionary<string, object>
+            {
+                ["get"] = operation
+            };
+        }
+
         private static object CredentialPostOperation(
             string summary)
         {
@@ -1434,10 +1480,12 @@ namespace NexVerse.Server.Api
                 ["StatisticsSummaryResponse"] = new
                 {
                     type = "object",
-                    required = new[] { "generated_at", "residents", "hypergrid", "online", "regions", "correlation_id" },
+                    required = new[] { "generated_at", "detail_level", "protected_details", "residents", "hypergrid", "online", "regions", "correlation_id" },
                     properties = new Dictionary<string, object>
                     {
                         ["generated_at"] = new { type = "string", format = "date-time" },
+                        ["detail_level"] = new { type = "string", @enum = new[] { "aggregate", "authenticated" } },
+                        ["protected_details"] = new { type = "boolean" },
                         ["residents"] = new
                         {
                             type = "object",
