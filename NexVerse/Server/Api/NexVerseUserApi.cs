@@ -43,6 +43,7 @@ namespace NexVerse.Server.Api
             m_NativeTokens = nativeTokens;
             m_OAuthStore = oauthStore;
             m_ApiKeys = apiKeys;
+            m_GridControl = new NexGridControlApi(grid, authenticator);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
@@ -601,6 +602,7 @@ namespace NexVerse.Server.Api
         private readonly INexAuditStore m_AuditStore;
         private readonly INexIdempotencyStore m_IdempotencyStore;
         private readonly INexApiKeyStore m_ApiKeys;
+        private readonly NexGridControlApi m_GridControl;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
 
@@ -615,6 +617,7 @@ namespace NexVerse.Server.Api
             INexIdempotencyStore idempotencyStore,
             int idempotencyTtlSeconds,
             INexApiKeyStore apiKeys,
+            IGridService grid,
             int adminMinimumLevel)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
@@ -664,6 +667,13 @@ namespace NexVerse.Server.Api
             if (string.Equals(path, "/api/v1/audit", StringComparison.OrdinalIgnoreCase))
             {
                 HandleAuditSearch(request, response, null);
+                return;
+            }
+
+            if (string.Equals(path, "/api/v1/grid", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/v1/grid/", StringComparison.OrdinalIgnoreCase))
+            {
+                m_GridControl.Handle(request, response);
                 return;
             }
 
