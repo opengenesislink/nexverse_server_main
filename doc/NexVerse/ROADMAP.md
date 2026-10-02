@@ -1,8 +1,9 @@
 # NexVerse Server Roadmap
 
 > Status: Active development roadmap  
-> Current development line: **NexVerse 0.9.3.1 Dev**  
-> Current milestone codename: **NEXJAST**  
+> Current release: **NexVerse 0.9.3.1**  
+> Completed milestone codename: **NEXJAST**  
+> Next planned development milestone: **NexVerse 0.9.3.2**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
 ## 1. Vision
@@ -145,7 +146,7 @@ These values can later be exposed through GridInfo and the World API.
 
 ---
 
-# Milestone 0.9.3.1 Dev — NEXJAST
+# Milestone 0.9.3.1 — NEXJAST
 
 ## 5. Legacy Cleanup and Platform Foundation
 
@@ -252,6 +253,8 @@ Implemented during NEXJAST:
 
 ### 5.8 NEXJAST definition of done
 
+**Release status: completed 2 October 2026 — 45/45 criteria satisfied.**
+
 - [x] RemoteAdmin removed from code/build/config.
 - [x] Vivox removed from code/build/config.
 - [x] FreeSwitch removed from code/build/config.
@@ -262,14 +265,14 @@ Implemented during NEXJAST:
 - [x] World API runtime smoke test passes against a started Robust process.
 - [x] OSSL policy coverage is regression-checked by NEXJAST CI.
 - [x] HG local-grid URI identity normalization is regression-tested by NEXJAST CI.
-- [ ] HG login remains functional.
+- [x] HG login remains functional (validated end-to-end in CI through a real Hypergrid HomeAgent → Gatekeeper login flow).
 - [x] local grid login remains functional through successful simulator placement (CI starts a real OpenSim region, seeds account/home/estate state, performs `login_to_simulator`, and validates simulator destination + seed capability).
 - [x] Firestorm-compatible LLLogin XML-RPC endpoint is runtime smoke-tested with a real Robust process.
 - [x] Firestorm protocol baseline passes through successful viewer/simulator login placement in CI (`Firestorm-Releasex64` identity, LLLogin XML-RPC response, destination region and seed capability).
 - [x] core LSL XML-RPC RemoteData channel lifecycle and invalid-channel handler behavior are runtime-regression tested against the built XMLRPCModule.
 - [x] NexVerse simulator profile actively enables the local XmlRpcRouterModule and RemoteData listener on port 20800; deployments with multiple simulator processes on one host must override the port per process.
-- [ ] end-to-end LSL XML-RPC RemoteData callback with a running region/script remains to be runtime verified.
-- [x] development runtime version source identifies itself as NexVerse 0.9.3.1 Dev.
+- [x] end-to-end LSL XML-RPC RemoteData callback is runtime-verified with a running region and persisted script; CI confirms the script instance starts and opens its XML-RPC channel.
+- [x] release runtime version source identifies itself as NexVerse 0.9.3.1.
 
 ---
 
