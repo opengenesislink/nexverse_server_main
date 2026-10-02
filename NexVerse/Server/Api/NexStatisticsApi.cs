@@ -392,7 +392,7 @@ namespace NexVerse.Server.Api
 
             try
             {
-                GridRegion region = m_Grid.GetRegionByUUID(UUID.Zero, regionId);
+                OpenSim.Services.Interfaces.GridRegion region = m_Grid.GetRegionByUUID(UUID.Zero, regionId);
                 return region?.RegionName ?? string.Empty;
             }
             catch
