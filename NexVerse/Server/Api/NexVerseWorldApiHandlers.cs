@@ -146,6 +146,8 @@ namespace NexVerse.Server.Api
                     ("post", "Revoke resident sessions and advance security stamp", "self or admin:*", "200")),
                 ["/api/v1/audit"] = AuthenticatedOperations(
                     ("get", "Query persistent administrative audit history", "admin:*", "200")),
+                ["/api/v1/statistics/summary"] = AuthenticatedOperations(
+                    ("get", "Read resident, activity, online and Hypergrid statistics", "statistics:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Search selectable home/start regions", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -264,6 +266,13 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "AuditSearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/statistics/summary",
+                "get",
+                null,
+                "StatisticsSummaryResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -439,7 +448,8 @@ namespace NexVerse.Server.Api
                             "Native resident sessions and scoped access tokens",
                             "OAuth2/OIDC Authorization Code + PKCE and service clients",
                             "Persistent audit history, API keys and idempotent provisioning",
-                            "Self-hosted API Control Center and live explorer",
+                            "Self-hosted API Control Center, live explorer and statistics dashboard",
+                            "Resident activity and Hypergrid visitor statistics",
                             "Distributed NexBus and NodeAgent foundation",
                             "Prometheus/OpenTelemetry/OTLP observability foundation"
                         }
@@ -447,6 +457,16 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-02",
+                        version = "0.9.3.1 Dev",
+                        category = "analytics",
+                        status = "implemented",
+                        title = "Resident and Hypergrid statistics dashboard",
+                        summary = "Authenticated World API statistics expose registered residents, current presence, 7/30-day activity, Hypergrid visitors, home-grid breakdowns and region occupancy in the API Control Center.",
+                        endpoints = new[] { "/api/v1/statistics/summary", "/api/v1/docs" }
+                    },
                     new
                     {
                         date = "2026-10-01",
@@ -556,7 +576,7 @@ namespace NexVerse.Server.Api
                                 "RemoteAdmin, Vivox, FreeSwitch and IRC bridge removed",
                                 "Native World API, OAuth2/OIDC, API keys and user lifecycle implemented",
                                 "Distributed NexBus, NodeAgent and NexMetrics/OTLP implemented",
-                                "Four end-to-end runtime validation items remain open"
+                                "Two end-to-end runtime validation items remain open"
                             }
                         },
                         new
@@ -565,13 +585,14 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "NexVerse World API v1",
                             status = "advanced",
-                            checklist = new { completed = 25, total = 25, open = 0 },
+                            checklist = new { completed = 27, total = 27, open = 0 },
                             summary = "The documented API-v1 checklist is implemented early while the product still identifies as 0.9.3.1 Dev.",
                             evidence = new[]
                             {
                                 "REST/JSON, OpenAPI 3.1, pagination, filtering, rate limits and idempotency",
                                 "OAuth2/OIDC, service clients, scoped API keys and audit history",
-                                "API Control Center, version history and machine-readable changelog"
+                                "API Control Center, version history and machine-readable changelog",
+                                "Authenticated resident activity, presence and Hypergrid statistics dashboard"
                             }
                         },
                         new
@@ -1362,6 +1383,78 @@ namespace NexVerse.Server.Api
                             items = regionRef
                         },
                         ["pagination"] = paginationRef
+                    }
+                },
+                ["StatisticsOnlineUser"] = new
+                {
+                    type = "object",
+                    required = new[] { "type", "principal_id", "name", "region_id", "region_name" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["type"] = new { type = "string", @enum = new[] { "resident", "hypergrid" } },
+                        ["principal_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["home_grid"] = new { type = new[] { "string", "null" } },
+                        ["region_id"] = new { type = new[] { "string", "null" }, format = "uuid" },
+                        ["region_name"] = new { type = "string" },
+                        ["login_at"] = new { type = new[] { "string", "null" }, format = "date-time" }
+                    }
+                },
+                ["StatisticsSummaryResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "generated_at", "residents", "hypergrid", "online", "regions", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["generated_at"] = new { type = "string", format = "date-time" },
+                        ["residents"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["registered_total"] = new { type = "integer" },
+                                ["active_accounts"] = new { type = "integer" },
+                                ["restricted_accounts"] = new { type = "integer" },
+                                ["registrations_last_7_days"] = new { type = "integer" },
+                                ["registrations_last_30_days"] = new { type = "integer" },
+                                ["online_now"] = new { type = "integer" },
+                                ["active_last_24_hours"] = new { type = "integer" },
+                                ["active_last_7_days"] = new { type = "integer" },
+                                ["active_last_30_days"] = new { type = "integer" },
+                                ["never_logged_in"] = new { type = "integer" }
+                            }
+                        },
+                        ["hypergrid"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["online_now"] = new { type = "integer" },
+                                ["known_visitors_total"] = new { type = "integer" },
+                                ["visitors_last_7_days"] = new { type = "integer" },
+                                ["visitors_last_30_days"] = new { type = "integer" },
+                                ["known_home_grids"] = new { type = "integer" },
+                                ["home_grids_online_now"] = new { type = "integer" }
+                            }
+                        },
+                        ["online"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["total"] = new { type = "integer" },
+                                ["users"] = new
+                                {
+                                    type = "array",
+                                    items = SchemaRef("StatisticsOnlineUser")
+                                }
+                            }
+                        },
+                        ["regions"] = new { type = "array", items = new { type = "object" } },
+                        ["hypergrid_home_grids"] = new { type = "array", items = new { type = "object" } },
+                        ["account_states"] = new { type = "object" },
+                        ["data_quality"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["UserUpdateRequest"] = new

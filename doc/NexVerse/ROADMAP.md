@@ -291,6 +291,7 @@ Implementation status:
 - [x] filtering/sorting is implemented for user and region searches, and backend search windows honor the public pagination range.
 - [x] `Idempotency-Key` is implemented for account provisioning with persistent response replay, payload-conflict detection and concurrent-request exclusion.
 - [x] OpenAPI 3.1 component schemas and operation-level request/response references are emitted for the core v1 user, region, audit and API-key contracts and runtime-smoke tested.
+- [x] authenticated statistics summary exposes resident registration/activity, current presence and Hypergrid visitor/home-grid aggregates.
 
 - REST/JSON API;
 - OpenAPI 3.1 specification;
@@ -359,6 +360,7 @@ Implementation status:
 - [x] error documentation and response schemas shown in the explorer;
 - [x] API version-history view driven by `x_nexverse_version_history`;
 - [x] deprecation notices are surfaced when operations are marked deprecated.
+- [x] dedicated statistics view shows registered residents, current online users, 7/30-day activity, Hypergrid visitors and region/home-grid breakdowns.
 
 ### 6.5 Citizen/Admin AI instructions
 

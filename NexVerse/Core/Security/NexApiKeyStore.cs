@@ -91,6 +91,7 @@ namespace NexVerse.Core.Security
                     NexScopes.FriendsManage,
                     NexScopes.RegionsRead,
                     NexScopes.RegionsManage,
+                    NexScopes.StatisticsRead,
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
                     NexScopes.EconomyTransfer
