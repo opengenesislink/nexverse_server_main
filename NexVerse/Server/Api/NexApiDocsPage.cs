@@ -136,7 +136,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="pill"><span class="dot" id="statsDot"></span><span id="statsStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende ein Administrator-Zugriffstoken (Bearer) oder einen API-Schlüssel mit <code>statistics:read</code>.</p>
+<h2>Zugriff</h2><p class="sectionlead">Aggregierte Kennzahlen sind ohne Anmeldung verfügbar. Personenbezogene Online-, Regions- und Hypergrid-Details bleiben geschützt und erfordern ein Zugriffstoken oder einen API-Schlüssel mit <code>statistics:read</code> über einen geschützten Transport.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="statsApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
@@ -429,6 +429,7 @@ function formatStatDate(value){
 }
 function renderStatistics(data){
   const residents=data.residents||{},hg=data.hypergrid||{},online=data.online||{};
+  const protectedDetails=data.protected_details===true;
   statText('statRegistered',residents.registered_total);
   statText('statOnlineTotal',online.total);
   statText('statResidentsOnline',residents.online_now);
@@ -445,17 +446,17 @@ function renderStatistics(data){
     user.home_grid||'lokal',
     formatStatDate(user.login_at)
   ]));
-  if(!(online.users||[]).length)appendStatsRow('statsOnlineBody',['Niemand online','','','','']);
+  if(!(online.users||[]).length)appendStatsRow('statsOnlineBody',[protectedDetails?'Niemand online':'Geschützte Details – statistics:read erforderlich','','','','']);
   $('statsHgBody').replaceChildren();
   (data.hypergrid_home_grids||[]).forEach(item=>appendStatsRow('statsHgBody',[
     item.home_grid,item.known_visitors,item.online_now,item.last_7_days,item.last_30_days
   ]));
-  if(!(data.hypergrid_home_grids||[]).length)appendStatsRow('statsHgBody',['Keine Hypergrid-Daten','','','','']);
+  if(!(data.hypergrid_home_grids||[]).length)appendStatsRow('statsHgBody',[protectedDetails?'Keine Hypergrid-Daten':'Geschützte Details – statistics:read erforderlich','','','','']);
   $('statsRegionBody').replaceChildren();
   (data.regions||[]).forEach(item=>appendStatsRow('statsRegionBody',[
     item.region_name||item.region_id,item.online_total,item.residents,item.hypergrid
   ]));
-  if(!(data.regions||[]).length)appendStatsRow('statsRegionBody',['Keine Online-Belegung','','','']);
+  if(!(data.regions||[]).length)appendStatsRow('statsRegionBody',[protectedDetails?'Keine Online-Belegung':'Geschützte Details – statistics:read erforderlich','','','']);
   const states=Object.fromEntries(Object.entries(data.account_states||{}).map(([k,v])=>[accountStateLabels[k]||k,v]));
   const quality=data.data_quality||{};
   const qualityValues={
@@ -496,7 +497,7 @@ async function loadStatistics(){
       return;
     }
     renderStatistics(data||{});
-    $('statsStatus').textContent='Live · '+formatStatDate(data.generated_at);
+    $('statsStatus').textContent='Live · '+(data.protected_details?'Details':'Aggregiert')+' · '+formatStatDate(data.generated_at);
     $('statsDot').className='dot good';
   }catch(err){
     $('statsStatus').textContent='Statistik nicht erreichbar';$('statsDot').className='dot bad';$('statsQuality').textContent=String(err);
@@ -534,6 +535,7 @@ async function init(){
     if(changes.length){$('lastChangeDate').textContent=changes[0].date||'–';$('lastChangeTitle').textContent=changes[0].title||''}
     const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Versionshinweise veröffentlicht.</div>';
     renderChangeFilters();renderChanges('all');renderVersions();renderRoadmap();renderEndpointList();
+    loadStatistics();
   }catch(err){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
