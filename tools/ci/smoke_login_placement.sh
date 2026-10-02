@@ -86,7 +86,8 @@ for i in $(seq 1 120); do
     exit 1
   fi
 
-  if grep -F "NexVerse CI Landing" "$LOG" >/dev/null 2>&1 &&
+  if grep -F 'INITIALIZATION COMPLETE FOR NexVerse CI Landing - LOGINS ENABLED' "$LOG" >/dev/null 2>&1 &&
+     grep -F '[XML RPC MODULE]: RemoteData channel opened channel=' "$LOG" >/dev/null 2>&1 &&
      (echo > /dev/tcp/127.0.0.1/19100) >/dev/null 2>&1; then
     READY=1
     break
@@ -134,7 +135,8 @@ while [ "$SECONDS" -lt "$LOGIN_DEADLINE" ]; do
     exit 1
   fi
 
-  curl --silent --show-error --connect-timeout 1 --max-time 2 \
+  rm -f "$RESPONSE"
+  curl --silent --show-error --connect-timeout 2 --max-time 15 \
     -H 'Content-Type: text/xml' \
     --data-binary @"$REQUEST" \
     http://127.0.0.1:19100/ > "$RESPONSE" || true
