@@ -313,13 +313,19 @@ Implementation status:
 
 ### 6.2 Authentication and authorization
 
-- OAuth2/OIDC-style flows where appropriate;
-- signed access tokens;
-- service accounts;
+Implementation status:
+
+- [x] OAuth2/OIDC Authorization Code + PKCE S256, Refresh Token und Client-Credentials-Flows sind persistent umgesetzt.
+- [x] browserbasierte OAuth2/OIDC-Anmeldung mit deutscher Zustimmungsseite ist umgesetzt; Client, Redirect-URI, PKCE und Berechtigungsumfänge werden vor und nach der Anmeldung validiert.
+- [x] bestehende Bearer-basierte Autorisierungsaufrufe bleiben für technische Clients kompatibel.
+- [x] Einwohner-Passwörter werden im Browser-Flow weder in URLs noch im HTML zurückgegeben oder clientseitig gespeichert.
+- [x] Freigaben werden mit Akteur, Client, Berechtigungsumfang und Korrelations-ID auditiert.
+- [x] signed access tokens;
+- [x] service accounts;
 - [x] API keys for restricted machine use with hashed secrets, explicit scopes, immediate disable and audited administration;
-- scopes;
-- RBAC;
-- future MFA/passkey integration.
+- [x] scopes;
+- [x] RBAC;
+- [ ] future MFA/passkey integration.
 
 Example scopes:
 
