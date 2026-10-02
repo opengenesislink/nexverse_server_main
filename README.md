@@ -23,6 +23,8 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 The current release is **NexVerse 0.9.3.1**, codename **NEXJAST**.
 
+Release notes: **[`doc/NexVerse/RELEASE_0.9.3.1.md`](doc/NexVerse/RELEASE_0.9.3.1.md)**
+
 NexVerse 0.9.3.0 is the first NexVerse release and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
 
 Every NexVerse release or development milestone that changes the product version must update `OpenSim/Framework/VersionInfo.cs` together with the corresponding release documentation.
