@@ -16,3 +16,7 @@ Thumbs.db
 # Runtime-generated NexVerse identity/auth state and private OIDC keys
 bin/data/
 data/
+
+# Local NexVerse runtime secrets (never commit)
+bin/nexverse.local.env
+.secrets/
