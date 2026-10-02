@@ -73,7 +73,7 @@ namespace OpenSim.Data.SQLite
             {
                 cmd.CommandText = String.Format("delete from {0} where TMStamp < datetime('now', '-2 day') ", m_Realm);
 
-                DoQuery(cmd);
+                ExecuteNonQuery(cmd, m_Connection);
             }
 
         }
