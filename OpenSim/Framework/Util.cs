@@ -2335,26 +2335,28 @@ namespace OpenSim.Framework
         public static void MergeEnvironmentToConfig(IConfigSource ConfigSource)
         {
             IConfig enVars = ConfigSource.Configs["Environment"];
-            // if section does not exist then user isn't expecting them, so don't bother.
+            // If the section does not exist then the configuration is not
+            // requesting environment-backed values.
             if (enVars != null)
             {
-                // NexVerse: provide a pull-safe local secret source before the
-                // standard process-environment merge. Existing process variables
-                // always have precedence.
+                // NexVerse: provide pull-safe local secret sources before
+                // resolving the requested process-environment values. Existing
+                // process variables always have precedence.
                 LoadNexVerseEnvironmentFiles(enVars);
 
-                // load the values from the environment
-                EnvConfigSource envConfigSource = new();
-                // add the requested keys
-                string[] env_keys = enVars.GetKeys();
-                foreach (string key in env_keys)
+                // Write requested environment values directly into the existing
+                // [Environment] section. Avoid EnvConfigSource here: its
+                // constructor can already map process variables, so calling
+                // AddEnv for the same requested key can throw a duplicate-key
+                // exception when that variable is actually set.
+                string[] envKeys = enVars.GetKeys();
+                foreach (string key in envKeys)
                 {
-                    envConfigSource.AddEnv(key, string.Empty);
+                    string value = Environment.GetEnvironmentVariable(key);
+                    if (value != null)
+                        enVars.Set(key, value);
                 }
-                // load the values from environment
-                envConfigSource.LoadEnv();
-                // add them in to the master
-                ConfigSource.Merge(envConfigSource);
+
                 ConfigSource.ExpandKeyValues();
             }
         }
