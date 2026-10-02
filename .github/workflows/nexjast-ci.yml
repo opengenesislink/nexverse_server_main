@@ -350,7 +350,7 @@ jobs:
               assert required in stats_schema["required"], f"statistics schema missing required field: {required}"
 
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
-          assert doc["paths"]["/api/v1/nodes"]["get"]["x-nexverse-audience"] == ["service", "admin"]
+          assert doc["paths"]["/api/v1/nodes"]["get"]["x-nexverse-audience"] == ["admin", "service"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
