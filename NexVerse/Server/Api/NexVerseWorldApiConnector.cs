@@ -331,7 +331,8 @@ namespace NexVerse.Server.Api
                     gridUserData,
                     presence,
                     grid,
-                    authenticator);
+                    authenticator,
+                    true);
 
                 server.AddSimpleStreamHandler(new SimpleStreamHandler(
                     "/api/v1/statistics/summary",
@@ -393,7 +394,38 @@ namespace NexVerse.Server.Api
             }
             else
             {
-                m_Log.Info("[NEX-WORLD-API]: Privileged endpoints are disabled.");
+                IUserAccountService statisticsUserAccounts =
+                    LoadOptionalService<IUserAccountService>(
+                        config,
+                        "UserAccountService");
+                IGridUserData statisticsGridUsers =
+                    LoadGridUserData(config);
+                IPresenceService statisticsPresence =
+                    LoadOptionalService<IPresenceService>(
+                        config,
+                        "PresenceService");
+                IGridService statisticsGrid =
+                    LoadOptionalService<IGridService>(
+                        config,
+                        "GridService");
+
+                NexStatisticsApi publicStatisticsApi =
+                    new NexStatisticsApi(
+                        statisticsUserAccounts,
+                        statisticsGridUsers,
+                        statisticsPresence,
+                        statisticsGrid,
+                        null,
+                        true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/statistics/summary",
+                        apiGate.Wrap(publicStatisticsApi.Summary),
+                        "NexVerse aggregate statistics summary"));
+
+                m_Log.Info(
+                    "[NEX-WORLD-API]: Privileged endpoints are disabled; privacy-safe aggregate statistics remain available.");
             }
 
             m_Log.InfoFormat("[NEX-WORLD-API]: World API {0} enabled at {1}/api/v1", Core.NexVersePlatform.ApiVersion, publicBaseUrl);
