@@ -27,11 +27,11 @@ for token in (
 
 for token in (
     "Anmelden und Zugriff erlauben",
-    'method="post"',
-    'name="decision"',
-    'value="approve"',
-    'value="deny"',
-    'autocomplete="current-password"',
+    'method=""post""',
+    'name=""decision""',
+    'value=""approve""',
+    'value=""deny""',
+    'autocomplete=""current-password""',
     "Content-Security-Policy",
     "frame-ancestors 'none'",
     "Cache-Control",
@@ -41,7 +41,7 @@ for token in (
         errors.append(f"NexOAuthBrowserPage.cs missing browser security/UI marker: {token}")
 
 for forbidden in (
-    'name="password" value=',
+    'name=""password"" value=',
     "localStorage",
     "sessionStorage",
     "document.cookie",
