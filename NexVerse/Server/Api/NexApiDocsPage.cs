@@ -57,7 +57,7 @@ namespace NexVerse.Server.Api
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NexVerse World-API-Kontrollzentrum</title>
+<title>NexVerse Welt-API-Kontrollzentrum</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0f1a26;--panel2:#142335;--line:#24384d;--text:#e9f1f8;--muted:#8fa5b8;--accent:#66c7ff;--accent2:#8be0c2;--good:#62d49b;--warn:#ffd166;--danger:#ff7d7d;--shadow:0 18px 55px rgba(0,0,0,.28)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 0,#112b3d 0,transparent 34%),var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -93,7 +93,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <body>
 <div class="shell">
 <nav>
-<div class="brand"><strong>NexVerse API</strong><span>World-API-Kontrollzentrum</span></div>
+<div class="brand"><strong>NexVerse API</strong><span>Welt-API-Kontrollzentrum</span></div>
 <button class="navbtn active" data-page="overview">Übersicht</button>
 <button class="navbtn" data-page="statistics">Statistik</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
@@ -105,12 +105,12 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <main>
 <section class="page active" id="page-overview">
 <div class="hero">
-<div><div class="eyebrow">NexVerse World API</div><h1>API-Status auf einen Blick</h1><p>Live-Übersicht über Serverversion, API-Vertrag, aktuelle Erweiterungen und verfügbare Endpunkte.</p></div>
+<div><div class="eyebrow">NexVerse Welt-API</div><h1>API-Status auf einen Blick</h1><p>Live-Übersicht über Serverversion, API-Vertrag, aktuelle Erweiterungen und verfügbare Endpunkte.</p></div>
 <div class="pill"><span class="dot" id="healthDot"></span><span id="healthText">Prüfe API-Status…</span></div>
 </div>
 <div class="cards">
 <div class="card"><div class="label">Server</div><div class="value" id="serverVersion">–</div><div class="sub" id="milestone">Meilenstein –</div></div>
-<div class="card"><div class="label">API</div><div class="value" id="apiVersion">–</div><div class="sub">OpenAPI-3.1-Livevertrag</div></div>
+<div class="card"><div class="label">API</div><div class="value" id="apiVersion">–</div><div class="sub">Aktueller OpenAPI-3.1-Vertrag</div></div>
 <div class="card"><div class="label">Endpunkte</div><div class="value" id="endpointCount">–</div><div class="sub" id="operationCount">– Operationen</div></div>
 <div class="card"><div class="label">Letzte Änderung</div><div class="value" id="lastChangeDate">–</div><div class="sub" id="lastChangeTitle">Keine Versionshinweise</div></div>
 </div>
@@ -201,7 +201,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </section>
 
 <section class="page" id="page-explorer">
-<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den Live-Vertrag, prüfe Berechtigungsumfänge (Scopes) und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
+<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den aktuellen Vertrag, prüfe Berechtigungsumfänge und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
 <div class="explorer">
 <div class="endpointlist section">
 <input class="search" id="search" placeholder="Endpunkt, Methode, Berechtigung suchen…">
@@ -249,10 +249,12 @@ const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
 const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Skripting'};
 const audienceLabels={citizen:'Einwohner',admin:'Administration',service:'Dienst'};
+const languageLabels={'de-DE':'Deutsch (Deutschland)'};
 const accountStateLabels={active:'aktiv',locked:'gesperrt',banned:'gebannt',deactivated:'deaktiviert',provisioning:'Provisionierung',provisioning_failed:'Provisionierung fehlgeschlagen'};
 function statusLabel(value){return statusLabels[value]||value||''}
 function categoryLabel(value){return categoryLabels[value]||value||''}
 function audienceLabel(value){return audienceLabels[value]||value||''}
+function languageLabel(value){return languageLabels[value]||value||''}
 
 function showPage(name){
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+name));
@@ -373,7 +375,7 @@ function renderVersions(){
   if(!history.length){host.innerHTML='<div class="empty">Keine Versionshistorie veröffentlicht.</div>';return}
   history.forEach(item=>{
     const row=document.createElement('div');row.className='version';
-    const left=document.createElement('div');left.innerHTML='<strong></strong><span class="small"></span>';left.querySelector('strong').textContent=item.api_version||'';left.querySelector('span').textContent=item.published||statusLabel(item.status);
+    const left=document.createElement('div');left.innerHTML='<strong></strong><span class="small"></span>';left.querySelector('strong').textContent='API '+(item.api_version||'');left.querySelector('span').textContent=(item.published?'Veröffentlicht: '+item.published:'Status: '+statusLabel(item.status));
     const right=document.createElement('div');const h=document.createElement('strong');h.textContent=[item.server_line,item.codename].filter(Boolean).join(' · ');right.append(h);
     const p=document.createElement('div');p.className='small';p.textContent=item.compatibility||'';right.append(p);
     if(item.highlights?.length){const ul=document.createElement('ul');item.highlights.forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li)});right.append(ul)}
@@ -384,7 +386,7 @@ function renderRoadmap(){
   const roadmap=spec['x_nexverse_roadmap'];
   const host=$('roadmapList');host.replaceChildren();
   if(!roadmap?.milestones?.length){host.innerHTML='<div class="empty">Kein maschinenlesbarer Entwicklungsplan-Status veröffentlicht.</div>';return}
-  $('roadmapCurrent').textContent=roadmap.current_milestone||'–';$('roadmapCodename').textContent=roadmap.current_codename||'';
+  $('roadmapCurrent').textContent=roadmap.current_milestone||'–';$('roadmapCodename').textContent=roadmap.current_codename?('Codename: '+roadmap.current_codename):'Aktive Entwicklung';
   const milestones=roadmap.milestones;
   $('roadmapActiveCount').textContent=milestones.filter(x=>x.status==='active').length;
   $('roadmapStartedCount').textContent=milestones.filter(x=>['advanced','started','foundation'].includes(x.status)).length;
@@ -529,9 +531,9 @@ async function init(){
     changes=spec['x_nexverse_changelog']||[];
     buildEntries();
     $('healthText').textContent=health.status==='ok'?'API online':'API Status: '+(health.status||'unbekannt');$('healthDot').className='dot '+(health.status==='ok'?'good':'bad');
-    $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Meilenstein '+(version.milestone||'–');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
+    $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Meilenstein '+(version.milestone||'–')+(version.milestone_title?' · '+version.milestone_title:'');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
     $('endpointCount').textContent=Object.keys(spec.paths||{}).length;$('operationCount').textContent=entries.length+' Operationen';
-    $('navmeta').textContent=(version.server_version||'NexVerse')+' · '+(version.api_version||'API');
+    $('navmeta').textContent=(version.server_version||'NexVerse')+' · '+(version.api_version||'API')+' · '+languageLabel(version.language||spec['x_nexverse_language']||'de-DE');
     if(changes.length){$('lastChangeDate').textContent=changes[0].date||'–';$('lastChangeTitle').textContent=changes[0].title||''}
     const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Versionshinweise veröffentlicht.</div>';
     renderChangeFilters();renderChanges('all');renderVersions();renderRoadmap();renderEndpointList();
