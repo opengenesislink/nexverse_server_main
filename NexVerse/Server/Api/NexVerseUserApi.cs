@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NexVerse.Core.Audit;
+using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Identity;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Observability;
@@ -602,6 +603,7 @@ namespace NexVerse.Server.Api
         private readonly INexIdempotencyStore m_IdempotencyStore;
         private readonly INexApiKeyStore m_ApiKeys;
         private readonly NexGridControlApi m_GridControl;
+        private readonly NexNodeApi m_NodeApi;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
 
@@ -617,6 +619,8 @@ namespace NexVerse.Server.Api
             int idempotencyTtlSeconds,
             INexApiKeyStore apiKeys,
             IGridService grid,
+            NexNodeRegistry nodeRegistry,
+            bool distributedNexBusEnabled,
             int adminMinimumLevel)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
@@ -629,7 +633,14 @@ namespace NexVerse.Server.Api
             m_IdempotencyStore = idempotencyStore;
             m_IdempotencyTtlSeconds = Math.Max(60, idempotencyTtlSeconds);
             m_ApiKeys = apiKeys;
-            m_GridControl = new NexGridControlApi(grid, authenticator);
+            m_GridControl = new NexGridControlApi(
+                grid,
+                authenticator,
+                nodeRegistry);
+            m_NodeApi = new NexNodeApi(
+                nodeRegistry,
+                authenticator,
+                distributedNexBusEnabled);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
@@ -674,6 +685,13 @@ namespace NexVerse.Server.Api
                 path.StartsWith("/api/v1/grid/", StringComparison.OrdinalIgnoreCase))
             {
                 m_GridControl.Handle(request, response);
+                return;
+            }
+
+            if (string.Equals(path, "/api/v1/nodes", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/v1/nodes/", StringComparison.OrdinalIgnoreCase))
+            {
+                m_NodeApi.Handle(request, response);
                 return;
             }
 
