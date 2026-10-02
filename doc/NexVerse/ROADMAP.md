@@ -1,9 +1,10 @@
 # NexVerse Server Roadmap
 
 > Status: Active development roadmap  
-> Current release: **NexVerse 0.9.3.1**  
+> Current stable release: **NexVerse 0.9.3.1**  
+> Active development line: **NexVerse 0.9.3.2 Dev**  
+> Active milestone: **NexVerse World API v1**  
 > Completed milestone codename: **NEXJAST**  
-> Next planned development milestone: **NexVerse 0.9.3.2**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
 ## 1. Vision
@@ -277,6 +278,9 @@ Implemented during NEXJAST:
 ---
 
 # Milestone 0.9.3.2
+
+> Status: **Active development since 2 October 2026**  
+> Runtime line: **NexVerse 0.9.3.2 Dev**
 
 ## 6. NexVerse World API v1
 
