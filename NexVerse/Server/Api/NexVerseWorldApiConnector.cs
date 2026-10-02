@@ -351,8 +351,10 @@ namespace NexVerse.Server.Api
                         oauthStore,
                         authenticator,
                         userAccounts,
+                        userService,
                         eventBus,
                         auditSink,
+                        adminMinimumLevel,
                         authCodeLifetimeSeconds,
                         refreshLifetimeSeconds);
 

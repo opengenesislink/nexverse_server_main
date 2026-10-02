@@ -619,8 +619,8 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "NexVerse Welt-API v1",
                             status = "active",
-                            checklist = new { completed = 27, total = 27, open = 0 },
-                            summary = "Aktiver Produkt-Meilenstein. Die dokumentierte API-v1-Checkliste ist umgesetzt; die aktuelle Arbeit konzentriert sich auf Release-Härtung, Laufzeitkonsistenz und Produktionsbetrieb.",
+                            checklist = new { completed = 36, total = 37, open = 1 },
+                            summary = "Aktiver Produkt-Meilenstein. Die Welt-API-v1-Grundlage einschließlich browserbasierter OAuth/OIDC-Anmeldung und Zustimmung ist umgesetzt; als offener Identitäts-Härtungspunkt verbleibt die spätere MFA-/Passkey-Integration.",
                             evidence = new[]
                             {
                                 "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Anfragelimits und Idempotenz",
