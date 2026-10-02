@@ -74,6 +74,7 @@ timeout 45s dotnet run --configuration Release \
   --project ../tools/ci/NexLoginPlacementSeed/NexLoginPlacementSeed.csproj \
   -- "$DB"
 dotnet OpenSim.dll \
+  -background=true \
   -inifile OpenSim.NexVerseLoginPlacement.Tests.ini \
   > "$LOG" 2>&1 &
 OPENSIM_PID=$!
