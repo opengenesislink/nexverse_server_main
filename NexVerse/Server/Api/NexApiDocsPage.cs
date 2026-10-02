@@ -27,7 +27,7 @@ namespace NexVerse.Server.Api
                     "text/plain; charset=utf-8";
                 response.RawBuffer =
                     Encoding.UTF8.GetBytes(
-                        "GET is required.\n");
+                        "GET ist erforderlich.\n");
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace NexVerse.Server.Api
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NexVerse World API Control Center</title>
+<title>NexVerse World-API-Kontrollzentrum</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--panel:#0f1a26;--panel2:#142335;--line:#24384d;--text:#e9f1f8;--muted:#8fa5b8;--accent:#66c7ff;--accent2:#8be0c2;--good:#62d49b;--warn:#ffd166;--danger:#ff7d7d;--shadow:0 18px 55px rgba(0,0,0,.28)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 0,#112b3d 0,transparent 34%),var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -77,7 +77,7 @@ main{min-width:0;padding:34px}.page{display:none;max-width:1280px;margin:0 auto}
 .changegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.change{border:1px solid var(--line);background:#0b1621;border-radius:10px;padding:14px}.changehead{display:flex;justify-content:space-between;gap:12px;align-items:start}.change h3{font-size:15px;margin:0 0 7px}.change p{color:var(--muted);margin:0}.meta{font-size:12px;color:var(--muted);margin-top:10px}.tag{display:inline-block;border-radius:999px;padding:3px 7px;margin:2px 4px 2px 0;background:#1b3044;color:#cfe7f8;font-size:11px}.tag.good{background:#153727;color:#aaf0ca}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.filter{border:1px solid var(--line);background:#0b1621;color:var(--muted);border-radius:999px;padding:6px 10px}.filter.active{border-color:var(--accent);color:var(--text)}
 .version{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}.version:last-child{border-bottom:0}.version strong{display:block}.version ul{margin:6px 0 0;padding-left:18px;color:var(--muted)}
-.roadmap-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.roadmap-list{display:grid;gap:12px}.milestone{border:1px solid var(--line);background:#0b1621;border-radius:11px;padding:16px}.milestone.current{border-color:var(--accent);box-shadow:0 0 0 1px rgba(102,199,255,.12)}.milestonehead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.milestone h3{margin:0 0 4px;font-size:16px}.milestone p{margin:8px 0;color:var(--muted)}.milestone .evidence{margin:8px 0 0;padding-left:18px;color:var(--muted)}.status{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.status-active{color:#b9ecff;border-color:#2c6f91;background:#102c3e}.status-advanced{color:#bdf4dc;border-color:#2d7053;background:#113326}.status-started,.status-foundation{color:#ffe6a6;border-color:#7c6131;background:#342914}.status-planned{color:#aebdca;background:#111b25}.progressline{margin-top:12px}.progressmeta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin-bottom:5px}.progressbar{height:7px;background:#07111b;border-radius:999px;overflow:hidden;border:1px solid var(--line)}.progressbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.roadmap-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.roadmap-list{display:grid;gap:12px}.milestone{border:1px solid var(--line);background:#0b1621;border-radius:11px;padding:16px}.milestone.current{border-color:var(--accent);box-shadow:0 0 0 1px rgba(102,199,255,.12)}.milestonehead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.milestone h3{margin:0 0 4px;font-size:16px}.milestone p{margin:8px 0;color:var(--muted)}.milestone .evidence{margin:8px 0 0;padding-left:18px;color:var(--muted)}.status{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.status-released{color:#bdf4dc;border-color:#2d7053;background:#113326}.status-active{color:#b9ecff;border-color:#2c6f91;background:#102c3e}.status-advanced{color:#bdf4dc;border-color:#2d7053;background:#113326}.status-started,.status-foundation{color:#ffe6a6;border-color:#7c6131;background:#342914}.status-planned{color:#aebdca;background:#111b25}.progressline{margin-top:12px}.progressmeta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin-bottom:5px}.progressbar{height:7px;background:#07111b;border-radius:999px;overflow:hidden;border:1px solid var(--line)}.progressbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .explorer{display:grid;grid-template-columns:minmax(290px,32%) 1fr;gap:16px}.endpointlist,.detail{min-width:0}.search{width:100%;background:#08131e;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
 .endpoint{padding:10px;margin:7px 0;border:1px solid var(--line);border-radius:9px;background:#0b1621;cursor:pointer}.endpoint:hover,.endpoint.active{border-color:var(--accent);background:var(--panel2)}
 .method{display:inline-block;min-width:58px;font-weight:800;color:var(--accent)}.path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.small{font-size:12px;color:var(--muted)}
@@ -93,29 +93,29 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <body>
 <div class="shell">
 <nav>
-<div class="brand"><strong>NexVerse API</strong><span>World API Control Center</span></div>
+<div class="brand"><strong>NexVerse API</strong><span>World-API-Kontrollzentrum</span></div>
 <button class="navbtn active" data-page="overview">Übersicht</button>
 <button class="navbtn" data-page="statistics">Statistik</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
-<button class="navbtn" data-page="roadmap">Roadmap</button>
-<button class="navbtn" data-page="explorer">API Explorer</button>
+<button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
+<button class="navbtn" data-page="explorer">API-Endpunkte</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
 </nav>
 <main>
 <section class="page active" id="page-overview">
 <div class="hero">
 <div><div class="eyebrow">NexVerse World API</div><h1>API-Status auf einen Blick</h1><p>Live-Übersicht über Serverversion, API-Vertrag, aktuelle Erweiterungen und verfügbare Endpunkte.</p></div>
-<div class="pill"><span class="dot" id="healthDot"></span><span id="healthText">Prüfe Health…</span></div>
+<div class="pill"><span class="dot" id="healthDot"></span><span id="healthText">Prüfe API-Status…</span></div>
 </div>
 <div class="cards">
-<div class="card"><div class="label">Server</div><div class="value" id="serverVersion">–</div><div class="sub" id="milestone">Milestone –</div></div>
-<div class="card"><div class="label">API</div><div class="value" id="apiVersion">–</div><div class="sub">OpenAPI 3.1 Live Contract</div></div>
+<div class="card"><div class="label">Server</div><div class="value" id="serverVersion">–</div><div class="sub" id="milestone">Meilenstein –</div></div>
+<div class="card"><div class="label">API</div><div class="value" id="apiVersion">–</div><div class="sub">OpenAPI-3.1-Livevertrag</div></div>
 <div class="card"><div class="label">Endpunkte</div><div class="value" id="endpointCount">–</div><div class="sub" id="operationCount">– Operationen</div></div>
-<div class="card"><div class="label">Letzte Änderung</div><div class="value" id="lastChangeDate">–</div><div class="sub" id="lastChangeTitle">Keine Release Notes</div></div>
+<div class="card"><div class="label">Letzte Änderung</div><div class="value" id="lastChangeDate">–</div><div class="sub" id="lastChangeTitle">Keine Versionshinweise</div></div>
 </div>
 <div class="section">
-<h2>Neu in der aktuellen Entwicklungsline</h2><p class="sectionlead">Die Einträge werden direkt aus <code>x_nexverse_changelog</code> im laufenden OpenAPI-Dokument gelesen.</p>
+<h2>Neu in der aktuellen Version</h2><p class="sectionlead">Die Einträge werden direkt aus <code>x_nexverse_changelog</code> im laufenden OpenAPI-Dokument gelesen und deutsch dargestellt.</p>
 <div class="changegrid" id="overviewChanges"></div>
 </div>
 <div class="section">
@@ -123,8 +123,8 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <div class="filters">
 <button class="filter" data-goto="changes">Alle Neuerungen</button>
 <button class="filter" data-goto="versions">Versionshistorie</button>
-<button class="filter" data-goto="roadmap">Roadmap / Projektstatus</button>
-<button class="filter" data-goto="explorer">Endpoint Explorer</button>
+<button class="filter" data-goto="roadmap">Entwicklungsplan / Projektstatus</button>
+<button class="filter" data-goto="explorer">Endpunktübersicht</button>
 </div>
 </div>
 </section>
@@ -132,16 +132,16 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 
 <section class="page" id="page-statistics">
 <div class="hero">
-<div><div class="eyebrow">Live Analytics</div><h1>Grid-Statistik</h1><p>Aktuelle Einwohner-, Aktivitäts-, Presence- und Hypergrid-Kennzahlen direkt aus den laufenden NexVerse-Diensten.</p></div>
+<div><div class="eyebrow">Live-Statistik</div><h1>Grid-Statistik</h1><p>Aktuelle Einwohner-, Aktivitäts-, Anwesenheits- und Hypergrid-Kennzahlen direkt aus den laufenden NexVerse-Diensten.</p></div>
 <div class="pill"><span class="dot" id="statsDot"></span><span id="statsStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
 <h2>Zugriff</h2><p class="sectionlead">Personenbezogene Online-Details sind geschützt. Verwende einen Admin-Bearer-Token oder einen API-Key mit <code>statistics:read</code>.</p>
 <div class="grid2">
-<div><label class="label2">Bearer Token</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">Zugriffstoken (Bearer)</label><input id="statsBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="statsApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
 </div>
-<div class="row" style="margin-top:10px"><button class="action" id="loadStats">Statistik laden</button><button class="action" id="clearStats">Credentials löschen</button></div>
+<div class="row" style="margin-top:10px"><button class="action" id="loadStats">Statistik laden</button><button class="action" id="clearStats">Zugangsdaten löschen</button></div>
 <div class="authnote">Die Zugangsdaten bleiben nur in dieser geöffneten Seite und werden nicht gespeichert.</div>
 </div>
 <div class="cards">
@@ -156,11 +156,11 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </div>
 <div class="section">
 <h2>Gerade online</h2><p class="sectionlead">Lokale Einwohner und Hypergrid-Besucher mit aktuell ermittelter Region.</p>
-<div class="tablewrap"><table class="datatable"><thead><tr><th>Name</th><th>Typ</th><th>Region</th><th>Home Grid</th><th>Login</th></tr></thead><tbody id="statsOnlineBody"></tbody></table></div>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Name</th><th>Typ</th><th>Region</th><th>Heimat-Grid</th><th>Login</th></tr></thead><tbody id="statsOnlineBody"></tbody></table></div>
 </div>
 <div class="section">
 <h2>Hypergrid-Herkunft</h2><p class="sectionlead">Bekannte eindeutige Besucher nach Home Grid. Dies sind keine kumulierten Besuchssessions.</p>
-<div class="tablewrap"><table class="datatable"><thead><tr><th>Home Grid</th><th>Bekannt</th><th>Online</th><th>7 Tage</th><th>30 Tage</th></tr></thead><tbody id="statsHgBody"></tbody></table></div>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Heimat-Grid</th><th>Bekannt</th><th>Online</th><th>7 Tage</th><th>30 Tage</th></tr></thead><tbody id="statsHgBody"></tbody></table></div>
 </div>
 <div class="section">
 <h2>Regionen jetzt</h2><p class="sectionlead">Aktuelle Belegung nach Region, getrennt nach lokalen Einwohnern und Hypergrid-Besuchern.</p>
@@ -172,7 +172,7 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </section>
 
 <section class="page" id="page-changes">
-<div class="hero"><div><div class="eyebrow">Changelog</div><h1>Was ist neu?</h1><p>Nachvollziehbare, maschinenlesbare Änderungen der World API und ihrer Plattform-Grundlagen.</p></div></div>
+<div class="hero"><div><div class="eyebrow">Änderungsprotokoll</div><h1>Was ist neu?</h1><p>Nachvollziehbare, maschinenlesbare Änderungen der World API und ihrer Plattform-Grundlagen.</p></div></div>
 <div class="section">
 <div class="filters" id="changeFilters"></div>
 <div class="changegrid" id="allChanges"></div>
@@ -180,31 +180,31 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 </section>
 
 <section class="page" id="page-versions">
-<div class="hero"><div><div class="eyebrow">Compatibility</div><h1>Versionen</h1><p>API-Versionen, Server-Linien, Codenamen und veröffentlichte Highlights.</p></div></div>
+<div class="hero"><div><div class="eyebrow">Kompatibilität</div><h1>Versionen</h1><p>API-Versionen, Server-Linien, Codenamen und veröffentlichte Highlights.</p></div></div>
 <div class="section" id="versionList"></div>
 </section>
 
 <section class="page" id="page-roadmap">
-<div class="hero"><div><div class="eyebrow">Projektstatus</div><h1>NexVerse Roadmap</h1><p>Milestone-Status auf Basis der veröffentlichten Roadmap und konkreter Implementierungsevidenz. Prozentwerte werden nur angezeigt, wenn der Milestone tatsächlich eine gepflegte Checkbox-Checkliste besitzt.</p></div></div>
+<div class="hero"><div><div class="eyebrow">Projektstatus</div><h1>NexVerse-Entwicklungsplan</h1><p>Meilenstein-Status auf Basis der veröffentlichten Roadmap und konkreter Implementierungsevidenz. Prozentwerte werden nur angezeigt, wenn der Meilenstein tatsächlich eine gepflegte Checkbox-Checkliste besitzt.</p></div></div>
 <div class="roadmap-summary">
-<div class="card"><div class="label">Aktueller Milestone</div><div class="value" id="roadmapCurrent">–</div><div class="sub" id="roadmapCodename">–</div></div>
-<div class="card"><div class="label">Aktiv</div><div class="value" id="roadmapActiveCount">–</div><div class="sub">aktueller Produkt-Milestone</div></div>
-<div class="card"><div class="label">Vorgezogen / begonnen</div><div class="value" id="roadmapStartedCount">–</div><div class="sub">advanced, started oder foundation</div></div>
+<div class="card"><div class="label">Aktueller Meilenstein</div><div class="value" id="roadmapCurrent">–</div><div class="sub" id="roadmapCodename">–</div></div>
+<div class="card"><div class="label">Aktiv</div><div class="value" id="roadmapActiveCount">–</div><div class="sub">aktueller Produkt-Meilenstein</div></div>
+<div class="card"><div class="label">Vorgezogen / begonnen</div><div class="value" id="roadmapStartedCount">–</div><div class="sub">vorgezogen, begonnen oder Grundlage</div></div>
 <div class="card"><div class="label">Geplant</div><div class="value" id="roadmapPlannedCount">–</div><div class="sub">noch nicht als implementiert beansprucht</div></div>
 </div>
 <div class="section">
 <h2>Statusmodell</h2>
-<p class="sectionlead">Die Statusbegriffe vermeiden erfundene Gesamtfortschritte. „Advanced“ bedeutet beispielsweise, dass Arbeit aus einem späteren Milestone bereits vorgezogen wurde, nicht dass der Milestone vollständig abgeschlossen ist.</p>
+<p class="sectionlead">Die Statusbegriffe vermeiden erfundene Gesamtfortschritte. „Vorgezogen“ bedeutet, dass Arbeit aus einem späteren Meilenstein bereits früher umgesetzt wurde, nicht dass der Meilenstein vollständig abgeschlossen ist.</p>
 <div class="filters" id="roadmapLegend"></div>
 </div>
 <div class="roadmap-list" id="roadmapList"></div>
 </section>
 
 <section class="page" id="page-explorer">
-<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API Explorer</h1><p>Durchsuche den Live-Vertrag, prüfe Scopes und führe autorisierte Requests direkt gegen denselben Server aus.</p></div></div>
+<div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den Live-Vertrag, prüfe Berechtigungen (Scopes) und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
 <div class="explorer">
 <div class="endpointlist section">
-<input class="search" id="search" placeholder="Endpoint, Methode, Scope suchen…">
+<input class="search" id="search" placeholder="Endpunkt, Methode, Berechtigung suchen…">
 <div id="endpoints"></div>
 </div>
 <div class="detail">
@@ -213,27 +213,27 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 <p id="summary" class="sectionlead"></p>
 <div id="badges"></div>
 <div class="grid2">
-<div><label class="label2">Request URL</label><input id="url"></div>
-<div><label class="label2">Method</label><input id="method" readonly></div>
+<div><label class="label2">Anfrage-URL</label><input id="url"></div>
+<div><label class="label2">HTTP-Methode</label><input id="method" readonly></div>
 </div>
 <h3>Parameter</h3><pre id="parameters"></pre>
-<h3>Request Schema</h3><pre id="requestSchema"></pre>
-<h3>AI / Automation Guidance</h3><pre id="aiInstruction"></pre>
-<h3>Responses / Errors</h3><pre id="responses"></pre>
+<h3>Anfrageschema</h3><pre id="requestSchema"></pre>
+<h3>KI-/Automatisierungshinweise</h3><pre id="aiInstruction"></pre>
+<h3>Antworten / Fehler</h3><pre id="responses"></pre>
 </div>
 <div class="section">
 <h2>Authentifizierung</h2>
 <div class="grid2">
-<div><label class="label2">Bearer Token</label><input id="bearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">Zugriffstoken (Bearer)</label><input id="bearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="Optional"></div>
 </div>
 <label class="label2">Idempotency-Key</label><input id="idem" autocomplete="off" placeholder="Optional">
 </div>
 <div class="section hidden" id="runner">
-<h2>Live Request</h2>
-<label class="label2">JSON Body</label><textarea id="body" spellcheck="false"></textarea>
-<div class="row" style="margin-top:10px"><button class="action" id="run">Request ausführen</button><button class="action" id="clear">Credentials löschen</button></div>
-<h3 style="margin-top:18px">Response</h3><div id="status" class="small"></div><pre id="output">Noch kein Request ausgeführt.</pre>
+<h2>Live-Anfrage</h2>
+<label class="label2">JSON-Anfrageinhalt</label><textarea id="body" spellcheck="false"></textarea>
+<div class="row" style="margin-top:10px"><button class="action" id="run">Anfrage ausführen</button><button class="action" id="clear">Zugangsdaten löschen</button></div>
+<h3 style="margin-top:18px">Antwort</h3><div id="status" class="small"></div><pre id="output">Noch keine Anfrage ausgeführt.</pre>
 </div>
 </div>
 </div>
@@ -246,6 +246,13 @@ input,textarea{width:100%;background:#08131e;color:var(--text);border:1px solid 
 let spec=null,entries=[],selected=null,changes=[];
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
+const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
+const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Scripting'};
+const audienceLabels={citizen:'Einwohner',admin:'Administration',service:'Dienst'};
+const accountStateLabels={active:'aktiv',locked:'gesperrt',banned:'gebannt',deactivated:'deaktiviert',provisioning:'Provisionierung',provisioning_failed:'Provisionierung fehlgeschlagen'};
+function statusLabel(value){return statusLabels[value]||value||''}
+function categoryLabel(value){return categoryLabels[value]||value||''}
+function audienceLabel(value){return audienceLabels[value]||value||''}
 
 function showPage(name){
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+name));
@@ -320,15 +327,15 @@ function renderEndpointList(){
 function selectEntry(entry){
   selected=entry;renderEndpointList();$('detail').classList.remove('hidden');$('runner').classList.remove('hidden');
   $('title').textContent=entry.method+' '+entry.path;$('summary').textContent=entry.op.summary||'';$('method').value=entry.method;$('url').value=entry.path;
-  $('deprecated').textContent=entry.op.deprecated?'DEPRECATED':'';$('deprecated').className=entry.op.deprecated?'tag':'';
+  $('deprecated').textContent=entry.op.deprecated?'VERALTET':'';$('deprecated').className=entry.op.deprecated?'tag':'';
   const badges=$('badges');badges.replaceChildren();
   const scope=entry.op['x-nexverse-scope'];
-  if(scope){const b=document.createElement('span');b.className='tag';b.textContent='scope: '+scope;badges.append(b)}
-  for(const audience of entry.op['x-nexverse-audience']||[]){const b=document.createElement('span');b.className='tag';b.textContent='audience: '+audience;badges.append(b)}
-  for(const sec of entry.op.security||[]){const names=Object.keys(sec);if(names.length){const b=document.createElement('span');b.className='tag';b.textContent='auth: '+names.join(' or ');badges.append(b)}}
+  if(scope){const b=document.createElement('span');b.className='tag';b.textContent='Berechtigung: '+scope;badges.append(b)}
+  for(const audience of entry.op['x-nexverse-audience']||[]){const b=document.createElement('span');b.className='tag';b.textContent='Zielgruppe: '+audienceLabel(audience);badges.append(b)}
+  for(const sec of entry.op.security||[]){const names=Object.keys(sec);if(names.length){const b=document.createElement('span');b.className='tag';b.textContent='Authentifizierung: '+names.join(' oder ');badges.append(b)}}
   $('parameters').textContent=JSON.stringify(entry.op.parameters||[],null,2);
-  const req=requestSchema(entry.op);$('requestSchema').textContent=req?JSON.stringify(resolveSchema(req),null,2):'Kein JSON Request Body.';
-  $('aiInstruction').textContent=JSON.stringify({purpose:entry.op['x-nexverse-purpose']||entry.op.summary||'',audience:entry.op['x-nexverse-audience']||[],instruction:entry.op['x-nexverse-ai-instruction']||'',security_constraints:entry.op['x-nexverse-security-constraints']||[],deprecated:!!entry.op.deprecated},null,2);
+  const req=requestSchema(entry.op);$('requestSchema').textContent=req?JSON.stringify(resolveSchema(req),null,2):'Kein JSON-Anfrageinhalt.';
+  $('aiInstruction').textContent=JSON.stringify({zweck:entry.op['x-nexverse-purpose']||entry.op.summary||'',zielgruppe:(entry.op['x-nexverse-audience']||[]).map(audienceLabel),anweisung:entry.op['x-nexverse-ai-instruction']||'',sicherheitsvorgaben:entry.op['x-nexverse-security-constraints']||[],veraltet:!!entry.op.deprecated},null,2);
   $('responses').textContent=JSON.stringify(responseSchemas(entry.op),null,2);
   const ex=exampleFor(req);$('body').value=req&&ex!==null?JSON.stringify(ex,null,2):'';
 }
@@ -336,11 +343,11 @@ function makeChange(item){
   const box=document.createElement('article');box.className='change';
   const head=document.createElement('div');head.className='changehead';
   const title=document.createElement('h3');title.textContent=item.title||'Änderung';
-  const status=document.createElement('span');status.className='tag '+(item.status==='implemented'?'good':'');status.textContent=item.status||'';
+  const status=document.createElement('span');status.className='tag '+(item.status==='implemented'?'good':'');status.textContent=statusLabel(item.status);
   head.append(title,status);box.append(head);
   const summary=document.createElement('p');summary.textContent=item.summary||'';box.append(summary);
   const tags=document.createElement('div');tags.className='meta';
-  for(const value of [item.date,item.version,item.category]){if(value){const t=document.createElement('span');t.className='tag';t.textContent=value;tags.append(t)}}
+  for(const value of [item.date,item.version]){if(value){const t=document.createElement('span');t.className='tag';t.textContent=value;tags.append(t)}}if(item.category){const t=document.createElement('span');t.className='tag';t.textContent=categoryLabel(item.category);tags.append(t)}
   box.append(tags);
   if(item.endpoints?.length){const eps=document.createElement('div');eps.className='small';eps.style.marginTop='8px';eps.textContent='Betrifft: '+item.endpoints.join(', ');box.append(eps)}
   return box;
@@ -355,7 +362,7 @@ function renderChangeFilters(){
   const host=$('changeFilters');host.replaceChildren();
   const cats=['all',...new Set(changes.map(x=>x.category).filter(Boolean))];
   cats.forEach((cat,index)=>{
-    const b=document.createElement('button');b.className='filter'+(index===0?' active':'');b.textContent=cat==='all'?'Alle':cat;
+    const b=document.createElement('button');b.className='filter'+(index===0?' active':'');b.textContent=cat==='all'?'Alle':categoryLabel(cat);
     b.addEventListener('click',()=>{host.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderChanges(cat)});
     host.append(b);
   });
@@ -366,7 +373,7 @@ function renderVersions(){
   if(!history.length){host.innerHTML='<div class="empty">Keine Versionshistorie veröffentlicht.</div>';return}
   history.forEach(item=>{
     const row=document.createElement('div');row.className='version';
-    const left=document.createElement('div');left.innerHTML='<strong></strong><span class="small"></span>';left.querySelector('strong').textContent=item.api_version||'';left.querySelector('span').textContent=item.published||item.status||'';
+    const left=document.createElement('div');left.innerHTML='<strong></strong><span class="small"></span>';left.querySelector('strong').textContent=item.api_version||'';left.querySelector('span').textContent=item.published||statusLabel(item.status);
     const right=document.createElement('div');const h=document.createElement('strong');h.textContent=[item.server_line,item.codename].filter(Boolean).join(' · ');right.append(h);
     const p=document.createElement('div');p.className='small';p.textContent=item.compatibility||'';right.append(p);
     if(item.highlights?.length){const ul=document.createElement('ul');item.highlights.forEach(v=>{const li=document.createElement('li');li.textContent=v;ul.append(li)});right.append(ul)}
@@ -384,14 +391,14 @@ function renderRoadmap(){
   $('roadmapPlannedCount').textContent=milestones.filter(x=>x.status==='planned').length;
   const legend=$('roadmapLegend');legend.replaceChildren();
   for(const [key,value] of Object.entries(roadmap.status_model||{})){
-    const item=document.createElement('span');item.className='tag';item.textContent=key+' — '+value;legend.append(item);
+    const item=document.createElement('span');item.className='tag';item.textContent=statusLabel(key)+' — '+value;legend.append(item);
   }
   milestones.forEach(item=>{
     const box=document.createElement('article');box.className='milestone'+(item.status==='active'?' current':'');
     const head=document.createElement('div');head.className='milestonehead';
     const title=document.createElement('div');const h=document.createElement('h3');h.textContent=item.version+' · '+item.title;title.append(h);
     if(item.codename){const code=document.createElement('div');code.className='small';code.textContent='Codename: '+item.codename;title.append(code)}
-    const status=document.createElement('span');status.className='status status-'+item.status;status.textContent=item.status;
+    const status=document.createElement('span');status.className='status status-'+item.status;status.textContent=statusLabel(item.status);
     head.append(title,status);box.append(head);
     const p=document.createElement('p');p.textContent=item.summary||'';box.append(p);
     if(item.checklist&&item.checklist.total>0){
@@ -449,10 +456,27 @@ function renderStatistics(data){
     item.region_name||item.region_id,item.online_total,item.residents,item.hypergrid
   ]));
   if(!(data.regions||[]).length)appendStatsRow('statsRegionBody',['Keine Online-Belegung','','','']);
+  const states=Object.fromEntries(Object.entries(data.account_states||{}).map(([k,v])=>[accountStateLabels[k]||k,v]));
+  const quality=data.data_quality||{};
+  const qualityValues={
+    'UserAccountService aggregate':'UserAccountService-Aggregat',
+    'GridUser/UserAccount fallback':'GridUser-/UserAccount-Ersatzquelle',
+    'PresenceService':'PresenceService',
+    'GridUser Online flag with five-day stale guard':'GridUser-Online-Status mit Fünf-Tage-Schutz gegen veraltete Daten',
+    'Unique identities use the latest GridUser Login/Logout timestamps.':'Eindeutige Identitäten verwenden die neuesten GridUser-Zeitstempel für Anmeldung/Abmeldung.',
+    'Known Hypergrid counts are distinct visitor/home-grid identities, not cumulative visit sessions.':'Bekannte Hypergrid-Zahlen sind eindeutige Besucher-/Heimat-Grid-Identitäten und keine kumulierten Besuchssitzungen.'
+  };
+  const qv=value=>qualityValues[value]||value;
   $('statsQuality').textContent=JSON.stringify({
-    generated_at:data.generated_at,
-    account_states:data.account_states,
-    data_quality:data.data_quality
+    erzeugt_am:data.generated_at,
+    kontostatus:states,
+    datenqualitaet:{
+      registrierungsquelle:qv(quality.registered_source),
+      online_quelle:qv(quality.online_source),
+      historische_aktivitaet:qv(quality.historical_activity),
+      hypergrid_historie:qv(quality.hypergrid_history),
+      exakte_besuchssitzungen_verfuegbar:quality.exact_visit_sessions_available
+    }
   },null,2);
 }
 async function loadStatistics(){
@@ -485,13 +509,13 @@ async function execute(){
   if(bearer)headers.Authorization='Bearer '+bearer;if(key)headers['X-NexVerse-Api-Key']=key;if(idem)headers['Idempotency-Key']=idem;
   const body=$('body').value.trim(),opts={method:selected.method,headers};
   if(body&&!['GET','HEAD'].includes(selected.method)){headers['Content-Type']='application/json';opts.body=body}
-  $('status').textContent='Request läuft…';$('output').textContent='';
+  $('status').textContent='Anfrage läuft…';$('output').textContent='';
   try{
     const res=await fetch($('url').value,{...opts,credentials:'same-origin'}),txt=await res.text();
-    $('status').textContent=res.status+' '+res.statusText+' | correlation: '+(res.headers.get('X-Correlation-Id')||'-');$('status').className=res.ok?'small status-good':'small status-bad';
+    $('status').textContent=res.status+' '+res.statusText+' | Korrelations-ID: '+(res.headers.get('X-Correlation-Id')||'-');$('status').className=res.ok?'small status-good':'small status-bad';
     let formatted=txt;try{formatted=JSON.stringify(JSON.parse(txt),null,2)}catch{}
     const headerLines=[];res.headers.forEach((v,k)=>headerLines.push(k+': '+v));$('output').textContent=headerLines.join('\n')+'\n\n'+formatted;
-  }catch(err){$('status').textContent='Request fehlgeschlagen';$('status').className='small status-bad';$('output').textContent=String(err)}
+  }catch(err){$('status').textContent='Anfrage fehlgeschlagen';$('status').className='small status-bad';$('output').textContent=String(err)}
 }
 async function init(){
   try{
@@ -504,11 +528,11 @@ async function init(){
     changes=spec['x_nexverse_changelog']||[];
     buildEntries();
     $('healthText').textContent=health.status==='ok'?'API online':'API Status: '+(health.status||'unbekannt');$('healthDot').className='dot '+(health.status==='ok'?'good':'bad');
-    $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Milestone '+(version.milestone||'–');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
+    $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Meilenstein '+(version.milestone||'–');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
     $('endpointCount').textContent=Object.keys(spec.paths||{}).length;$('operationCount').textContent=entries.length+' Operationen';
     $('navmeta').textContent=(version.server_version||'NexVerse')+' · '+(version.api_version||'API');
     if(changes.length){$('lastChangeDate').textContent=changes[0].date||'–';$('lastChangeTitle').textContent=changes[0].title||''}
-    const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Release Notes veröffentlicht.</div>';
+    const overview=$('overviewChanges');overview.replaceChildren();changes.slice(0,4).forEach(x=>overview.append(makeChange(x)));if(!changes.length)overview.innerHTML='<div class="empty">Noch keine Versionshinweise veröffentlicht.</div>';
     renderChangeFilters();renderChanges('all');renderVersions();renderRoadmap();renderEndpointList();
   }catch(err){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
