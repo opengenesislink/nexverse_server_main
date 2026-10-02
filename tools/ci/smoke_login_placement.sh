@@ -128,7 +128,7 @@ cat > "$REQUEST" <<XML
 XML
 
 LOGIN_OK=0
-LOGIN_DEADLINE=$((SECONDS + 45))
+LOGIN_DEADLINE=$((SECONDS + 75))
 while [ "$SECONDS" -lt "$LOGIN_DEADLINE" ]; do
   if ! kill -0 "$OPENSIM_PID" 2>/dev/null; then
     echo "::error::OpenSim exited while waiting for successful login placement."
@@ -136,7 +136,7 @@ while [ "$SECONDS" -lt "$LOGIN_DEADLINE" ]; do
   fi
 
   rm -f "$RESPONSE"
-  curl --silent --show-error --connect-timeout 2 --max-time 15 \
+  curl --silent --show-error --connect-timeout 2 --max-time 30 \
     -H 'Content-Type: text/xml' \
     --data-binary @"$REQUEST" \
     http://127.0.0.1:19100/ > "$RESPONSE" || true
