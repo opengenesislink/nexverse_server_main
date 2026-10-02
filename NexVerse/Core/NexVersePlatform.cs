@@ -8,7 +8,9 @@ namespace NexVerse.Core
     public static class NexVersePlatform
     {
         public const string ProductName = "NexVerse";
-        public const string MilestoneCodename = "NEXJAST";
+        public const string MilestoneVersion = "0.9.3.2";
+        public const string MilestoneCodename = "";
+        public const string MilestoneTitle = "NexVerse World API v1";
         public const string ApiVersion = "v1";
         public const string ProtocolVersion = "1";
         public const string NexBusSchemaVersion = "1";
