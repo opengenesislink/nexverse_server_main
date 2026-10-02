@@ -43,7 +43,6 @@ namespace NexVerse.Server.Api
             m_NativeTokens = nativeTokens;
             m_OAuthStore = oauthStore;
             m_ApiKeys = apiKeys;
-            m_GridControl = new NexGridControlApi(grid, authenticator);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
@@ -630,6 +629,7 @@ namespace NexVerse.Server.Api
             m_IdempotencyStore = idempotencyStore;
             m_IdempotencyTtlSeconds = Math.Max(60, idempotencyTtlSeconds);
             m_ApiKeys = apiKeys;
+            m_GridControl = new NexGridControlApi(grid, authenticator);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
