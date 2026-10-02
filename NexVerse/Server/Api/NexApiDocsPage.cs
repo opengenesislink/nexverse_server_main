@@ -86,7 +86,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 .action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
 .empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.datatable{width:100%;border-collapse:collapse;min-width:720px}.datatable th,.datatable td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.datatable th{font-size:12px;color:var(--muted);background:#0a1520}.datatable tr:last-child td{border-bottom:0}.datatable td:first-child{font-weight:600}.authnote{margin-top:10px;color:var(--muted);font-size:12px}
-.planner-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.planner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.planner-actions .action{flex:0 0 auto}.gridlegend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.legenditem{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.legendswatch{width:13px;height:13px;border-radius:3px;border:1px solid var(--line)}.gridboardwrap{overflow:auto;max-height:680px;border:1px solid var(--line);border-radius:10px;background:#06101a;padding:12px}.gridboard{--cell:30px;display:grid;gap:2px;width:max-content;min-width:100%}.gridcell{width:var(--cell);height:var(--cell);min-width:var(--cell);padding:0;border:1px solid #22384b;border-radius:3px;background:#0c1a26;color:transparent;position:relative}.gridcell:hover{outline:2px solid var(--accent);z-index:2}.gridcell.free{background:#123326}.gridcell.occupied{background:#1d4c6a}.gridcell.reserved{background:#5a461c}.gridcell.conflict{background:#6a2323}.gridcell.selected{outline:2px solid #fff;z-index:3}.gridcell.preview-ok{box-shadow:inset 0 0 0 2px var(--good)}.gridcell.preview-bad{box-shadow:inset 0 0 0 2px var(--danger)}.gridcell.dimmed{opacity:.22}.gridcell[data-region-name]:after{content:'';position:absolute;inset:35%;border-radius:50%;background:rgba(255,255,255,.72)}.gridinfo{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gridinfo pre{margin:0;min-height:150px}.gridcoord{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.planner-note{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0a1520;color:var(--muted);font-size:12px}
+.planner-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.planner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.planner-actions .action{flex:0 0 auto}.gridlegend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.legenditem{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.legendswatch{width:13px;height:13px;border-radius:3px;border:1px solid var(--line)}.gridboardwrap{overflow:auto;max-height:680px;border:1px solid var(--line);border-radius:10px;background:#06101a;padding:12px}.gridboard{--cell:30px;display:grid;gap:2px;width:max-content;min-width:100%}.gridcell{width:var(--cell);height:var(--cell);min-width:var(--cell);padding:0;border:1px solid #22384b;border-radius:3px;background:#0c1a26;color:transparent;position:relative}.gridcell:hover{outline:2px solid var(--accent);z-index:2}.gridcell.free{background:#123326}.gridcell.occupied{background:#1d4c6a}.gridcell.reserved{background:#5a461c}.gridcell.conflict{background:#6a2323}.gridcell.selected{outline:2px solid #fff;z-index:3}.gridcell.preview-ok{box-shadow:inset 0 0 0 2px var(--good)}.gridcell.preview-bad{box-shadow:inset 0 0 0 2px var(--danger)}.gridcell.dimmed{opacity:.22}.gridcell[data-region-name]:after{content:'';position:absolute;inset:35%;border-radius:50%;background:rgba(255,255,255,.72)}.gridinfo{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gridinfo pre{margin:0;min-height:150px}.gridcoord{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.planner-note{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0a1520;color:var(--muted);font-size:12px}.noderow{cursor:pointer}.noderow:hover{background:var(--panel2)}.node-state-online{color:var(--good)}.node-state-stale{color:var(--warn)}.node-state-offline{color:var(--danger)}
 @media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}.planner-controls{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version,.gridinfo{grid-template-columns:1fr}.planner-controls{grid-template-columns:1fr 1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
 </style>
@@ -98,6 +98,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="navbtn active" data-page="overview">Übersicht</button>
 <button class="navbtn" data-page="statistics">Statistik</button>
 <button class="navbtn" data-page="grid">Grid-Planer</button>
+<button class="navbtn" data-page="nodes">Simulatoren</button>
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
@@ -221,6 +222,35 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </div>
 </div>
 <div class="planner-note">Der aktuelle Planer ist absichtlich read-only. Regions-Erstellung und Verschieben werden erst über separate <code>regions:manage</code>-Mutationen freigeschaltet, wenn die Node-/Simulator-Steuerung den Vorgang atomar ausführen kann.</div>
+</section>
+
+<section class="page" id="page-nodes">
+<div class="hero">
+<div><div class="eyebrow">Simulator Control Plane</div><h1>Simulator-Nodes</h1><p>Live-Zustand der durch den NexVerse NodeAgent beobachteten Simulatorprozesse und ihrer aktuell gemeldeten Regionen.</p></div>
+<div class="pill"><span class="dot" id="nodesDot"></span><span id="nodesStatus">Noch nicht geladen</span></div>
+</div>
+<div class="section">
+<h2>Zugriff</h2><p class="sectionlead">Node-, Host- und Prozessinformationen sind geschützt und benötigen <code>simulators:read</code>. Die Ansicht führt keine Verwaltungsaktionen aus.</p>
+<div class="grid2">
+<div><label class="label2">Zugriffstoken (Bearer)</label><input id="nodesBearer" type="password" autocomplete="off" placeholder="Optional"></div>
+<div><label class="label2">X-NexVerse-Api-Key</label><input id="nodesApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
+</div>
+<div class="planner-actions"><button class="action" id="loadNodes">Simulatoren laden</button><button class="action" id="clearNodesCredentials">Zugangsdaten löschen</button></div>
+<div class="authnote">Zugangsdaten bleiben nur in dieser geöffneten Seite. Start/Stop/Restart ist in diesem Entwicklungsschritt bewusst noch nicht verfügbar.</div>
+</div>
+<div class="cards">
+<div class="card"><div class="label">Beobachtet</div><div class="value" id="nodesCount">–</div><div class="sub">NodeAgent-Registrierungen</div></div>
+<div class="card"><div class="label">Online</div><div class="value" id="nodesOnline">–</div><div class="sub">Heartbeat aktuell</div></div>
+<div class="card"><div class="label">Stale</div><div class="value" id="nodesStale">–</div><div class="sub">Heartbeat überfällig</div></div>
+<div class="card"><div class="label">Offline</div><div class="value" id="nodesOffline">–</div><div class="sub">explizit abgemeldet</div></div>
+</div>
+<div class="section">
+<h2>Node-Liste</h2><p class="sectionlead" id="nodesTransport">NexBus-Transportstatus noch nicht geladen.</p>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Node</th><th>Host</th><th>Status</th><th>Version</th><th>Regionen</th><th>Avatare</th><th>Uptime</th><th>RAM</th><th>Letztes Signal</th></tr></thead><tbody id="nodesBody"></tbody></table></div>
+</div>
+<div class="section">
+<h2>Node-Details</h2><pre id="nodeDetail">Noch kein Node ausgewählt.</pre>
+</div>
 </section>
 
 <section class="page" id="page-changes">
@@ -559,6 +589,83 @@ async function loadStatistics(){
 }
 
 
+
+function nodeHeaders(){
+  const headers={'Accept':'application/json'};
+  const bearer=$('nodesBearer').value.trim()||$('gridBearer').value.trim()||$('bearer').value.trim();
+  const key=$('nodesApiKey').value.trim()||$('gridApiKey').value.trim()||$('apiKey').value.trim();
+  if(bearer)headers.Authorization='Bearer '+bearer;
+  if(key)headers['X-NexVerse-Api-Key']=key;
+  return headers;
+}
+function formatBytes(value){
+  const n=Number(value||0);
+  if(!Number.isFinite(n)||n<=0)return '0 B';
+  const units=['B','KiB','MiB','GiB','TiB'];let v=n,i=0;
+  while(v>=1024&&i<units.length-1){v/=1024;i++}
+  return (i===0?Math.round(v):v.toFixed(v>=10?1:2))+' '+units[i];
+}
+function formatDuration(seconds){
+  let s=Math.max(0,Number(seconds||0));
+  const d=Math.floor(s/86400);s-=d*86400;
+  const h=Math.floor(s/3600);s-=h*3600;
+  const m=Math.floor(s/60);
+  return (d?d+'d ':'')+(h?h+'h ':'')+m+'m';
+}
+function setNodesStatus(text,kind){
+  $('nodesStatus').textContent=text;
+  $('nodesDot').className='dot'+(kind?' '+kind:'');
+}
+function renderNodes(data){
+  const nodes=data.nodes||[];
+  $('nodesCount').textContent=nodes.length;
+  $('nodesOnline').textContent=nodes.filter(x=>x.state==='online').length;
+  $('nodesStale').textContent=nodes.filter(x=>x.state==='stale').length;
+  $('nodesOffline').textContent=nodes.filter(x=>x.state==='offline').length;
+  $('nodesTransport').textContent=(data.transport_enabled?'Verteilter NexBus-Transport aktiv':'Verteilter NexBus-Transport deaktiviert')+' · Stale nach '+(data.stale_after_seconds||'–')+' Sekunden ohne Heartbeat.';
+  const body=$('nodesBody');body.replaceChildren();
+  if(!nodes.length){
+    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=9;td.className='small';td.textContent=data.transport_enabled?'Noch keine NodeAgent-Heartbeats empfangen.':'NexBus-Transport ist deaktiviert; keine Remote-NodeAgents werden empfangen.';tr.append(td);body.append(tr);
+  }
+  nodes.forEach(node=>{
+    const tr=document.createElement('tr');tr.className='noderow';
+    const vals=[
+      node.node_id||'',
+      node.hostname||'',
+      node.state||'',
+      node.server_version||'',
+      node.region_count??0,
+      node.agent_count??0,
+      formatDuration(node.uptime_seconds),
+      formatBytes(node.working_set_bytes),
+      node.last_seen?new Date(node.last_seen).toLocaleString('de-DE'):'–'
+    ];
+    vals.forEach((value,index)=>{
+      const td=document.createElement('td');td.textContent=String(value);
+      if(index===2)td.className='node-state-'+(node.state||'');
+      tr.append(td);
+    });
+    tr.addEventListener('click',()=>{$('nodeDetail').textContent=JSON.stringify(node,null,2)});
+    body.append(tr);
+  });
+  setNodesStatus('Live · '+nodes.length+' Nodes','good');
+}
+async function loadNodes(){
+  setNodesStatus('Lade Simulatoren…','');
+  try{
+    const res=await fetch('/api/v1/nodes',{headers:nodeHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){
+      setNodesStatus(res.status===401||res.status===403?'simulators:read erforderlich':'Node-Registry nicht verfügbar','bad');
+      $('nodeDetail').textContent=data?JSON.stringify(data,null,2):txt;
+      return;
+    }
+    renderNodes(data||{});
+  }catch(err){
+    setNodesStatus('Node-Registry nicht erreichbar','bad');$('nodeDetail').textContent=String(err);
+  }
+}
+
 function gridHeaders(){
   const headers={'Accept':'application/json'};
   const bearer=$('gridBearer').value.trim()||$('bearer').value.trim();
@@ -732,6 +839,7 @@ async function init(){
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value=''});
+$('loadNodes').addEventListener('click',loadNodes);$('clearNodesCredentials').addEventListener('click',()=>{$('nodesBearer').value='';$('nodesApiKey').value=''});
 $('gridWest').addEventListener('click',()=>panGrid(-1,0));$('gridEast').addEventListener('click',()=>panGrid(1,0));$('gridSouth').addEventListener('click',()=>panGrid(0,-1));$('gridNorth').addEventListener('click',()=>panGrid(0,1));
 $('validateGridPlacement').addEventListener('click',validateGridPlacement);$('gridRegionSizeX').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});$('gridRegionSizeY').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});
 $('gridCellPixels').addEventListener('input',()=>{$('gridBoard').style.setProperty('--cell',$('gridCellPixels').value+'px')});$('gridFilter').addEventListener('change',applyGridFilter);
