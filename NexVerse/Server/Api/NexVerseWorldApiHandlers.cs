@@ -612,13 +612,14 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "platform",
                         status = "implemented",
-                        title = "Robust NodeAgent Registry und Simulator-Lese-API",
-                        summary = "Robust projiziert NodeAgent-Heartbeats und Regions-Lebenszyklusereignisse jetzt in eine laufende Simulator-Registry mit online/stale/offline-Zustand. Geschützte API-Endpunkte liefern Node-, Prozess-, Agenten- und Regionsdaten mit simulators:read.",
+                        title = "Robust NodeAgent Registry und Simulator-Kontrollansicht",
+                        summary = "Robust projiziert NodeAgent-Heartbeats und Regions-Lebenszyklusereignisse jetzt in eine laufende Simulator-Registry mit online/stale/offline-Zustand. Geschützte API-Endpunkte und das API Control Center liefern Node-, Prozess-, Agenten- und Regionsdaten mit simulators:read.",
                         endpoints = new[]
                         {
                             "/api/v1/nodes",
                             "/api/v1/nodes/{nodeId}",
-                            "/api/v1/grid/layout"
+                            "/api/v1/grid/layout",
+                            "/api/v1/docs"
                         }
                     },
                     new
