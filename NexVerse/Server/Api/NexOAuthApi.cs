@@ -8,6 +8,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using NexVerse.Core.Audit;
+using NexVerse.Core.Identity;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Security;
 using OpenMetaverse;
@@ -27,8 +28,10 @@ namespace NexVerse.Server.Api
         private readonly INexOAuthStore m_Store;
         private readonly NexApiAuthenticator m_Authenticator;
         private readonly IUserAccountService m_UserAccounts;
+        private readonly INexUserService m_Users;
         private readonly INexEventBus m_EventBus;
         private readonly INexAuditSink m_Audit;
+        private readonly int m_AdminMinimumLevel;
         private readonly int m_AuthorizationCodeLifetimeSeconds;
         private readonly int m_RefreshLifetimeSeconds;
 
@@ -39,8 +42,10 @@ namespace NexVerse.Server.Api
             INexOAuthStore store,
             NexApiAuthenticator authenticator,
             IUserAccountService userAccounts,
+            INexUserService users,
             INexEventBus eventBus,
             INexAuditSink audit,
+            int adminMinimumLevel,
             int authorizationCodeLifetimeSeconds,
             int refreshLifetimeSeconds)
         {
@@ -50,8 +55,10 @@ namespace NexVerse.Server.Api
             m_Store = store ?? throw new ArgumentNullException(nameof(store));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
             m_UserAccounts = userAccounts ?? throw new ArgumentNullException(nameof(userAccounts));
+            m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             m_Audit = audit ?? NullNexAuditSink.Instance;
+            m_AdminMinimumLevel = adminMinimumLevel;
             m_AuthorizationCodeLifetimeSeconds = Math.Max(60, authorizationCodeLifetimeSeconds);
             m_RefreshLifetimeSeconds = Math.Max(300, refreshLifetimeSeconds);
         }
@@ -108,46 +115,265 @@ namespace NexVerse.Server.Api
 
         public void Authorize(IOSHttpRequest request, IOSHttpResponse response)
         {
-            if (!RequireMethod(request, response, "GET"))
-                return;
-
-            if (!Authenticate(request, response, null, out NexPrincipal principal, out UserAccount account))
-                return;
-
-            if (account == null || !UUID.TryParse(principal.Subject, out _))
+            if (request == null)
             {
-                WriteOAuthError(response, HttpStatusCode.Forbidden, "access_denied", "Interactive authorization requires a resident account.");
+                WriteOAuthError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_request",
+                    "Eine gültige OAuth-Anfrage ist erforderlich.");
                 return;
             }
 
-            string responseType = request.QueryString?["response_type"] ?? string.Empty;
-            string clientId = request.QueryString?["client_id"] ?? string.Empty;
-            string redirectUri = request.QueryString?["redirect_uri"] ?? string.Empty;
-            string scopeRaw = request.QueryString?["scope"] ?? string.Empty;
-            string state = request.QueryString?["state"] ?? string.Empty;
-            string nonce = request.QueryString?["nonce"] ?? string.Empty;
-            string challenge = request.QueryString?["code_challenge"] ?? string.Empty;
-            string challengeMethod = request.QueryString?["code_challenge_method"] ?? string.Empty;
-
-            if (responseType != "code" ||
-                string.IsNullOrWhiteSpace(clientId) ||
-                string.IsNullOrWhiteSpace(redirectUri) ||
-                string.IsNullOrWhiteSpace(challenge) ||
-                !string.Equals(challengeMethod, "S256", StringComparison.Ordinal))
+            if (string.Equals(request.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
             {
-                WriteOAuthError(response, HttpStatusCode.BadRequest, "invalid_request", "response_type=code and PKCE S256 are required.");
+                if (!TryBuildAuthorizationRequest(
+                        request.QueryString?["response_type"],
+                        request.QueryString?["client_id"],
+                        request.QueryString?["redirect_uri"],
+                        request.QueryString?["scope"],
+                        request.QueryString?["state"],
+                        request.QueryString?["nonce"],
+                        request.QueryString?["code_challenge"],
+                        request.QueryString?["code_challenge_method"],
+                        out AuthorizationRequestContext authorization,
+                        out string error,
+                        out string errorDescription))
+                {
+                    if (HasBearer(request))
+                    {
+                        WriteOAuthError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            error,
+                            errorDescription);
+                    }
+                    else
+                    {
+                        NexOAuthBrowserPage.WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "Autorisierungsanfrage ungültig",
+                            errorDescription);
+                    }
+                    return;
+                }
+
+                if (!HasBearer(request))
+                {
+                    NexOAuthBrowserPage.WriteLoginConsent(
+                        response,
+                        authorization.Client,
+                        authorization.ResponseType,
+                        authorization.RedirectUri,
+                        authorization.Scopes,
+                        authorization.State,
+                        authorization.Nonce,
+                        authorization.CodeChallenge,
+                        authorization.CodeChallengeMethod);
+                    return;
+                }
+
+                if (!Authenticate(
+                        request,
+                        response,
+                        null,
+                        out NexPrincipal principal,
+                        out UserAccount account))
+                    return;
+
+                if (account == null || !UUID.TryParse(principal.Subject, out _))
+                {
+                    WriteOAuthError(
+                        response,
+                        HttpStatusCode.Forbidden,
+                        "access_denied",
+                        "Die interaktive Autorisierung erfordert ein Einwohnerkonto.");
+                    return;
+                }
+
+                CompleteAuthorization(
+                    response,
+                    authorization,
+                    principal,
+                    account.NexVerseStateChanged,
+                    false);
                 return;
             }
 
-            string[] scopes = SplitScopes(scopeRaw);
-            foreach (string scope in scopes)
+            if (string.Equals(request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleBrowserAuthorization(request, response);
+                return;
+            }
+
+            WriteOAuthError(
+                response,
+                HttpStatusCode.MethodNotAllowed,
+                "method_not_allowed",
+                "GET oder POST ist erforderlich.");
+        }
+
+        private void HandleBrowserAuthorization(
+            IOSHttpRequest request,
+            IOSHttpResponse response)
+        {
+            Dictionary<string, string> form = ReadForm(request);
+
+            if (!TryBuildAuthorizationRequest(
+                    FormValue(form, "response_type"),
+                    FormValue(form, "client_id"),
+                    FormValue(form, "redirect_uri"),
+                    FormValue(form, "scope"),
+                    FormValue(form, "state"),
+                    FormValue(form, "nonce"),
+                    FormValue(form, "code_challenge"),
+                    FormValue(form, "code_challenge_method"),
+                    out AuthorizationRequestContext authorization,
+                    out string _,
+                    out string errorDescription))
+            {
+                NexOAuthBrowserPage.WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "Autorisierungsanfrage ungültig",
+                    errorDescription);
+                return;
+            }
+
+            string decision = FormValue(form, "decision");
+            if (string.Equals(decision, "deny", StringComparison.OrdinalIgnoreCase))
+            {
+                RedirectAuthorizationError(
+                    response,
+                    authorization,
+                    "access_denied",
+                    "Der Zugriff wurde vom Einwohner abgelehnt.");
+                return;
+            }
+
+            if (!string.Equals(decision, "approve", StringComparison.OrdinalIgnoreCase))
+            {
+                NexOAuthBrowserPage.WriteLoginConsent(
+                    response,
+                    authorization.Client,
+                    authorization.ResponseType,
+                    authorization.RedirectUri,
+                    authorization.Scopes,
+                    authorization.State,
+                    authorization.Nonce,
+                    authorization.CodeChallenge,
+                    authorization.CodeChallengeMethod,
+                    "Bitte entscheide, ob du den Zugriff erlauben oder ablehnen möchtest.");
+                return;
+            }
+
+            string username = FormValue(form, "username");
+            string password = FormValue(form, "password");
+
+            if (string.IsNullOrWhiteSpace(username) ||
+                string.IsNullOrEmpty(password) ||
+                password.Length > 256 ||
+                !NexResidentNameResolver.TryResolveLoginInput(
+                    username,
+                    string.Empty,
+                    out NexResidentName residentName))
+            {
+                RenderInvalidBrowserCredentials(response, authorization);
+                return;
+            }
+
+            NexUserRecord user = m_Users.GetByName(
+                residentName.FirstName,
+                residentName.LastName);
+
+            if (user == null ||
+                !user.Active ||
+                !string.Equals(
+                    user.AccountState,
+                    NexAccountStates.Active,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !m_Users.VerifyPassword(user.PrincipalId, password))
+            {
+                RenderInvalidBrowserCredentials(response, authorization);
+                return;
+            }
+
+            List<string> residentScopes = new List<string>
+            {
+                NexScopes.UsersRead,
+                NexScopes.UsersWrite
+            };
+
+            if (user.UserLevel >= m_AdminMinimumLevel)
+                residentScopes.Add(NexScopes.AdminAll);
+
+            NexPrincipal principal = new NexPrincipal(
+                user.PrincipalId,
+                residentScopes,
+                true);
+
+            CompleteAuthorization(
+                response,
+                authorization,
+                principal,
+                user.AccountStateChanged,
+                true);
+        }
+
+        private void RenderInvalidBrowserCredentials(
+            IOSHttpResponse response,
+            AuthorizationRequestContext authorization)
+        {
+            NexOAuthBrowserPage.WriteLoginConsent(
+                response,
+                authorization.Client,
+                authorization.ResponseType,
+                authorization.RedirectUri,
+                authorization.Scopes,
+                authorization.State,
+                authorization.Nonce,
+                authorization.CodeChallenge,
+                authorization.CodeChallengeMethod,
+                "Benutzername oder Passwort ist ungültig oder das Konto ist derzeit nicht für die Anmeldung freigegeben.");
+        }
+
+        private void CompleteAuthorization(
+            IOSHttpResponse response,
+            AuthorizationRequestContext authorization,
+            NexPrincipal principal,
+            int securityStamp,
+            bool browserFlow)
+        {
+            foreach (string scope in authorization.Scopes)
             {
                 if (IsIdentityScope(scope))
                     continue;
 
                 if (!principal.HasScope(scope))
                 {
-                    WriteOAuthError(response, HttpStatusCode.Forbidden, "invalid_scope", "The resident is not authorized for a requested scope.");
+                    if (browserFlow)
+                    {
+                        NexOAuthBrowserPage.WriteLoginConsent(
+                            response,
+                            authorization.Client,
+                            authorization.ResponseType,
+                            authorization.RedirectUri,
+                            authorization.Scopes,
+                            authorization.State,
+                            authorization.Nonce,
+                            authorization.CodeChallenge,
+                            authorization.CodeChallengeMethod,
+                            "Dein NexVerse-Konto besitzt nicht alle von dieser Anwendung angeforderten Berechtigungen.");
+                    }
+                    else
+                    {
+                        WriteOAuthError(
+                            response,
+                            HttpStatusCode.Forbidden,
+                            "invalid_scope",
+                            "Das Einwohnerkonto besitzt nicht alle angeforderten Berechtigungen.");
+                    }
                     return;
                 }
             }
@@ -155,29 +381,235 @@ namespace NexVerse.Server.Api
             try
             {
                 string code = m_Store.CreateAuthorizationCode(
-                    clientId,
+                    authorization.Client.ClientId,
                     principal.Subject,
-                    redirectUri,
-                    scopes,
-                    challenge,
-                    nonce,
-                    account.NexVerseStateChanged,
+                    authorization.RedirectUri,
+                    authorization.Scopes,
+                    authorization.CodeChallenge,
+                    authorization.Nonce,
+                    securityStamp,
                     m_AuthorizationCodeLifetimeSeconds);
 
-                string separator = redirectUri.Contains('?') ? "&" : "?";
-                string location = redirectUri + separator + "code=" + WebUtility.UrlEncode(code);
-                if (!string.IsNullOrEmpty(state))
-                    location += "&state=" + WebUtility.UrlEncode(state);
+                string correlationId = Correlation(response);
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "oauth.authorization.approve",
+                    authorization.Client.ClientId,
+                    correlationId,
+                    new Dictionary<string, string>
+                    {
+                        ["scope"] = string.Join(" ", authorization.Scopes),
+                        ["redirect_uri"] = authorization.RedirectUri
+                    }));
 
-                response.KeepAlive = false;
-                response.StatusCode = (int)HttpStatusCode.Redirect;
-                response.AddHeader("Location", location);
-                response.RawBuffer = Array.Empty<byte>();
+                m_EventBus.Publish(new NexEvent(
+                    "oauth.authorization.approved",
+                    "nexverse.world-api",
+                    new Dictionary<string, string>
+                    {
+                        ["principal_id"] = principal.Subject,
+                        ["client_id"] = authorization.Client.ClientId
+                    },
+                    correlationId));
+
+                RedirectAuthorizationCode(
+                    response,
+                    authorization,
+                    code);
             }
             catch (Exception e)
             {
-                WriteOAuthError(response, HttpStatusCode.BadRequest, "invalid_request", e.Message);
+                if (browserFlow)
+                {
+                    NexOAuthBrowserPage.WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "Autorisierung fehlgeschlagen",
+                        e.Message);
+                }
+                else
+                {
+                    WriteOAuthError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "invalid_request",
+                        e.Message);
+                }
             }
+        }
+
+        private bool TryBuildAuthorizationRequest(
+            string responseType,
+            string clientId,
+            string redirectUri,
+            string scopeRaw,
+            string state,
+            string nonce,
+            string challenge,
+            string challengeMethod,
+            out AuthorizationRequestContext authorization,
+            out string error,
+            out string errorDescription)
+        {
+            authorization = null;
+            error = "invalid_request";
+            errorDescription = "Die OAuth-Autorisierungsanfrage ist unvollständig.";
+
+            responseType ??= string.Empty;
+            clientId ??= string.Empty;
+            redirectUri ??= string.Empty;
+            scopeRaw ??= string.Empty;
+            state ??= string.Empty;
+            nonce ??= string.Empty;
+            challenge ??= string.Empty;
+            challengeMethod ??= string.Empty;
+
+            if (!string.Equals(responseType, "code", StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(clientId) ||
+                string.IsNullOrWhiteSpace(redirectUri) ||
+                string.IsNullOrWhiteSpace(challenge) ||
+                challenge.Length < 43 ||
+                !string.Equals(challengeMethod, "S256", StringComparison.Ordinal))
+            {
+                errorDescription =
+                    "response_type=code, eine registrierte redirect_uri und PKCE S256 sind erforderlich.";
+                return false;
+            }
+
+            NexOAuthClient client = m_Store.GetClient(clientId);
+            if (client == null || !client.Enabled)
+            {
+                error = "unauthorized_client";
+                errorDescription = "Die anfragende Anwendung ist nicht registriert oder deaktiviert.";
+                return false;
+            }
+
+            if (string.Equals(
+                    client.ClientType,
+                    NexOAuthClientTypes.Service,
+                    StringComparison.Ordinal))
+            {
+                error = "unauthorized_client";
+                errorDescription = "Dienst-Clients dürfen keine interaktive Autorisierung verwenden.";
+                return false;
+            }
+
+            if (!(client.RedirectUris ?? Array.Empty<string>())
+                .Contains(redirectUri, StringComparer.Ordinal))
+            {
+                errorDescription = "Die angeforderte Weiterleitungsadresse ist für diese Anwendung nicht registriert.";
+                return false;
+            }
+
+            string[] scopes = SplitScopes(scopeRaw);
+            HashSet<string> allowedScopes = new HashSet<string>(
+                client.AllowedScopes ?? Array.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (scopes.Any(scope => !allowedScopes.Contains(scope)))
+            {
+                error = "invalid_scope";
+                errorDescription = "Die Anwendung fordert mindestens eine nicht registrierte Berechtigung an.";
+                return false;
+            }
+
+            authorization = new AuthorizationRequestContext
+            {
+                Client = client,
+                ResponseType = responseType,
+                RedirectUri = redirectUri,
+                Scopes = scopes,
+                State = state,
+                Nonce = nonce,
+                CodeChallenge = challenge,
+                CodeChallengeMethod = challengeMethod
+            };
+
+            error = string.Empty;
+            errorDescription = string.Empty;
+            return true;
+        }
+
+        private static void RedirectAuthorizationCode(
+            IOSHttpResponse response,
+            AuthorizationRequestContext authorization,
+            string code)
+        {
+            string separator = authorization.RedirectUri.Contains('?') ? "&" : "?";
+            string location =
+                authorization.RedirectUri +
+                separator +
+                "code=" +
+                WebUtility.UrlEncode(code);
+
+            if (!string.IsNullOrEmpty(authorization.State))
+                location += "&state=" + WebUtility.UrlEncode(authorization.State);
+
+            WriteRedirect(response, location);
+        }
+
+        private static void RedirectAuthorizationError(
+            IOSHttpResponse response,
+            AuthorizationRequestContext authorization,
+            string error,
+            string description)
+        {
+            string separator = authorization.RedirectUri.Contains('?') ? "&" : "?";
+            string location =
+                authorization.RedirectUri +
+                separator +
+                "error=" +
+                WebUtility.UrlEncode(error) +
+                "&error_description=" +
+                WebUtility.UrlEncode(description ?? string.Empty);
+
+            if (!string.IsNullOrEmpty(authorization.State))
+                location += "&state=" + WebUtility.UrlEncode(authorization.State);
+
+            WriteRedirect(response, location);
+        }
+
+        private static void WriteRedirect(
+            IOSHttpResponse response,
+            string location)
+        {
+            response.KeepAlive = false;
+            response.StatusCode = (int)HttpStatusCode.Redirect;
+            response.AddHeader("Cache-Control", "no-store");
+            response.AddHeader("Pragma", "no-cache");
+            response.AddHeader("Location", location);
+            response.RawBuffer = Array.Empty<byte>();
+        }
+
+        private static bool HasBearer(IOSHttpRequest request)
+        {
+            string authorization = request?.Headers?["Authorization"];
+            return !string.IsNullOrWhiteSpace(authorization) &&
+                   authorization.StartsWith(
+                       "Bearer ",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string FormValue(
+            Dictionary<string, string> form,
+            string name)
+        {
+            return form != null &&
+                   form.TryGetValue(name, out string value)
+                ? value ?? string.Empty
+                : string.Empty;
+        }
+
+        private sealed class AuthorizationRequestContext
+        {
+            public NexOAuthClient Client { get; set; }
+            public string ResponseType { get; set; } = string.Empty;
+            public string RedirectUri { get; set; } = string.Empty;
+            public string[] Scopes { get; set; } = Array.Empty<string>();
+            public string State { get; set; } = string.Empty;
+            public string Nonce { get; set; } = string.Empty;
+            public string CodeChallenge { get; set; } = string.Empty;
+            public string CodeChallengeMethod { get; set; } = string.Empty;
         }
 
         public void Token(IOSHttpRequest request, IOSHttpResponse response)
