@@ -103,7 +103,7 @@ if [ "$SOURCE_READY" -ne 1 ]; then
   exit 1
 fi
 
-dotnet OpenSim.dll   -inifile OpenSim.NexVerseHypergridDestination.Tests.ini   > "$DEST_LOG" 2>&1 &
+dotnet OpenSim.dll   -background=true   -inifile OpenSim.NexVerseHypergridDestination.Tests.ini   > "$DEST_LOG" 2>&1 &
 DEST_PID=$!
 
 DEST_READY=0
@@ -114,7 +114,7 @@ for _ in $(seq 1 180); do
   fi
 
   if (echo > /dev/tcp/127.0.0.1/19300) >/dev/null 2>&1 &&
-     grep -F "NexVerse HG Landing" "$DEST_LOG" >/dev/null 2>&1; then
+     grep -F 'INITIALIZATION COMPLETE FOR NexVerse HG Landing - LOGINS ENABLED' "$DEST_LOG" >/dev/null 2>&1; then
     DEST_READY=1
     break
   fi

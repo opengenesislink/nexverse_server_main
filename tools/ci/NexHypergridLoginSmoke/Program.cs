@@ -4,7 +4,7 @@ using System.Net;
 using OpenMetaverse;
 using OpenSim.Framework;
 using OpenSim.Services.Connectors.Hypergrid;
-using OpenSim.Services.Interfaces;
+using GridRegion = OpenSim.Services.Interfaces.GridRegion;
 
 internal static class Program
 {
@@ -22,6 +22,8 @@ internal static class Program
 
     private static int Main()
     {
+        WebUtil.SetupHTTPClients(false, false, null, 32);
+
         const string homeUri = "http://127.0.0.1:19200/";
         const string destinationUri = "http://127.0.0.1:19300/";
 

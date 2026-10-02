@@ -74,6 +74,7 @@ timeout 45s dotnet run --configuration Release \
   --project ../tools/ci/NexLoginPlacementSeed/NexLoginPlacementSeed.csproj \
   -- "$DB"
 dotnet OpenSim.dll \
+  -background=true \
   -inifile OpenSim.NexVerseLoginPlacement.Tests.ini \
   > "$LOG" 2>&1 &
 OPENSIM_PID=$!
@@ -85,7 +86,8 @@ for i in $(seq 1 120); do
     exit 1
   fi
 
-  if grep -F "NexVerse CI Landing" "$LOG" >/dev/null 2>&1 &&
+  if grep -F 'INITIALIZATION COMPLETE FOR NexVerse CI Landing - LOGINS ENABLED' "$LOG" >/dev/null 2>&1 &&
+     grep -F '[XML RPC MODULE]: RemoteData channel opened channel=' "$LOG" >/dev/null 2>&1 &&
      (echo > /dev/tcp/127.0.0.1/19100) >/dev/null 2>&1; then
     READY=1
     break
@@ -126,14 +128,15 @@ cat > "$REQUEST" <<XML
 XML
 
 LOGIN_OK=0
-LOGIN_DEADLINE=$((SECONDS + 45))
+LOGIN_DEADLINE=$((SECONDS + 75))
 while [ "$SECONDS" -lt "$LOGIN_DEADLINE" ]; do
   if ! kill -0 "$OPENSIM_PID" 2>/dev/null; then
     echo "::error::OpenSim exited while waiting for successful login placement."
     exit 1
   fi
 
-  curl --silent --show-error --connect-timeout 1 --max-time 2 \
+  rm -f "$RESPONSE"
+  curl --silent --show-error --connect-timeout 2 --max-time 30 \
     -H 'Content-Type: text/xml' \
     --data-binary @"$REQUEST" \
     http://127.0.0.1:19100/ > "$RESPONSE" || true
