@@ -247,7 +247,7 @@ let spec=null,entries=[],selected=null,changes=[];
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
-const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Scripting'};
+const categoryLabels={analytics:'Statistik',observability:'Beobachtbarkeit',security:'Sicherheit',api:'API',identity:'Identität',platform:'Plattform',runtime:'Laufzeit',scripting:'Skripting'};
 const audienceLabels={citizen:'Einwohner',admin:'Administration',service:'Dienst'};
 const accountStateLabels={active:'aktiv',locked:'gesperrt',banned:'gebannt',deactivated:'deaktiviert',provisioning:'Provisionierung',provisioning_failed:'Provisionierung fehlgeschlagen'};
 function statusLabel(value){return statusLabels[value]||value||''}
@@ -383,7 +383,7 @@ function renderVersions(){
 function renderRoadmap(){
   const roadmap=spec['x_nexverse_roadmap'];
   const host=$('roadmapList');host.replaceChildren();
-  if(!roadmap?.milestones?.length){host.innerHTML='<div class="empty">Kein maschinenlesbarer Roadmap-Status veröffentlicht.</div>';return}
+  if(!roadmap?.milestones?.length){host.innerHTML='<div class="empty">Kein maschinenlesbarer Entwicklungsplan-Status veröffentlicht.</div>';return}
   $('roadmapCurrent').textContent=roadmap.current_milestone||'–';$('roadmapCodename').textContent=roadmap.current_codename||'';
   const milestones=roadmap.milestones;
   $('roadmapActiveCount').textContent=milestones.filter(x=>x.status==='active').length;
@@ -394,7 +394,7 @@ function renderRoadmap(){
     const item=document.createElement('span');item.className='tag';item.textContent=statusLabel(key)+' — '+value;legend.append(item);
   }
   milestones.forEach(item=>{
-    const box=document.createElement('article');box.className='milestone'+(item.status==='active'?' current':'');
+    const box=document.createElement('article');box.className='milestone'+(item.version===roadmap.current_milestone?' current':'');
     const head=document.createElement('div');head.className='milestonehead';
     const title=document.createElement('div');const h=document.createElement('h3');h.textContent=item.version+' · '+item.title;title.append(h);
     if(item.codename){const code=document.createElement('div');code.className='small';code.textContent='Codename: '+item.codename;title.append(code)}
@@ -404,7 +404,7 @@ function renderRoadmap(){
     if(item.checklist&&item.checklist.total>0){
       const wrap=document.createElement('div');wrap.className='progressline';
       const meta=document.createElement('div');meta.className='progressmeta';
-      const done=document.createElement('span');done.textContent='Roadmap-Checkliste: '+item.checklist.completed+' / '+item.checklist.total+' erledigt';
+      const done=document.createElement('span');done.textContent='Entwicklungsplan-Checkliste: '+item.checklist.completed+' / '+item.checklist.total+' erledigt';
       const open=document.createElement('span');open.textContent=item.checklist.open+' offen';meta.append(done,open);
       const bar=document.createElement('div');bar.className='progressbar';const fill=document.createElement('span');
       const pct=Math.max(0,Math.min(100,(item.checklist.completed/item.checklist.total)*100));fill.style.width=pct+'%';bar.append(fill);wrap.append(meta,bar);box.append(wrap);
