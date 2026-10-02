@@ -498,6 +498,15 @@ Prepare:
 
 Introduce an authenticated simulator-side control agent.
 
+Implementation status:
+
+- the simulator-side NodeAgent already publishes `node.online`, `node.heartbeat`, `node.offline`, `region.online` and `region.offline` through authenticated NexBus transport;
+- Robust now maintains an in-memory NodeAgent registry rebuilt continuously from those events;
+- nodes are classified as `online`, `stale` or `offline`; the default stale threshold is 90 seconds and is configurable with `NodeStaleAfterSeconds`;
+- `GET /api/v1/nodes` and `GET /api/v1/nodes/{nodeId}` expose the registry with the dedicated `simulators:read` scope;
+- grid-layout region entries are enriched with current `node_id` and `node_state` when a NodeAgent ownership mapping is known;
+- `simulators:manage` is reserved for the later command plane and is not yet used to execute simulator mutations.
+
 Every simulator node registers with Robust and publishes:
 
 - node ID;
