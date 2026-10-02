@@ -156,6 +156,12 @@ namespace NexVerse.Server.Api
                 ["/api/v1/audit"] = AuthenticatedOperations(
                     ("get", "Persistente administrative Audit-Historie abfragen", "admin:*", "200")),
                 ["/api/v1/statistics/summary"] = StatisticsOperation(),
+                ["/api/v1/grid/layout"] = AuthenticatedOperations(
+                    ("get", "Gebundenes Welt-Raster mit Zellbelegung lesen", "regions:read", "200")),
+                ["/api/v1/grid/cells/{x}/{y}"] = AuthenticatedOperations(
+                    ("get", "Einzelne Welt-Rasterzelle und Belegung lesen", "regions:read", "200")),
+                ["/api/v1/grid/validate-placement"] = AuthenticatedOperations(
+                    ("get", "Regionsplatzierung inklusive VarRegion-Footprint validieren", "regions:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -191,6 +197,27 @@ namespace NexVerse.Server.Api
                 "UserCreateRequest",
                 "UserCreateResponse",
                 "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/grid/layout",
+                "get",
+                null,
+                "GridLayoutResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/grid/cells/{x}/{y}",
+                "get",
+                null,
+                "GridCellResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/grid/validate-placement",
+                "get",
+                null,
+                "GridPlacementValidationResponse",
+                "200");
             ApplyJsonContract(
                 paths,
                 "/api/v1/regions",
@@ -365,6 +392,77 @@ namespace NexVerse.Server.Api
 
             AddOperationParameters(
                 paths,
+                "/api/v1/grid/layout",
+                "get",
+                IntegerQueryParameter(
+                    "min_x",
+                    true,
+                    0,
+                    null,
+                    "Kleinste Grid-X-Zelle des Viewports."),
+                IntegerQueryParameter(
+                    "max_x",
+                    true,
+                    0,
+                    null,
+                    "Größte Grid-X-Zelle des Viewports; maximal 128 Zellen Spannweite."),
+                IntegerQueryParameter(
+                    "min_y",
+                    true,
+                    0,
+                    null,
+                    "Kleinste Grid-Y-Zelle des Viewports."),
+                IntegerQueryParameter(
+                    "max_y",
+                    true,
+                    0,
+                    null,
+                    "Größte Grid-Y-Zelle des Viewports; maximal 128 Zellen Spannweite."));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/grid/cells/{x}/{y}",
+                "get",
+                IntegerPathParameter(
+                    "x",
+                    0,
+                    "Grid-X-Zelle auf 256m-Basis."),
+                IntegerPathParameter(
+                    "y",
+                    0,
+                    "Grid-Y-Zelle auf 256m-Basis."));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/grid/validate-placement",
+                "get",
+                IntegerQueryParameter(
+                    "x",
+                    true,
+                    0,
+                    null,
+                    "Grid-X-Ursprung der geplanten Region."),
+                IntegerQueryParameter(
+                    "y",
+                    true,
+                    0,
+                    null,
+                    "Grid-Y-Ursprung der geplanten Region."),
+                IntegerQueryParameter(
+                    "size_x",
+                    true,
+                    256,
+                    4096,
+                    "Regionsbreite in Metern; Vielfaches von 256."),
+                IntegerQueryParameter(
+                    "size_y",
+                    true,
+                    256,
+                    4096,
+                    "Regionshöhe in Metern; Vielfaches von 256."));
+
+            AddOperationParameters(
+                paths,
                 "/api/v1/regions",
                 "get",
                 QueryParameter(
@@ -480,6 +578,21 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "regions",
+                        status = "implemented",
+                        title = "Region Control Plane: Raster- und Placement-Grundlage",
+                        summary = "Die Welt-API kann gebundene 256m-Rasterfenster lesen, einzelne Zellen inspizieren und Regionsplatzierungen inklusive VarRegion-Footprints, Reservierungen und Überlappungen vorab validieren.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/grid/layout",
+                            "/api/v1/grid/cells/{x}/{y}",
+                            "/api/v1/grid/validate-placement"
+                        }
+                    },
                     new
                     {
                         date = "2026-10-02",
@@ -1189,6 +1302,52 @@ namespace NexVerse.Server.Api
             };
         }
 
+        private static object IntegerQueryParameter(
+            string name,
+            bool required,
+            int minimum,
+            int? maximum,
+            string description)
+        {
+            Dictionary<string, object> schema =
+                new Dictionary<string, object>
+                {
+                    ["type"] = "integer",
+                    ["minimum"] = minimum
+                };
+
+            if (maximum.HasValue)
+                schema["maximum"] = maximum.Value;
+
+            return new
+            {
+                name,
+                @in = "query",
+                required,
+                description,
+                schema
+            };
+        }
+
+        private static object IntegerPathParameter(
+            string name,
+            int minimum,
+            string description)
+        {
+            return new
+            {
+                name,
+                @in = "path",
+                required = true,
+                description,
+                schema = new
+                {
+                    type = "integer",
+                    minimum
+                }
+            };
+        }
+
         private static object HeaderParameter(
             string name,
             bool required,
@@ -1260,6 +1419,8 @@ namespace NexVerse.Server.Api
             object paginationRef = SchemaRef("Pagination");
             object userRef = SchemaRef("User");
             object regionRef = SchemaRef("Region");
+            object gridRegionRef = SchemaRef("GridRegionPlacement");
+            object gridCellRef = SchemaRef("GridCell");
             object apiKeyRef = SchemaRef("ApiKey");
             object auditEventRef = SchemaRef("AuditEvent");
 
@@ -1330,6 +1491,231 @@ namespace NexVerse.Server.Api
                         ["server_uri"] = new { type = "string" },
                         ["size_x"] = new { type = "integer" },
                         ["size_y"] = new { type = "integer" }
+                    }
+                },
+                ["GridRegionPlacement"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "region_id",
+                        "name",
+                        "grid_x",
+                        "grid_y",
+                        "world_x",
+                        "world_y",
+                        "size_x",
+                        "size_y",
+                        "cells_x",
+                        "cells_y",
+                        "occupied",
+                        "reserved"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["grid_x"] = new { type = "integer" },
+                        ["grid_y"] = new { type = "integer" },
+                        ["world_x"] = new { type = "integer" },
+                        ["world_y"] = new { type = "integer" },
+                        ["size_x"] = new { type = "integer", minimum = 256, maximum = 4096 },
+                        ["size_y"] = new { type = "integer", minimum = 256, maximum = 4096 },
+                        ["cells_x"] = new { type = "integer", minimum = 1 },
+                        ["cells_y"] = new { type = "integer", minimum = 1 },
+                        ["occupied"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["min_x"] = new { type = "integer" },
+                                ["max_x"] = new { type = "integer" },
+                                ["min_y"] = new { type = "integer" },
+                                ["max_y"] = new { type = "integer" }
+                            }
+                        },
+                        ["online"] = new { type = new[] { "boolean", "null" } },
+                        ["reserved"] = new { type = "boolean" },
+                        ["server_uri"] = new { type = "string" }
+                    }
+                },
+                ["GridCell"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "grid_x",
+                        "grid_y",
+                        "world_x",
+                        "world_y",
+                        "status",
+                        "region_ids"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["grid_x"] = new { type = "integer" },
+                        ["grid_y"] = new { type = "integer" },
+                        ["world_x"] = new { type = "integer" },
+                        ["world_y"] = new { type = "integer" },
+                        ["status"] = new
+                        {
+                            type = "string",
+                            @enum = new[]
+                            {
+                                "free",
+                                "occupied",
+                                "reserved",
+                                "conflict"
+                            }
+                        },
+                        ["region_id"] = new { type = new[] { "string", "null" }, format = "uuid" },
+                        ["region_name"] = new { type = new[] { "string", "null" } },
+                        ["region_ids"] = new
+                        {
+                            type = "array",
+                            items = new { type = "string", format = "uuid" }
+                        }
+                    }
+                },
+                ["GridLayoutResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "cell_size_meters",
+                        "bounds",
+                        "counts",
+                        "regions",
+                        "cells",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["cell_size_meters"] = new { type = "integer", @const = 256 },
+                        ["bounds"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["min_x"] = new { type = "integer" },
+                                ["max_x"] = new { type = "integer" },
+                                ["min_y"] = new { type = "integer" },
+                                ["max_y"] = new { type = "integer" },
+                                ["min_world_x"] = new { type = "integer" },
+                                ["max_world_x"] = new { type = "integer" },
+                                ["min_world_y"] = new { type = "integer" },
+                                ["max_world_y"] = new { type = "integer" }
+                            }
+                        },
+                        ["counts"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["cells"] = new { type = "integer" },
+                                ["free"] = new { type = "integer" },
+                                ["occupied"] = new { type = "integer" },
+                                ["reserved"] = new { type = "integer" },
+                                ["conflict"] = new { type = "integer" },
+                                ["regions"] = new { type = "integer" }
+                            }
+                        },
+                        ["regions"] = new
+                        {
+                            type = "array",
+                            items = gridRegionRef
+                        },
+                        ["cells"] = new
+                        {
+                            type = "array",
+                            items = gridCellRef
+                        },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["GridCellResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "cell",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["cell"] = gridCellRef,
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["GridPlacementValidationResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "valid",
+                        "reason",
+                        "origin",
+                        "size",
+                        "footprint",
+                        "conflicts",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["valid"] = new { type = "boolean" },
+                        ["reason"] = new
+                        {
+                            type = "string",
+                            @enum = new[]
+                            {
+                                "placement_available",
+                                "hypergrid_reserved_band",
+                                "region_overlap"
+                            }
+                        },
+                        ["origin"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["grid_x"] = new { type = "integer" },
+                                ["grid_y"] = new { type = "integer" },
+                                ["world_x"] = new { type = "integer" },
+                                ["world_y"] = new { type = "integer" }
+                            }
+                        },
+                        ["size"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["size_x"] = new { type = "integer" },
+                                ["size_y"] = new { type = "integer" },
+                                ["cells_x"] = new { type = "integer" },
+                                ["cells_y"] = new { type = "integer" }
+                            }
+                        },
+                        ["footprint"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["min_x"] = new { type = "integer" },
+                                ["max_x"] = new { type = "integer" },
+                                ["min_y"] = new { type = "integer" },
+                                ["max_y"] = new { type = "integer" },
+                                ["min_world_x"] = new { type = "integer" },
+                                ["max_world_x"] = new { type = "integer" },
+                                ["min_world_y"] = new { type = "integer" },
+                                ["max_world_y"] = new { type = "integer" }
+                            }
+                        },
+                        ["conflicts"] = new
+                        {
+                            type = "array",
+                            items = gridRegionRef
+                        },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["User"] = new
