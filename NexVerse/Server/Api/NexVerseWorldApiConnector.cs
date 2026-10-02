@@ -324,6 +324,7 @@ namespace NexVerse.Server.Api
                     idempotencyStore,
                     idempotencyTtlSeconds,
                     apiKeyStore,
+                    grid,
                     adminMinimumLevel);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
