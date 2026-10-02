@@ -222,7 +222,7 @@ Selecting a free cell in the raster will prefill the create-region form. Region-
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The next identity/API work is the browser-facing authorization/login and consent surface, followed by production external OpenTelemetry collection and the Region Control Plane.
+The browser-facing authorization/login and consent surface is now implemented. The next larger API/control-plane work is the Region Control Plane and its grid-layout administration APIs; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
@@ -252,7 +252,11 @@ OIDC ID tokens are signed with ES256 using a persistent P-256 key. The private k
 
 Resident password changes, account lock/ban/deactivation and explicit session revocation advance the resident security stamp. Existing native access tokens therefore fail validation and all persisted refresh sessions for the resident are revoked.
 
-The authorization endpoint now accepts an already authenticated native NexVerse resident bearer session. Legacy AuthenticationService bearer tokens are rejected. A browser-facing login/consent surface remains separate roadmap work.
+The authorization endpoint supports two compatible interactive modes. Existing technical clients may continue to call `GET /oauth/authorize` with an authenticated native NexVerse resident Bearer session. Normal browsers without a Bearer header receive a German NexVerse login and consent page and submit the approval to the same `/oauth/authorize` endpoint.
+
+The browser flow validates the registered client, exact redirect URI, PKCE S256 challenge and requested scopes before showing the login page and validates them again on POST. Resident credentials are verified through the NexVerse user-service abstraction; locked, banned, deactivated and incomplete provisioning accounts are rejected. Passwords are never included in redirects, audit records, HTML responses or browser storage.
+
+Approval creates the normal one-time authorization code and redirects to the registered client with `code` and preserved `state`. Denial redirects with `error=access_denied`. Successful approvals emit an audit event and NexBus event. The authorization page is delivered with `Cache-Control: no-store`, frame blocking, no-referrer policy and a restrictive CSP. Legacy AuthenticationService bearer tokens remain rejected.
 
 
 ## API rate limiting and request metadata
