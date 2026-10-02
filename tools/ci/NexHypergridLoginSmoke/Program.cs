@@ -4,7 +4,7 @@ using System.Net;
 using OpenMetaverse;
 using OpenSim.Framework;
 using OpenSim.Services.Connectors.Hypergrid;
-using OpenSim.Services.Interfaces;
+using GridRegion = OpenSim.Services.Interfaces.GridRegion;
 
 internal static class Program
 {
