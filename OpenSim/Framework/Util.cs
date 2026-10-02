@@ -2195,12 +2195,154 @@ namespace OpenSim.Framework
             return (T)val;
         }
 
+        private static void LoadNexVerseEnvironmentFiles(IConfig enVars)
+        {
+            string[] requestedKeys = enVars.GetKeys();
+            if (requestedKeys.Length == 0)
+                return;
+
+            HashSet<string> requested =
+                new HashSet<string>(requestedKeys, StringComparer.Ordinal);
+            HashSet<string> resolved =
+                new HashSet<string>(StringComparer.Ordinal);
+            foreach (string key in requestedKeys)
+            {
+                if (Environment.GetEnvironmentVariable(key) != null)
+                    resolved.Add(key);
+            }
+
+            List<string> candidates = new List<string>();
+            string explicitPath =
+                Environment.GetEnvironmentVariable("NEXVERSE_ENV_FILE");
+            if (!string.IsNullOrWhiteSpace(explicitPath))
+                candidates.Add(explicitPath);
+
+            // NexVerse production default. This file is outside the Git tree.
+            candidates.Add("/etc/nexverse/nexverse.env");
+
+            // Optional runtime-local fallback. This path resolves next to
+            // Robust.dll/OpenSim.dll (normally the bin directory).
+            candidates.Add(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "nexverse.local.env"));
+
+            HashSet<string> seenFiles =
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate))
+                    continue;
+
+                string path;
+                try
+                {
+                    path = Path.GetFullPath(candidate);
+                }
+                catch (Exception e)
+                {
+                    if (string.Equals(candidate, explicitPath, StringComparison.Ordinal))
+                    {
+                        m_log.WarnFormat(
+                            "[NEXVERSE SECRETS]: Invalid NEXVERSE_ENV_FILE path '{0}': {1}",
+                            candidate,
+                            e.Message);
+                    }
+                    continue;
+                }
+
+                if (!seenFiles.Add(path))
+                    continue;
+
+                if (!File.Exists(path))
+                {
+                    if (!string.IsNullOrWhiteSpace(explicitPath) &&
+                        string.Equals(
+                            path,
+                            Path.GetFullPath(explicitPath),
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        m_log.WarnFormat(
+                            "[NEXVERSE SECRETS]: NEXVERSE_ENV_FILE does not exist: {0}",
+                            path);
+                    }
+                    continue;
+                }
+
+                int loaded = 0;
+                try
+                {
+                    foreach (string rawLine in File.ReadLines(path))
+                    {
+                        string line = rawLine.Trim();
+                        if (line.Length == 0 ||
+                            line.StartsWith("#", StringComparison.Ordinal) ||
+                            line.StartsWith(";", StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+
+                        if (line.StartsWith("export ", StringComparison.Ordinal))
+                            line = line.Substring(7).TrimStart();
+
+                        int separator = line.IndexOf('=');
+                        if (separator <= 0)
+                            continue;
+
+                        string key = line.Substring(0, separator).Trim();
+                        if (!requested.Contains(key) || resolved.Contains(key))
+                            continue;
+
+                        string value = line.Substring(separator + 1).Trim();
+                        if (value.Length >= 2)
+                        {
+                            char first = value[0];
+                            char last = value[value.Length - 1];
+                            if ((first == '"' && last == '"') ||
+                                (first == '\'' && last == '\''))
+                            {
+                                value = value.Substring(1, value.Length - 2);
+                            }
+                        }
+
+                        Environment.SetEnvironmentVariable(key, value);
+                        resolved.Add(key);
+                        loaded++;
+                    }
+
+                    if (loaded > 0)
+                    {
+                        m_log.InfoFormat(
+                            "[NEXVERSE SECRETS]: Loaded {0} requested runtime value(s) from {1}",
+                            loaded,
+                            path);
+                    }
+                }
+                catch (Exception e)
+                {
+                    m_log.WarnFormat(
+                        "[NEXVERSE SECRETS]: Could not read runtime environment file {0}: {1}",
+                        path,
+                        e.Message);
+                }
+
+                if (resolved.Count >= requested.Count)
+                    break;
+            }
+        }
+
         public static void MergeEnvironmentToConfig(IConfigSource ConfigSource)
         {
             IConfig enVars = ConfigSource.Configs["Environment"];
             // if section does not exist then user isn't expecting them, so don't bother.
             if (enVars != null)
             {
+                // NexVerse: provide a pull-safe local secret source before the
+                // standard process-environment merge. Existing process variables
+                // always have precedence.
+                LoadNexVerseEnvironmentFiles(enVars);
+
                 // load the values from the environment
                 EnvConfigSource envConfigSource = new();
                 // add the requested keys
