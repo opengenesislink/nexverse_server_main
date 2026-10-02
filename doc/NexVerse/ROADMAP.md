@@ -298,7 +298,7 @@ Implementation status:
 - [x] filtering/sorting is implemented for user and region searches, and backend search windows honor the public pagination range.
 - [x] `Idempotency-Key` is implemented for account provisioning with persistent response replay, payload-conflict detection and concurrent-request exclusion.
 - [x] OpenAPI 3.1 component schemas and operation-level request/response references are emitted for the core v1 user, region, audit and API-key contracts and runtime-smoke tested.
-- [x] authenticated statistics summary exposes resident registration/activity, current presence and Hypergrid visitor/home-grid aggregates.
+- [x] statistics summary remains routable when privileged endpoints are disabled, exposes privacy-safe anonymous aggregates, and requires `statistics:read` for protected online/region/Hypergrid details.
 
 - REST/JSON API;
 - OpenAPI 3.1 specification;
@@ -367,7 +367,7 @@ Implementation status:
 - [x] error documentation and response schemas shown in the explorer;
 - [x] API version-history view driven by `x_nexverse_version_history`;
 - [x] deprecation notices are surfaced when operations are marked deprecated.
-- [x] dedicated statistics view shows registered residents, current online users, 7/30-day activity, Hypergrid visitors and region/home-grid breakdowns.
+- [x] dedicated statistics view automatically shows privacy-safe aggregate metrics and unlocks current-user, region and Hypergrid breakdown details only with `statistics:read`.
 
 ### 6.5 Citizen/Admin AI instructions
 
@@ -376,7 +376,7 @@ Implementation status:
 - [x] endpoint-level audience, purpose, AI guidance and security constraints are emitted in OpenAPI;
 - [x] citizen/self-service, administrator and machine/service usage are distinguished;
 - [x] the self-hosted API explorer renders these metadata fields per operation;
-- [x] NEXJAST runtime smoke verifies the admin metadata contract.
+- [x] NexVerse CI runtime smoke verifies the admin metadata contract.
 
 OpenAPI metadata should distinguish citizen-facing and admin-facing usage.
 
