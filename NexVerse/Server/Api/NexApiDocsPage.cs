@@ -235,8 +235,8 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </div>
 </div>
 <div class="section">
-<h2>Region erstellen / verschieben</h2>
-<p class="sectionlead">Die ausgewählte Rasterzelle wird als Zielkoordinate verwendet. Erstellung ist nur nach erfolgreicher Placement-Prüfung möglich. Der Ziel-Node muss online sein und <code>managed_region_commands=true</code> melden.</p>
+<h2>Region erstellen / verschieben / Lifecycle</h2>
+<p class="sectionlead">Die ausgewählte Rasterzelle wird als Zielkoordinate verwendet. Erstellung ist nur nach erfolgreicher Placement-Prüfung möglich. Create, Move und Lifecycle erfordern einen online erreichbaren Node mit <code>managed_region_commands=true</code>; gestoppte Regionen können über UUID und Ziel-Node wieder gestartet werden.</p>
 <div class="planner-controls">
 <div><label class="label2">Regionsname</label><input id="gridCreateName" maxlength="128" placeholder="z. B. Freiburg Nord"></div>
 <div><label class="label2">Simulator-Node</label><input id="gridCreateNodeId" list="gridNodeOptions" maxlength="128" placeholder="NodeId"><datalist id="gridNodeOptions"></datalist></div>
