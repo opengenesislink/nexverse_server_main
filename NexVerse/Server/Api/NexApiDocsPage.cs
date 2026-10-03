@@ -180,7 +180,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="pill"><span class="dot" id="gridDot"></span><span id="gridStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Der Planer verwendet ausschließlich die geschützten Read-only-Endpunkte der Region Control Plane. Er benötigt <code>regions:read</code> und einen TLS- oder gleichwertig geschützten Transport.</p>
+<h2>Zugriff</h2><p class="sectionlead">Raster und Placement-Vorschau benötigen <code>regions:read</code>. Erstellen und Verschieben benötigen zusätzlich <code>regions:manage</code>. Alle privilegierten Funktionen setzen TLS oder einen gleichwertig geschützten Transport voraus.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="gridBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="gridApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
@@ -221,7 +221,26 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div><div class="small" style="margin-bottom:6px">Placement-Prüfung</div><pre id="gridPlacementDetail">Noch keine Platzierung geprüft.</pre></div>
 </div>
 </div>
-<div class="planner-note">Der aktuelle Planer ist absichtlich read-only. Regions-Erstellung und Verschieben werden erst über separate <code>regions:manage</code>-Mutationen freigeschaltet, wenn die Node-/Simulator-Steuerung den Vorgang atomar ausführen kann.</div>
+<div class="section">
+<h2>Region erstellen / verschieben</h2>
+<p class="sectionlead">Die ausgewählte Rasterzelle wird als Zielkoordinate verwendet. Erstellung ist nur nach erfolgreicher Placement-Prüfung möglich. Der Ziel-Node muss online sein und <code>managed_region_commands=true</code> melden.</p>
+<div class="planner-controls">
+<div><label class="label2">Regionsname</label><input id="gridCreateName" maxlength="128" placeholder="z. B. Freiburg Nord"></div>
+<div><label class="label2">Simulator-Node</label><input id="gridCreateNodeId" list="gridNodeOptions" maxlength="128" placeholder="NodeId"><datalist id="gridNodeOptions"></datalist></div>
+<div><label class="label2">Estate-ID</label><input id="gridCreateEstateId" type="number" min="1" step="1" placeholder="z. B. 1"></div>
+<div><label class="label2">Region-UUID (optional)</label><input id="gridCreateRegionId" placeholder="leer = automatisch"></div>
+<div><label class="label2">Region-UUID für Move</label><input id="gridMoveRegionId" placeholder="bei belegter Zelle automatisch übernommen"></div>
+<div><label class="label2">Idempotency-Key (optional)</label><input id="gridMutationIdempotency" maxlength="128" autocomplete="off" placeholder="für sichere Wiederholung"></div>
+</div>
+<div class="planner-actions">
+<button class="action" id="loadGridNodes">Managed Nodes laden</button>
+<button class="action" id="createGridRegion">Region erstellen</button>
+<button class="action" id="moveGridRegion">Region verschieben</button>
+</div>
+<div class="authnote">Managed Mutationen sind serverseitig standardmäßig deaktiviert. <code>ManagedRegionCommands=true</code> darf erst bei authentifiziertem, geschütztem bidirektionalem NexBus aktiviert werden.</div>
+<pre id="gridMutationDetail">Noch keine Regionsmutation ausgeführt.</pre>
+</div>
+<div class="planner-note">Create/Move laufen asynchron über Robust → NexBus → Ziel-NodeAgent. Der Planer verfolgt die zurückgegebene <code>operation_id</code> bis <code>completed</code> oder <code>failed</code> und lädt das Raster danach neu.</div>
 </section>
 
 <section class="page" id="page-nodes">
@@ -718,18 +737,18 @@ function markGridPreview(validation){
   }
 }
 async function validateGridPlacement(){
-  if(!gridSelected){$('gridPlacementDetail').textContent='Bitte zuerst eine Rasterzelle auswählen.';return}
+  if(!gridSelected){$('gridPlacementDetail').textContent='Bitte zuerst eine Rasterzelle auswählen.';return null}
   const sizeX=parseInt($('gridRegionSizeX').value||'256',10);
   const sizeY=parseInt($('gridRegionSizeY').value||'256',10);
   if(sizeX<256||sizeX>4096||sizeX%256||sizeY<256||sizeY>4096||sizeY%256){
-    $('gridPlacementDetail').textContent='Regionsgrößen müssen zwischen 256 und 4096 Metern liegen und durch 256 teilbar sein.';return;
+    $('gridPlacementDetail').textContent='Regionsgrößen müssen zwischen 256 und 4096 Metern liegen und durch 256 teilbar sein.';return null;
   }
   const qs=new URLSearchParams({x:gridSelected.grid_x,y:gridSelected.grid_y,size_x:sizeX,size_y:sizeY});
   $('gridPlacementDetail').textContent='Prüfe Platzierung…';
   try{
     const res=await fetch('/api/v1/grid/validate-placement?'+qs,{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
     const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
-    if(!res.ok){$('gridPlacementDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    if(!res.ok){gridValidation=null;$('gridPlacementDetail').textContent=data?JSON.stringify(data,null,2):txt;return null}
     gridValidation=data;markGridPreview(data);
     $('gridPlacementDetail').textContent=JSON.stringify({
       gueltig:data.valid,
@@ -739,7 +758,8 @@ async function validateGridPlacement(){
       footprint:data.footprint,
       konflikte:(data.conflicts||[]).map(x=>({region_id:x.region_id,name:x.name,occupied:x.occupied}))
     },null,2);
-  }catch(err){$('gridPlacementDetail').textContent=String(err)}
+    return data;
+  }catch(err){gridValidation=null;$('gridPlacementDetail').textContent=String(err);return null}
 }
 function selectGridCell(cell){
   gridSelected=cell;
@@ -747,6 +767,7 @@ function selectGridCell(cell){
   const el=document.querySelector('#gridBoard .gridcell[data-key="'+gridCellKey(cell.grid_x,cell.grid_y)+'"]');
   if(el)el.classList.add('selected');
   renderGridCellDetail(cell);
+  if(cell.region_id)$('gridMoveRegionId').value=cell.region_id;
   validateGridPlacement();
 }
 function renderGridLayout(data){
@@ -800,6 +821,88 @@ function panGrid(dx,dy){
   loadGridLayout();
 }
 
+async function loadGridManagedNodes(){
+  $('gridMutationDetail').textContent='Lade Managed Nodes…';
+  try{
+    const res=await fetch('/api/v1/nodes',{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){$('gridMutationDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    const nodes=(data?.nodes||[]).filter(x=>x.state==='online'&&x.managed_region_commands===true);
+    const list=$('gridNodeOptions');list.replaceChildren();
+    nodes.forEach(node=>{const option=document.createElement('option');option.value=node.node_id;option.label=(node.hostname||node.node_id)+' · '+(node.region_count??0)+' Regionen';list.append(option)});
+    if(nodes.length===1&&!$('gridCreateNodeId').value)$('gridCreateNodeId').value=nodes[0].node_id;
+    $('gridMutationDetail').textContent=nodes.length?('Managed Nodes verfügbar: '+nodes.map(x=>x.node_id).join(', ')):'Kein online Node mit managed_region_commands=true gefunden.';
+  }catch(err){$('gridMutationDetail').textContent=String(err)}
+}
+function gridMutationHeaders(){
+  const headers=gridHeaders();
+  headers['Content-Type']='application/json';
+  const idem=$('gridMutationIdempotency').value.trim();
+  if(idem)headers['Idempotency-Key']=idem;
+  return headers;
+}
+async function watchRegionOperation(operationId){
+  if(!operationId)return;
+  for(let attempt=0;attempt<40;attempt++){
+    try{
+      const res=await fetch('/api/v1/region-operations/'+encodeURIComponent(operationId),{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+      const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+      if(!res.ok){$('gridMutationDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+      $('gridMutationDetail').textContent=JSON.stringify(data,null,2);
+      const state=data?.operation?.state;
+      if(state==='completed'||state==='failed'){
+        if(state==='completed')await loadGridLayout();
+        return;
+      }
+    }catch(err){$('gridMutationDetail').textContent=String(err);return}
+    await new Promise(resolve=>setTimeout(resolve,750));
+  }
+  $('gridMutationDetail').textContent+='\n\nStatusabfrage beendet; operation_id kann später erneut über die API geprüft werden.';
+}
+async function createGridRegion(){
+  if(!gridSelected){$('gridMutationDetail').textContent='Bitte zuerst eine Zielzelle auswählen.';return}
+  const validation=await validateGridPlacement();
+  if(!validation?.valid){$('gridMutationDetail').textContent='Erstellung abgebrochen: Placement ist nicht frei.';return}
+  const name=$('gridCreateName').value.trim(),nodeId=$('gridCreateNodeId').value.trim(),estateId=parseInt($('gridCreateEstateId').value||'0',10);
+  if(!name||!nodeId||estateId<=0){$('gridMutationDetail').textContent='Regionsname, Simulator-Node und positive Estate-ID sind erforderlich.';return}
+  const body={
+    name,
+    node_id:nodeId,
+    estate_id:estateId,
+    grid_x:gridSelected.grid_x,
+    grid_y:gridSelected.grid_y,
+    size_x:parseInt($('gridRegionSizeX').value||'256',10),
+    size_y:parseInt($('gridRegionSizeY').value||'256',10)
+  };
+  const regionId=$('gridCreateRegionId').value.trim();if(regionId)body.region_id=regionId;
+  $('gridMutationDetail').textContent='Regionserstellung wird eingereiht…';
+  try{
+    const res=await fetch('/api/v1/regions',{method:'POST',headers:gridMutationHeaders(),body:JSON.stringify(body),credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('gridMutationDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    await watchRegionOperation(data?.operation?.operation_id);
+  }catch(err){$('gridMutationDetail').textContent=String(err)}
+}
+async function moveGridRegion(){
+  if(!gridSelected){$('gridMutationDetail').textContent='Bitte zuerst die Zielzelle auswählen.';return}
+  const regionId=$('gridMoveRegionId').value.trim();
+  if(!regionId){$('gridMutationDetail').textContent='Region-UUID für den Move fehlt. Eine belegte Quellzelle anklicken oder UUID manuell eintragen.';return}
+  $('gridMutationDetail').textContent='Regionsverschiebung wird eingereiht…';
+  try{
+    const res=await fetch('/api/v1/regions/'+encodeURIComponent(regionId)+'/placement',{
+      method:'PATCH',
+      headers:gridMutationHeaders(),
+      body:JSON.stringify({grid_x:gridSelected.grid_x,grid_y:gridSelected.grid_y}),
+      credentials:'same-origin'
+    });
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('gridMutationDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    await watchRegionOperation(data?.operation?.operation_id);
+  }catch(err){$('gridMutationDetail').textContent=String(err)}
+}
+
 async function execute(){
   if(!selected)return;
   const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
@@ -838,7 +941,8 @@ async function init(){
 }
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
-$('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value=''});
+$('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value='';$('gridMutationIdempotency').value=''});
+$('loadGridNodes').addEventListener('click',loadGridManagedNodes);$('createGridRegion').addEventListener('click',createGridRegion);$('moveGridRegion').addEventListener('click',moveGridRegion);
 $('loadNodes').addEventListener('click',loadNodes);$('clearNodesCredentials').addEventListener('click',()=>{$('nodesBearer').value='';$('nodesApiKey').value=''});
 $('gridWest').addEventListener('click',()=>panGrid(-1,0));$('gridEast').addEventListener('click',()=>panGrid(1,0));$('gridSouth').addEventListener('click',()=>panGrid(0,-1));$('gridNorth').addEventListener('click',()=>panGrid(0,1));
 $('validateGridPlacement').addEventListener('click',validateGridPlacement);$('gridRegionSizeX').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});$('gridRegionSizeY').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});
