@@ -79,6 +79,7 @@ namespace NexVerse.Server.Api
 
         private void Get(UserAccount account, IOSHttpResponse response)
         {
+            ProfilePrivacy privacy = LoadPrivacy(account.PrincipalID);
             UserProfileProperties profile = new UserProfileProperties { UserId = account.PrincipalID };
             string error = string.Empty;
             m_Profiles.GetAvatarProperties(ref profile, ref error);
@@ -102,6 +103,9 @@ namespace NexVerse.Server.Api
                 partner_id = profile.PartnerId.IsZero() ? null : profile.PartnerId.ToString(),
                 visibility = profile.PublishProfile ? "public" : "private",
                 mature = profile.PublishMature,
+                online_visibility = privacy.OnlineVisibility,
+                groups_visibility = privacy.GroupsVisibility,
+                search_visibility = privacy.SearchVisibility,
                 picks = m_Profiles.GetAvatarPicks(account.PrincipalID),
                 classifieds = m_Profiles.GetClassifiedRecords(account.PrincipalID)
             });
@@ -182,6 +186,23 @@ namespace NexVerse.Server.Api
                     }
                 }
 
+                ProfilePrivacy privacy = LoadPrivacy(account.PrincipalID);
+                bool privacyChanged = false;
+                string onlineVisibility = privacy.OnlineVisibility;
+                string groupsVisibility = privacy.GroupsVisibility;
+                string searchVisibility = privacy.SearchVisibility;
+                privacyChanged |= ReadVisibility(root, "online_visibility", ref onlineVisibility);
+                privacyChanged |= ReadVisibility(root, "groups_visibility", ref groupsVisibility);
+                privacyChanged |= ReadVisibility(root, "search_visibility", ref searchVisibility);
+                privacy.OnlineVisibility = onlineVisibility;
+                privacy.GroupsVisibility = groupsVisibility;
+                privacy.SearchVisibility = searchVisibility;
+                if (privacyChanged && !SavePrivacy(account.PrincipalID, privacy, ref storeError))
+                {
+                    WriteJson(response, HttpStatusCode.InternalServerError, new { error = "privacy_update_failed" });
+                    return;
+                }
+
                 if (root.TryGetProperty("mature", out JsonElement mature) &&
                     (mature.ValueKind == JsonValueKind.True || mature.ValueKind == JsonValueKind.False))
                     profile.PublishMature = mature.GetBoolean();
@@ -229,6 +250,46 @@ namespace NexVerse.Server.Api
             }
 
             Get(account, response);
+        }
+
+
+        private sealed class ProfilePrivacy
+        {
+            public string OnlineVisibility { get; set; } = "friends";
+            public string GroupsVisibility { get; set; } = "public";
+            public string SearchVisibility { get; set; } = "public";
+        }
+
+        private ProfilePrivacy LoadPrivacy(UUID userId)
+        {
+            UserAppData data = new UserAppData { UserId = userId.ToString(), TagId = "NexVerse.WebProfileV3", DataKey = "privacy" };
+            string error = string.Empty;
+            if (!m_Profiles.GetUserAppData(ref data, ref error) || string.IsNullOrWhiteSpace(data.DataVal))
+                return new ProfilePrivacy();
+            try { return JsonSerializer.Deserialize<ProfilePrivacy>(data.DataVal) ?? new ProfilePrivacy(); }
+            catch { return new ProfilePrivacy(); }
+        }
+
+        private bool SavePrivacy(UUID userId, ProfilePrivacy privacy, ref string error)
+        {
+            UserAppData data = new UserAppData
+            {
+                UserId = userId.ToString(),
+                TagId = "NexVerse.WebProfileV3",
+                DataKey = "privacy",
+                DataVal = JsonSerializer.Serialize(privacy)
+            };
+            return m_Profiles.SetUserAppData(data, ref error);
+        }
+
+        private static bool ReadVisibility(JsonElement root, string name, ref string target)
+        {
+            if (!root.TryGetProperty(name, out JsonElement value) || value.ValueKind != JsonValueKind.String) return false;
+            string next = (value.GetString() ?? string.Empty).Trim().ToLowerInvariant();
+            if (next != "public" && next != "friends" && next != "private") return false;
+            if (target == next) return false;
+            target = next;
+            return true;
         }
 
         private static string Limit(string value, int max)

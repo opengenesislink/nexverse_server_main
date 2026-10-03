@@ -23,14 +23,16 @@ namespace NexVerse.Server.Api
         private readonly NexApiAuthenticator m_Auth;
         private readonly IMuteListService m_Mutes;
         private readonly INexAuditSink m_Audit;
+        private readonly IPresenceService m_Presence;
 
-        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth, IMuteListService mutes, INexAuditSink audit)
+        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth, IMuteListService mutes, INexAuditSink audit, IPresenceService presence)
         {
             m_Accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
             m_Friends = friends ?? throw new ArgumentNullException(nameof(friends));
             m_Auth = auth ?? throw new ArgumentNullException(nameof(auth));
             m_Mutes = mutes ?? throw new ArgumentNullException(nameof(mutes));
             m_Audit = audit ?? NullNexAuditSink.Instance;
+            m_Presence = presence;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -202,9 +204,18 @@ namespace NexVerse.Server.Api
                 rights = f.MyFlags,
                 their_rights = f.TheirFlags,
                 can_see_online = (f.MyFlags & 1) != 0,
+                online = (f.MyFlags & 1) != 0 && IsOnline(id),
                 can_see_on_map = (f.MyFlags & 2) != 0,
                 can_modify_objects = (f.MyFlags & 4) != 0
             };
+        }
+
+
+        private bool IsOnline(UUID id)
+        {
+            if (m_Presence == null || id.IsZero()) return false;
+            PresenceInfo[] presences = m_Presence.GetAgents(new[] { id.ToString() });
+            return presences != null && presences.Any(x => x != null && !x.RegionID.IsZero());
         }
 
         private bool Authenticate(IOSHttpRequest request, IOSHttpResponse response, string scope, out NexPrincipal principal)
