@@ -129,6 +129,49 @@ internal static class Program
             userService.StoreUserAccount(account),
             "failed to seed CI user account");
 
+        userService.InvalidateCache(UserId);
+        UserAccount displayNameRoundTrip =
+            userService.GetUserAccount(UUID.Zero, UserId);
+
+        Require(
+            displayNameRoundTrip != null &&
+            displayNameRoundTrip.Username == "nexverseci" &&
+            displayNameRoundTrip.EffectiveDisplayName == "NexVerseCI" &&
+            displayNameRoundTrip.IsDisplayNameDefault,
+            "failed to read default Display Name state");
+
+        displayNameRoundTrip.DisplayName =
+            "NexVerse CI Persisted";
+        displayNameRoundTrip.DisplayNameChanged =
+            123456789;
+
+        Require(
+            userService.StoreUserAccount(displayNameRoundTrip),
+            "failed to persist CI Display Name roundtrip");
+
+        userService.InvalidateCache(UserId);
+        displayNameRoundTrip =
+            userService.GetUserAccount(UUID.Zero, UserId);
+
+        Require(
+            displayNameRoundTrip != null &&
+            displayNameRoundTrip.DisplayName == "NexVerse CI Persisted" &&
+            displayNameRoundTrip.EffectiveDisplayName == "NexVerse CI Persisted" &&
+            !displayNameRoundTrip.IsDisplayNameDefault &&
+            displayNameRoundTrip.DisplayNameChanged == 123456789,
+            "failed to reload persisted CI Display Name state");
+
+        displayNameRoundTrip.DisplayName =
+            string.Empty;
+        displayNameRoundTrip.DisplayNameChanged =
+            0;
+
+        Require(
+            userService.StoreUserAccount(displayNameRoundTrip),
+            "failed to reset CI Display Name roundtrip");
+
+        userService.InvalidateCache(UserId);
+
         PasswordAuthenticationService authService =
             new PasswordAuthenticationService(
                 config,
