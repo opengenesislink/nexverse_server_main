@@ -14,7 +14,6 @@ using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
-using OpenSim.Services.ProfilesService;
 
 namespace NexVerse.Server.Api
 {
@@ -364,13 +363,32 @@ namespace NexVerse.Server.Api
                 IConfig profilesConfig = config.Configs["UserProfilesService"];
                 if (profilesConfig != null && profilesConfig.GetBoolean("Enabled", false))
                 {
-                    UserProfilesServiceBase profilesService =
-                        new UserProfilesServiceBase(config, "UserProfilesService");
+                    IConfig databaseConfig = config.Configs["DatabaseService"];
+                    string profileStorageProvider =
+                        profilesConfig.GetString(
+                            "StorageProvider",
+                            databaseConfig == null
+                                ? string.Empty
+                                : databaseConfig.GetString("StorageProvider", string.Empty));
+                    string profileConnectionString =
+                        profilesConfig.GetString(
+                            "ConnectionString",
+                            databaseConfig == null
+                                ? string.Empty
+                                : databaseConfig.GetString("ConnectionString", string.Empty));
+
+                    IProfilesData profilesData =
+                        ServerUtils.LoadPlugin<IProfilesData>(
+                            profileStorageProvider,
+                            new object[] { profileConnectionString });
+
+                    if (profilesData == null)
+                        throw new InvalidOperationException("Unable to load NexVerse WebProfileV3 profile datastore.");
 
                     NexWebProfileV3Api webProfileV3 =
                         new NexWebProfileV3Api(
                             userAccounts,
-                            profilesService.ProfilesData,
+                            profilesData,
                             authenticator);
 
                     server.AddSimpleStreamHandler(
