@@ -113,6 +113,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_auth_cutover.py
 
+      - name: Verify Region Control Plane mutations
+        shell: bash
+        run: python3 tools/ci/verify_region_mutations.py
+
       - name: Verify NexBus distributed core
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
@@ -261,6 +265,20 @@ jobs:
 
           region_get = doc["paths"]["/api/v1/regions"]["get"]
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
+
+          region_post = doc["paths"]["/api/v1/regions"]["post"]
+          assert region_post["x-nexverse-scope"] == "regions:manage"
+          assert region_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionCreateRequest"
+          assert region_post["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+
+          placement_patch = doc["paths"]["/api/v1/regions/{regionId}/placement"]["patch"]
+          assert placement_patch["x-nexverse-scope"] == "regions:manage"
+          assert placement_patch["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionPlacementRequest"
+          assert placement_patch["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+
+          operation_get = doc["paths"]["/api/v1/region-operations/{operationId}"]["get"]
+          assert operation_get["x-nexverse-scope"] == "regions:read"
+          assert operation_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionOperationResponse"
 
           grid_layout = doc["paths"]["/api/v1/grid/layout"]["get"]
           assert grid_layout["x-nexverse-scope"] == "regions:read"
