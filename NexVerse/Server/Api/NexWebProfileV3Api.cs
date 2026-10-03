@@ -136,6 +136,8 @@ namespace NexVerse.Server.Api
             string storeError = string.Empty;
             m_Profiles.GetAvatarProperties(ref profile, ref storeError);
 
+            UUID oldPartnerId = profile.PartnerId;
+
             try
             {
                 using JsonDocument doc = JsonDocument.Parse(body);
@@ -154,7 +156,6 @@ namespace NexVerse.Server.Api
                 if (root.TryGetProperty("visibility", out JsonElement visibility))
                     profile.PublishProfile = string.Equals(visibility.GetString(), "public", StringComparison.OrdinalIgnoreCase);
 
-                    UUID oldPartnerId = profile.PartnerId;
                 if (root.TryGetProperty("partner_id", out JsonElement partner))
                 {
                     if (!principal.HasScope(NexScopes.AdminAll))
