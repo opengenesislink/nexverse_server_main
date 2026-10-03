@@ -121,6 +121,12 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexNodeRegistryRegression/NexNodeRegistryRegression.csproj
 
+      - name: Verify NodeAgent command plane
+        shell: bash
+        run: |
+          dotnet run --configuration Release --project tools/ci/NexNodeCommandRegression/NexNodeCommandRegression.csproj
+          python3 tools/ci/verify_node_command_plane.py
+
       - name: Verify NexMetrics OTLP pipeline
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexMetricsRegression/NexMetricsRegression.csproj
@@ -248,6 +254,9 @@ jobs:
               "Node",
               "NodeListResponse",
               "NodeResponse",
+              "NodeCommand",
+              "NodeCommandDispatchResponse",
+              "NodeCommandStatusResponse",
               "UserCreateRequest",
               "UserCreateResponse",
               "ApiKey",
@@ -290,6 +299,18 @@ jobs:
           assert [p["name"] for p in node_get["parameters"]] == ["nodeId"]
           assert node_get["parameters"][0]["in"] == "path" and node_get["parameters"][0]["required"]
           assert schemas["Node"]["properties"]["state"]["enum"] == ["online", "stale", "offline"]
+          assert "command_routing_enabled" in schemas["NodeListResponse"]["required"]
+          assert "command_routing_enabled" in schemas["NodeResponse"]["required"]
+
+          ping_post = doc["paths"]["/api/v1/nodes/{nodeId}/commands/ping"]["post"]
+          assert ping_post["x-nexverse-scope"] == "simulators:manage"
+          assert ping_post["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/NodeCommandDispatchResponse"
+          assert [p["name"] for p in ping_post["parameters"]] == ["nodeId"]
+          command_get = doc["paths"]["/api/v1/node-commands/{commandId}"]["get"]
+          assert command_get["x-nexverse-scope"] == "simulators:read"
+          assert command_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/NodeCommandStatusResponse"
+          assert schemas["NodeCommand"]["properties"]["action"]["enum"] == ["ping"]
+          assert schemas["NodeCommand"]["properties"]["state"]["enum"] == ["pending", "completed", "rejected", "expired"]
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
@@ -304,7 +325,7 @@ jobs:
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
           assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
           assert doc["x_nexverse_changelog"][0]["category"] == "platform"
-          assert "/api/v1/nodes" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/nodes/{nodeId}/commands/ping" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
