@@ -40,6 +40,15 @@ namespace NexVerse.Core.Security
         public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
+    public sealed class NexWebAuthnChallenge
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public string Subject { get; set; } = string.Empty;
+        public string Challenge { get; set; } = string.Empty;
+        public long ExpiresAt { get; set; }
+        public bool Used { get; set; }
+    }
+
     public interface INexSecurityStore
     {
         NexSecuritySession CreateSession(string subject, string clientId);
@@ -54,6 +63,10 @@ namespace NexVerse.Core.Security
         IReadOnlyList<NexPasskeyCredential> ListPasskeys(string subject);
         bool RegisterPasskey(NexPasskeyCredential credential);
         bool RemovePasskey(string subject, string credentialId);
+        NexWebAuthnChallenge CreateWebAuthnChallenge(string subject, int lifetimeSeconds);
+        bool TryConsumeWebAuthnChallenge(string subject, string challengeId, string challenge);
+        NexPasskeyCredential GetPasskey(string subject, string credentialId);
+        bool UpdatePasskeyCounter(string subject, string credentialId, long signCount);
     }
 
     public sealed class PersistentNexSecurityStore : INexSecurityStore
@@ -173,6 +186,51 @@ namespace NexVerse.Core.Security
             }
         }
 
+        public NexWebAuthnChallenge CreateWebAuthnChallenge(string subject, int lifetimeSeconds)
+        {
+            byte[] bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            NexWebAuthnChallenge challenge = new NexWebAuthnChallenge
+            {
+                Subject = subject ?? string.Empty,
+                Challenge = Base64Url(bytes),
+                ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + Math.Max(60, Math.Min(lifetimeSeconds, 600))
+            };
+            lock (m_Sync) { m_Data.Challenges.RemoveAll(x => x.ExpiresAt < DateTimeOffset.UtcNow.ToUnixTimeSeconds() || x.Used); m_Data.Challenges.Add(challenge); Save(); }
+            return challenge;
+        }
+
+        public bool TryConsumeWebAuthnChallenge(string subject, string challengeId, string challenge)
+        {
+            lock (m_Sync)
+            {
+                NexWebAuthnChallenge item = m_Data.Challenges.FirstOrDefault(x => x.Subject == subject && x.Id == challengeId && !x.Used);
+                if (item == null || item.ExpiresAt < DateTimeOffset.UtcNow.ToUnixTimeSeconds() || !FixedEquals(item.Challenge, challenge)) return false;
+                item.Used = true;
+                Save();
+                return true;
+            }
+        }
+
+        public NexPasskeyCredential GetPasskey(string subject, string credentialId)
+        {
+            lock (m_Sync) return m_Data.Passkeys.FirstOrDefault(x => x.Subject == subject && x.CredentialId == credentialId);
+        }
+
+        public bool UpdatePasskeyCounter(string subject, string credentialId, long signCount)
+        {
+            lock (m_Sync)
+            {
+                NexPasskeyCredential item = m_Data.Passkeys.FirstOrDefault(x => x.Subject == subject && x.CredentialId == credentialId);
+                if (item == null || (item.SignCount > 0 && signCount <= item.SignCount)) return false;
+                item.SignCount = signCount;
+                Save();
+                return true;
+            }
+        }
+
+        private static string Base64Url(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
         private static string Code(byte[] key, long counter)
         {
             byte[] data = BitConverter.GetBytes(counter);
@@ -215,6 +273,7 @@ namespace NexVerse.Core.Security
             public List<NexSecurityEvent> Events { get; set; } = new List<NexSecurityEvent>();
             public Dictionary<string, string> Totp { get; set; } = new Dictionary<string, string>();
             public List<NexPasskeyCredential> Passkeys { get; set; } = new List<NexPasskeyCredential>();
+            public List<NexWebAuthnChallenge> Challenges { get; set; } = new List<NexWebAuthnChallenge>();
         }
     }
 }
