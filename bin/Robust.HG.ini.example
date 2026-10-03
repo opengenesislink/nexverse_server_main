@@ -264,6 +264,11 @@
     StorageProvider = "OpenSim.Data.MySQL.dll"
     ConnectionString = "Data Source=localhost;Database=opensim;User ID=opensim;Password=*****;Old Guids=true;SslMode=None;"
 
+[EstateDataStore]
+    ; NexVerse World API Estate discovery uses the same authoritative
+    ; Estate data service/database as the simulator estate subsystem.
+    LocalServiceModule = "OpenSim.Services.EstateService.dll:EstateDataService"
+
 ; * As an example, the below configuration precisely mimicks the legacy
 ; * asset server. It is read by the asset IN connector (defined above)
 ; * and it then loads the OUT connector (a local database module). That,

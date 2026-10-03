@@ -250,7 +250,7 @@ The API Control Center at `/api/v1/docs` now contains the first interactive read
 
 VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells are considered occupied during placement validation. The planner highlights the complete proposed footprint and reports conflicting regions.
 
-The Grid Planner now includes the dedicated mutation and lifecycle controls. A selected free cell can be validated and handed directly to region creation with region name, simulator NodeId, Estate ID, optional explicit region UUID and optional Idempotency-Key. For moves, selecting an occupied source cell can prefill the region UUID before a destination cell is chosen. The same selected region can be started, stopped or restarted through the managed lifecycle endpoint; the node is prefilled when the live Grid/Node projection can resolve it, while a stopped region can still be started by entering its UUID and target NodeId manually. Stop and restart require an explicit browser confirmation in addition to the server-side root-agent guard.
+The Grid Planner now includes the dedicated mutation and lifecycle controls. A selected free cell can be validated and handed directly to region creation with region name, simulator NodeId, Estate ID, optional explicit region UUID and optional Idempotency-Key. Credentials with `estates:read` can load the Estate catalogue into the create form so administrators can choose an Estate by name/ID; a known positive Estate ID can still be entered manually when that read scope is intentionally not granted. Robust resolves the selected Estate before queueing the create operation and rejects unknown Estate IDs before any NexBus command is sent. For moves, selecting an occupied source cell can prefill the region UUID before a destination cell is chosen. The same selected region can be started, stopped or restarted through the managed lifecycle endpoint; the node is prefilled when the live Grid/Node projection can resolve it, while a stopped region can still be started by entering its UUID and target NodeId manually. Stop and restart require an explicit browser confirmation in addition to the server-side root-agent guard.
 
 The planner also provides global registered-region search through `GET /api/v1/regions`. Search responses expose `grid_x`, `grid_y`, `world_x` and `world_y`; choosing a result recenters the viewport and selects the exact region origin, including VarRegions. The UI follows every returned `operation_id` until `completed` or `failed` and refreshes the raster after success. Online nodes advertising `managed_region_commands=true` can be loaded into the node selector when the credential also has `simulators:read`.
 
@@ -258,7 +258,7 @@ The planner also provides global registered-region search through `GET /api/v1/r
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The browser-facing authorization/login and consent surface, Grid Planner with global region search/jump and lifecycle controls, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The next control-plane work is richer node/estate filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
+The browser-facing authorization/login and consent surface, Grid Planner with global region search/jump, Estate selection and lifecycle controls, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The Estate Control Plane has a least-privilege read foundation; the next control-plane work is Estate write/policy management, richer node filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
@@ -435,7 +435,7 @@ The full key is returned exactly once. Its secret is persisted only as a PBKDF2-
 
 `data/nexverse-api-keys.json`
 
-Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts.
+Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts.
 
 API-key principals use subjects in the form `api-key:<key_id>`. Disabling a key takes effect immediately because validation is performed against the persistent key store on every request.
 
@@ -452,6 +452,7 @@ Current schema coverage includes:
 - `User`, `UserCreateRequest`, `UserCreateResponse` and profile/lifecycle request bodies;
 - `ResidentSessionRequest` and `ResidentSessionResponse` for native resident login;
 - `Region` and `RegionSearchResponse`;
+- `Estate`, `EstateListResponse` and `EstateResponse` for the read-only Estate Control Plane foundation;
 - `ApiKey`, API-key create/state requests and list/create responses;
 - `AuditEvent` and paginated audit search responses.
 

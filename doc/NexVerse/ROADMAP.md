@@ -334,7 +334,9 @@ Example scopes:
 - `inventory:read`
 - `inventory:write`
 - `friends:manage`
-- `regions:restart`
+- `regions:read`
+- `regions:manage`
+- `estates:read`
 - `estates:manage`
 - `economy:transfer`
 - `admin:*`
@@ -584,7 +586,7 @@ Managed region mutations are now connected during the 0.9.3.2 World API line:
 - stop/restart are refused while root agents are present and only NexVerse-managed region files may be controlled;
 - stopped managed regions can be started again on an explicitly selected online NodeAgent, with lifecycle actions tracked through the same asynchronous operation registry.
 
-The API Control Center Grid Planner now exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support, live asynchronous operation-state feedback, global registered-region search/jump and dedicated start/stop/restart controls through `POST /api/v1/regions/{regionId}/lifecycle`. Region search responses include grid/world coordinates so VarRegion origins can be selected exactly. Richer node/estate filtering remains subsequent work.
+The API Control Center Grid Planner now exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support, live asynchronous operation-state feedback, global registered-region search/jump and dedicated start/stop/restart controls through `POST /api/v1/regions/{regionId}/lifecycle`. Region search responses include grid/world coordinates so VarRegion origins can be selected exactly. Estate IDs can now be populated from the least-privilege Estate read API; richer node filtering and Estate write/policy management remain subsequent work.
 
 The planner must provide:
 
@@ -628,6 +630,17 @@ The layout response should expose enough information for the UI to calculate occ
 Placement validation must reject overlaps, including partial overlap with VarRegions.
 
 ### 8.5 Estate management
+
+Foundation implemented during the 0.9.3.2 World API line:
+
+- `estates:read` is a dedicated least-privilege scope separate from `estates:manage`;
+- `GET /api/v1/estates` lists basic Estate metadata with optional name/ID and owner filtering plus bounded pagination;
+- `GET /api/v1/estates/{estateId}` reads one Estate;
+- responses intentionally expose only Estate ID, name, owner UUID, parent Estate ID and region count;
+- Estate manager/member/ban/group access collections are not exposed by this read foundation;
+- Robust reads through the authoritative OpenSim `IEstateDataService` / configured Estate datastore rather than a parallel NexVerse table;
+- the Grid Planner can load Estate names/IDs into the managed region-create form while retaining manual Estate-ID entry;
+- managed region creation validates Estate existence on Robust before dispatching a NexBus create command.
 
 Complete Estate API:
 

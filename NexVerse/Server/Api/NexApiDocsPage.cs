@@ -180,7 +180,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="pill"><span class="dot" id="gridDot"></span><span id="gridStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Raster und Placement-Vorschau benötigen <code>regions:read</code>. Erstellen und Verschieben benötigen zusätzlich <code>regions:manage</code>. Alle privilegierten Funktionen setzen TLS oder einen gleichwertig geschützten Transport voraus.</p>
+<h2>Zugriff</h2><p class="sectionlead">Raster und Placement-Vorschau benötigen <code>regions:read</code>. Erstellen, Verschieben und Lifecycle benötigen zusätzlich <code>regions:manage</code>. Die komfortable Estate-Auswahl verwendet <code>estates:read</code>; eine bekannte positive Estate-ID kann weiterhin manuell eingetragen werden. Alle privilegierten Funktionen setzen TLS oder einen gleichwertig geschützten Transport voraus.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="gridBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="gridApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
@@ -240,7 +240,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="planner-controls">
 <div><label class="label2">Regionsname</label><input id="gridCreateName" maxlength="128" placeholder="z. B. Freiburg Nord"></div>
 <div><label class="label2">Simulator-Node</label><input id="gridCreateNodeId" list="gridNodeOptions" maxlength="128" placeholder="NodeId"><datalist id="gridNodeOptions"></datalist></div>
-<div><label class="label2">Estate-ID</label><input id="gridCreateEstateId" type="number" min="1" step="1" placeholder="z. B. 1"></div>
+<div><label class="label2">Estate</label><input id="gridCreateEstateId" type="number" min="1" step="1" list="gridEstateOptions" placeholder="Estate laden oder ID eingeben"><datalist id="gridEstateOptions"></datalist></div>
 <div><label class="label2">Region-UUID (optional)</label><input id="gridCreateRegionId" placeholder="leer = automatisch"></div>
 <div><label class="label2">Region-UUID für Move</label><input id="gridMoveRegionId" placeholder="bei belegter Zelle automatisch übernommen"></div>
 <div><label class="label2">Region-UUID für Lifecycle</label><input id="gridLifecycleRegionId" placeholder="bei belegter Zelle automatisch übernommen"></div>
@@ -249,6 +249,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </div>
 <div class="planner-actions">
 <button class="action" id="loadGridNodes">Managed Nodes laden</button>
+<button class="action" id="loadGridEstates">Estates laden</button>
 <button class="action" id="createGridRegion">Region erstellen</button>
 <button class="action" id="moveGridRegion">Region verschieben</button>
 </div>
@@ -916,6 +917,28 @@ async function loadGridManagedNodes(){
     $('gridMutationDetail').textContent=nodes.length?('Managed Nodes verfügbar: '+nodes.map(x=>x.node_id).join(', ')):'Kein online Node mit managed_region_commands=true gefunden.';
   }catch(err){$('gridMutationDetail').textContent=String(err)}
 }
+async function loadGridEstates(){
+  $('gridMutationDetail').textContent='Lade Estates…';
+  try{
+    const qs=new URLSearchParams({limit:'100',offset:'0'});
+    const res=await fetch('/api/v1/estates?'+qs,{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){$('gridMutationDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    const estates=data?.estates||[];
+    const list=$('gridEstateOptions');list.replaceChildren();
+    estates.forEach(estate=>{
+      const option=document.createElement('option');
+      option.value=String(estate.estate_id);
+      option.label=(estate.name||('Estate '+estate.estate_id))+' · '+(estate.region_count??0)+' Regionen';
+      list.append(option);
+    });
+    if(estates.length===1&&!$('gridCreateEstateId').value)$('gridCreateEstateId').value=String(estates[0].estate_id);
+    $('gridMutationDetail').textContent=estates.length
+      ?('Estates verfügbar: '+estates.map(x=>(x.name||'Estate')+' (#'+x.estate_id+')').join(', '))
+      :'Keine Estates gefunden.';
+  }catch(err){$('gridMutationDetail').textContent=String(err)}
+}
+
 function gridMutationHeaders(){
   const headers=gridHeaders();
   headers['Content-Type']='application/json';
@@ -1049,7 +1072,7 @@ $('search').addEventListener('input',renderEndpointList);$('run').addEventListen
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value='';$('gridMutationIdempotency').value=''});
 $('searchGridRegions').addEventListener('click',searchGridRegions);$('jumpGridRegion').addEventListener('click',jumpGridRegion);$('gridRegionSearch').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchGridRegions()}});
-$('loadGridNodes').addEventListener('click',loadGridManagedNodes);$('createGridRegion').addEventListener('click',createGridRegion);$('moveGridRegion').addEventListener('click',moveGridRegion);
+$('loadGridNodes').addEventListener('click',loadGridManagedNodes);$('loadGridEstates').addEventListener('click',loadGridEstates);$('createGridRegion').addEventListener('click',createGridRegion);$('moveGridRegion').addEventListener('click',moveGridRegion);
 $('startGridRegion').addEventListener('click',()=>runGridLifecycle('start'));$('stopGridRegion').addEventListener('click',()=>runGridLifecycle('stop'));$('restartGridRegion').addEventListener('click',()=>runGridLifecycle('restart'));
 $('loadNodes').addEventListener('click',loadNodes);$('clearNodesCredentials').addEventListener('click',()=>{$('nodesBearer').value='';$('nodesApiKey').value=''});
 $('gridWest').addEventListener('click',()=>panGrid(-1,0));$('gridEast').addEventListener('click',()=>panGrid(1,0));$('gridSouth').addEventListener('click',()=>panGrid(0,-1));$('gridNorth').addEventListener('click',()=>panGrid(0,1));

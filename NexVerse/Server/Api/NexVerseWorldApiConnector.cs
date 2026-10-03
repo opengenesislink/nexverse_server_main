@@ -276,6 +276,7 @@ namespace NexVerse.Server.Api
                 IInventoryService inventory = LoadOptionalService<IInventoryService>(config, "InventoryService");
                 IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
                 IGridService grid = LoadOptionalService<IGridService>(config, "GridService");
+                IEstateDataService estateData = LoadOptionalService<IEstateDataService>(config, "EstateDataStore");
                 IPresenceService presence = LoadOptionalService<IPresenceService>(config, "PresenceService");
                 IGridUserData gridUserData = LoadGridUserData(config);
 
@@ -344,6 +345,7 @@ namespace NexVerse.Server.Api
                     idempotencyTtlSeconds,
                     apiKeyStore,
                     grid,
+                    estateData,
                     nodeRegistry,
                     regionOperationRegistry,
                     distributedNexBusEnabled,

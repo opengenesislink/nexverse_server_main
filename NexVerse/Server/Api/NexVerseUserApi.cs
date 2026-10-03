@@ -635,6 +635,7 @@ namespace NexVerse.Server.Api
         private readonly NexGridControlApi m_GridControl;
         private readonly NexRegionMutationApi m_RegionMutations;
         private readonly NexNodeApi m_NodeApi;
+        private readonly NexEstateApi m_EstateApi;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
 
@@ -650,6 +651,7 @@ namespace NexVerse.Server.Api
             int idempotencyTtlSeconds,
             INexApiKeyStore apiKeys,
             IGridService grid,
+            IEstateDataService estateData,
             NexNodeRegistry nodeRegistry,
             NexRegionOperationRegistry regionOperationRegistry,
             bool distributedNexBusEnabled,
@@ -671,6 +673,7 @@ namespace NexVerse.Server.Api
                 nodeRegistry);
             m_RegionMutations = new NexRegionMutationApi(
                 grid,
+                estateData,
                 nodeRegistry,
                 regionOperationRegistry,
                 authenticator,
@@ -683,6 +686,9 @@ namespace NexVerse.Server.Api
                 nodeRegistry,
                 authenticator,
                 distributedNexBusEnabled);
+            m_EstateApi = new NexEstateApi(
+                estateData,
+                authenticator);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
@@ -734,6 +740,13 @@ namespace NexVerse.Server.Api
                 path.StartsWith("/api/v1/nodes/", StringComparison.OrdinalIgnoreCase))
             {
                 m_NodeApi.Handle(request, response);
+                return;
+            }
+
+            if (string.Equals(path, "/api/v1/estates", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/v1/estates/", StringComparison.OrdinalIgnoreCase))
+            {
+                m_EstateApi.Handle(request, response);
                 return;
             }
 

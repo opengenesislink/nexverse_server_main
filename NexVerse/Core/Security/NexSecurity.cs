@@ -21,6 +21,7 @@ namespace NexVerse.Core.Security
         public const string SimulatorsRead = "simulators:read";
         public const string SimulatorsManage = "simulators:manage";
         public const string StatisticsRead = "statistics:read";
+        public const string EstatesRead = "estates:read";
         public const string EstatesManage = "estates:manage";
         public const string EconomyRead = "economy:read";
         public const string EconomyTransfer = "economy:transfer";

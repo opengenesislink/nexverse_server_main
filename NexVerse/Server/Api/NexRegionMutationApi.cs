@@ -31,6 +31,7 @@ namespace NexVerse.Server.Api
             new JsonSerializerOptions { WriteIndented = true };
 
         private readonly IGridService m_Grid;
+        private readonly IEstateDataService m_Estates;
         private readonly NexNodeRegistry m_Nodes;
         private readonly NexRegionOperationRegistry m_Operations;
         private readonly NexApiAuthenticator m_Authenticator;
@@ -42,6 +43,7 @@ namespace NexVerse.Server.Api
 
         public NexRegionMutationApi(
             IGridService grid,
+            IEstateDataService estates,
             NexNodeRegistry nodes,
             NexRegionOperationRegistry operations,
             NexApiAuthenticator authenticator,
@@ -52,6 +54,7 @@ namespace NexVerse.Server.Api
             bool distributedTransportEnabled)
         {
             m_Grid = grid;
+            m_Estates = estates;
             m_Nodes =
                 nodes ??
                 throw new ArgumentNullException(nameof(nodes));
@@ -291,6 +294,31 @@ namespace NexVerse.Server.Api
                         HttpStatusCode.BadRequest,
                         "invalid_estate_id",
                         "estate_id must be a positive integer.");
+                    return;
+                }
+
+                if (m_Estates == null)
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.ServiceUnavailable,
+                        "estate_data_unavailable",
+                        "Estate data is unavailable, so region creation cannot be validated safely.");
+                    return;
+                }
+
+                EstateSettings estate =
+                    m_Estates.LoadEstateSettings(
+                        estateId);
+
+                if (estate == null ||
+                    estate.EstateID == 0)
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "estate_not_found",
+                        "estate_id does not reference an existing Estate.");
                     return;
                 }
 
