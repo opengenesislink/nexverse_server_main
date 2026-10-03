@@ -21,7 +21,7 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current stable release is **NexVerse 0.9.3.1**, codename **NEXJAST**. The active development line is **NexVerse 0.9.3.2 Dev — World API v1**. Development now follows a fixed release train through **0.9.3.3 Dev** and **0.9.3.4 Dev**, with **NexVerse 0.9.3.4** as the next planned stable release.
+The current stable release is **NexVerse 0.9.3.1**, codename **NEXJAST**. The **0.9.3.2 World API v1 development checkpoint is complete**, and the active development line is now **NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph**. Development remains on the fixed release train toward **NexVerse 0.9.3.4** as the next planned stable release.
 
 Release notes: **[`doc/NexVerse/RELEASE_0.9.3.1.md`](doc/NexVerse/RELEASE_0.9.3.1.md)**
 
@@ -39,11 +39,11 @@ The active development roadmap is maintained in:
 
 The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the NexVerse 0.9.4.0 consolidation target.
 
-## Active development: NexVerse 0.9.3.2 Dev — World API v1
+## Active development: NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph
 
-The active milestone formalizes and hardens the World API v1 work that was developed ahead of the version transition. Runtime builds now identify themselves as `NexVerse 0.9.3.2 Dev` while 0.9.3.1 remains the current stable release.
+The 0.9.3.2 World API v1 development checkpoint was completed on 3 October 2026. Runtime builds now identify themselves as `NexVerse 0.9.3.3 Dev` while 0.9.3.1 remains the current stable release.
 
-The current release train is deliberately bounded: finish 0.9.3.2, continue with 0.9.3.3 Identity/Profile/Social work, then finish 0.9.3.4 Simulator/Region/Estate Control Plane and release that line. No new 0.9.3.5 implementation work starts before the stable 0.9.3.4 release.
+The current release train is deliberately bounded: complete 0.9.3.3 Identity/Profile/Social work, then finish 0.9.3.4 Simulator/Region/Estate Control Plane and release that line. No new 0.9.3.5 implementation work starts before the stable 0.9.3.4 release.
 
 ## NexVerse 0.9.3.1 NEXJAST release foundation
 
