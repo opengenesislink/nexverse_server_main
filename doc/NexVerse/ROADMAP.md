@@ -505,7 +505,7 @@ Implementation status:
 - nodes are classified as `online`, `stale` or `offline`; the default stale threshold is 90 seconds and is configurable with `NodeStaleAfterSeconds`;
 - `GET /api/v1/nodes` and `GET /api/v1/nodes/{nodeId}` expose the registry with the dedicated `simulators:read` scope;
 - grid-layout region entries are enriched with current `node_id` and `node_state` when a NodeAgent ownership mapping is known;
-- `simulators:manage` is reserved for the later command plane and is not yet used to execute simulator mutations.
+- `simulators:manage` remains reserved for simulator-service lifecycle operations; region lifecycle mutations use `regions:manage`.
 
 Every simulator node registers with Robust and publishes:
 
@@ -537,10 +537,10 @@ World API functions:
 
 ### 8.3 Region management
 
-- create region;
+- [x] create region;
 - update region configuration;
 - enable/disable region;
-- start/stop/restart region;
+- [x] start/stop/restart NexVerse-managed region;
 - migrate region between nodes;
 - change region placement;
 - set region type;
@@ -579,9 +579,12 @@ Managed region mutations are now connected during the 0.9.3.2 World API line:
 - region moves are restricted to NexVerse-managed files and are refused while root agents are present;
 - failed move recreation attempts roll back to the previous managed placement;
 - managed grid-registration collisions fail the operation without terminating the simulator process;
-- create/move requests support persistent `Idempotency-Key` protection and emit audit/NexBus lifecycle state.
+- create/move requests support persistent `Idempotency-Key` protection and emit audit/NexBus lifecycle state;
+- `POST /api/v1/regions/{regionId}/lifecycle` queues managed `start`, `stop` and `restart` actions through `regions:manage`;
+- stop/restart are refused while root agents are present and only NexVerse-managed region files may be controlled;
+- stopped managed regions can be started again on an explicitly selected online NodeAgent, with lifecycle actions tracked through the same asynchronous operation registry.
 
-The API Control Center Grid Planner now also exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support and live asynchronous operation-state feedback. Global region jump/search and richer node/estate filtering remain subsequent work.
+The API Control Center Grid Planner now also exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support and live asynchronous operation-state feedback. The backend Region Control Plane additionally supports managed start/stop/restart through `POST /api/v1/regions/{regionId}/lifecycle`. Global region jump/search, richer node/estate filtering and dedicated lifecycle UI controls remain subsequent work.
 
 The planner must provide:
 
