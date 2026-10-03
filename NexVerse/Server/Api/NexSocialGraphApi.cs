@@ -51,6 +51,12 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (p.Length == 5 && p[4].Equals("blocks", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleBlocks(request, response, principal, owner);
+                return;
+            }
+
             if (p.Length == 4 && request.HttpMethod == "GET")
             {
                 FriendInfo[] friends = m_Friends.GetFriends(owner) ?? Array.Empty<FriendInfo>();
@@ -113,6 +119,68 @@ namespace NexVerse.Server.Api
 
             response.AddHeader("Allow", "GET, POST, PUT, PATCH, DELETE");
             Write(response, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
+        }
+
+
+        private void HandleBlocks(IOSHttpRequest request, IOSHttpResponse response, NexPrincipal principal, UUID owner)
+        {
+            string[] p = (request?.UriPath ?? string.Empty).Trim('/').Split('/');
+            if (p.Length != 6 || !UUID.TryParse(p[5], out UUID target) || target == owner)
+            {
+                Write(response, HttpStatusCode.BadRequest, new { error = "invalid_block_target" });
+                return;
+            }
+
+            UserAccount targetAccount = m_Accounts.GetUserAccount(UUID.Zero, target);
+            if (targetAccount == null)
+            {
+                Write(response, HttpStatusCode.NotFound, new { error = "target_not_found" });
+                return;
+            }
+
+            if (request.HttpMethod == "PUT" || request.HttpMethod == "POST")
+            {
+                MuteData mute = new MuteData
+                {
+                    AgentID = owner,
+                    MuteID = target,
+                    MuteName = targetAccount.Name,
+                    MuteType = 1,
+                    MuteFlags = 0,
+                    Stamp = Util.UnixTimeSinceEpoch()
+                };
+                bool ok = m_Mutes.UpdateMute(mute);
+                Audit(principal, "relationship.block", owner, target, ok);
+                Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
+                    new { status = ok ? "blocked" : "failed", target_id = target.ToString() });
+                return;
+            }
+
+            if (request.HttpMethod == "DELETE")
+            {
+                bool ok = m_Mutes.RemoveMute(owner, target, targetAccount.Name);
+                Audit(principal, "relationship.unblock", owner, target, ok);
+                Write(response, HttpStatusCode.OK,
+                    new { status = ok ? "unblocked" : "absent", target_id = target.ToString() });
+                return;
+            }
+
+            response.AddHeader("Allow", "PUT, POST, DELETE");
+            Write(response, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
+        }
+
+        private void Audit(NexPrincipal principal, string action, UUID owner, UUID target, bool success)
+        {
+            m_Audit.Record(new NexAuditEvent(
+                principal?.Subject ?? owner.ToString(),
+                action,
+                "relationship:" + owner,
+                details: new Dictionary<string, string>
+                {
+                    ["owner_id"] = owner.ToString(),
+                    ["target_id"] = target.ToString(),
+                    ["success"] = success ? "true" : "false"
+                }));
         }
 
         private object Project(FriendInfo f)
