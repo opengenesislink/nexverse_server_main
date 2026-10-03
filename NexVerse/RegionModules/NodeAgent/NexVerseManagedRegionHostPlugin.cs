@@ -568,6 +568,311 @@ namespace NexVerse.RegionModules.NodeAgent
             }
         }
 
+        public bool TryStopRegion(
+            UUID regionId,
+            out string error,
+            out string regionName)
+        {
+            error = string.Empty;
+            regionName = string.Empty;
+
+            if (!m_Enabled)
+            {
+                error =
+                    "managed_region_commands_disabled";
+                return false;
+            }
+
+            if (regionId.IsZero())
+            {
+                error =
+                    "invalid_region_id";
+                return false;
+            }
+
+            lock (m_CommandSync)
+            {
+                SceneManager manager =
+                    SceneManager.Instance;
+
+                if (manager == null ||
+                    !manager.TryGetScene(
+                        regionId,
+                        out Scene scene))
+                {
+                    error =
+                        "region_not_running_on_node";
+                    return false;
+                }
+
+                if (scene.GetRootAgentCount() > 0)
+                {
+                    error =
+                        "region_has_agents";
+                    return false;
+                }
+
+                string configPath =
+                    ConfigPath(regionId);
+
+                if (!File.Exists(configPath) ||
+                    !SamePath(
+                        scene.RegionInfo.RegionFile,
+                        configPath))
+                {
+                    error =
+                        "region_not_nexverse_managed";
+                    return false;
+                }
+
+                regionName =
+                    scene.RegionInfo.RegionName;
+
+                try
+                {
+                    m_OpenSim.CloseRegion(
+                        scene);
+
+                    m_Log.InfoFormat(
+                        "[NEX-REGION-HOST]: Stopped managed region {0} ({1}).",
+                        regionName,
+                        regionId);
+
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-REGION-HOST]: Managed region stop failed.",
+                        e);
+
+                    error =
+                        "region_stop_failed:" +
+                        e.GetType().Name;
+                    return false;
+                }
+            }
+        }
+
+        public bool TryStartRegion(
+            UUID regionId,
+            out string error,
+            out string regionName)
+        {
+            error = string.Empty;
+            regionName = string.Empty;
+
+            if (!m_Enabled)
+            {
+                error =
+                    "managed_region_commands_disabled";
+                return false;
+            }
+
+            if (regionId.IsZero())
+            {
+                error =
+                    "invalid_region_id";
+                return false;
+            }
+
+            lock (m_CommandSync)
+            {
+                SceneManager manager =
+                    SceneManager.Instance;
+
+                if (manager == null)
+                {
+                    error =
+                        "scene_manager_unavailable";
+                    return false;
+                }
+
+                if (manager.TryGetScene(
+                        regionId,
+                        out Scene _))
+                {
+                    error =
+                        "region_already_running";
+                    return false;
+                }
+
+                string configPath =
+                    ConfigPath(regionId);
+
+                if (!File.Exists(configPath))
+                {
+                    error =
+                        "managed_region_config_not_found";
+                    return false;
+                }
+
+                if (!TryResolveManagedRegionName(
+                        configPath,
+                        regionId,
+                        out regionName))
+                {
+                    error =
+                        "managed_region_config_invalid";
+                    return false;
+                }
+
+                try
+                {
+                    StartFromManagedConfig(
+                        configPath,
+                        regionName);
+
+                    m_Log.InfoFormat(
+                        "[NEX-REGION-HOST]: Started managed region {0} ({1}).",
+                        regionName,
+                        regionId);
+
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-REGION-HOST]: Managed region start failed.",
+                        e);
+
+                    error =
+                        "region_start_failed:" +
+                        e.GetType().Name;
+                    return false;
+                }
+            }
+        }
+
+        public bool TryRestartRegion(
+            UUID regionId,
+            out string error,
+            out string regionName)
+        {
+            error = string.Empty;
+            regionName = string.Empty;
+
+            if (!m_Enabled)
+            {
+                error =
+                    "managed_region_commands_disabled";
+                return false;
+            }
+
+            if (regionId.IsZero())
+            {
+                error =
+                    "invalid_region_id";
+                return false;
+            }
+
+            lock (m_CommandSync)
+            {
+                SceneManager manager =
+                    SceneManager.Instance;
+
+                if (manager == null ||
+                    !manager.TryGetScene(
+                        regionId,
+                        out Scene scene))
+                {
+                    error =
+                        "region_not_running_on_node";
+                    return false;
+                }
+
+                if (scene.GetRootAgentCount() > 0)
+                {
+                    error =
+                        "region_has_agents";
+                    return false;
+                }
+
+                string configPath =
+                    ConfigPath(regionId);
+
+                if (!File.Exists(configPath) ||
+                    !SamePath(
+                        scene.RegionInfo.RegionFile,
+                        configPath))
+                {
+                    error =
+                        "region_not_nexverse_managed";
+                    return false;
+                }
+
+                regionName =
+                    scene.RegionInfo.RegionName;
+
+                try
+                {
+                    m_OpenSim.CloseRegion(
+                        scene);
+
+                    StartFromManagedConfig(
+                        configPath,
+                        regionName);
+
+                    m_Log.InfoFormat(
+                        "[NEX-REGION-HOST]: Restarted managed region {0} ({1}).",
+                        regionName,
+                        regionId);
+
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-REGION-HOST]: Managed region restart failed; the region may remain stopped.",
+                        e);
+
+                    error =
+                        "region_restart_failed:" +
+                        e.GetType().Name;
+                    return false;
+                }
+            }
+        }
+
+        private static bool TryResolveManagedRegionName(
+            string configPath,
+            UUID regionId,
+            out string regionName)
+        {
+            regionName =
+                string.Empty;
+
+            try
+            {
+                IniConfigSource source =
+                    new IniConfigSource(
+                        configPath);
+
+                foreach (IConfig config in
+                         source.Configs)
+                {
+                    if (UUID.TryParse(
+                            config.GetString(
+                                "RegionUUID",
+                                string.Empty),
+                            out UUID configuredId) &&
+                        configuredId == regionId &&
+                        !string.IsNullOrWhiteSpace(
+                            config.Name))
+                    {
+                        regionName =
+                            config.Name;
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
         private void StartFromManagedConfig(
             string configPath,
             string regionName)
