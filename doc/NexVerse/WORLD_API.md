@@ -2,7 +2,9 @@
 
 The NexVerse World API is the new Robust-hosted control-plane API.
 
-Active server development line: **NexVerse 0.9.3.2 Dev — World API v1**
+Active server development line: **NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph**
+
+The World API v1 milestone itself was completed as the 0.9.3.2 development checkpoint on 3 October 2026 and remains the control-plane API foundation for the current release train.
 
 Current development endpoint:
 
