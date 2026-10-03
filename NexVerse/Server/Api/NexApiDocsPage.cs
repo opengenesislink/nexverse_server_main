@@ -261,7 +261,41 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="authnote">Managed Mutationen sind serverseitig standardmäßig deaktiviert. <code>ManagedRegionCommands=true</code> darf erst bei authentifiziertem, geschütztem bidirektionalem NexBus aktiviert werden. Stop/Restart werden bei aktiven Root-Agents verweigert; Start benötigt einen Ziel-Node.</div>
 <pre id="gridMutationDetail">Noch keine Regionsmutation ausgeführt.</pre>
 </div>
-<div class="planner-note">Create/Move/Start/Stop/Restart laufen asynchron über Robust → NexBus → Ziel-NodeAgent. Der Planer verfolgt die zurückgegebene <code>operation_id</code> bis <code>completed</code> oder <code>failed</code> und lädt das Raster danach neu.</div>
+
+<div class="section">
+<h2>Estate-Verwaltung</h2>
+<p class="sectionlead">Diese Funktionen benötigen <code>estates:manage</code>. Verwaltungslisten werden bewusst nicht über <code>estates:read</code> veröffentlicht.</p>
+<div class="planner-controls">
+<div><label class="label2">Estate-ID</label><input id="estateManageId" type="number" min="1" step="1" placeholder="bei Create leer lassen"></div>
+<div><label class="label2">Name</label><input id="estateManageName" maxlength="64" placeholder="Estate-Name"></div>
+<div><label class="label2">Owner UUID</label><input id="estateManageOwner" placeholder="lokaler NexVerse-Account"></div>
+<div><label class="label2">Parent-Estate-ID</label><input id="estateManageParent" type="number" min="0" step="1" value="1"></div>
+<div><label class="label2">Manager UUIDs</label><input id="estateManageManagers" placeholder="Komma oder Leerzeichen getrennt"></div>
+<div><label class="label2">Erlaubte Residents</label><input id="estateManageAllowed" placeholder="UUIDs, Komma oder Leerzeichen getrennt"></div>
+<div><label class="label2">Gesperrte Residents</label><input id="estateManageBanned" placeholder="UUIDs, Komma oder Leerzeichen getrennt"></div>
+<div><label class="label2">Erlaubte Gruppen</label><input id="estateManageGroups" placeholder="Gruppen-UUIDs"></div>
+<div><label class="label2">Region UUID zuordnen</label><input id="estateManageRegionId" placeholder="Region UUID"></div>
+</div>
+<div class="planner-controls">
+<label><input id="estatePolicyPublic" type="checkbox" checked> Public Access</label>
+<label><input id="estatePolicyVoice" type="checkbox" checked> Voice erlaubt</label>
+<label><input id="estatePolicyDirectTp" type="checkbox" checked> Direct Teleport</label>
+<label><input id="estatePolicySkipScripts" type="checkbox"> Scripts überspringen</label>
+<label><input id="estatePolicyDenyAnonymous" type="checkbox"> Anonymous verweigern</label>
+<label><input id="estatePolicyDenyMinors" type="checkbox"> Minors verweigern</label>
+<label><input id="estatePolicyEnvironment" type="checkbox"> Environment Override</label>
+</div>
+<div class="planner-actions">
+<button class="action" id="loadEstateManagement">Estate laden</button>
+<button class="action" id="createEstateManagement">Estate erstellen</button>
+<button class="action" id="updateEstateManagement">Estate speichern</button>
+<button class="action" id="assignEstateRegion">Region zuordnen</button>
+</div>
+<div class="authnote">Region→Estate-Zuordnungen werden sofort in der Estate-Datenbank gespeichert. Eine laufende Region muss danach neu gestartet werden, damit ihre live EstateSettings neu geladen werden.</div>
+<pre id="estateManagementDetail">Noch keine Estate-Verwaltungsaktion ausgeführt.</pre>
+</div>
+
+<div class="planner-note">Create/Move/Start/Stop/Restart laufen asynchron über Robust → NexBus → Ziel-NodeAgent. Estate-Änderungen werden synchron über die autoritative Estate-Datenschicht gespeichert und auditiert.</div>
 </section>
 
 <section class="page" id="page-nodes">
@@ -939,6 +973,100 @@ async function loadGridEstates(){
   }catch(err){$('gridMutationDetail').textContent=String(err)}
 }
 
+function parseUuidList(value){
+  return (value||'').split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
+}
+function estateMutationBody(){
+  const body={
+    name:$('estateManageName').value.trim(),
+    owner_id:$('estateManageOwner').value.trim(),
+    parent_estate_id:parseInt($('estateManageParent').value||'0',10),
+    managers:parseUuidList($('estateManageManagers').value),
+    allowed_residents:parseUuidList($('estateManageAllowed').value),
+    banned_residents:parseUuidList($('estateManageBanned').value),
+    allowed_groups:parseUuidList($('estateManageGroups').value),
+    public_access:$('estatePolicyPublic').checked,
+    allow_voice:$('estatePolicyVoice').checked,
+    allow_direct_teleport:$('estatePolicyDirectTp').checked,
+    estate_skip_scripts:$('estatePolicySkipScripts').checked,
+    deny_anonymous:$('estatePolicyDenyAnonymous').checked,
+    deny_minors:$('estatePolicyDenyMinors').checked,
+    allow_environment_override:$('estatePolicyEnvironment').checked
+  };
+  return body;
+}
+function renderEstateManagement(estate){
+  if(!estate)return;
+  $('estateManageId').value=estate.estate_id??'';
+  $('estateManageName').value=estate.name||'';
+  $('estateManageOwner').value=estate.owner_id||'';
+  $('estateManageParent').value=estate.parent_estate_id??0;
+  $('estateManageManagers').value=(estate.managers||[]).join(', ');
+  $('estateManageAllowed').value=(estate.allowed_residents||[]).join(', ');
+  $('estateManageBanned').value=(estate.banned_residents||[]).join(', ');
+  $('estateManageGroups').value=(estate.allowed_groups||[]).join(', ');
+  $('estatePolicyPublic').checked=estate.policies?.public_access!==false;
+  $('estatePolicyVoice').checked=estate.policies?.allow_voice!==false;
+  $('estatePolicyDirectTp').checked=estate.policies?.allow_direct_teleport!==false;
+  $('estatePolicySkipScripts').checked=estate.policies?.estate_skip_scripts===true;
+  $('estatePolicyDenyAnonymous').checked=estate.policies?.deny_anonymous===true;
+  $('estatePolicyDenyMinors').checked=estate.policies?.deny_minors===true;
+  $('estatePolicyEnvironment').checked=estate.policies?.allow_environment_override===true;
+}
+async function loadEstateManagement(){
+  const estateId=parseInt($('estateManageId').value||'0',10);
+  if(estateId<=0){$('estateManagementDetail').textContent='Positive Estate-ID erforderlich.';return}
+  $('estateManagementDetail').textContent='Lade Estate-Verwaltungsdaten…';
+  try{
+    const res=await fetch('/api/v1/estates/'+estateId+'/management',{headers:gridHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('estateManagementDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    renderEstateManagement(data?.estate);
+  }catch(err){$('estateManagementDetail').textContent=String(err)}
+}
+async function createEstateManagement(){
+  const body=estateMutationBody();
+  if(!body.name||!body.owner_id){$('estateManagementDetail').textContent='Name und Owner UUID sind erforderlich.';return}
+  $('estateManagementDetail').textContent='Estate wird erstellt…';
+  try{
+    const res=await fetch('/api/v1/estates',{method:'POST',headers:gridMutationHeaders(),body:JSON.stringify(body),credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('estateManagementDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    renderEstateManagement(data?.estate);
+    await loadGridEstates();
+  }catch(err){$('estateManagementDetail').textContent=String(err)}
+}
+async function updateEstateManagement(){
+  const estateId=parseInt($('estateManageId').value||'0',10);
+  if(estateId<=0){$('estateManagementDetail').textContent='Positive Estate-ID erforderlich.';return}
+  const body=estateMutationBody();
+  $('estateManagementDetail').textContent='Estate wird gespeichert…';
+  try{
+    const res=await fetch('/api/v1/estates/'+estateId,{method:'PATCH',headers:gridMutationHeaders(),body:JSON.stringify(body),credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('estateManagementDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    renderEstateManagement(data?.estate);
+    await loadGridEstates();
+  }catch(err){$('estateManagementDetail').textContent=String(err)}
+}
+async function assignEstateRegion(){
+  const estateId=parseInt($('estateManageId').value||'0',10);
+  const regionId=$('estateManageRegionId').value.trim()||$('gridLifecycleRegionId').value.trim()||$('gridMoveRegionId').value.trim();
+  if(estateId<=0||!regionId){$('estateManagementDetail').textContent='Estate-ID und Region UUID sind erforderlich.';return}
+  if(!window.confirm('Region '+regionId+' wirklich Estate #'+estateId+' zuordnen?'))return;
+  $('estateManagementDetail').textContent='Regionszuordnung wird gespeichert…';
+  try{
+    const res=await fetch('/api/v1/estates/'+estateId+'/regions/'+encodeURIComponent(regionId),{method:'PUT',headers:gridMutationHeaders(),credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    $('estateManagementDetail').textContent=data?JSON.stringify(data,null,2):txt;
+    if(!res.ok)return;
+    await loadEstateManagement();
+  }catch(err){$('estateManagementDetail').textContent=String(err)}
+}
+
 function gridMutationHeaders(){
   const headers=gridHeaders();
   headers['Content-Type']='application/json';
@@ -1074,6 +1202,7 @@ $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials')
 $('searchGridRegions').addEventListener('click',searchGridRegions);$('jumpGridRegion').addEventListener('click',jumpGridRegion);$('gridRegionSearch').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchGridRegions()}});
 $('loadGridNodes').addEventListener('click',loadGridManagedNodes);$('loadGridEstates').addEventListener('click',loadGridEstates);$('createGridRegion').addEventListener('click',createGridRegion);$('moveGridRegion').addEventListener('click',moveGridRegion);
 $('startGridRegion').addEventListener('click',()=>runGridLifecycle('start'));$('stopGridRegion').addEventListener('click',()=>runGridLifecycle('stop'));$('restartGridRegion').addEventListener('click',()=>runGridLifecycle('restart'));
+$('loadEstateManagement').addEventListener('click',loadEstateManagement);$('createEstateManagement').addEventListener('click',createEstateManagement);$('updateEstateManagement').addEventListener('click',updateEstateManagement);$('assignEstateRegion').addEventListener('click',assignEstateRegion);
 $('loadNodes').addEventListener('click',loadNodes);$('clearNodesCredentials').addEventListener('click',()=>{$('nodesBearer').value='';$('nodesApiKey').value=''});
 $('gridWest').addEventListener('click',()=>panGrid(-1,0));$('gridEast').addEventListener('click',()=>panGrid(1,0));$('gridSouth').addEventListener('click',()=>panGrid(0,-1));$('gridNorth').addEventListener('click',()=>panGrid(0,1));
 $('validateGridPlacement').addEventListener('click',validateGridPlacement);$('gridRegionSizeX').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});$('gridRegionSizeY').addEventListener('change',()=>{if(gridSelected)validateGridPlacement()});
