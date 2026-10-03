@@ -334,7 +334,9 @@ Example scopes:
 - `inventory:read`
 - `inventory:write`
 - `friends:manage`
-- `regions:restart`
+- `regions:read`
+- `regions:manage`
+- `estates:read`
 - `estates:manage`
 - `economy:transfer`
 - `admin:*`
