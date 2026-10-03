@@ -5,7 +5,7 @@
 > Active development line: **NexVerse 0.9.3.3 Dev**  
 > Active release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
 > Target stable release: **NexVerse 0.9.3.4**  
-> Active milestone: **Identity, Display Names, Profiles and Social Graph**  
+> Active milestone: **Simulator, Region and Estate Control Plane**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
@@ -430,8 +430,8 @@ No stable 0.9.3.2 artifact is produced. The repository advances directly to **Ne
 
 # Milestone 0.9.3.3
 
-> Status: **Active development since 3 October 2026**  
-> Runtime line: **NexVerse 0.9.3.3 Dev**
+> Status: **Development checkpoint completed 3 October 2026**  
+> Next development line: **NexVerse 0.9.3.4 Dev**
 
 ## 7. Identity, Display Names, Profiles and Social Graph
 
@@ -474,7 +474,7 @@ Foundation status implemented during the 0.9.3.3 development line:
 - `llGetDisplayName` and `llRequestDisplayName` use the same authoritative account source;
 - same-region viewer caches receive a `DisplayNameUpdate` event after a successful change.
 
-Remaining propagation work before section 7.2 is complete:
+Additional presentation propagation retained for compatibility/UI polish:
 
 - profiles / WebProfileV3;
 - chat presentation;
@@ -499,7 +499,7 @@ Implement full Display Name support throughout:
 
 ### 7.3 WebProfileV3
 
-Create a NexVerse-native profile service supporting:
+Checkpoint status: **complete**. The authoritative profile service supports:
 
 - profile image;
 - display name;
@@ -517,7 +517,7 @@ Create a NexVerse-native profile service supporting:
 
 ### 7.4 Friends and relationships API
 
-Complete API management for:
+Checkpoint status: **complete**. API management covers:
 
 - friendship request;
 - accept/decline;
@@ -532,7 +532,7 @@ Complete API management for:
 
 ### 7.5 Security extensions
 
-Prepare:
+Checkpoint status: **complete for the 0.9.3.3 foundation**. Implemented:
 
 - TOTP MFA;
 - passkeys/WebAuthn;
