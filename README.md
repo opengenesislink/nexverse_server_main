@@ -23,7 +23,8 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 The current stable release is **NexVerse 0.9.3.1**, codename **NEXJAST**. The **0.9.3.2 World API v1 development checkpoint is complete**, and the active development line is now **NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph**. Development remains on the fixed release train toward **NexVerse 0.9.3.4** as the next planned stable release.
 
-Release notes: **[`doc/NexVerse/RELEASE_0.9.3.1.md`](doc/NexVerse/RELEASE_0.9.3.1.md)**
+Release notes: **[`doc/NexVerse/RELEASE_0.9.3.1.md`](doc/NexVerse/RELEASE_0.9.3.1.md)**  
+0.9.3.2 development checkpoint: **[`doc/NexVerse/CHECKPOINT_0.9.3.2.md`](doc/NexVerse/CHECKPOINT_0.9.3.2.md)**
 
 NexVerse 0.9.3.0 is the first NexVerse release and uses OpenSimulator 0.9.3.0 only as its historical source baseline. From this point forward, NexVerse maintains its own version sequence; OpenSimulator upstream version numbers do not automatically become NexVerse version numbers.
 
