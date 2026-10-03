@@ -757,16 +757,31 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.2",
+                        server_line = "0.9.3.3",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
-                        published = "2026-10-02",
-                        compatibility = "Aktive Entwicklungslinie der NexVerse Welt-API v1",
+                        published = "2026-10-03",
+                        compatibility = "Aktive Entwicklungslinie für Identität, Anzeigenamen, Profile und soziales Netzwerk",
                         highlights = new[]
                         {
-                            "Formaler Wechsel auf NexVerse 0.9.3.2 Dev",
-                            "Härtung und Abschluss des Vertrags der Welt-API v1",
-                            "Statistik-, Authentifizierungs- und Betriebsverhalten werden für die Veröffentlichung gehärtet"
+                            "0.9.3.2 World API v1 als Entwicklungs-Checkpoint abgeschlossen",
+                            "Runtime und Roadmap auf NexVerse 0.9.3.3 Dev umgestellt",
+                            "Fokus auf Display Names, WebProfileV3, soziale Beziehungen und Sicherheits-Erweiterungen"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.2",
+                        codename = "",
+                        status = "completed",
+                        published = "2026-10-03",
+                        compatibility = "Abgeschlossener World-API-v1-Entwicklungs-Checkpoint innerhalb des 0.9.3.4 Release-Zugs",
+                        highlights = new[]
+                        {
+                            "World API v1 mit OpenAPI 3.1, OAuth2/OIDC, API-Schlüsseln, Audit und Control Center gehärtet",
+                            "36/36 explizite Roadmap-Kriterien abgeschlossen",
+                            "NodeAgent-, Region- und Estate-Control-Plane-Arbeit für 0.9.3.4 vorgezogen und abgesichert"
                         }
                     },
                     new
@@ -790,6 +805,16 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.3",
+                        category = "identity",
+                        status = "development",
+                        title = "NexVerse 0.9.3.3 Dev gestartet",
+                        summary = "Der World-API-v1-Checkpoint 0.9.3.2 ist abgeschlossen. Die aktive Entwicklungslinie wechselt auf Identität, Anzeigenamen, Profile und soziales Netzwerk; MFA/Passkeys werden in diesem Sicherheits- und Identitätsmeilenstein weitergeführt.",
+                        endpoints = new[] { "/api/v1/version", "/api/v1/openapi.json", "/api/v1/docs" }
+                    },
                     new
                     {
                         date = "2026-10-03",
@@ -995,6 +1020,7 @@ namespace NexVerse.Server.Api
                     status_model = new
                     {
                         released = "Abgeschlossener und veröffentlichter Produkt-Meilenstein.",
+                        completed = "Abgeschlossener Entwicklungs-Meilenstein innerhalb eines größeren Release-Zugs; kein eigener Stable-Release.",
                         active = "Aktueller Produkt-Meilenstein.",
                         advanced = "Wesentliche Implementierungen wurden vor dem formalen Wechsel des Meilensteins vorgezogen.",
                         started = "Ein definierter Teil ist umgesetzt, wesentlicher Umfang steht jedoch noch aus.",
@@ -1024,9 +1050,9 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.2",
                             codename = "",
                             title = "NexVerse Welt-API v1",
-                            status = "active",
-                            checklist = new { completed = 36, total = 37, open = 1 },
-                            summary = "Aktiver Produkt-Meilenstein. Die Welt-API-v1-Grundlage einschließlich browserbasierter OAuth/OIDC-Anmeldung und Zustimmung ist umgesetzt; als offener Identitäts-Härtungspunkt verbleibt die spätere MFA-/Passkey-Integration.",
+                            status = "completed",
+                            checklist = new { completed = 36, total = 36, open = 0 },
+                            summary = "Abgeschlossener Entwicklungs-Checkpoint innerhalb des 0.9.3.4 Release-Zugs. World API v1, Authentifizierung, Audit, Control Center und Betriebsverträge sind gehärtet; MFA/Passkeys wurden bewusst in den 0.9.3.3 Identitäts-Meilenstein verschoben.",
                             evidence = new[]
                             {
                                 "REST/JSON, OpenAPI 3.1, Seitennavigation, Filterung, Anfragelimits und Idempotenz",
@@ -1040,7 +1066,7 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.3",
                             codename = "",
                             title = "Identität, Anzeigenamen, Profile und soziales Netzwerk",
-                            status = "started",
+                            status = "active",
                             checklist = new { completed = 3, total = 3, open = 0 },
                             summary = "Die einwohnerkompatible Normalisierung von Benutzernamen ist umgesetzt; Anzeigenamen, WebProfileV3 und das soziale Netzwerk bleiben zukünftiger Umfang.",
                             evidence = new[]

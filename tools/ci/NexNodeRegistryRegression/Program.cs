@@ -36,7 +36,7 @@ internal static class Program
             {
                 ["node_id"] = "sim-a",
                 ["hostname"] = "sim-a.internal",
-                ["server_version"] = "NexVerse 0.9.3.2 Dev",
+                ["server_version"] = "NexVerse 0.9.3.3 Dev",
                 ["uptime_seconds"] = "120",
                 ["process_id"] = "4242",
                 ["working_set_bytes"] = "1048576",

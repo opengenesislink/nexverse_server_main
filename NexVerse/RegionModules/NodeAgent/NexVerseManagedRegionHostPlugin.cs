@@ -55,7 +55,7 @@ namespace NexVerse.RegionModules.NodeAgent
             private set;
         }
 
-        public string Version => "0.9.3.2";
+        public string Version => "0.9.3.3";
         public string Name =>
             "NexVerse Managed Region Host";
 
