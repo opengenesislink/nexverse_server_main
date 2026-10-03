@@ -69,6 +69,30 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (p.Length == 5 && p[4] == "passkeys" && request.HttpMethod == "GET")
+            {
+                Write(response, HttpStatusCode.OK, new { passkeys = m_Store.ListPasskeys(subject) });
+                return;
+            }
+
+            if (p.Length == 6 && p[4] == "passkeys" && p[5] == "register" && request.HttpMethod == "POST")
+            {
+                NexPasskeyCredential credential = ReadPasskey(request, subject);
+                bool ok = m_Store.RegisterPasskey(credential);
+                m_Store.Record(subject, "passkey.register", ok);
+                Write(response, ok ? HttpStatusCode.Created : HttpStatusCode.BadRequest,
+                    new { registered = ok, credential_id = credential?.CredentialId ?? string.Empty });
+                return;
+            }
+
+            if (p.Length == 6 && p[4] == "passkeys" && request.HttpMethod == "DELETE")
+            {
+                bool ok = m_Store.RemovePasskey(subject, p[5]);
+                m_Store.Record(subject, "passkey.remove", ok);
+                Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.NotFound, new { removed = ok });
+                return;
+            }
+
             if (p.Length == 5 && p[4] == "totp" && request.HttpMethod == "DELETE")
             {
                 bool ok = m_Store.DisableTotp(subject);
@@ -78,6 +102,22 @@ namespace NexVerse.Server.Api
             }
 
             Write(response, HttpStatusCode.NotFound, new { error = "security_route_not_found" });
+        }
+
+
+        private static NexPasskeyCredential ReadPasskey(IOSHttpRequest request, string subject)
+        {
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(request.InputStream);
+                JsonElement root = doc.RootElement;
+                string id = root.TryGetProperty("credential_id", out JsonElement credentialId) ? credentialId.GetString() ?? string.Empty : string.Empty;
+                string key = root.TryGetProperty("public_key", out JsonElement publicKey) ? publicKey.GetString() ?? string.Empty : string.Empty;
+                string name = root.TryGetProperty("name", out JsonElement displayName) ? displayName.GetString() ?? "Passkey" : "Passkey";
+                if (id.Length > 1024 || key.Length > 8192 || name.Length > 128) return null;
+                return new NexPasskeyCredential { Subject = subject, CredentialId = id.Trim(), PublicKey = key.Trim(), Name = name.Trim() };
+            }
+            catch { return null; }
         }
 
         private static string ReadCode(IOSHttpRequest request)
