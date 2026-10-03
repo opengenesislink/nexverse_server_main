@@ -132,12 +132,13 @@ namespace NexVerse.Server.Api
                 string credentialId = root.GetProperty("credential_id").GetString() ?? string.Empty;
                 NexPasskeyCredential credential = m_Store.GetPasskey(subject, credentialId);
                 bool challengeOk = credential != null && m_Store.TryConsumeWebAuthnChallenge(subject, challengeId, challenge);
+                long signCount = 0;
                 bool assertionOk = challengeOk && m_WebAuthn != null && m_WebAuthn.VerifyAssertion(
                     credential, challenge,
                     root.GetProperty("client_data_json").GetString(),
                     root.GetProperty("authenticator_data").GetString(),
                     root.GetProperty("signature").GetString(),
-                    out long signCount);
+                    out signCount);
                 bool counterOk = assertionOk && m_Store.UpdatePasskeyCounter(subject, credentialId, signCount);
                 bool ok = assertionOk && counterOk;
                 m_Store.Record(subject, "passkey.verify", ok);
