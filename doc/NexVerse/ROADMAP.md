@@ -639,7 +639,8 @@ Foundation implemented during the 0.9.3.2 World API line:
 - responses intentionally expose only Estate ID, name, owner UUID, parent Estate ID and region count;
 - Estate manager/member/ban/group access collections are not exposed by this read foundation;
 - Robust reads through the authoritative OpenSim `IEstateDataService` / configured Estate datastore rather than a parallel NexVerse table;
-- the Grid Planner can load Estate names/IDs into the managed region-create form while retaining manual Estate-ID entry.
+- the Grid Planner can load Estate names/IDs into the managed region-create form while retaining manual Estate-ID entry;
+- managed region creation validates Estate existence on Robust before dispatching a NexBus create command.
 
 Complete Estate API:
 
