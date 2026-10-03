@@ -601,6 +601,23 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
+                managers =
+                    managers
+                        .Where(x =>
+                            x != ownerId)
+                        .Distinct()
+                        .ToArray();
+
+                if (!ValidateAccessLists(
+                        response,
+                        ownerId,
+                        managers,
+                        allowedResidents,
+                        bannedResidents))
+                {
+                    return;
+                }
+
                 if (!TryReadPolicies(
                         root,
                         null,
@@ -968,6 +985,20 @@ namespace NexVerse.Server.Api
 
                     changed.Add(
                         "allowed_groups");
+                }
+
+                if (!ValidateAccessLists(
+                        response,
+                        ownerId,
+                        managers
+                            .Where(x =>
+                                x != ownerId)
+                            .Distinct()
+                            .ToArray(),
+                        allowedResidents,
+                        bannedResidents))
+                {
+                    return;
                 }
 
                 if (!TryReadPolicies(
@@ -1521,6 +1552,54 @@ namespace NexVerse.Server.Api
 
             values =
                 parsed.ToArray();
+            return true;
+        }
+
+        private static bool ValidateAccessLists(
+            IOSHttpResponse response,
+            UUID ownerId,
+            IEnumerable<UUID> managers,
+            IEnumerable<UUID> allowedResidents,
+            IEnumerable<UUID> bannedResidents)
+        {
+            HashSet<UUID> managerSet =
+                new HashSet<UUID>(
+                    managers ??
+                    Enumerable.Empty<UUID>());
+            HashSet<UUID> allowedSet =
+                new HashSet<UUID>(
+                    allowedResidents ??
+                    Enumerable.Empty<UUID>());
+
+            foreach (UUID banned in
+                     bannedResidents ??
+                     Enumerable.Empty<UUID>())
+            {
+                if (banned ==
+                        ownerId ||
+                    managerSet.Contains(
+                        banned))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "invalid_banned_residents",
+                        "Owner and Estate managers cannot be present in banned_residents.");
+                    return false;
+                }
+
+                if (allowedSet.Contains(
+                        banned))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "conflicting_estate_access",
+                        "The same resident cannot be both allowed and banned.");
+                    return false;
+                }
+            }
+
             return true;
         }
 
