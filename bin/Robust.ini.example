@@ -577,6 +577,12 @@
     AuthorizationCodeLifetimeSeconds = 120
     RefreshTokenLifetimeSeconds = 2592000
 
+    ; Optional per-account WebAuthn/passkeys. Leave either value empty to disable.
+    ; WebAuthn requires HTTPS in production and the origin must match exactly.
+    SecurityStorePath = "data/nexverse-security.json"
+    WebAuthnRpId = ""
+    WebAuthnOrigin = ""
+
     UserAccountServiceModule = "OpenSim.Services.UserAccountService.dll:UserAccountService"
     AuthenticationServiceModule = "OpenSim.Services.AuthenticationService.dll:PasswordAuthenticationService"
 

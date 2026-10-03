@@ -365,7 +365,13 @@ namespace NexVerse.Server.Api
                 INexSecurityStore securityStore =
                     new PersistentNexSecurityStore(
                         apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json"));
-                NexSecurityApi securityApi = new NexSecurityApi(authenticator, securityStore);
+                string webAuthnRpId = apiConfig.GetString("WebAuthnRpId", string.Empty);
+                string webAuthnOrigin = apiConfig.GetString("WebAuthnOrigin", string.Empty);
+                NexWebAuthnVerifier webAuthnVerifier =
+                    string.IsNullOrWhiteSpace(webAuthnRpId) || string.IsNullOrWhiteSpace(webAuthnOrigin)
+                        ? null
+                        : new NexWebAuthnVerifier(webAuthnRpId, webAuthnOrigin);
+                NexSecurityApi securityApi = new NexSecurityApi(authenticator, securityStore, webAuthnVerifier);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/security",

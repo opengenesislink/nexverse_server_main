@@ -15,11 +15,13 @@ namespace NexVerse.Server.Api
     {
         private readonly NexApiAuthenticator m_Auth;
         private readonly INexSecurityStore m_Store;
+        private readonly NexWebAuthnVerifier m_WebAuthn;
 
-        public NexSecurityApi(NexApiAuthenticator auth, INexSecurityStore store)
+        public NexSecurityApi(NexApiAuthenticator auth, INexSecurityStore store, NexWebAuthnVerifier webAuthn)
         {
             m_Auth = auth;
             m_Store = store;
+            m_WebAuthn = webAuthn;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -69,6 +71,19 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (p.Length == 6 && p[4] == "webauthn" && p[5] == "challenge" && request.HttpMethod == "POST")
+            {
+                NexWebAuthnChallenge challenge = m_Store.CreateWebAuthnChallenge(subject, 300);
+                Write(response, HttpStatusCode.Created, new { challenge_id = challenge.Id, challenge = challenge.Challenge, expires_at = challenge.ExpiresAt });
+                return;
+            }
+
+            if (p.Length == 6 && p[4] == "webauthn" && p[5] == "verify" && request.HttpMethod == "POST")
+            {
+                VerifyWebAuthn(request, response, subject);
+                return;
+            }
+
             if (p.Length == 5 && p[4] == "passkeys" && request.HttpMethod == "GET")
             {
                 Write(response, HttpStatusCode.OK, new { passkeys = m_Store.ListPasskeys(subject) });
@@ -104,6 +119,37 @@ namespace NexVerse.Server.Api
             Write(response, HttpStatusCode.NotFound, new { error = "security_route_not_found" });
         }
 
+
+
+        private void VerifyWebAuthn(IOSHttpRequest request, IOSHttpResponse response, string subject)
+        {
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(request.InputStream);
+                JsonElement root = doc.RootElement;
+                string challengeId = root.GetProperty("challenge_id").GetString() ?? string.Empty;
+                string challenge = root.GetProperty("challenge").GetString() ?? string.Empty;
+                string credentialId = root.GetProperty("credential_id").GetString() ?? string.Empty;
+                NexPasskeyCredential credential = m_Store.GetPasskey(subject, credentialId);
+                bool challengeOk = credential != null && m_Store.TryConsumeWebAuthnChallenge(subject, challengeId, challenge);
+                long signCount = 0;
+                bool assertionOk = challengeOk && m_WebAuthn != null && m_WebAuthn.VerifyAssertion(
+                    credential, challenge,
+                    root.GetProperty("client_data_json").GetString(),
+                    root.GetProperty("authenticator_data").GetString(),
+                    root.GetProperty("signature").GetString(),
+                    out signCount);
+                bool counterOk = assertionOk && m_Store.UpdatePasskeyCounter(subject, credentialId, signCount);
+                bool ok = assertionOk && counterOk;
+                m_Store.Record(subject, "passkey.verify", ok);
+                Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, new { verified = ok });
+            }
+            catch
+            {
+                m_Store.Record(subject, "passkey.verify", false);
+                Write(response, HttpStatusCode.BadRequest, new { error = "invalid_webauthn_assertion" });
+            }
+        }
 
         private static NexPasskeyCredential ReadPasskey(IOSHttpRequest request, string subject)
         {
