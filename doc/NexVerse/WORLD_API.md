@@ -254,11 +254,13 @@ The Grid Planner now includes the dedicated mutation and lifecycle controls. A s
 
 The planner also provides global registered-region search through `GET /api/v1/regions`. Search responses expose `grid_x`, `grid_y`, `world_x` and `world_y`; choosing a result recenters the viewport and selects the exact region origin, including VarRegions. The UI follows every returned `operation_id` until `completed` or `failed` and refreshes the raster after success. Online nodes advertising `managed_region_commands=true` can be loaded into the node selector when the credential also has `simulators:read`.
 
+Estate administration is now available in the same Control Center surface. `POST /api/v1/estates` creates an Estate, `PATCH /api/v1/estates/{estateId}` updates it, and `GET /api/v1/estates/{estateId}/management` exposes management-only lists and policies under `estates:manage`. Supported lists are managers, allowed residents, banned residents and allowed groups. Supported policies include public access, voice, direct teleport, script skipping, anonymous/minor denial and environment override. `PUT /api/v1/estates/{estateId}/regions/{regionId}` reassigns a registered region in the authoritative Estate datastore; a running region must then be restarted so its live `EstateSettings` are reloaded.
+
 ## Next API work
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The browser-facing authorization/login and consent surface, Grid Planner with global region search/jump, Estate selection and lifecycle controls, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The Estate Control Plane has a least-privilege read foundation; the next control-plane work is Estate write/policy management, richer node filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
+The browser-facing authorization/login and consent surface, Grid Planner with global region search/jump, Estate selection and lifecycle controls, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The Estate Control Plane now supports least-privilege reads plus estates:manage create/update, owner/manager management, allowed/banned resident and group lists, central access/voice/scripts policies, management-detail reads and Region→Estate reassignment. Estate deletion, templates and remaining specialized Estate policies stay separate follow-up work; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
