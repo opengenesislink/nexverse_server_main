@@ -46,21 +46,21 @@ estate_api = require(
     "owner_id",
     "parent_estate_id",
     "region_count",
-    "limit > 100",
-    "offset > 10000",
-)
-
-for forbidden in (
+    "NexScopes.EstatesManage",
+    "HandleCreate(",
+    "HandleUpdate(",
+    "HandleManagement(",
+    "HandleRegionAssignment(",
     "EstateManagers",
     "EstateAccess",
     "EstateBans",
     "EstateGroups",
-):
-    if forbidden in estate_api:
-        errors.append(
-            "NexEstateApi must not expose Estate access-list collections in the read foundation: "
-            + forbidden
-        )
+    '"estate.created"',
+    '"estate.updated"',
+    '"estate.region.assigned"',
+    "limit > 100",
+    "offset > 10000",
+)
 
 require(
     "NexVerse/Server/Api/NexRegionMutationApi.cs",
@@ -101,18 +101,41 @@ docs = require(
     'id="loadGridEstates"',
     "async function loadGridEstates()",
     "'/api/v1/estates?'+qs",
+    'id="loadEstateManagement"',
+    'id="createEstateManagement"',
+    'id="updateEstateManagement"',
+    'id="assignEstateRegion"',
+    "async function loadEstateManagement()",
+    "async function createEstateManagement()",
+    "async function updateEstateManagement()",
+    "async function assignEstateRegion()",
     "estates:read",
+    "estates:manage",
 )
 
 handlers = require(
     "NexVerse/Server/Api/NexVerseWorldApiHandlers.cs",
     '["/api/v1/estates"]',
     '["/api/v1/estates/{estateId}"]',
+    '["/api/v1/estates/{estateId}/management"]',
+    '["/api/v1/estates/{estateId}/regions/{regionId}"]',
     '"estates:read"',
+    '"estates:manage"',
     '"Estate"',
     '"EstateListResponse"',
     '"EstateResponse"',
+    '"EstateManagement"',
+    '"EstateCreateRequest"',
+    '"EstateUpdateRequest"',
+    '"EstateManagementResponse"',
+    '"EstateRegionAssignmentResponse"',
     '"estateId"',
+)
+
+require(
+    "OpenSim/Data/SQLite/SQLiteEstateData.cs",
+    'select RegionID from estate_map where EstateID = :EstateID',
+    "result.Add(regionID)",
 )
 
 if errors:
