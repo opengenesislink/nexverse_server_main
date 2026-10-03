@@ -66,3 +66,12 @@ ALTER TABLE UserAccounts ADD "NexVerseStateReason" varchar(255) NOT NULL DEFAULT
 ALTER TABLE UserAccounts ADD "NexVerseStateChanged" integer NOT NULL DEFAULT 0;
 
 COMMIT;
+
+:VERSION 7
+
+BEGIN TRANSACTION;
+
+ALTER TABLE UserAccounts ADD "DisplayName" varchar(64) NOT NULL DEFAULT '';
+ALTER TABLE UserAccounts ADD "DisplayNameChanged" integer NOT NULL DEFAULT 0;
+
+COMMIT;

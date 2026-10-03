@@ -32,6 +32,10 @@ namespace NexVerse.Core.Identity
         public int UserFlags { get; }
         public string UserTitle { get; }
         public string UserCountry { get; }
+        public string DisplayName { get; }
+        public bool IsDisplayNameDefault { get; }
+        public int DisplayNameChanged { get; }
+        public int DisplayNameNextUpdate { get; }
         public bool LocalToGrid { get; }
         public bool Active { get; }
         public string AccountState { get; }
@@ -48,6 +52,10 @@ namespace NexVerse.Core.Identity
             int userFlags,
             string userTitle,
             string userCountry,
+            string displayName,
+            bool isDisplayNameDefault,
+            int displayNameChanged,
+            int displayNameNextUpdate,
             bool localToGrid,
             bool active,
             string accountState,
@@ -63,6 +71,10 @@ namespace NexVerse.Core.Identity
             UserFlags = userFlags;
             UserTitle = userTitle ?? string.Empty;
             UserCountry = userCountry ?? string.Empty;
+            DisplayName = displayName ?? string.Empty;
+            IsDisplayNameDefault = isDisplayNameDefault;
+            DisplayNameChanged = displayNameChanged;
+            DisplayNameNextUpdate = displayNameNextUpdate;
             LocalToGrid = localToGrid;
             Active = active;
             AccountState = accountState ?? NexAccountStates.Active;
@@ -169,6 +181,13 @@ namespace NexVerse.Core.Identity
             string email,
             string userTitle,
             string userCountry);
+
+        NexUserRecord SetDisplayName(
+            string principalId,
+            string displayName,
+            bool bypassCooldown,
+            out int retryAfterSeconds,
+            out string error);
 
         bool VerifyPassword(string principalId, string password);
         bool SetUserLevel(string principalId, int userLevel);

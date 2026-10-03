@@ -169,6 +169,9 @@ namespace OpenSim.Services.LLLoginService
         // Login
         private string firstname;
         private string lastname;
+        private string username;
+        private string displayName;
+        private bool isDisplayNameDefault;
 
         // Web map
         private string mapTileURL;
@@ -245,6 +248,9 @@ namespace OpenSim.Services.LLLoginService
             CircuitCode = (int)aCircuit.circuitcode;
             Lastname = account.LastName;
             Firstname = account.FirstName;
+            username = account.Username;
+            displayName = account.EffectiveDisplayName;
+            isDisplayNameDefault = account.IsDisplayNameDefault;
             AgentID = account.PrincipalID;
             SessionID = aCircuit.SessionID;
             SecureSessionID = aCircuit.SecureSessionID;
@@ -412,6 +418,9 @@ namespace OpenSim.Services.LLLoginService
             login = "false";
             firstname = "Test";
             lastname = "User";
+            username = "test.user";
+            displayName = "Test User";
+            isDisplayNameDefault = true;
             agentAccess = "M";
             agentAccessMax = "A";
             startLocation = "last";
@@ -488,6 +497,9 @@ namespace OpenSim.Services.LLLoginService
 
                 responseData["first_name"] = Firstname;
                 responseData["last_name"] = Lastname;
+                responseData["username"] = username;
+                responseData["display_name"] = displayName;
+                responseData["is_display_name_default"] = isDisplayNameDefault;
                 responseData["agent_access"] = agentAccess;
                 responseData["agent_access_max"] = agentAccessMax;
 
@@ -594,6 +606,9 @@ namespace OpenSim.Services.LLLoginService
 
                 map["first_name"] = OSD.FromString(Firstname);
                 map["last_name"] = OSD.FromString(Lastname);
+                map["username"] = OSD.FromString(username);
+                map["display_name"] = OSD.FromString(displayName);
+                map["is_display_name_default"] = OSD.FromBoolean(isDisplayNameDefault);
                 map["agent_access"] = OSD.FromString(agentAccess);
                 map["agent_access_max"] = OSD.FromString(agentAccessMax);
 

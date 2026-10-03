@@ -183,6 +183,9 @@ payload = params[0]
 assert str(payload["login"]).lower() == "true", payload
 assert payload["first_name"] == "NexVerseCI", payload["first_name"]
 assert payload["last_name"] == "Resident", payload["last_name"]
+assert payload["username"] == "nexverseci", payload["username"]
+assert payload["display_name"] == "NexVerseCI", payload["display_name"]
+assert payload["is_display_name_default"] is True, payload["is_display_name_default"]
 assert int(payload["sim_port"]) == 19101, payload["sim_port"]
 assert payload["sim_ip"] == "127.0.0.1", payload["sim_ip"]
 assert int(payload["region_x"]) == 1200 * 256, payload["region_x"]
@@ -194,8 +197,88 @@ seed = payload.get("seed_capability", "")
 assert seed.startswith("http://127.0.0.1:19100/"), seed
 assert "/CAPS/" in seed, seed
 
+with open("/tmp/nexverse-display-name-seed-url", "w", encoding="utf-8") as handle:
+    handle.write(seed)
+
 print("NexVerse successful Firestorm-protocol simulator placement response: OK")
 PY
+
+SEED_URL="$(cat /tmp/nexverse-display-name-seed-url)"
+CAPS_RESPONSE="/tmp/nexverse-display-name-caps.xml"
+
+cat > /tmp/nexverse-display-name-seed-request.xml <<'XML'
+<?xml version="1.0"?>
+<llsd>
+  <array>
+    <string>GetDisplayNames</string>
+    <string>SetDisplayName</string>
+  </array>
+</llsd>
+XML
+
+curl --silent --show-error --fail --max-time 10 \
+  -H 'Content-Type: application/llsd+xml' \
+  --data-binary @/tmp/nexverse-display-name-seed-request.xml \
+  "$SEED_URL" > "$CAPS_RESPONSE"
+
+python3 - "$CAPS_RESPONSE" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+root = ET.parse(sys.argv[1]).getroot()
+mapping = root.find("map")
+assert mapping is not None
+children = list(mapping)
+values = {}
+for index in range(0, len(children), 2):
+    key = children[index].text or ""
+    value = children[index + 1].text or ""
+    values[key] = value
+
+assert values.get("GetDisplayNames", "").startswith("http://127.0.0.1:19100/"), values
+assert values.get("SetDisplayName", "").startswith("http://127.0.0.1:19100/"), values
+
+with open("/tmp/nexverse-display-name-get-url", "w", encoding="utf-8") as handle:
+    handle.write(values["GetDisplayNames"])
+with open("/tmp/nexverse-display-name-set-url", "w", encoding="utf-8") as handle:
+    handle.write(values["SetDisplayName"])
+PY
+
+GET_DISPLAY_NAMES_URL="$(cat /tmp/nexverse-display-name-get-url)"
+SET_DISPLAY_NAME_URL="$(cat /tmp/nexverse-display-name-set-url)"
+
+# The placement smoke creates an authenticated incoming circuit but intentionally
+# does not emulate the viewer's UDP UseCircuitCode handshake.  Therefore there
+# is no active ScenePresence yet.  Display-name CAPS must be advertised, but
+# both handlers must remain protected by the active-presence gate.
+GET_DISPLAY_STATUS="$(curl --silent --show-error --max-time 10 \
+  -o /tmp/nexverse-display-name-get.xml \
+  -w '%{http_code}' \
+  "$GET_DISPLAY_NAMES_URL?ids=6f4d3a90-3b71-4f15-a804-2d94c8d7a201")"
+test "$GET_DISPLAY_STATUS" = "410"
+
+cat > /tmp/nexverse-display-name-set-request.xml <<'XML'
+<?xml version="1.0"?>
+<llsd>
+  <map>
+    <key>display_name</key>
+    <array>
+      <string>NexVerseCI</string>
+      <string>NexVerse CI Display</string>
+    </array>
+  </map>
+</llsd>
+XML
+
+SET_DISPLAY_STATUS="$(curl --silent --show-error --max-time 10 \
+  -o /tmp/nexverse-display-name-set.xml \
+  -w '%{http_code}' \
+  -H 'Content-Type: application/llsd+xml' \
+  --data-binary @/tmp/nexverse-display-name-set-request.xml \
+  "$SET_DISPLAY_NAME_URL")"
+test "$SET_DISPLAY_STATUS" = "410"
+
+echo "NexVerse viewer Display Name CAPS advertisement/presence-gate smoke: OK"
 
 REMOTE_CHANNEL=""
 REMOTE_DEADLINE=$((SECONDS + 45))

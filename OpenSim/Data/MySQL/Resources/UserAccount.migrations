@@ -40,3 +40,12 @@ ALTER TABLE `UserAccounts` ADD `NexVerseStateReason` varchar(255) NOT NULL DEFAU
 ALTER TABLE `UserAccounts` ADD `NexVerseStateChanged` int(11) NOT NULL DEFAULT '0';
 
 COMMIT;
+
+:VERSION 8        # NexVerse display names -------------------------
+
+BEGIN;
+
+ALTER TABLE `UserAccounts` ADD `DisplayName` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT '';
+ALTER TABLE `UserAccounts` ADD `DisplayNameChanged` int(11) NOT NULL DEFAULT '0';
+
+COMMIT;

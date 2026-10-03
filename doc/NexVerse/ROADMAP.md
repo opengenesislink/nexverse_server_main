@@ -459,6 +459,31 @@ The `Resident` suffix should not have to be displayed inworld for normal residen
 
 ### 7.2 Display Names
 
+Foundation status implemented during the 0.9.3.3 development line:
+
+- Display Names are stored persistently in the authoritative UserAccount datastore for MySQL/MariaDB, PostgreSQL and SQLite;
+- modern Resident accounts default to the first name while legacy two-part accounts default to FirstName LastName;
+- canonical usernames remain unique identity/login names and are not replaced by Display Names;
+- Display Names are deliberately non-unique;
+- self-service changes use a seven-day cooldown; administrators may override the cooldown through the authenticated World API;
+- `GET /api/v1/users/{principalId}` and account search payloads expose Display Name state and the next allowed self-update time;
+- `PATCH /api/v1/users/{principalId}` accepts `display_name`;
+- viewer `GetDisplayNames` now returns the persistent local Display Name data;
+- viewer `SetDisplayName` is enabled locally and implements the viewer's old/new-name request plus `SetDisplayNameReply` and `DisplayNameUpdate` EventQueue messages;
+- login responses expose username, display name and default-name state;
+- `llGetDisplayName` and `llRequestDisplayName` use the same authoritative account source;
+- same-region viewer caches receive a `DisplayNameUpdate` event after a successful change.
+
+Remaining propagation work before section 7.2 is complete:
+
+- profiles / WebProfileV3;
+- chat presentation;
+- IM presentation;
+- groups;
+- object/creator presentation where appropriate;
+- resident search;
+- web profiles and privacy-aware public surfaces.
+
 Implement full Display Name support throughout:
 
 - login response;

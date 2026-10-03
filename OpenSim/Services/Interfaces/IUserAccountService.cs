@@ -92,6 +92,8 @@ namespace OpenSim.Services.Interfaces
         public int UserFlags;
         public string UserTitle;
         public string UserCountry;
+        public string DisplayName = string.Empty;
+        public int DisplayNameChanged;
         public Boolean LocalToGrid = true;
         public Boolean Active = true;
         public string NexVerseState = "active";
@@ -110,6 +112,42 @@ namespace OpenSim.Services.Interfaces
         {
             get { return FirstName + " " + LastName; }
         }
+
+        public string Username
+        {
+            get
+            {
+                if (string.Equals(LastName, "Resident", StringComparison.OrdinalIgnoreCase))
+                    return (FirstName ?? string.Empty).ToLowerInvariant();
+
+                return ((FirstName ?? string.Empty) + "." + (LastName ?? string.Empty))
+                    .Trim('.')
+                    .ToLowerInvariant();
+            }
+        }
+
+        public string DefaultDisplayName
+        {
+            get
+            {
+                if (string.Equals(LastName, "Resident", StringComparison.OrdinalIgnoreCase))
+                    return FirstName ?? string.Empty;
+
+                return Name.Trim();
+            }
+        }
+
+        public string EffectiveDisplayName =>
+            string.IsNullOrWhiteSpace(DisplayName)
+                ? DefaultDisplayName
+                : DisplayName.Trim();
+
+        public bool IsDisplayNameDefault =>
+            string.IsNullOrWhiteSpace(DisplayName) ||
+            string.Equals(
+                DisplayName.Trim(),
+                DefaultDisplayName,
+                StringComparison.Ordinal);
 
         public UserAccount(Dictionary<string, object> kvp)
         {
@@ -131,6 +169,10 @@ namespace OpenSim.Services.Interfaces
                 UserTitle = kvp["UserTitle"].ToString();
             if (kvp.ContainsKey("UserCountry"))
                 UserCountry = kvp["UserCountry"].ToString();
+            if (kvp.ContainsKey("DisplayName"))
+                DisplayName = kvp["DisplayName"]?.ToString() ?? string.Empty;
+            if (kvp.ContainsKey("DisplayNameChanged"))
+                Int32.TryParse(kvp["DisplayNameChanged"]?.ToString(), out DisplayNameChanged);
             if (kvp.ContainsKey("LocalToGrid"))
                 Boolean.TryParse(kvp["LocalToGrid"].ToString(), out LocalToGrid);
 
@@ -187,6 +229,8 @@ namespace OpenSim.Services.Interfaces
             result["UserFlags"] = UserFlags.ToString();
             result["UserTitle"] = UserTitle;
             result["UserCountry"] = UserCountry;
+            result["DisplayName"] = DisplayName ?? string.Empty;
+            result["DisplayNameChanged"] = DisplayNameChanged.ToString();
             result["LocalToGrid"] = LocalToGrid.ToString();
             result["Active"] = Active.ToString();
             result["NexVerseState"] = NexVerseState ?? "active";
@@ -204,6 +248,53 @@ namespace OpenSim.Services.Interfaces
         }
 
     };
+
+    public static class DisplayNamePolicy
+    {
+        public const int MaximumLength = 31;
+        public const int ChangeIntervalSeconds = 7 * 24 * 60 * 60;
+
+        public static bool TryNormalize(
+            string value,
+            out string normalized,
+            out string error)
+        {
+            normalized = (value ?? string.Empty).Trim();
+            error = string.Empty;
+
+            if (normalized.Length > MaximumLength)
+            {
+                error = "Display name may contain at most 31 characters.";
+                return false;
+            }
+
+            foreach (char ch in normalized)
+            {
+                if (char.IsControl(ch))
+                {
+                    error = "Display name may not contain control characters.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static int NextChangeAt(UserAccount account)
+        {
+            if (account == null || account.DisplayNameChanged <= 0)
+                return 0;
+
+            return account.DisplayNameChanged + ChangeIntervalSeconds;
+        }
+
+        public static bool CanChangeNow(UserAccount account, int now)
+        {
+            return account == null ||
+                   account.DisplayNameChanged <= 0 ||
+                   now >= NextChangeAt(account);
+        }
+    }
 
     public interface IUserAccountService
     {

@@ -15242,14 +15242,17 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
 
         public LSL_String llGetDisplayName(LSL_Key id)
         {
-            if (UUID.TryParse(id, out UUID key) && key.IsNotZero())
-            {
-                ScenePresence presence = World.GetScenePresence(key);
-                if (presence != null)
-                {
-                    return presence.Name;
-                }
-            }
+            if (!UUID.TryParse(id, out UUID key) || key.IsZero())
+                return LSL_String.Empty;
+
+            UserAccount account = m_userAccountService.GetUserAccount(RegionScopeID, key);
+            if (account is not null)
+                return account.EffectiveDisplayName;
+
+            ScenePresence presence = World.GetScenePresence(key);
+            if (presence is not null)
+                return presence.Name;
+
             return LSL_String.Empty;
         }
 
@@ -15257,6 +15260,16 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
         {
             if (!UUID.TryParse(id, out UUID key) || key.IsZero())
                 return string.Empty;
+
+            UserAccount localAccount = m_userAccountService.GetUserAccount(RegionScopeID, key);
+            if (localAccount is not null)
+            {
+                string ftid = m_AsyncCommands.DataserverPlugin.RequestWithImediatePost(
+                    m_host.LocalId,
+                    m_item.ItemID,
+                    localAccount.EffectiveDisplayName);
+                return ftid;
+            }
 
             ScenePresence lpresence = World.GetScenePresence(key);
             if (lpresence != null)
@@ -15284,7 +15297,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                     UserAccount account = m_userAccountService.GetUserAccount(RegionScopeID, key);
                     if (account is not null)
                     {
-                        name = account.FirstName + " " + account.LastName;
+                        name = account.EffectiveDisplayName;
                     }
                 }
                 m_AsyncCommands.DataserverPlugin.DataserverReply(eventID, name);

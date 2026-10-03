@@ -284,6 +284,12 @@ namespace OpenSim.Region.ClientStack.Linden
                     m_HostCapsObj.RegisterSimpleHandler("GetDisplayNames",
                         new SimpleStreamHandler(GetNewCapPath(), GetDisplayNames));
                 }
+
+                if (m_userAccountService is not null)
+                {
+                    m_HostCapsObj.RegisterSimpleHandler("SetDisplayName",
+                        new SimpleStreamHandler(GetNewCapPath(), SetDisplayName));
+                }
             }
             catch (Exception e)
             {
@@ -2198,6 +2204,7 @@ namespace OpenSim.Region.ClientStack.Linden
                 httpResponse.StatusCode = (int)HttpStatusCode.Gone;
                 return;
             }
+
             if(sp.IsInTransit && !sp.IsInLocalTransit)
             {
                 httpResponse.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
@@ -2205,55 +2212,349 @@ namespace OpenSim.Region.ClientStack.Linden
                 return;
             }
 
-            // Full content request
             NameValueCollection query = httpRequest.QueryString;
-            string[] ids = query.GetValues("ids");
+            string[] ids = query.GetValues("ids") ?? Array.Empty<string>();
+            List<UserData> names = ids.Length == 0
+                ? new List<UserData>()
+                : m_UserManager.GetKnownUsers(ids, m_scopeID);
 
-            osUTF8 lsl;
-            if(ids.Length == 0)
-            {
-                lsl = LLSDxmlEncode2.Start();
-                LLSDxmlEncode2.AddMap(lsl);
+            osUTF8 lsl = LLSDxmlEncode2.Start(Math.Max(512, names.Count * 320 + 512));
+            LLSDxmlEncode2.AddMap(lsl);
+
+            if (names.Count == 0)
                 LLSDxmlEncode2.AddEmptyArray("agents", lsl);
-            }
             else
             {
-                List<UserData> names = m_UserManager.GetKnownUsers(ids, m_scopeID);
-                lsl = LLSDxmlEncode2.Start(names.Count * 256 + 256);
+                LLSDxmlEncode2.AddArray("agents", lsl);
 
-                LLSDxmlEncode2.AddMap(lsl);
-                if (names.Count == 0)
-                    LLSDxmlEncode2.AddEmptyArray("agents", lsl);
-                else
+                foreach (UserData ud in names)
                 {
-                    LLSDxmlEncode2.AddArray("agents", lsl);
+                    if (string.IsNullOrEmpty(ud.FirstName) || ud.FirstName.Equals("Unkown"))
+                        continue;
 
-                    foreach (UserData ud in names)
-                    {
-                        // dont tell about unknown users, we can't send them back on Bad either
-                        if (string.IsNullOrEmpty(ud.FirstName) || ud.FirstName.Equals("Unkown"))
-                            continue;
+                    UserAccount account = m_userAccountService?.GetUserAccount(m_scopeID, ud.Id);
+                    string legacyName = ud.FirstName + " " + ud.LastName;
+                    string username = account?.Username ?? NameToDisplayUsername(ud.FirstName, ud.LastName);
+                    string displayName = account?.EffectiveDisplayName ?? legacyName;
+                    bool isDefault = account?.IsDisplayNameDefault ?? true;
+                    int nextUpdateAt = account == null ? 0 : DisplayNamePolicy.NextChangeAt(account);
+                    DateTime nextUpdate = nextUpdateAt <= 0
+                        ? DateTime.UnixEpoch
+                        : DateTimeOffset.FromUnixTimeSeconds(nextUpdateAt).UtcDateTime;
 
-                        string fullname = ud.FirstName + " " + ud.LastName;
-                        LLSDxmlEncode2.AddMap(lsl);
-                        LLSDxmlEncode2.AddElem("username", fullname, lsl);
-                        LLSDxmlEncode2.AddElem("display_name", fullname, lsl);
-                        LLSDxmlEncode2.AddElem("display_name_next_update", DateTime.UtcNow.AddDays(8), lsl);
-                        LLSDxmlEncode2.AddElem("display_name_expires", DateTime.UtcNow.AddMonths(1), lsl);
-                        LLSDxmlEncode2.AddElem("legacy_first_name", ud.FirstName, lsl);
-                        LLSDxmlEncode2.AddElem("legacy_last_name", ud.LastName, lsl);
-                        LLSDxmlEncode2.AddElem("id", ud.Id, lsl);
-                        LLSDxmlEncode2.AddElem("is_display_name_default", true, lsl);
-                        LLSDxmlEncode2.AddEndMap(lsl);
-                    }
-                    LLSDxmlEncode2.AddEndArray(lsl);
+                    LLSDxmlEncode2.AddMap(lsl);
+                    LLSDxmlEncode2.AddElem("username", username, lsl);
+                    LLSDxmlEncode2.AddElem("display_name", displayName, lsl);
+                    LLSDxmlEncode2.AddElem("display_name_next_update", nextUpdate, lsl);
+                    LLSDxmlEncode2.AddElem("display_name_expires", DateTime.UtcNow.AddMonths(1), lsl);
+                    LLSDxmlEncode2.AddElem("legacy_first_name", ud.FirstName, lsl);
+                    LLSDxmlEncode2.AddElem("legacy_last_name", ud.LastName, lsl);
+                    LLSDxmlEncode2.AddElem("id", ud.Id, lsl);
+                    LLSDxmlEncode2.AddElem("is_display_name_default", isDefault, lsl);
+                    LLSDxmlEncode2.AddEndMap(lsl);
                 }
+
+                LLSDxmlEncode2.AddEndArray(lsl);
             }
+
+            LLSDxmlEncode2.AddEmptyArray("bad_ids", lsl);
+            LLSDxmlEncode2.AddEmptyArray("bad_usernames", lsl);
             LLSDxmlEncode2.AddEndMap(lsl);
 
             httpResponse.RawBuffer = LLSDxmlEncode2.EndToNBBytes(lsl);
             httpResponse.ContentType = "application/llsd+xml";
             httpResponse.StatusCode = (int)HttpStatusCode.OK;
+        }
+
+        public void SetDisplayName(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
+        {
+            if (httpRequest.HttpMethod != "POST")
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.NotFound;
+                return;
+            }
+
+            ScenePresence sp = m_Scene.GetScenePresence(m_AgentID);
+            if (sp == null || sp.IsDeleted)
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.Gone;
+                return;
+            }
+
+            if (sp.IsInTransit && !sp.IsInLocalTransit)
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+                httpResponse.AddHeader("Retry-After", "30");
+                return;
+            }
+
+            UserAccount account = m_userAccountService?.GetUserAccount(m_scopeID, m_AgentID);
+            if (account == null || !account.LocalToGrid)
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.Forbidden;
+                return;
+            }
+
+            string expectedCurrentName = account.EffectiveDisplayName;
+            string requested;
+
+            try
+            {
+                OSD body = OSDParser.DeserializeLLSDXml(httpRequest.InputStream);
+                if (body is not OSDMap map ||
+                    !map.TryGetValue("display_name", out OSD displayNameValue))
+                {
+                    httpResponse.StatusCode = (int)HttpStatusCode.BadRequest;
+                    return;
+                }
+
+                if (displayNameValue is OSDArray changeArray &&
+                    changeArray.Count >= 2)
+                {
+                    expectedCurrentName = changeArray[0].AsString();
+                    requested = changeArray[1].AsString();
+                }
+                else
+                {
+                    requested = displayNameValue.AsString();
+                }
+            }
+            catch
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.BadRequest;
+                return;
+            }
+
+            IEventQueue eventQueue =
+                m_Scene.RequestModuleInterface<IEventQueue>();
+
+            if (!string.Equals(
+                    expectedCurrentName,
+                    account.EffectiveDisplayName,
+                    StringComparison.Ordinal))
+            {
+                SendSetDisplayNameReply(
+                    eventQueue,
+                    account,
+                    (int)HttpStatusCode.Conflict,
+                    "display_name_conflict");
+
+                httpResponse.StatusCode = (int)HttpStatusCode.OK;
+                return;
+            }
+
+            if (!DisplayNamePolicy.TryNormalize(
+                    requested,
+                    out string normalized,
+                    out string validationError))
+            {
+                m_log.WarnFormat(
+                    "[CAPS]: SetDisplayName rejected for {0}: {1}",
+                    m_AgentID,
+                    validationError);
+
+                SendSetDisplayNameReply(
+                    eventQueue,
+                    account,
+                    (int)HttpStatusCode.BadRequest,
+                    "invalid_display_name");
+
+                httpResponse.StatusCode = (int)HttpStatusCode.OK;
+                return;
+            }
+
+            if (string.Equals(
+                    normalized,
+                    account.EffectiveDisplayName,
+                    StringComparison.Ordinal))
+            {
+                SendSetDisplayNameReply(
+                    eventQueue,
+                    account,
+                    (int)HttpStatusCode.OK,
+                    string.Empty);
+
+                httpResponse.StatusCode = (int)HttpStatusCode.OK;
+                return;
+            }
+
+            int now = Util.UnixTimeSinceEpoch();
+            if (!DisplayNamePolicy.CanChangeNow(account, now))
+            {
+                int retryAfter =
+                    Math.Max(
+                        1,
+                        DisplayNamePolicy.NextChangeAt(account) - now);
+
+                httpResponse.AddHeader(
+                    "Retry-After",
+                    retryAfter.ToString());
+
+                SendSetDisplayNameReply(
+                    eventQueue,
+                    account,
+                    (int)HttpStatusCode.TooManyRequests,
+                    "display_name_cooldown");
+
+                httpResponse.StatusCode = (int)HttpStatusCode.OK;
+                return;
+            }
+
+            string oldDisplayName =
+                account.EffectiveDisplayName;
+
+            account.DisplayName =
+                string.Equals(
+                    normalized,
+                    account.DefaultDisplayName,
+                    StringComparison.Ordinal)
+                    ? string.Empty
+                    : normalized;
+            account.DisplayNameChanged =
+                now;
+
+            if (!m_userAccountService.StoreUserAccount(account))
+            {
+                SendSetDisplayNameReply(
+                    eventQueue,
+                    account,
+                    (int)HttpStatusCode.InternalServerError,
+                    "display_name_update_failed");
+
+                httpResponse.StatusCode = (int)HttpStatusCode.OK;
+                return;
+            }
+
+            m_userAccountService.InvalidateCache(
+                account.PrincipalID);
+
+            SendSetDisplayNameReply(
+                eventQueue,
+                account,
+                (int)HttpStatusCode.OK,
+                string.Empty);
+
+            SendDisplayNameUpdate(
+                eventQueue,
+                account,
+                oldDisplayName);
+
+            httpResponse.StatusCode =
+                (int)HttpStatusCode.OK;
+        }
+
+        private void SendSetDisplayNameReply(
+            IEventQueue eventQueue,
+            UserAccount account,
+            int status,
+            string reason)
+        {
+            if (eventQueue == null ||
+                account == null)
+            {
+                return;
+            }
+
+            OSDMap body =
+                new OSDMap
+                {
+                    ["status"] =
+                        OSD.FromInteger(status),
+                    ["reason"] =
+                        OSD.FromString(reason ?? string.Empty),
+                    ["content"] =
+                        BuildDisplayNameAgent(account)
+                };
+
+            eventQueue.Enqueue(
+                eventQueue.BuildEvent(
+                    "SetDisplayNameReply",
+                    body),
+                m_AgentID);
+        }
+
+        private void SendDisplayNameUpdate(
+            IEventQueue eventQueue,
+            UserAccount account,
+            string oldDisplayName)
+        {
+            if (eventQueue == null ||
+                account == null)
+            {
+                return;
+            }
+
+            OSDMap body =
+                new OSDMap
+                {
+                    ["agent_id"] =
+                        OSD.FromUUID(account.PrincipalID),
+                    ["old_display_name"] =
+                        OSD.FromString(oldDisplayName ?? string.Empty),
+                    ["agent"] =
+                        BuildDisplayNameAgent(account)
+                };
+
+            foreach (ScenePresence presence in
+                     m_Scene.GetScenePresences())
+            {
+                if (presence == null ||
+                    presence.IsDeleted ||
+                    presence.IsNPC)
+                {
+                    continue;
+                }
+
+                eventQueue.Enqueue(
+                    eventQueue.BuildEvent(
+                        "DisplayNameUpdate",
+                        body),
+                    presence.UUID);
+            }
+        }
+
+        private static OSDMap BuildDisplayNameAgent(
+            UserAccount account)
+        {
+            int nextUpdateAt =
+                DisplayNamePolicy.NextChangeAt(account);
+
+            DateTime nextUpdate =
+                nextUpdateAt <= 0
+                    ? DateTime.UnixEpoch
+                    : DateTimeOffset
+                        .FromUnixTimeSeconds(nextUpdateAt)
+                        .UtcDateTime;
+
+            return new OSDMap
+            {
+                ["username"] =
+                    OSD.FromString(account.Username),
+                ["display_name"] =
+                    OSD.FromString(account.EffectiveDisplayName),
+                ["display_name_next_update"] =
+                    OSD.FromDate(nextUpdate),
+                ["display_name_expires"] =
+                    OSD.FromDate(DateTime.UtcNow.AddMonths(1)),
+                ["legacy_first_name"] =
+                    OSD.FromString(account.FirstName ?? string.Empty),
+                ["legacy_last_name"] =
+                    OSD.FromString(account.LastName ?? string.Empty),
+                ["id"] =
+                    OSD.FromUUID(account.PrincipalID),
+                ["is_display_name_default"] =
+                    OSD.FromBoolean(account.IsDisplayNameDefault)
+            };
+        }
+
+        private static string NameToDisplayUsername(string firstName, string lastName)
+        {
+            if (string.Equals(lastName, "Resident", StringComparison.OrdinalIgnoreCase))
+                return (firstName ?? string.Empty).ToLowerInvariant();
+
+            return ((firstName ?? string.Empty) + "." + (lastName ?? string.Empty))
+                .Trim('.')
+                .ToLowerInvariant();
         }
 
         public class AssetUploader

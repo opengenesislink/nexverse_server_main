@@ -42,7 +42,7 @@ The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World AP
 
 ## Active development: NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph
 
-The 0.9.3.2 World API v1 development checkpoint was completed on 3 October 2026. Runtime builds now identify themselves as `NexVerse 0.9.3.3 Dev` while 0.9.3.1 remains the current stable release.
+The 0.9.3.2 World API v1 development checkpoint was completed on 3 October 2026. Runtime builds now identify themselves as `NexVerse 0.9.3.3 Dev` while 0.9.3.1 remains the current stable release. The 0.9.3.3 line now includes the persistent Display Name foundation across UserAccounts, viewer CAPS, login, World API and LSL.
 
 The current release train is deliberately bounded: complete 0.9.3.3 Identity/Profile/Social work, then finish 0.9.3.4 Simulator/Region/Estate Control Plane and release that line. No new 0.9.3.5 implementation work starts before the stable 0.9.3.4 release.
 
@@ -57,7 +57,7 @@ Current World API base:
 
 `http://world.stadt-nexverse.de/api/v1`
 
-See `doc/NexVerse/WORLD_API.md` and `doc/NexVerse/LEGACY_COMPONENTS.md`.
+See `doc/NexVerse/WORLD_API.md`, `doc/NexVerse/DISPLAY_NAMES.md` and `doc/NexVerse/LEGACY_COMPONENTS.md`.
 
 ## Development model
 
