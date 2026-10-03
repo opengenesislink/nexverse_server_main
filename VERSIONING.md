@@ -1,10 +1,10 @@
 # NexVerse versioning
 
 Current stable release: **NexVerse 0.9.3.1**  
-Active development line: **NexVerse 0.9.3.2 Dev**  
+Active development line: **NexVerse 0.9.3.3 Dev**  
 Active release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
 Target stable release: **NexVerse 0.9.3.4**  
-Active milestone: **World API v1**  
+Active milestone: **Identity, Display Names, Profiles and Social Graph**  
 Completed milestone codename: **NEXJAST**
 
 NexVerse starts from the OpenSimulator 0.9.3.0 source baseline but is maintained as an independent product line.
@@ -25,8 +25,8 @@ NexVerse starts from the OpenSimulator 0.9.3.0 source baseline but is maintained
 
 - `NexVerse 0.9.3.0` — first NexVerse release based on the imported OpenSimulator 0.9.3.0 baseline.
 - `NexVerse 0.9.3.1` — **NEXJAST**, released 2 October 2026 after completing the legacy-cleanup and platform-foundation milestone.
-- `NexVerse 0.9.3.2 Dev` — active development line for **NexVerse World API v1**, formally started 2 October 2026.
-- `NexVerse 0.9.3.3 Dev` — next development milestone for Identity, Display Names, Profiles and Social Graph; no separate stable 0.9.3.3 release is planned.
+- `NexVerse 0.9.3.2 Dev` — **World API v1** development checkpoint, completed 3 October 2026 with 36/36 explicit roadmap criteria satisfied; no separate stable 0.9.3.2 release was produced.
+- `NexVerse 0.9.3.3 Dev` — active development milestone for Identity, Display Names, Profiles and Social Graph; no separate stable 0.9.3.3 release is planned.
 - `NexVerse 0.9.3.4 Dev` — final development milestone in the current release train for Simulator, Region and Estate Control Plane.
 - `NexVerse 0.9.3.4 RC1+` — release-candidate phase after the 0.9.3.4 scope and release definition of done are satisfied.
 - `NexVerse 0.9.3.4` — next planned stable release.
