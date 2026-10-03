@@ -673,6 +673,7 @@ namespace NexVerse.Server.Api
                 nodeRegistry);
             m_RegionMutations = new NexRegionMutationApi(
                 grid,
+                estateData,
                 nodeRegistry,
                 regionOperationRegistry,
                 authenticator,
