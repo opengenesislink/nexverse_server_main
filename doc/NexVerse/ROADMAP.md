@@ -568,7 +568,20 @@ Region-Control-Plane foundation implemented during the 0.9.3.2 World API line:
 - `regions:read` authorization for all three read-only control-plane operations;
 - a first interactive read-only Grid Planner in the API Control Center with viewport navigation, status filtering, adjustable cell scale, cell hover/click inspection and live VarRegion placement preview.
 
-Region creation/move mutations, global region jump/search and node/estate filtering remain subsequent work.
+Managed region mutations are now connected during the 0.9.3.2 World API line:
+
+- `POST /api/v1/regions` queues validated region creation through `regions:manage`;
+- `PATCH /api/v1/regions/{regionId}/placement` queues validated placement changes through `regions:manage`;
+- `GET /api/v1/region-operations/{operationId}` exposes asynchronous operation state through `regions:read`;
+- Robust dispatches addressed NexBus commands only to online NodeAgents advertising managed-region capability;
+- managed-region execution is disabled by default and requires explicit `ManagedRegionCommands=true`;
+- created regions use dedicated NexVerse-managed INI files and a bounded managed UDP-port range;
+- region moves are restricted to NexVerse-managed files and are refused while root agents are present;
+- failed move recreation attempts roll back to the previous managed placement;
+- managed grid-registration collisions fail the operation without terminating the simulator process;
+- create/move requests support persistent `Idempotency-Key` protection and emit audit/NexBus lifecycle state.
+
+Global region jump/search, node/estate filtering and the polished create/move planner form remain subsequent work.
 
 The planner must provide:
 
