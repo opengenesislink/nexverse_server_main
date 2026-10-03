@@ -15,6 +15,7 @@ using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
 using OpenSim.Services.Friends;
+using OpenSim.Services.EstateService;
 
 namespace NexVerse.Server.Api
 {
@@ -363,7 +364,7 @@ namespace NexVerse.Server.Api
 
                 FriendsService friendsService = new FriendsService(config);
                 NexSocialGraphApi socialGraph =
-                    new NexSocialGraphApi(userAccounts, friendsService, authenticator);
+                    new NexSocialGraphApi(userAccounts, friendsService, authenticator, new MuteListService(config), auditSink);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/relationships",

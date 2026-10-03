@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Generic;
+using NexVerse.Core.Audit;
 using NexVerse.Core.Security;
 using OpenMetaverse;
 using OpenSim.Framework;
@@ -19,12 +21,16 @@ namespace NexVerse.Server.Api
         private readonly IUserAccountService m_Accounts;
         private readonly IFriendsService m_Friends;
         private readonly NexApiAuthenticator m_Auth;
+        private readonly IMuteListService m_Mutes;
+        private readonly INexAuditSink m_Audit;
 
-        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth)
+        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth, IMuteListService mutes, INexAuditSink audit)
         {
             m_Accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
             m_Friends = friends ?? throw new ArgumentNullException(nameof(friends));
             m_Auth = auth ?? throw new ArgumentNullException(nameof(auth));
+            m_Mutes = mutes ?? throw new ArgumentNullException(nameof(mutes));
+            m_Audit = audit ?? NullNexAuditSink.Instance;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -42,6 +48,12 @@ namespace NexVerse.Server.Api
             if (!Owns(principal, owner))
             {
                 Write(response, HttpStatusCode.Forbidden, new { error = "relationship_owner_required" });
+                return;
+            }
+
+            if (p.Length == 5 && p[4].Equals("blocks", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleBlocks(request, response, principal, owner);
                 return;
             }
 
@@ -73,6 +85,7 @@ namespace NexVerse.Server.Api
                 // OpenSim represents a pending offer by storing -1 on the target-facing row.
                 bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), 1);
                 bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), -1);
+                Audit(principal, "relationship.request", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.Accepted : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "pending" : "failed", principal_id = owner.ToString(), target_id = target.ToString() });
                 return;
@@ -83,6 +96,7 @@ namespace NexVerse.Server.Api
                 int rights = ReadRights(request, 1);
                 bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
                 bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), rights);
+                Audit(principal, "relationship.accept", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "accepted" : "failed", rights });
                 return;
@@ -92,6 +106,7 @@ namespace NexVerse.Server.Api
             {
                 int rights = ReadRights(request, 1);
                 bool ok = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
+                Audit(principal, "relationship.rights", owner, target, ok);
                 Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = ok ? "updated" : "failed", rights });
                 return;
@@ -101,12 +116,75 @@ namespace NexVerse.Server.Api
             {
                 bool a = m_Friends.Delete(owner, target.ToString());
                 bool b = m_Friends.Delete(target, owner.ToString());
+                Audit(principal, "relationship.remove", owner, target, a || b);
                 Write(response, HttpStatusCode.OK, new { status = (a || b) ? "removed" : "absent" });
                 return;
             }
 
             response.AddHeader("Allow", "GET, POST, PUT, PATCH, DELETE");
             Write(response, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
+        }
+
+
+        private void HandleBlocks(IOSHttpRequest request, IOSHttpResponse response, NexPrincipal principal, UUID owner)
+        {
+            string[] p = (request?.UriPath ?? string.Empty).Trim('/').Split('/');
+            if (p.Length != 6 || !UUID.TryParse(p[5], out UUID target) || target == owner)
+            {
+                Write(response, HttpStatusCode.BadRequest, new { error = "invalid_block_target" });
+                return;
+            }
+
+            UserAccount targetAccount = m_Accounts.GetUserAccount(UUID.Zero, target);
+            if (targetAccount == null)
+            {
+                Write(response, HttpStatusCode.NotFound, new { error = "target_not_found" });
+                return;
+            }
+
+            if (request.HttpMethod == "PUT" || request.HttpMethod == "POST")
+            {
+                MuteData mute = new MuteData
+                {
+                    AgentID = owner,
+                    MuteID = target,
+                    MuteName = targetAccount.Name,
+                    MuteType = 1,
+                    MuteFlags = 0,
+                    Stamp = Util.UnixTimeSinceEpoch()
+                };
+                bool ok = m_Mutes.UpdateMute(mute);
+                Audit(principal, "relationship.block", owner, target, ok);
+                Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
+                    new { status = ok ? "blocked" : "failed", target_id = target.ToString() });
+                return;
+            }
+
+            if (request.HttpMethod == "DELETE")
+            {
+                bool ok = m_Mutes.RemoveMute(owner, target, targetAccount.Name);
+                Audit(principal, "relationship.unblock", owner, target, ok);
+                Write(response, HttpStatusCode.OK,
+                    new { status = ok ? "unblocked" : "absent", target_id = target.ToString() });
+                return;
+            }
+
+            response.AddHeader("Allow", "PUT, POST, DELETE");
+            Write(response, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
+        }
+
+        private void Audit(NexPrincipal principal, string action, UUID owner, UUID target, bool success)
+        {
+            m_Audit.Record(new NexAuditEvent(
+                principal?.Subject ?? owner.ToString(),
+                action,
+                "relationship:" + owner,
+                details: new Dictionary<string, string>
+                {
+                    ["owner_id"] = owner.ToString(),
+                    ["target_id"] = target.ToString(),
+                    ["success"] = success ? "true" : "false"
+                }));
         }
 
         private object Project(FriendInfo f)
