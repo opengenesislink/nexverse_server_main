@@ -705,6 +705,7 @@ namespace NexVerse.Server.Api
         private readonly NexEstateApi m_EstateApi;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
+        private readonly INexSecurityStore m_Security;
 
         public NexUserApiRouter(
             INexUserService users,
@@ -723,7 +724,8 @@ namespace NexVerse.Server.Api
             NexNodeRegistry nodeRegistry,
             NexRegionOperationRegistry regionOperationRegistry,
             bool distributedNexBusEnabled,
-            int adminMinimumLevel)
+            int adminMinimumLevel,
+            INexSecurityStore securityStore = null)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
@@ -762,6 +764,7 @@ namespace NexVerse.Server.Api
                 eventBus,
                 m_Audit);
             m_AdminMinimumLevel = adminMinimumLevel;
+            m_Security = securityStore;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
