@@ -14,6 +14,7 @@ using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
+using OpenSim.Services.ProfilesService;
 
 namespace NexVerse.Server.Api
 {
@@ -359,6 +360,27 @@ namespace NexVerse.Server.Api
                     grid,
                     authenticator,
                     true);
+
+                IConfig profilesConfig = config.Configs["UserProfilesService"];
+                if (profilesConfig != null && profilesConfig.GetBoolean("Enabled", false))
+                {
+                    UserProfilesServiceBase profilesService =
+                        new UserProfilesServiceBase(config, "UserProfilesService");
+
+                    NexWebProfileV3Api webProfileV3 =
+                        new NexWebProfileV3Api(
+                            userAccounts,
+                            profilesService.ProfilesData,
+                            authenticator);
+
+                    server.AddSimpleStreamHandler(
+                        new SimpleStreamHandler(
+                            "/api/v1/profiles",
+                            apiGate.Wrap(webProfileV3.Handle),
+                            "NexVerse WebProfileV3"));
+
+                    m_Log.Info("[NEX-WEBPROFILE-V3]: WebProfileV3 enabled using the authoritative UserProfilesService store.");
+                }
 
                 server.AddSimpleStreamHandler(new SimpleStreamHandler(
                     "/api/v1/statistics/summary",
