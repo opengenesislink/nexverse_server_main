@@ -175,6 +175,15 @@ namespace NexVerse.Server.Api
             bool distributedNexBusEnabled =
                 nexBusConfig != null &&
                 nexBusConfig.GetBoolean("Enabled", false);
+            string nexBusPeers =
+                nexBusConfig == null
+                    ? string.Empty
+                    : nexBusConfig.GetString("Peers", string.Empty);
+            bool nodeCommandRoutingEnabled =
+                distributedNexBusEnabled &&
+                nexBusPeers.Split(
+                    new[] { ';', ',' },
+                    StringSplitOptions.RemoveEmptyEntries).Length > 0;
             int nodeStaleAfterSeconds =
                 nexBusConfig == null
                     ? 90
@@ -183,6 +192,19 @@ namespace NexVerse.Server.Api
                 new NexNodeRegistry(
                     eventBus,
                     nodeStaleAfterSeconds);
+            int nodeCommandTimeoutSeconds =
+                nexBusConfig == null
+                    ? 15
+                    : nexBusConfig.GetInt("NodeCommandTimeoutSeconds", 15);
+            int nodeCommandHistoryLimit =
+                nexBusConfig == null
+                    ? 1024
+                    : nexBusConfig.GetInt("NodeCommandHistoryLimit", 1024);
+            NexNodeCommandTracker nodeCommands =
+                new NexNodeCommandTracker(
+                    eventBus,
+                    nodeCommandTimeoutSeconds,
+                    nodeCommandHistoryLimit);
 
             INexAuditSink publicAuditSink = new LogNexAuditSink();
             INexAuthorizationService authorization = new NexAuthorizationService();
@@ -340,7 +362,9 @@ namespace NexVerse.Server.Api
                     apiKeyStore,
                     grid,
                     nodeRegistry,
+                    nodeCommands,
                     distributedNexBusEnabled,
+                    nodeCommandRoutingEnabled,
                     adminMinimumLevel);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(

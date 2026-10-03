@@ -609,6 +609,10 @@
     Enabled = false
     NodeId = "robust-main"
     SharedKey = ""
+    ; For bidirectional control-plane commands, list every managed simulator's
+    ; NexBus inbound URL here, separated by semicolon or comma. Non-target
+    ; simulators receive the signed envelope but ignore it by target_node_id.
+    ; Example only: https://sim-a.internal:9000/internal/nexbus/v1/events
     Peers = ""
     InboundPath = "/internal/nexbus/v1/events"
     QueueCapacity = 4096
@@ -617,6 +621,10 @@
     ; Mark simulator nodes stale after this many seconds without a received heartbeat.
     ; Default NodeAgent heartbeat is 30 seconds, so 90 allows three missed intervals.
     NodeStaleAfterSeconds = 90
+    ; Directed NodeAgent commands are published asynchronously and tracked in
+    ; bounded memory. Robust Peers must include simulator NexBus inbound URLs.
+    NodeCommandTimeoutSeconds = 15
+    NodeCommandHistoryLimit = 1024
 
 [NexVerseWorldApi]
     Enabled = true

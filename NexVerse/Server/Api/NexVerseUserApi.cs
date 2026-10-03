@@ -620,7 +620,9 @@ namespace NexVerse.Server.Api
             INexApiKeyStore apiKeys,
             IGridService grid,
             NexNodeRegistry nodeRegistry,
+            NexNodeCommandTracker nodeCommands,
             bool distributedNexBusEnabled,
+            bool nodeCommandRoutingEnabled,
             int adminMinimumLevel)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
@@ -639,8 +641,11 @@ namespace NexVerse.Server.Api
                 nodeRegistry);
             m_NodeApi = new NexNodeApi(
                 nodeRegistry,
+                nodeCommands,
                 authenticator,
-                distributedNexBusEnabled);
+                m_Audit,
+                distributedNexBusEnabled,
+                nodeCommandRoutingEnabled);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
@@ -689,7 +694,8 @@ namespace NexVerse.Server.Api
             }
 
             if (string.Equals(path, "/api/v1/nodes", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/api/v1/nodes/", StringComparison.OrdinalIgnoreCase))
+                path.StartsWith("/api/v1/nodes/", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/v1/node-commands/", StringComparison.OrdinalIgnoreCase))
             {
                 m_NodeApi.Handle(request, response);
                 return;

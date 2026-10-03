@@ -166,6 +166,10 @@ namespace NexVerse.Server.Api
                     ("get", "Vom NexVerse NodeAgent beobachtete Simulator-Nodes auflisten", "simulators:read", "200")),
                 ["/api/v1/nodes/{nodeId}"] = AuthenticatedOperations(
                     ("get", "Simulator-Node mit Gesundheits- und Regionszustand lesen", "simulators:read", "200")),
+                ["/api/v1/nodes/{nodeId}/commands/ping"] = AuthenticatedOperations(
+                    ("post", "Gerichteten NodeAgent-Ping zur Prüfung des bidirektionalen Control-Plane-Pfads senden", "simulators:manage", "202")),
+                ["/api/v1/node-commands/{commandId}"] = AuthenticatedOperations(
+                    ("get", "Asynchronen NodeAgent-Commandstatus lesen", "simulators:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -235,6 +239,20 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "NodeResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/nodes/{nodeId}/commands/ping",
+                "post",
+                null,
+                "NodeCommandDispatchResponse",
+                "202");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/node-commands/{commandId}",
+                "get",
+                null,
+                "NodeCommandStatusResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -344,6 +362,21 @@ namespace NexVerse.Server.Api
                 "/api/v1/nodes/{nodeId}",
                 "get",
                 nodeIdParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/nodes/{nodeId}/commands/ping",
+                "post",
+                nodeIdParameter);
+
+            object commandIdParameter =
+                PathParameter(
+                    "commandId",
+                    "UUID eines asynchronen NodeAgent-Commands.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/node-commands/{commandId}",
+                "get",
+                commandIdParameter);
 
             object principalIdParameter =
                 PathParameter(
@@ -606,6 +639,20 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "platform",
+                        status = "implemented",
+                        title = "Bidirektionaler NodeAgent Command-/Ack-Pfad",
+                        summary = "Robust kann erstmals einen gezielt adressierten, zeitlich begrenzten und auditierten NodeAgent-Command über NexBus senden. Der erste erlaubte Command ist ein nicht mutierender Ping; Ergebnisse werden asynchron als pending/completed/rejected/expired verfolgt.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/nodes/{nodeId}/commands/ping",
+                            "/api/v1/node-commands/{commandId}"
+                        }
+                    },
                     new
                     {
                         date = "2026-10-03",
@@ -1697,6 +1744,7 @@ namespace NexVerse.Server.Api
                     {
                         "generated_at",
                         "transport_enabled",
+                        "command_routing_enabled",
                         "stale_after_seconds",
                         "count",
                         "nodes",
@@ -1706,6 +1754,7 @@ namespace NexVerse.Server.Api
                     {
                         ["generated_at"] = new { type = "string", format = "date-time" },
                         ["transport_enabled"] = new { type = "boolean" },
+                        ["command_routing_enabled"] = new { type = "boolean" },
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["count"] = new { type = "integer", minimum = 0 },
                         ["nodes"] = new
@@ -1723,6 +1772,7 @@ namespace NexVerse.Server.Api
                     {
                         "generated_at",
                         "transport_enabled",
+                        "command_routing_enabled",
                         "stale_after_seconds",
                         "node",
                         "correlation_id"
@@ -1731,8 +1781,79 @@ namespace NexVerse.Server.Api
                     {
                         ["generated_at"] = new { type = "string", format = "date-time" },
                         ["transport_enabled"] = new { type = "boolean" },
+                        ["command_routing_enabled"] = new { type = "boolean" },
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["node"] = SchemaRef("Node"),
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["NodeCommand"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "command_id",
+                        "node_id",
+                        "action",
+                        "requested_by",
+                        "state",
+                        "message",
+                        "created_at",
+                        "updated_at",
+                        "expires_at",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["command_id"] = new { type = "string", format = "uuid" },
+                        ["node_id"] = new { type = "string" },
+                        ["action"] = new { type = "string", @enum = new[] { "ping" } },
+                        ["requested_by"] = new { type = "string" },
+                        ["state"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "pending", "completed", "rejected", "expired" }
+                        },
+                        ["message"] = new { type = "string" },
+                        ["created_at"] = new { type = "string", format = "date-time" },
+                        ["updated_at"] = new { type = "string", format = "date-time" },
+                        ["expires_at"] = new { type = "string", format = "date-time" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["NodeCommandDispatchResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "command",
+                        "status_url",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["command"] = SchemaRef("NodeCommand"),
+                        ["status_url"] = new { type = "string" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["NodeCommandStatusResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "transport_enabled",
+                        "command_routing_enabled",
+                        "command_timeout_seconds",
+                        "command",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["transport_enabled"] = new { type = "boolean" },
+                        ["command_routing_enabled"] = new { type = "boolean" },
+                        ["command_timeout_seconds"] = new { type = "integer", minimum = 5 },
+                        ["command"] = SchemaRef("NodeCommand"),
                         ["correlation_id"] = new { type = "string" }
                     }
                 },

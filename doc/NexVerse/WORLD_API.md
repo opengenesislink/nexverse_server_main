@@ -213,7 +213,16 @@ Both require `simulators:read`. Responses expose node ID, hostname, NexVerse ver
 
 The API Control Center exposes the same protected data in a dedicated **Simulatoren** view with online/stale/offline counts, NodeAgent transport status, process/resource information and per-node region details. Credentials entered there remain in the open page only and are not persisted.
 
-The separate `simulators:manage` scope is defined for the later command plane. No start/stop/restart or arbitrary console execution is exposed by this registry milestone.
+The first bidirectional command-plane operation is also available:
+
+- `POST /api/v1/nodes/{nodeId}/commands/ping` — issue a directed, non-mutating NodeAgent connectivity command; requires `simulators:manage` and returns HTTP 202
+- `GET /api/v1/node-commands/{commandId}` — read the asynchronous command result; requires `simulators:read`
+
+Each command receives a UUID, requesting principal, correlation ID and expiry deadline. Command state is one of `pending`, `completed`, `rejected` or `expired`. The current NodeAgent allowlist contains only `ping`; arbitrary console commands, start, stop, shutdown and the inherited unreliable legacy region-restart command are not exposed.
+
+The Robust `[NexBus]` section must have distributed transport enabled **and** `Peers` must contain the inbound NexBus URL of each managed simulator process for Robust-to-simulator command delivery. Requests are relayed to configured peers but only the NodeAgent whose exact `target_node_id` matches executes the command. The same shared HMAC transport protection applies in both directions. This internal traffic must remain behind TLS/private networking/firewall policy.
+
+A machine integration that sends a ping and then polls its status should receive both `simulators:manage` and `simulators:read`. The command history is intentionally bounded and in-memory; it is operational control-plane state, not durable job history.
 
 Grid-layout region records include `node_id` and `node_state` when ownership can be resolved from the live registry. Operational host/process details remain available only through the simulator API and are not copied into the `regions:read` response.
 
