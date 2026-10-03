@@ -117,6 +117,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
+      - name: Verify NodeAgent registry projection
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexNodeRegistryRegression/NexNodeRegistryRegression.csproj
+
       - name: Verify NexMetrics OTLP pipeline
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexMetricsRegression/NexMetricsRegression.csproj
@@ -240,6 +244,10 @@ jobs:
               "GridLayoutResponse",
               "GridCellResponse",
               "GridPlacementValidationResponse",
+              "NodeRegion",
+              "Node",
+              "NodeListResponse",
+              "NodeResponse",
               "UserCreateRequest",
               "UserCreateResponse",
               "ApiKey",
@@ -270,6 +278,18 @@ jobs:
           assert {p["name"] for p in placement["parameters"]} == {"x", "y", "size_x", "size_y"}
           assert schemas["GridCell"]["properties"]["status"]["enum"] == ["free", "occupied", "reserved", "conflict"]
           assert schemas["GridRegionPlacement"]["properties"]["size_x"]["maximum"] == 4096
+          assert "node_id" in schemas["GridRegionPlacement"]["properties"]
+          assert "node_state" in schemas["GridRegionPlacement"]["properties"]
+
+          nodes_get = doc["paths"]["/api/v1/nodes"]["get"]
+          assert nodes_get["x-nexverse-scope"] == "simulators:read"
+          assert nodes_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/NodeListResponse"
+          node_get = doc["paths"]["/api/v1/nodes/{nodeId}"]["get"]
+          assert node_get["x-nexverse-scope"] == "simulators:read"
+          assert node_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/NodeResponse"
+          assert [p["name"] for p in node_get["parameters"]] == ["nodeId"]
+          assert node_get["parameters"][0]["in"] == "path" and node_get["parameters"][0]["required"]
+          assert schemas["Node"]["properties"]["state"]["enum"] == ["online", "stale", "offline"]
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert "/api/v1/docs" in doc["paths"]
@@ -283,8 +303,8 @@ jobs:
           assert "Resident and Hypergrid statistics dashboard" not in json.dumps(doc, ensure_ascii=False)
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
           assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
-          assert doc["x_nexverse_changelog"][0]["category"] == "regions"
-          assert "/api/v1/grid/layout" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert doc["x_nexverse_changelog"][0]["category"] == "platform"
+          assert "/api/v1/nodes" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
@@ -330,6 +350,7 @@ jobs:
               assert required in stats_schema["required"], f"statistics schema missing required field: {required}"
 
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
+          assert doc["paths"]["/api/v1/nodes"]["get"]["x-nexverse-audience"] == ["admin", "service"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
@@ -356,6 +377,9 @@ jobs:
           grep -F '/api/v1/grid/layout' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/grid/validate-placement' /tmp/nexverse-api-docs.html
           grep -F 'regions:read' /tmp/nexverse-api-docs.html
+          grep -F 'Simulator-Nodes' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/nodes' /tmp/nexverse-api-docs.html
+          grep -F 'simulators:read' /tmp/nexverse-api-docs.html
           if grep -F 'localStorage' /tmp/nexverse-api-docs.html; then
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1

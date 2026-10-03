@@ -534,6 +534,9 @@
     QueueCapacity = 4096
     RequestTimeoutMilliseconds = 2000
     DeduplicationWindow = 10000
+    ; Mark simulator nodes stale after this many seconds without a received heartbeat.
+    ; Default NodeAgent heartbeat is 30 seconds, so 90 allows three missed intervals.
+    NodeStaleAfterSeconds = 90
 
 [NexVerseWorldApi]
     Enabled = true

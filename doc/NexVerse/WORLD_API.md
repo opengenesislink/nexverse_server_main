@@ -200,6 +200,23 @@ NexVerse CI starts a minimal Robust process using `bin/Robust.NexVerseApi.Tests.
 
 The smoke-test configuration keeps all privileged endpoints disabled and has no production database dependency. Because that profile intentionally has no statistics database services, the statistics request is expected to return `503 statistics_data_unavailable`; CI explicitly verifies that the route exists and does not regress to the former 404 behavior.
 
+## Simulator NodeAgent registry
+
+Robust maintains a live control-plane projection from NexBus NodeAgent events. The registry is rebuilt from simulator heartbeats and lifecycle events after a Robust restart rather than persisting a second potentially stale source of truth.
+
+Protected endpoints:
+
+- `GET /api/v1/nodes` — list observed simulator nodes
+- `GET /api/v1/nodes/{nodeId}` — inspect one simulator node
+
+Both require `simulators:read`. Responses expose node ID, hostname, NexVerse version, online/stale/offline state, uptime, process ID, working-set memory, CPU time, region/agent counts, heartbeat timestamps and the currently reported region list. The default stale threshold is 90 seconds and can be changed with `NodeStaleAfterSeconds` in `[NexBus]`.
+
+The API Control Center exposes the same protected data in a dedicated **Simulatoren** view with online/stale/offline counts, NodeAgent transport status, process/resource information and per-node region details. Credentials entered there remain in the open page only and are not persisted.
+
+The separate `simulators:manage` scope is defined for the later command plane. No start/stop/restart or arbitrary console execution is exposed by this registry milestone.
+
+Grid-layout region records include `node_id` and `node_state` when ownership can be resolved from the live registry. Operational host/process details remain available only through the simulator API and are not copied into the `regions:read` response.
+
 ## Region-grid administration API
 
 The first read-only Region Control Plane foundation is implemented and is used as the data contract for the later administrator raster planner.

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using log4net;
 using Nini.Config;
 using NexVerse.Core.Audit;
+using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
@@ -170,6 +171,19 @@ namespace NexVerse.Server.Api
             }
 
             INexEventBus eventBus = CreateEventBus(config, server);
+            IConfig nexBusConfig = config.Configs["NexBus"];
+            bool distributedNexBusEnabled =
+                nexBusConfig != null &&
+                nexBusConfig.GetBoolean("Enabled", false);
+            int nodeStaleAfterSeconds =
+                nexBusConfig == null
+                    ? 90
+                    : nexBusConfig.GetInt("NodeStaleAfterSeconds", 90);
+            NexNodeRegistry nodeRegistry =
+                new NexNodeRegistry(
+                    eventBus,
+                    nodeStaleAfterSeconds);
+
             INexAuditSink publicAuditSink = new LogNexAuditSink();
             INexAuthorizationService authorization = new NexAuthorizationService();
 
@@ -325,6 +339,8 @@ namespace NexVerse.Server.Api
                     idempotencyTtlSeconds,
                     apiKeyStore,
                     grid,
+                    nodeRegistry,
+                    distributedNexBusEnabled,
                     adminMinimumLevel);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(

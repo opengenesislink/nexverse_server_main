@@ -29,6 +29,7 @@ internal static class Program
                     new[]
                     {
                         NexScopes.RegionsRead,
+                        NexScopes.SimulatorsRead,
                         NexScopes.UsersRead
                     });
 
@@ -45,7 +46,13 @@ internal static class Program
                 "new API key did not validate");
 
             Require(
-                validated.Scopes.Length == 2,
+                validated.Scopes.Length == 3 &&
+                Array.Exists(
+                    validated.Scopes,
+                    scope => string.Equals(
+                        scope,
+                        NexScopes.SimulatorsRead,
+                        StringComparison.OrdinalIgnoreCase)),
                 "API key scopes were not retained");
 
             Require(

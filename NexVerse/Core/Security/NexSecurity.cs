@@ -18,6 +18,8 @@ namespace NexVerse.Core.Security
         public const string FriendsManage = "friends:manage";
         public const string RegionsRead = "regions:read";
         public const string RegionsManage = "regions:manage";
+        public const string SimulatorsRead = "simulators:read";
+        public const string SimulatorsManage = "simulators:manage";
         public const string StatisticsRead = "statistics:read";
         public const string EstatesManage = "estates:manage";
         public const string EconomyRead = "economy:read";
