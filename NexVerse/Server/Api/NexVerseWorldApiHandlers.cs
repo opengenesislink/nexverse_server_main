@@ -166,6 +166,10 @@ namespace NexVerse.Server.Api
                     ("get", "Vom NexVerse NodeAgent beobachtete Simulator-Nodes auflisten", "simulators:read", "200")),
                 ["/api/v1/nodes/{nodeId}"] = AuthenticatedOperations(
                     ("get", "Simulator-Node mit Gesundheits- und Regionszustand lesen", "simulators:read", "200")),
+                ["/api/v1/estates"] = AuthenticatedOperations(
+                    ("get", "Estate-Metadaten für Verwaltung und Regionszuordnung durchsuchen", "estates:read", "200")),
+                ["/api/v1/estates/{estateId}"] = AuthenticatedOperations(
+                    ("get", "Estate-Metadaten und Regionsanzahl lesen", "estates:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200"),
                     ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
@@ -242,6 +246,20 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "NodeResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/estates",
+                "get",
+                null,
+                "EstateListResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/estates/{estateId}",
+                "get",
+                null,
+                "EstateResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -379,6 +397,40 @@ namespace NexVerse.Server.Api
                 "/api/v1/nodes/{nodeId}",
                 "get",
                 nodeIdParameter);
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/estates",
+                "get",
+                QueryParameter(
+                    "q",
+                    false,
+                    "Optionaler Estate-Name oder exakte Estate-ID; leer listet alle Estates."),
+                QueryParameter(
+                    "owner_id",
+                    false,
+                    "Optionaler Filter nach Estate-Owner-UUID."),
+                PaginationParameter(
+                    "limit",
+                    100,
+                    1,
+                    100),
+                PaginationParameter(
+                    "offset",
+                    0,
+                    0,
+                    10000));
+
+            object estateIdParameter =
+                IntegerPathParameter(
+                    "estateId",
+                    1,
+                    "Positive Estate-ID.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/estates/{estateId}",
+                "get",
+                estateIdParameter);
 
             object regionIdParameter =
                 PathParameter(
@@ -689,6 +741,22 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
+                        title = "Estate-Lesegrundlage für Region Control Plane",
+                        summary = "Die privilegierte World API veröffentlicht mit estates:read grundlegende Estate-Metadaten, Owner, Parent-Estate und Regionsanzahl. Der Grid Planner kann diese Liste zur Auswahl der Estate-ID beim Erstellen verwalteter Regionen verwenden, ohne Estate-Zugriffslisten oder andere sensible Detaildaten offenzulegen.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/estates",
+                            "/api/v1/estates/{estateId}",
+                            "/api/v1/regions",
+                            "/api/v1/docs"
+                        }
+                    },
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "regions",
+                        status = "implemented",
                         title = "Regionssuche, Lifecycle und interaktive Grid-Planer-Aktionen",
                         summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move/start/stop/restart als Operationen. Der Grid Planner kann registrierte Regionen global suchen und per veröffentlichter Grid-/Weltkoordinate anspringen, Regionen erstellen/verschieben sowie managed Start/Stop/Restart auslösen. Stop und Restart werden bei aktiven Root-Agents verweigert.",
                         endpoints = new[]
@@ -915,12 +983,13 @@ namespace NexVerse.Server.Api
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt; Simulator-Service- und Estate-Verwaltung bleiben offen.",
+                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Verwaltung hat mit einer least-privilege Lese-API begonnen; Schreib-, Zugriffslisten- und Policy-Verwaltung bleiben offen.",
                             evidence = new[]
                             {
                                 "NexVerseNodeAgentModule veröffentlicht Knoten-/Regionszustand und regelmäßige Statusmeldungen",
                                 "Grid-Layout, VarRegion-Placement-Prüfung, Regionssuche mit Koordinaten und interaktiver Grid Planner sind über die Welt-API verbunden",
-                                "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt, im Control Center bedient und asynchron als Operationen verfolgt"
+                                "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt, im Control Center bedient und asynchron als Operationen verfolgt",
+                                "GET /api/v1/estates und /api/v1/estates/{estateId} liefern grundlegende Estate-Metadaten mit estates:read"
                             }
                         },
                         new
@@ -1599,6 +1668,7 @@ namespace NexVerse.Server.Api
             object gridCellRef = SchemaRef("GridCell");
             object apiKeyRef = SchemaRef("ApiKey");
             object auditEventRef = SchemaRef("AuditEvent");
+            object estateRef = SchemaRef("Estate");
 
             return new Dictionary<string, object>
             {
@@ -1842,6 +1912,62 @@ namespace NexVerse.Server.Api
                         ["transport_enabled"] = new { type = "boolean" },
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["node"] = SchemaRef("Node"),
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["Estate"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "estate_id",
+                        "name",
+                        "owner_id",
+                        "parent_estate_id",
+                        "region_count"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["estate_id"] = new { type = "integer", minimum = 1 },
+                        ["name"] = new { type = "string" },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["parent_estate_id"] = new { type = "integer", minimum = 0 },
+                        ["region_count"] = new { type = "integer", minimum = 0 }
+                    }
+                },
+                ["EstateListResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "count",
+                        "estates",
+                        "pagination",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["count"] = new { type = "integer", minimum = 0 },
+                        ["estates"] = new
+                        {
+                            type = "array",
+                            items = estateRef
+                        },
+                        ["pagination"] = SchemaRef("Pagination"),
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EstateResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "estate",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["estate"] = estateRef,
                         ["correlation_id"] = new { type = "string" }
                     }
                 },
