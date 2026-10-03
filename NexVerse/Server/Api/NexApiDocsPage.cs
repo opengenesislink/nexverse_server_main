@@ -230,13 +230,13 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="pill"><span class="dot" id="nodesDot"></span><span id="nodesStatus">Noch nicht geladen</span></div>
 </div>
 <div class="section">
-<h2>Zugriff</h2><p class="sectionlead">Node-, Host- und Prozessinformationen sind geschützt und benötigen <code>simulators:read</code>. Die Ansicht führt keine Verwaltungsaktionen aus.</p>
+<h2>Zugriff</h2><p class="sectionlead">Node-, Host- und Prozessinformationen benötigen <code>simulators:read</code>. Der gerichtete Verbindungstest benötigt zusätzlich <code>simulators:manage</code>; andere Verwaltungsaktionen sind noch nicht freigeschaltet.</p>
 <div class="grid2">
 <div><label class="label2">Zugriffstoken (Bearer)</label><input id="nodesBearer" type="password" autocomplete="off" placeholder="Optional"></div>
 <div><label class="label2">X-NexVerse-Api-Key</label><input id="nodesApiKey" type="password" autocomplete="off" placeholder="Optional"></div>
 </div>
 <div class="planner-actions"><button class="action" id="loadNodes">Simulatoren laden</button><button class="action" id="clearNodesCredentials">Zugangsdaten löschen</button></div>
-<div class="authnote">Zugangsdaten bleiben nur in dieser geöffneten Seite. Start/Stop/Restart ist in diesem Entwicklungsschritt bewusst noch nicht verfügbar.</div>
+<div class="authnote">Zugangsdaten bleiben nur in dieser geöffneten Seite. Der Ping ist ein nicht mutierender Control-Plane-Test. Start/Stop/Restart ist in diesem Entwicklungsschritt bewusst noch nicht verfügbar.</div>
 </div>
 <div class="cards">
 <div class="card"><div class="label">Beobachtet</div><div class="value" id="nodesCount">–</div><div class="sub">NodeAgent-Registrierungen</div></div>
@@ -246,7 +246,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </div>
 <div class="section">
 <h2>Node-Liste</h2><p class="sectionlead" id="nodesTransport">NexBus-Transportstatus noch nicht geladen.</p>
-<div class="tablewrap"><table class="datatable"><thead><tr><th>Node</th><th>Host</th><th>Status</th><th>Version</th><th>Regionen</th><th>Avatare</th><th>Uptime</th><th>RAM</th><th>Letztes Signal</th></tr></thead><tbody id="nodesBody"></tbody></table></div>
+<div class="tablewrap"><table class="datatable"><thead><tr><th>Node</th><th>Host</th><th>Status</th><th>Version</th><th>Regionen</th><th>Avatare</th><th>Uptime</th><th>RAM</th><th>Letztes Signal</th><th>Control</th></tr></thead><tbody id="nodesBody"></tbody></table></div>
 </div>
 <div class="section">
 <h2>Node-Details</h2><pre id="nodeDetail">Noch kein Node ausgewählt.</pre>
@@ -622,10 +622,10 @@ function renderNodes(data){
   $('nodesOnline').textContent=nodes.filter(x=>x.state==='online').length;
   $('nodesStale').textContent=nodes.filter(x=>x.state==='stale').length;
   $('nodesOffline').textContent=nodes.filter(x=>x.state==='offline').length;
-  $('nodesTransport').textContent=(data.transport_enabled?'Verteilter NexBus-Transport aktiv':'Verteilter NexBus-Transport deaktiviert')+' · Stale nach '+(data.stale_after_seconds||'–')+' Sekunden ohne Heartbeat.';
+  $('nodesTransport').textContent=(data.transport_enabled?'Verteilter NexBus-Transport aktiv':'Verteilter NexBus-Transport deaktiviert')+' · '+(data.command_routing_enabled?'Command-Rückroute konfiguriert':'Keine Command-Rückroute konfiguriert')+' · Stale nach '+(data.stale_after_seconds||'–')+' Sekunden ohne Heartbeat.';
   const body=$('nodesBody');body.replaceChildren();
   if(!nodes.length){
-    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=9;td.className='small';td.textContent=data.transport_enabled?'Noch keine NodeAgent-Heartbeats empfangen.':'NexBus-Transport ist deaktiviert; keine Remote-NodeAgents werden empfangen.';tr.append(td);body.append(tr);
+    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=10;td.className='small';td.textContent=data.transport_enabled?'Noch keine NodeAgent-Heartbeats empfangen.':'NexBus-Transport ist deaktiviert; keine Remote-NodeAgents werden empfangen.';tr.append(td);body.append(tr);
   }
   nodes.forEach(node=>{
     const tr=document.createElement('tr');tr.className='noderow';
@@ -645,11 +645,39 @@ function renderNodes(data){
       if(index===2)td.className='node-state-'+(node.state||'');
       tr.append(td);
     });
+    const control=document.createElement('td');
+    const ping=document.createElement('button');ping.type='button';ping.className='action';ping.textContent='Ping';
+    ping.disabled=!data.command_routing_enabled||node.state==='offline';
+    ping.title=ping.disabled?'Node offline oder keine Robust→Simulator NexBus-Rückroute':'Gerichteten, nicht mutierenden NodeAgent-Ping senden';
+    ping.addEventListener('click',event=>{event.stopPropagation();pingNode(node.node_id)});
+    control.append(ping);tr.append(control);
     tr.addEventListener('click',()=>{$('nodeDetail').textContent=JSON.stringify(node,null,2)});
     body.append(tr);
   });
   setNodesStatus('Live · '+nodes.length+' Nodes','good');
 }
+async function pollNodeCommand(commandId,attempt){
+  try{
+    const res=await fetch('/api/v1/node-commands/'+encodeURIComponent(commandId),{headers:nodeHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){$('nodeDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    $('nodeDetail').textContent=JSON.stringify(data,null,2);
+    const state=data?.command?.state;
+    if(state==='pending'&&attempt<30)setTimeout(()=>pollNodeCommand(commandId,attempt+1),500);
+  }catch(err){$('nodeDetail').textContent=String(err)}
+}
+async function pingNode(nodeId){
+  $('nodeDetail').textContent='Sende gerichteten NodeAgent-Ping an '+nodeId+' …';
+  try{
+    const res=await fetch('/api/v1/nodes/'+encodeURIComponent(nodeId)+'/commands/ping',{method:'POST',headers:nodeHeaders(),cache:'no-store',credentials:'same-origin'});
+    const txt=await res.text();let data=null;try{data=JSON.parse(txt)}catch{}
+    if(!res.ok){$('nodeDetail').textContent=data?JSON.stringify(data,null,2):txt;return}
+    $('nodeDetail').textContent=JSON.stringify(data,null,2);
+    const commandId=data?.command?.command_id;
+    if(commandId)pollNodeCommand(commandId,0);
+  }catch(err){$('nodeDetail').textContent=String(err)}
+}
+
 async function loadNodes(){
   setNodesStatus('Lade Simulatoren…','');
   try{
