@@ -1238,6 +1238,18 @@ namespace NexVerse.Server.Api
                         NexScopes.AdminAll);
                 }
 
+                if (m_Security != null && m_Security.IsTotpEnabled(user.PrincipalId))
+                {
+                    string totp = GetOptionalString(root, "totp");
+                    bool mfaOk = m_Security.VerifyTotp(user.PrincipalId, totp);
+                    m_Security.Record(user.PrincipalId, mfaOk ? "login.mfa.success" : "login.mfa.failed", mfaOk);
+                    if (!mfaOk)
+                    {
+                        WriteError(response, HttpStatusCode.Unauthorized, "mfa_required", "A valid TOTP code is required for this account.");
+                        return;
+                    }
+                }
+
                 string accessToken =
                     m_Tokens.Issue(
                         user.PrincipalId,
