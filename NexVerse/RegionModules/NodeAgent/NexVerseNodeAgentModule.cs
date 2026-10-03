@@ -254,6 +254,9 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["cpu_seconds"] = process.TotalProcessorTime.TotalSeconds.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),
                 ["region_count"] = scenes.Length.ToString(),
                 ["agent_count"] = agents.ToString(),
+                ["managed_region_commands"] =
+                    (NexVerseManagedRegionHostPlugin.Current?.Enabled == true)
+                        .ToString(),
                 ["regions"] = string.Join(
                     ";",
                     scenes
