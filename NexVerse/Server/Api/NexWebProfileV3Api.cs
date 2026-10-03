@@ -149,6 +149,32 @@ namespace NexVerse.Server.Api
                 if (root.TryGetProperty("visibility", out JsonElement visibility))
                     profile.PublishProfile = string.Equals(visibility.GetString(), "public", StringComparison.OrdinalIgnoreCase);
 
+                if (root.TryGetProperty("partner_id", out JsonElement partner))
+                {
+                    if (!principal.HasScope(NexScopes.AdminAll))
+                    {
+                        WriteJson(response, HttpStatusCode.Forbidden, new { error = "partner_admin_required" });
+                        return;
+                    }
+
+                    string partnerValue = partner.ValueKind == JsonValueKind.Null ? string.Empty : partner.GetString();
+                    if (string.IsNullOrWhiteSpace(partnerValue))
+                    {
+                        profile.PartnerId = UUID.Zero;
+                    }
+                    else if (UUID.TryParse(partnerValue, out UUID partnerId) &&
+                             partnerId != account.PrincipalID &&
+                             m_Accounts.GetUserAccount(UUID.Zero, partnerId) != null)
+                    {
+                        profile.PartnerId = partnerId;
+                    }
+                    else
+                    {
+                        WriteJson(response, HttpStatusCode.BadRequest, new { error = "invalid_partner_id" });
+                        return;
+                    }
+                }
+
                 if (root.TryGetProperty("mature", out JsonElement mature) &&
                     (mature.ValueKind == JsonValueKind.True || mature.ValueKind == JsonValueKind.False))
                     profile.PublishMature = mature.GetBoolean();
