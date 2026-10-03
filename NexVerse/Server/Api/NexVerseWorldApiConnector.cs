@@ -352,7 +352,8 @@ namespace NexVerse.Server.Api
                     nodeRegistry,
                     regionOperationRegistry,
                     distributedNexBusEnabled,
-                    adminMinimumLevel);
+                    adminMinimumLevel,
+                    securityStore);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
                     userAccounts,
