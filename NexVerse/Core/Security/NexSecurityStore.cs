@@ -38,6 +38,7 @@ namespace NexVerse.Core.Security
         void Record(string subject, string type, bool success, string sessionId = null);
         IReadOnlyList<NexSecurityEvent> History(string subject, int limit);
         string EnsureTotpSecret(string subject);
+        bool IsTotpEnabled(string subject);
         bool VerifyTotp(string subject, string code);
         bool DisableTotp(string subject);
     }
@@ -108,6 +109,11 @@ namespace NexVerse.Core.Security
                 Save();
                 return value;
             }
+        }
+
+        public bool IsTotpEnabled(string subject)
+        {
+            lock (m_Sync) return m_Data.Totp.ContainsKey(subject);
         }
 
         public bool VerifyTotp(string subject, string code)
