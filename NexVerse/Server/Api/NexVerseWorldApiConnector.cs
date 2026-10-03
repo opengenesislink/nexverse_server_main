@@ -362,6 +362,16 @@ namespace NexVerse.Server.Api
                     authenticator,
                     true);
 
+                INexSecurityStore securityStore =
+                    new PersistentNexSecurityStore(
+                        apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json"));
+                NexSecurityApi securityApi = new NexSecurityApi(authenticator, securityStore);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/security",
+                        apiGate.Wrap(securityApi.Handle),
+                        "NexVerse Security"));
+
                 FriendsService friendsService = new FriendsService(config);
                 NexSocialGraphApi socialGraph =
                     new NexSocialGraphApi(userAccounts, friendsService, authenticator, new MuteListService(config), auditSink);
