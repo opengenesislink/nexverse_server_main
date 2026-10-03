@@ -667,12 +667,20 @@ namespace NexVerse.RegionModules.NodeAgent
                         return;
                     }
 
+                    string completedMessage =
+                        action switch
+                        {
+                            "start" => "region_started",
+                            "stop" => "region_stopped",
+                            _ => "region_restarted"
+                        };
+
                     PublishOperationState(
                         "region.control.operation.completed",
                         nexEvent,
                         operationId,
                         action,
-                        "region_" + action + "ed",
+                        completedMessage,
                         new Dictionary<string, string>
                         {
                             ["region_id"] =
