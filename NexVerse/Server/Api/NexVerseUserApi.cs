@@ -622,6 +622,7 @@ namespace NexVerse.Server.Api
             NexNodeRegistry nodeRegistry,
             NexNodeCommandTracker nodeCommands,
             bool distributedNexBusEnabled,
+            bool nodeCommandRoutingEnabled,
             int adminMinimumLevel)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
@@ -643,7 +644,8 @@ namespace NexVerse.Server.Api
                 nodeCommands,
                 authenticator,
                 m_Audit,
-                distributedNexBusEnabled);
+                distributedNexBusEnabled,
+                nodeCommandRoutingEnabled);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
