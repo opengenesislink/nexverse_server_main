@@ -417,7 +417,8 @@ namespace NexVerse.Server.Api
                         new NexWebProfileV3Api(
                             userAccounts,
                             profilesData,
-                            authenticator);
+                            authenticator,
+                            auditSink);
 
                     server.AddSimpleStreamHandler(
                         new SimpleStreamHandler(

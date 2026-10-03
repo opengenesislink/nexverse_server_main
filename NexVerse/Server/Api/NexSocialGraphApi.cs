@@ -35,7 +35,7 @@ namespace NexVerse.Server.Api
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
         {
-            if (!Authenticate(request, response, out NexPrincipal principal))
+            if (!Authenticate(request, response, string.Equals(request?.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase) ? NexScopes.RelationshipsRead : NexScopes.RelationshipsWrite, out NexPrincipal principal))
                 return;
 
             string[] p = (request?.UriPath ?? string.Empty).Trim('/').Split('/');
@@ -116,7 +116,9 @@ namespace NexVerse.Server.Api
             {
                 bool a = m_Friends.Delete(owner, target.ToString());
                 bool b = m_Friends.Delete(target, owner.ToString());
-                Audit(principal, "relationship.remove", owner, target, a || b);
+                FriendInfo existing = (m_Friends.GetFriends(owner) ?? Array.Empty<FriendInfo>()).FirstOrDefault(x => x.Friend == target.ToString());
+                string action = existing != null && (existing.MyFlags == -1 || existing.TheirFlags == -1) ? "relationship.decline" : "relationship.remove";
+                Audit(principal, action, owner, target, a || b);
                 Write(response, HttpStatusCode.OK, new { status = (a || b) ? "removed" : "absent" });
                 return;
             }
@@ -205,9 +207,9 @@ namespace NexVerse.Server.Api
             };
         }
 
-        private bool Authenticate(IOSHttpRequest request, IOSHttpResponse response, out NexPrincipal principal)
+        private bool Authenticate(IOSHttpRequest request, IOSHttpResponse response, string scope, out NexPrincipal principal)
         {
-            if (m_Auth.TryAuthenticate(request, NexScopes.RelationshipsWrite, out principal, out UserAccount _, out int status, out string error))
+            if (m_Auth.TryAuthenticate(request, scope, out principal, out UserAccount _, out int status, out string error))
                 return true;
             response.AddHeader("WWW-Authenticate", "Bearer");
             Write(response, (HttpStatusCode)status, new { error });
