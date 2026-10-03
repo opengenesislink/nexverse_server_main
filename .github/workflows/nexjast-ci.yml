@@ -325,6 +325,12 @@ jobs:
           assert schemas["Node"]["properties"]["state"]["enum"] == ["online", "stale", "offline"]
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
+          assert doc["x_nexverse_idempotency"]["protected_operations"] == [
+              "POST /api/v1/users",
+              "POST /api/v1/regions",
+              "PATCH /api/v1/regions/{regionId}/placement",
+              "POST /api/v1/regions/{regionId}/lifecycle",
+          ]
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
