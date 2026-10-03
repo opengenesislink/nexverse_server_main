@@ -249,6 +249,53 @@ namespace OpenSim.Services.Interfaces
 
     };
 
+    public static class DisplayNamePolicy
+    {
+        public const int MaximumLength = 31;
+        public const int ChangeIntervalSeconds = 7 * 24 * 60 * 60;
+
+        public static bool TryNormalize(
+            string value,
+            out string normalized,
+            out string error)
+        {
+            normalized = (value ?? string.Empty).Trim();
+            error = string.Empty;
+
+            if (normalized.Length > MaximumLength)
+            {
+                error = "Display name may contain at most 31 characters.";
+                return false;
+            }
+
+            foreach (char ch in normalized)
+            {
+                if (char.IsControl(ch))
+                {
+                    error = "Display name may not contain control characters.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static int NextChangeAt(UserAccount account)
+        {
+            if (account == null || account.DisplayNameChanged <= 0)
+                return 0;
+
+            return account.DisplayNameChanged + ChangeIntervalSeconds;
+        }
+
+        public static bool CanChangeNow(UserAccount account, int now)
+        {
+            return account == null ||
+                   account.DisplayNameChanged <= 0 ||
+                   now >= NextChangeAt(account);
+        }
+    }
+
     public interface IUserAccountService
     {
         UserAccount GetUserAccount(UUID scopeID, UUID userID);
