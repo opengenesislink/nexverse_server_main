@@ -47,7 +47,7 @@ api = require(
 
 handlers = require(
     "NexVerse/Server/Api/NexVerseWorldApiHandlers.cs",
-    '("/api/v1/regions"',
+    '["/api/v1/regions"]',
     '"regions:manage"',
     '"/api/v1/regions/{regionId}/placement"',
     '"/api/v1/region-operations/{operationId}"',
