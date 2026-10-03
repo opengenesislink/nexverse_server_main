@@ -47,6 +47,8 @@ namespace NexVerse.RegionModules.NodeAgent
         private SimulatorNexEventTransport m_Transport;
         private DistributedNexEventBus m_Bus;
         private Timer m_HeartbeatTimer;
+        private IDisposable m_CreateRegionSubscription;
+        private IDisposable m_MoveRegionSubscription;
         private DateTimeOffset m_StartedAt;
 
         public string NodeId => m_NodeId;
@@ -151,6 +153,15 @@ namespace NexVerse.RegionModules.NodeAgent
                     HandleInbound,
                     "NexVerse Simulator NexBus"));
 
+            m_CreateRegionSubscription =
+                m_Bus.Subscribe(
+                    "region.control.create.requested",
+                    HandleCreateRegionCommand);
+            m_MoveRegionSubscription =
+                m_Bus.Subscribe(
+                    "region.control.move.requested",
+                    HandleMoveRegionCommand);
+
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
                 null,
@@ -179,6 +190,10 @@ namespace NexVerse.RegionModules.NodeAgent
             {
             }
 
+            m_CreateRegionSubscription?.Dispose();
+            m_CreateRegionSubscription = null;
+            m_MoveRegionSubscription?.Dispose();
+            m_MoveRegionSubscription = null;
             m_HeartbeatTimer?.Dispose();
             m_Bus?.Dispose();
             m_Transport = null;
@@ -262,6 +277,361 @@ namespace NexVerse.RegionModules.NodeAgent
                     ["size_y"] = scene.RegionInfo.RegionSizeY.ToString(),
                     ["agent_count"] = scene.GetRootAgentCount().ToString()
                 }));
+        }
+
+        private void HandleCreateRegionCommand(
+            NexEvent nexEvent)
+        {
+            if (!IsCommandForThisNode(
+                    nexEvent) ||
+                !TryCommandData(
+                    nexEvent,
+                    "operation_id",
+                    out string operationId))
+            {
+                return;
+            }
+
+            PublishOperationState(
+                "region.control.operation.accepted",
+                nexEvent,
+                operationId,
+                "create",
+                "accepted");
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (!TryCommandData(
+                            nexEvent,
+                            "region_id",
+                            out string regionIdRaw) ||
+                        !UUID.TryParse(
+                            regionIdRaw,
+                            out UUID regionId) ||
+                        !TryCommandData(
+                            nexEvent,
+                            "region_name",
+                            out string regionName) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "grid_x",
+                            out int gridX) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "grid_y",
+                            out int gridY) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "size_x",
+                            out int sizeX) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "size_y",
+                            out int sizeY) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "estate_id",
+                            out int estateId))
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "create",
+                            "invalid_command_payload");
+                        return;
+                    }
+
+                    NexVerseManagedRegionHostPlugin host =
+                        NexVerseManagedRegionHostPlugin.Current;
+
+                    if (host == null ||
+                        !host.Enabled)
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "create",
+                            "managed_region_commands_disabled");
+                        return;
+                    }
+
+                    if (!host.TryCreateRegion(
+                            regionId,
+                            regionName,
+                            gridX,
+                            gridY,
+                            sizeX,
+                            sizeY,
+                            estateId,
+                            out string error,
+                            out int internalPort,
+                            out string _))
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "create",
+                            error);
+                        return;
+                    }
+
+                    PublishOperationState(
+                        "region.control.operation.completed",
+                        nexEvent,
+                        operationId,
+                        "create",
+                        "region_created",
+                        new Dictionary<string, string>
+                        {
+                            ["region_id"] =
+                                regionId.ToString(),
+                            ["region_name"] =
+                                regionName,
+                            ["grid_x"] =
+                                gridX.ToString(),
+                            ["grid_y"] =
+                                gridY.ToString(),
+                            ["size_x"] =
+                                sizeX.ToString(),
+                            ["size_y"] =
+                                sizeY.ToString(),
+                            ["internal_port"] =
+                                internalPort.ToString()
+                        });
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-NODE]: Managed create-region command failed.",
+                        e);
+
+                    PublishOperationState(
+                        "region.control.operation.failed",
+                        nexEvent,
+                        operationId,
+                        "create",
+                        "region_create_unhandled_failure");
+                }
+            });
+        }
+
+        private void HandleMoveRegionCommand(
+            NexEvent nexEvent)
+        {
+            if (!IsCommandForThisNode(
+                    nexEvent) ||
+                !TryCommandData(
+                    nexEvent,
+                    "operation_id",
+                    out string operationId))
+            {
+                return;
+            }
+
+            PublishOperationState(
+                "region.control.operation.accepted",
+                nexEvent,
+                operationId,
+                "move",
+                "accepted");
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (!TryCommandData(
+                            nexEvent,
+                            "region_id",
+                            out string regionIdRaw) ||
+                        !UUID.TryParse(
+                            regionIdRaw,
+                            out UUID regionId) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "grid_x",
+                            out int gridX) ||
+                        !TryCommandInt(
+                            nexEvent,
+                            "grid_y",
+                            out int gridY))
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "move",
+                            "invalid_command_payload");
+                        return;
+                    }
+
+                    NexVerseManagedRegionHostPlugin host =
+                        NexVerseManagedRegionHostPlugin.Current;
+
+                    if (host == null ||
+                        !host.Enabled)
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "move",
+                            "managed_region_commands_disabled");
+                        return;
+                    }
+
+                    if (!host.TryMoveRegion(
+                            regionId,
+                            gridX,
+                            gridY,
+                            out string error,
+                            out int oldGridX,
+                            out int oldGridY))
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            "move",
+                            error);
+                        return;
+                    }
+
+                    PublishOperationState(
+                        "region.control.operation.completed",
+                        nexEvent,
+                        operationId,
+                        "move",
+                        "region_moved",
+                        new Dictionary<string, string>
+                        {
+                            ["region_id"] =
+                                regionId.ToString(),
+                            ["old_grid_x"] =
+                                oldGridX.ToString(),
+                            ["old_grid_y"] =
+                                oldGridY.ToString(),
+                            ["grid_x"] =
+                                gridX.ToString(),
+                            ["grid_y"] =
+                                gridY.ToString()
+                        });
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-NODE]: Managed move-region command failed.",
+                        e);
+
+                    PublishOperationState(
+                        "region.control.operation.failed",
+                        nexEvent,
+                        operationId,
+                        "move",
+                        "region_move_unhandled_failure");
+                }
+            });
+        }
+
+        private bool IsCommandForThisNode(
+            NexEvent nexEvent)
+        {
+            return
+                TryCommandData(
+                    nexEvent,
+                    "target_node_id",
+                    out string targetNodeId) &&
+                string.Equals(
+                    targetNodeId,
+                    m_NodeId,
+                    StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryCommandData(
+            NexEvent nexEvent,
+            string key,
+            out string value)
+        {
+            value = string.Empty;
+
+            if (nexEvent?.Data == null ||
+                !nexEvent.Data.TryGetValue(
+                    key,
+                    out string raw) ||
+                string.IsNullOrWhiteSpace(raw))
+            {
+                return false;
+            }
+
+            value = raw.Trim();
+            return true;
+        }
+
+        private static bool TryCommandInt(
+            NexEvent nexEvent,
+            string key,
+            out int value)
+        {
+            value = 0;
+
+            return
+                TryCommandData(
+                    nexEvent,
+                    key,
+                    out string raw) &&
+                int.TryParse(
+                    raw,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out value);
+        }
+
+        private void PublishOperationState(
+            string eventName,
+            NexEvent request,
+            string operationId,
+            string operation,
+            string message,
+            IReadOnlyDictionary<string, string> additional = null)
+        {
+            Dictionary<string, string> data =
+                new Dictionary<string, string>
+                {
+                    ["operation_id"] =
+                        operationId ?? string.Empty,
+                    ["operation"] =
+                        operation ?? string.Empty,
+                    ["node_id"] =
+                        m_NodeId,
+                    ["message"] =
+                        message ?? string.Empty
+                };
+
+            if (request?.Data != null &&
+                request.Data.TryGetValue(
+                    "region_id",
+                    out string requestedRegionId) &&
+                requestedRegionId != null)
+            {
+                data["region_id"] =
+                    requestedRegionId;
+            }
+
+            if (additional != null)
+            {
+                foreach (KeyValuePair<string, string> item in additional)
+                    data[item.Key] = item.Value ?? string.Empty;
+            }
+
+            Publish(new NexEvent(
+                eventName,
+                "nexverse.simulator",
+                data,
+                request?.CorrelationId));
         }
 
         private void HandleInbound(
