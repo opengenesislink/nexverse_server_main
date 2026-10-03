@@ -584,7 +584,7 @@ Managed region mutations are now connected during the 0.9.3.2 World API line:
 - stop/restart are refused while root agents are present and only NexVerse-managed region files may be controlled;
 - stopped managed regions can be started again on an explicitly selected online NodeAgent, with lifecycle actions tracked through the same asynchronous operation registry.
 
-The API Control Center Grid Planner now also exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support and live asynchronous operation-state feedback. The backend Region Control Plane additionally supports managed start/stop/restart through `POST /api/v1/regions/{regionId}/lifecycle`. Global region jump/search, richer node/estate filtering and dedicated lifecycle UI controls remain subsequent work.
+The API Control Center Grid Planner now exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support, live asynchronous operation-state feedback, global registered-region search/jump and dedicated start/stop/restart controls through `POST /api/v1/regions/{regionId}/lifecycle`. Region search responses include grid/world coordinates so VarRegion origins can be selected exactly. Richer node/estate filtering remains subsequent work.
 
 The planner must provide:
 

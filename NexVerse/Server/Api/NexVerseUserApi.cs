@@ -558,12 +558,42 @@ namespace NexVerse.Server.Api
             if (region == null)
                 return null;
 
+            int worldX =
+                region.RegionLocX;
+            int worldY =
+                region.RegionLocY;
+
             return new NexRegionRecord(
                 region.RegionID.ToString(),
                 region.RegionName,
                 region.ServerURI,
+                WorldToGridCoordinate(worldX),
+                WorldToGridCoordinate(worldY),
+                worldX,
+                worldY,
                 region.RegionSizeX,
                 region.RegionSizeY);
+        }
+
+        private static int WorldToGridCoordinate(
+            int worldCoordinate)
+        {
+            int cellSize =
+                (int)OpenSim.Framework.Constants.RegionSize;
+            int quotient =
+                worldCoordinate /
+                cellSize;
+            int remainder =
+                worldCoordinate %
+                cellSize;
+
+            if (remainder != 0 &&
+                worldCoordinate < 0)
+            {
+                quotient--;
+            }
+
+            return quotient;
         }
 
         private static NexUserRecord Convert(UserAccount account)
@@ -2427,6 +2457,10 @@ namespace NexVerse.Server.Api
                 ["region_id"] = region.RegionId,
                 ["name"] = region.Name,
                 ["server_uri"] = region.ServerUri,
+                ["grid_x"] = region.GridX,
+                ["grid_y"] = region.GridY,
+                ["world_x"] = region.WorldX,
+                ["world_y"] = region.WorldY,
                 ["size_x"] = region.SizeX,
                 ["size_y"] = region.SizeY
             };

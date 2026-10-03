@@ -59,7 +59,18 @@ docs = require(
     "NexVerse/Server/Api/NexApiDocsPage.cs",
     'id="createGridRegion"',
     'id="moveGridRegion"',
+    'id="startGridRegion"',
+    'id="stopGridRegion"',
+    'id="restartGridRegion"',
+    'id="gridRegionSearch"',
+    'id="gridRegionResults"',
+    'id="jumpGridRegion"',
     'id="gridMutationDetail"',
+    "searchGridRegions",
+    "jumpGridRegion",
+    "runGridLifecycle",
+    "'/api/v1/regions?'+qs",
+    "/lifecycle",
     "watchRegionOperation",
     "/api/v1/region-operations/",
     "managed_region_commands=true",
@@ -68,9 +79,21 @@ docs = require(
 if "Der aktuelle Planer ist absichtlich read-only" in docs:
     errors.append("Grid Planner still claims to be read-only after mutation controls were implemented")
 
+region_record = require(
+    "NexVerse/Core/Identity/INexUserService.cs",
+    "public int GridX",
+    "public int GridY",
+    "public int WorldX",
+    "public int WorldY",
+)
+
 router = require(
     "NexVerse/Server/Api/NexVerseUserApi.cs",
     'path.EndsWith("/lifecycle"',
+    '["grid_x"] = region.GridX',
+    '["grid_y"] = region.GridY',
+    '["world_x"] = region.WorldX',
+    '["world_y"] = region.WorldY',
 )
 
 handlers = require(
