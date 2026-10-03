@@ -1256,6 +1256,8 @@ namespace NexVerse.Server.Api
                         scopes,
                         user.AccountStateChanged);
 
+                NexSecuritySession securitySession = m_Security?.CreateSession(user.PrincipalId, "native-world-api");
+
                 string correlationId =
                     AddCorrelation(response);
 
@@ -1307,6 +1309,7 @@ namespace NexVerse.Server.Api
                                 scopes),
                         principal_id =
                             user.PrincipalId,
+                        session_id = securitySession?.Id,
                         correlation_id =
                             correlationId
                     });
