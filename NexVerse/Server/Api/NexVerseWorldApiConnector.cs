@@ -360,6 +360,46 @@ namespace NexVerse.Server.Api
                     authenticator,
                     true);
 
+                IConfig profilesConfig = config.Configs["UserProfilesService"];
+                if (profilesConfig != null && profilesConfig.GetBoolean("Enabled", false))
+                {
+                    IConfig databaseConfig = config.Configs["DatabaseService"];
+                    string profileStorageProvider =
+                        profilesConfig.GetString(
+                            "StorageProvider",
+                            databaseConfig == null
+                                ? string.Empty
+                                : databaseConfig.GetString("StorageProvider", string.Empty));
+                    string profileConnectionString =
+                        profilesConfig.GetString(
+                            "ConnectionString",
+                            databaseConfig == null
+                                ? string.Empty
+                                : databaseConfig.GetString("ConnectionString", string.Empty));
+
+                    IProfilesData profilesData =
+                        ServerUtils.LoadPlugin<IProfilesData>(
+                            profileStorageProvider,
+                            new object[] { profileConnectionString });
+
+                    if (profilesData == null)
+                        throw new InvalidOperationException("Unable to load NexVerse WebProfileV3 profile datastore.");
+
+                    NexWebProfileV3Api webProfileV3 =
+                        new NexWebProfileV3Api(
+                            userAccounts,
+                            profilesData,
+                            authenticator);
+
+                    server.AddSimpleStreamHandler(
+                        new SimpleStreamHandler(
+                            "/api/v1/profiles",
+                            apiGate.Wrap(webProfileV3.Handle),
+                            "NexVerse WebProfileV3"));
+
+                    m_Log.Info("[NEX-WEBPROFILE-V3]: WebProfileV3 enabled using the authoritative UserProfilesService store.");
+                }
+
                 server.AddSimpleStreamHandler(new SimpleStreamHandler(
                     "/api/v1/statistics/summary",
                     apiGate.Wrap(statisticsApi.Summary),
