@@ -443,7 +443,8 @@ namespace NexVerse.Server.Api
                         auditSink,
                         adminMinimumLevel,
                         authCodeLifetimeSeconds,
-                        refreshLifetimeSeconds);
+                        refreshLifetimeSeconds,
+                        securityStore);
 
                     server.AddSimpleStreamHandler(new SimpleStreamHandler(
                         "/.well-known/openid-configuration",

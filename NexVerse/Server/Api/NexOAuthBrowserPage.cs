@@ -87,7 +87,7 @@ label{display:block;color:var(--muted);font-size:13px;margin:12px 0 5px}input{wi
 <label for=""username"">NexVerse-Benutzername</label>
 <input id=""username"" name=""username"" type=""text"" autocomplete=""username"" required maxlength=""128"" placeholder=""z. B. Antonia.Porta"">
 <label for=""password"">Passwort</label>
-<input id=""password"" name=""password"" type=""password"" autocomplete=""current-password"" required maxlength=""256"">
+<input id=""password"" name=""password"" type=""password"" autocomplete=""current-password"" required maxlength=""256"">\n<label for=""totp"">2FA-Code (nur falls aktiviert)</label>\n<input id=""totp"" name=""totp"" type=""text"" inputmode=""numeric"" autocomplete=""one-time-code"" maxlength=""6"" pattern=""[0-9]{6}"" placeholder=""Optional"">
 <div class=""actions"">
 <button class=""approve"" type=""submit"" name=""decision"" value=""approve"">Zugriff erlauben</button>
 <button class=""deny"" type=""submit"" name=""decision"" value=""deny"" formnovalidate>Ablehnen</button>
