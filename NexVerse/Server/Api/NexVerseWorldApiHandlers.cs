@@ -689,8 +689,8 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
-                        title = "Regions-Mutationen, Lifecycle und interaktive Grid-Planer-Aktionen",
-                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move/start/stop/restart als Operationen. Stop und Restart werden bei aktiven Root-Agents verweigert; Start einer gestoppten managed Region erfordert den Ziel-Node. Der Grid Planner kann Regionen erstellen oder verschieben und verfolgt die operation_id live.",
+                        title = "Regionssuche, Lifecycle und interaktive Grid-Planer-Aktionen",
+                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move/start/stop/restart als Operationen. Der Grid Planner kann registrierte Regionen global suchen und per veröffentlichter Grid-/Weltkoordinate anspringen, Regionen erstellen/verschieben sowie managed Start/Stop/Restart auslösen. Stop und Restart werden bei aktiven Root-Agents verweigert.",
                         endpoints = new[]
                         {
                             "/api/v1/regions",
@@ -915,12 +915,12 @@ namespace NexVerse.Server.Api
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt; Simulator-Service- und Estate-Verwaltung bleiben offen.",
+                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt; Simulator-Service- und Estate-Verwaltung bleiben offen.",
                             evidence = new[]
                             {
                                 "NexVerseNodeAgentModule veröffentlicht Knoten-/Regionszustand und regelmäßige Statusmeldungen",
-                                "Grid-Layout, VarRegion-Placement-Prüfung und interaktiver Grid Planner sind über die Welt-API verbunden",
-                                "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt und asynchron als Operationen verfolgt"
+                                "Grid-Layout, VarRegion-Placement-Prüfung, Regionssuche mit Koordinaten und interaktiver Grid Planner sind über die Welt-API verbunden",
+                                "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt, im Control Center bedient und asynchron als Operationen verfolgt"
                             }
                         },
                         new
