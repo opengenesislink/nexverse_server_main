@@ -34,6 +34,7 @@ namespace NexVerse.Server.Api
         private readonly int m_AdminMinimumLevel;
         private readonly int m_AuthorizationCodeLifetimeSeconds;
         private readonly int m_RefreshLifetimeSeconds;
+        private readonly INexSecurityStore m_Security;
 
         public NexOAuthApiRouter(
             string publicBaseUrl,
@@ -47,7 +48,8 @@ namespace NexVerse.Server.Api
             INexAuditSink audit,
             int adminMinimumLevel,
             int authorizationCodeLifetimeSeconds,
-            int refreshLifetimeSeconds)
+            int refreshLifetimeSeconds,
+            INexSecurityStore security = null)
         {
             m_PublicBaseUrl = (publicBaseUrl ?? string.Empty).TrimEnd('/');
             m_Tokens = tokens ?? throw new ArgumentNullException(nameof(tokens));
@@ -61,6 +63,7 @@ namespace NexVerse.Server.Api
             m_AdminMinimumLevel = adminMinimumLevel;
             m_AuthorizationCodeLifetimeSeconds = Math.Max(60, authorizationCodeLifetimeSeconds);
             m_RefreshLifetimeSeconds = Math.Max(300, refreshLifetimeSeconds);
+            m_Security = security;
         }
 
         public void Discovery(IOSHttpRequest request, IOSHttpResponse response)
@@ -300,6 +303,29 @@ namespace NexVerse.Server.Api
             {
                 RenderInvalidBrowserCredentials(response, authorization);
                 return;
+            }
+
+            if (m_Security != null && m_Security.IsTotpEnabled(user.PrincipalId))
+            {
+                string totp = FormValue(form, "totp");
+                if (!m_Security.VerifyTotp(user.PrincipalId, totp))
+                {
+                    m_Security.Record(user.PrincipalId, "login.mfa.failed", false);
+                    NexOAuthBrowserPage.WriteLoginConsent(
+                        response,
+                        authorization.Client,
+                        authorization.ResponseType,
+                        authorization.RedirectUri,
+                        authorization.Scopes,
+                        authorization.State,
+                        authorization.Nonce,
+                        authorization.CodeChallenge,
+                        authorization.CodeChallengeMethod,
+                        "Für dieses Konto ist die optionale Zwei-Faktor-Anmeldung aktiviert. Bitte gib den aktuellen 6-stelligen Code ein.");
+                    return;
+                }
+
+                m_Security.Record(user.PrincipalId, "login.mfa.success", true);
             }
 
             List<string> residentScopes = new List<string>
