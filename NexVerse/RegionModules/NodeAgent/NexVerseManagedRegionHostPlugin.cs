@@ -801,7 +801,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 coordinate >= 0 &&
                 (long)coordinate *
                 (int)Constants.RegionSize <=
-                (long)uint.MaxValue -
+                (long)int.MaxValue -
                 (int)Constants.MaximumRegionSize;
         }
 
