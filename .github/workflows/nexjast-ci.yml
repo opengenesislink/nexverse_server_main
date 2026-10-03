@@ -252,6 +252,12 @@ jobs:
               "Node",
               "NodeListResponse",
               "NodeResponse",
+              "RegionCreateRequest",
+              "RegionPlacementRequest",
+              "RegionLifecycleRequest",
+              "RegionOperation",
+              "RegionMutationAcceptedResponse",
+              "RegionOperationResponse",
               "UserCreateRequest",
               "UserCreateResponse",
               "ApiKey",
@@ -275,6 +281,14 @@ jobs:
           assert placement_patch["x-nexverse-scope"] == "regions:manage"
           assert placement_patch["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionPlacementRequest"
           assert placement_patch["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+
+          lifecycle_post = doc["paths"]["/api/v1/regions/{regionId}/lifecycle"]["post"]
+          assert lifecycle_post["x-nexverse-scope"] == "regions:manage"
+          assert lifecycle_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionLifecycleRequest"
+          assert lifecycle_post["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+          assert {p["name"] for p in lifecycle_post["parameters"]} == {"regionId", "Idempotency-Key"}
+          assert schemas["RegionLifecycleRequest"]["properties"]["action"]["enum"] == ["start", "stop", "restart"]
+          assert schemas["RegionOperation"]["properties"]["operation"]["enum"] == ["create", "move", "start", "stop", "restart"]
 
           operation_get = doc["paths"]["/api/v1/region-operations/{operationId}"]["get"]
           assert operation_get["x-nexverse-scope"] == "regions:read"
@@ -324,6 +338,7 @@ jobs:
           assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
           assert doc["x_nexverse_changelog"][0]["category"] == "regions"
           assert "/api/v1/regions" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/regions/{regionId}/lifecycle" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "/api/v1/region-operations/{operationId}" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
