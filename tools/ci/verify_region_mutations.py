@@ -69,7 +69,7 @@ docs = require(
     "searchGridRegions",
     "jumpGridRegion",
     "runGridLifecycle",
-    "/api/v1/regions?"+qs,
+    "'/api/v1/regions?'+qs",
     "/lifecycle",
     "watchRegionOperation",
     "/api/v1/region-operations/",
