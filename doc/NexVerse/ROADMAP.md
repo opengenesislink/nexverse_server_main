@@ -474,7 +474,9 @@ Foundation status implemented during the 0.9.3.3 development line:
 - `llGetDisplayName` and `llRequestDisplayName` use the same authoritative account source;
 - same-region viewer caches receive a `DisplayNameUpdate` event after a successful change.
 
-Additional presentation propagation retained for compatibility/UI polish:
+Remaining propagation work before section 7.2 is complete:
+
+> These remaining presentation surfaces are compatibility/UI polish and are not blockers for the completed 0.9.3.3 development checkpoint.
 
 - profiles / WebProfileV3;
 - chat presentation;
