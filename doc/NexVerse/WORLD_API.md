@@ -211,6 +211,8 @@ Protected endpoints:
 
 Both require `simulators:read`. Responses expose node ID, hostname, NexVerse version, online/stale/offline state, uptime, process ID, working-set memory, CPU time, region/agent counts, heartbeat timestamps and the currently reported region list. The default stale threshold is 90 seconds and can be changed with `NodeStaleAfterSeconds` in `[NexBus]`.
 
+The API Control Center exposes the same protected data in a dedicated **Simulatoren** view with online/stale/offline counts, NodeAgent transport status, process/resource information and per-node region details. Credentials entered there remain in the open page only and are not persisted.
+
 The separate `simulators:manage` scope is defined for the later command plane. No start/stop/restart or arbitrary console execution is exposed by this registry milestone.
 
 Grid-layout region records include `node_id` and `node_state` when ownership can be resolved from the live registry. Operational host/process details remain available only through the simulator API and are not copied into the `regions:read` response.
