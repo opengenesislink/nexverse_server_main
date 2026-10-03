@@ -810,6 +810,21 @@ namespace NexVerse.Server.Api
                         date = "2026-10-03",
                         version = "0.9.3.3",
                         category = "identity",
+                        status = "implemented",
+                        title = "Persistente Display-Name-Grundlage",
+                        summary = "Display Names werden persistent im autoritativen UserAccount-Datensatz gespeichert. World API, Viewer GetDisplayNames/SetDisplayName, Login-Antwort und LSL llGetDisplayName/llRequestDisplayName verwenden dieselbe Quelle. Einwohner können ihren Anzeigenamen mit Sieben-Tage-Sperre ändern; Administratoren dürfen die Sperre übersteuern.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/users/{principalId}",
+                            "/api/v1/openapi.json",
+                            "/api/v1/docs"
+                        }
+                    },
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.3",
+                        category = "identity",
                         status = "development",
                         title = "NexVerse 0.9.3.3 Dev gestartet",
                         summary = "Der World-API-v1-Checkpoint 0.9.3.2 ist abgeschlossen. Die aktive Entwicklungslinie wechselt auf Identität, Anzeigenamen, Profile und soziales Netzwerk; MFA/Passkeys werden in diesem Sicherheits- und Identitätsmeilenstein weitergeführt.",
@@ -2528,6 +2543,9 @@ namespace NexVerse.Server.Api
                         "principal_id",
                         "first_name",
                         "last_name",
+                        "username",
+                        "display_name",
+                        "is_display_name_default",
                         "user_level",
                         "active",
                         "account_state"
@@ -2537,6 +2555,11 @@ namespace NexVerse.Server.Api
                         ["principal_id"] = new { type = "string", format = "uuid" },
                         ["first_name"] = new { type = "string" },
                         ["last_name"] = new { type = "string" },
+                        ["username"] = new { type = "string" },
+                        ["display_name"] = new { type = "string", maxLength = 31 },
+                        ["is_display_name_default"] = new { type = "boolean" },
+                        ["display_name_changed"] = new { type = "integer", minimum = 0 },
+                        ["display_name_next_update"] = new { type = "integer", minimum = 0 },
                         ["email"] = new { type = "string" },
                         ["user_level"] = new { type = "integer" },
                         ["user_flags"] = new { type = "integer" },
@@ -2734,6 +2757,12 @@ namespace NexVerse.Server.Api
                     properties = new Dictionary<string, object>
                     {
                         ["email"] = new { type = "string", maxLength = 64 },
+                        ["display_name"] = new
+                        {
+                            type = "string",
+                            maxLength = 31,
+                            description = "Nicht eindeutiger Anzeigename. Leerer Wert setzt auf den Standardnamen zurück. Selbständerungen unterliegen einer Sieben-Tage-Sperre; Administratoren können diese übersteuern."
+                        },
                         ["user_title"] = new { type = "string", maxLength = 64 },
                         ["user_country"] = new { type = "string", maxLength = 64 }
                     }
