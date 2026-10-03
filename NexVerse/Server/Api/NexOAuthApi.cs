@@ -96,6 +96,7 @@ namespace NexVerse.Server.Api
                     NexScopes.SimulatorsRead,
                     NexScopes.SimulatorsManage,
                     NexScopes.StatisticsRead,
+                    NexScopes.EstatesRead,
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
                     NexScopes.EconomyTransfer,
