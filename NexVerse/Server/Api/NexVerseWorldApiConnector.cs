@@ -352,7 +352,8 @@ namespace NexVerse.Server.Api
                     nodeRegistry,
                     regionOperationRegistry,
                     distributedNexBusEnabled,
-                    adminMinimumLevel);
+                    adminMinimumLevel,
+                    new PersistentNexSecurityStore(apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json")));
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
                     userAccounts,

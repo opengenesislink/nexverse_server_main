@@ -705,6 +705,7 @@ namespace NexVerse.Server.Api
         private readonly NexEstateApi m_EstateApi;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
+        private readonly INexSecurityStore m_Security;
 
         public NexUserApiRouter(
             INexUserService users,
@@ -723,7 +724,8 @@ namespace NexVerse.Server.Api
             NexNodeRegistry nodeRegistry,
             NexRegionOperationRegistry regionOperationRegistry,
             bool distributedNexBusEnabled,
-            int adminMinimumLevel)
+            int adminMinimumLevel,
+            INexSecurityStore securityStore = null)
         {
             m_Users = users ?? throw new ArgumentNullException(nameof(users));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
@@ -762,6 +764,7 @@ namespace NexVerse.Server.Api
                 eventBus,
                 m_Audit);
             m_AdminMinimumLevel = adminMinimumLevel;
+            m_Security = securityStore;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -1235,11 +1238,25 @@ namespace NexVerse.Server.Api
                         NexScopes.AdminAll);
                 }
 
+                if (m_Security != null && m_Security.IsTotpEnabled(user.PrincipalId))
+                {
+                    string totp = GetOptionalString(root, "totp");
+                    bool mfaOk = m_Security.VerifyTotp(user.PrincipalId, totp);
+                    m_Security.Record(user.PrincipalId, mfaOk ? "login.mfa.success" : "login.mfa.failed", mfaOk);
+                    if (!mfaOk)
+                    {
+                        WriteError(response, HttpStatusCode.Unauthorized, "mfa_required", "A valid TOTP code is required for this account.");
+                        return;
+                    }
+                }
+
                 string accessToken =
                     m_Tokens.Issue(
                         user.PrincipalId,
                         scopes,
                         user.AccountStateChanged);
+
+                NexSecuritySession securitySession = m_Security?.CreateSession(user.PrincipalId, "native-world-api");
 
                 string correlationId =
                     AddCorrelation(response);
@@ -1292,6 +1309,7 @@ namespace NexVerse.Server.Api
                                 scopes),
                         principal_id =
                             user.PrincipalId,
+                        session_id = securitySession?.Id,
                         correlation_id =
                             correlationId
                     });

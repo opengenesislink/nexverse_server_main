@@ -20,6 +20,7 @@ namespace NexVerse.Core.Security
         public bool Enabled { get; set; } = true;
         public long CreatedAt { get; set; }
         public long UpdatedAt { get; set; }
+        public long LastUsedAt { get; set; }
     }
 
     public sealed class NexApiKeyRegistration
@@ -44,6 +45,7 @@ namespace NexVerse.Core.Security
 
         IReadOnlyList<NexApiKeyRecord> List();
         bool SetEnabled(string keyId, bool enabled);
+        bool Delete(string keyId);
         bool TryValidate(
             string apiKey,
             out NexApiKeyRecord record);
@@ -189,6 +191,17 @@ namespace NexVerse.Core.Security
             }
         }
 
+        public bool Delete(string keyId)
+        {
+            if (string.IsNullOrWhiteSpace(keyId)) return false;
+            lock (m_Sync)
+            {
+                int removed = m_Document.Keys.RemoveAll(x => string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
+                if (removed > 0) SaveLocked();
+                return removed > 0;
+            }
+        }
+
         public bool TryValidate(
             string apiKey,
             out NexApiKeyRecord record)
@@ -223,6 +236,8 @@ namespace NexVerse.Core.Security
                         stored.SecretHash))
                     return false;
 
+                stored.LastUsedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                SaveLocked();
                 record = Clone(stored);
                 return true;
             }
