@@ -381,7 +381,7 @@ namespace NexVerse.Server.Api
 
                 FriendsService friendsService = new FriendsService(config);
                 NexSocialGraphApi socialGraph =
-                    new NexSocialGraphApi(userAccounts, friendsService, authenticator, new MuteListService(config), auditSink);
+                    new NexSocialGraphApi(userAccounts, friendsService, authenticator, new MuteListService(config), auditSink, presence);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/relationships",
