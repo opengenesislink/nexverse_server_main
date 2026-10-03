@@ -250,13 +250,15 @@ The API Control Center at `/api/v1/docs` now contains the first interactive read
 
 VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells are considered occupied during placement validation. The planner highlights the complete proposed footprint and reports conflicting regions.
 
-The Grid Planner now includes the dedicated mutation form. A selected free cell can be validated and handed directly to region creation with region name, simulator NodeId, Estate ID, optional explicit region UUID and optional Idempotency-Key. For moves, selecting an occupied source cell can prefill the region UUID before a destination cell is chosen. The UI follows the returned `operation_id` until `completed` or `failed` and refreshes the raster after success. Online nodes advertising `managed_region_commands=true` can be loaded into the node selector when the credential also has `simulators:read`.
+The Grid Planner now includes the dedicated mutation and lifecycle controls. A selected free cell can be validated and handed directly to region creation with region name, simulator NodeId, Estate ID, optional explicit region UUID and optional Idempotency-Key. For moves, selecting an occupied source cell can prefill the region UUID before a destination cell is chosen. The same selected region can be started, stopped or restarted through the managed lifecycle endpoint; the node is prefilled when the live Grid/Node projection can resolve it, while a stopped region can still be started by entering its UUID and target NodeId manually. Stop and restart require an explicit browser confirmation in addition to the server-side root-agent guard.
+
+The planner also provides global registered-region search through `GET /api/v1/regions`. Search responses expose `grid_x`, `grid_y`, `world_x` and `world_y`; choosing a result recenters the viewport and selects the exact region origin, including VarRegions. The UI follows every returned `operation_id` until `completed` or `failed` and refreshes the raster after success. Online nodes advertising `managed_region_commands=true` can be loaded into the node selector when the credential also has `simulators:read`.
 
 ## Next API work
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The browser-facing authorization/login and consent surface, Grid Planner, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The next control-plane work is node/estate filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
+The browser-facing authorization/login and consent surface, Grid Planner with global region search/jump and lifecycle controls, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The next control-plane work is richer node/estate filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
