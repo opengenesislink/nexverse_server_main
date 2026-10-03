@@ -787,6 +787,7 @@
     Cap_GetMesh = "localhost"
     Cap_AvatarPickerSearch = "localhost"
     Cap_GetDisplayNames = "localhost"
+    Cap_SetDisplayName = "localhost"
 
 [SimulatorFeatures]
     ;# {SearchServerURI} {} {URL of the search server} {}
