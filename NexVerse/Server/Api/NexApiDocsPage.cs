@@ -889,7 +889,10 @@ async function jumpGridRegion(){
   $('gridMoveRegionId').value=region.region_id;
   const data=await loadGridLayout();
   if(!data)return;
-  const cell=(data.cells||[]).find(x=>x.region_id===region.region_id)||null;
+  const cell=(data.cells||[]).find(x=>
+    x.grid_x===region.grid_x&&
+    x.grid_y===region.grid_y&&
+    (x.region_id===region.region_id||(x.region_ids||[]).includes(region.region_id)))||null;
   if(cell){
     selectGridCell(cell);
     const el=document.querySelector('#gridBoard .gridcell[data-key="'+gridCellKey(cell.grid_x,cell.grid_y)+'"]');
