@@ -2274,6 +2274,20 @@ namespace OpenSim.Region.ClientStack.Linden
                 return;
             }
 
+            ScenePresence sp = m_Scene.GetScenePresence(m_AgentID);
+            if (sp == null || sp.IsDeleted)
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.Gone;
+                return;
+            }
+
+            if (sp.IsInTransit && !sp.IsInLocalTransit)
+            {
+                httpResponse.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+                httpResponse.AddHeader("Retry-After", "30");
+                return;
+            }
+
             UserAccount account = m_userAccountService?.GetUserAccount(m_scopeID, m_AgentID);
             if (account == null || !account.LocalToGrid)
             {
