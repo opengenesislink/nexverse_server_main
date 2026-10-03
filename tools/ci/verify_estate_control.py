@@ -63,6 +63,14 @@ for forbidden in (
         )
 
 require(
+    "NexVerse/Server/Api/NexRegionMutationApi.cs",
+    "private readonly IEstateDataService m_Estates",
+    "m_Estates.LoadEstateSettings(",
+    '"estate_not_found"',
+    '"estate_data_unavailable"',
+)
+
+require(
     "NexVerse/Server/Api/NexVerseUserApi.cs",
     "private readonly NexEstateApi m_EstateApi",
     '"/api/v1/estates"',
