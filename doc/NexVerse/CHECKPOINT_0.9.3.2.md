@@ -13,6 +13,9 @@ The checkpoint is intentionally not published as a standalone stable server rele
 
 ## Completion status
 
+Development checkpoint status: completed 3 October 2026  
+Explicit roadmap checklist: 36/36 explicit checklist items completed
+
 The 0.9.3.2 roadmap closes with **36/36 explicit checklist items completed**.
 
 MFA and passkey support are not counted as an unfinished 0.9.3.2 item. They belong to the 0.9.3.3 identity/security milestone together with active-session and security-event work.
