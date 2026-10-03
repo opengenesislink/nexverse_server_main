@@ -24,13 +24,15 @@ namespace NexVerse.Server.Api
         private readonly NexApiAuthenticator m_Authenticator;
         private readonly INexAuditSink m_Audit;
         private readonly bool m_DistributedTransportEnabled;
+        private readonly bool m_CommandRoutingEnabled;
 
         public NexNodeApi(
             NexNodeRegistry registry,
             NexNodeCommandTracker commands,
             NexApiAuthenticator authenticator,
             INexAuditSink audit,
-            bool distributedTransportEnabled)
+            bool distributedTransportEnabled,
+            bool commandRoutingEnabled)
         {
             m_Registry =
                 registry ??
@@ -46,6 +48,8 @@ namespace NexVerse.Server.Api
                 NullNexAuditSink.Instance;
             m_DistributedTransportEnabled =
                 distributedTransportEnabled;
+            m_CommandRoutingEnabled =
+                commandRoutingEnabled;
         }
 
         public void Handle(
@@ -220,6 +224,8 @@ namespace NexVerse.Server.Api
                     DateTimeOffset.UtcNow,
                 transport_enabled =
                     m_DistributedTransportEnabled,
+                command_routing_enabled =
+                    m_CommandRoutingEnabled,
                 stale_after_seconds =
                     m_Registry.StaleAfterSeconds,
                 count =
@@ -257,6 +263,8 @@ namespace NexVerse.Server.Api
                     DateTimeOffset.UtcNow,
                 transport_enabled =
                     m_DistributedTransportEnabled,
+                command_routing_enabled =
+                    m_CommandRoutingEnabled,
                 stale_after_seconds =
                     m_Registry.StaleAfterSeconds,
                 node =
@@ -271,13 +279,13 @@ namespace NexVerse.Server.Api
             string nodeId,
             NexPrincipal principal)
         {
-            if (!m_DistributedTransportEnabled)
+            if (!m_CommandRoutingEnabled)
             {
                 WriteError(
                     response,
                     HttpStatusCode.ServiceUnavailable,
-                    "node_command_transport_disabled",
-                    "Distributed NexBus transport must be enabled before NodeAgent commands can be issued.");
+                    "node_command_route_unavailable",
+                    "Distributed NexBus transport and at least one outbound simulator peer are required before NodeAgent commands can be issued.");
                 return;
             }
 
@@ -383,6 +391,8 @@ namespace NexVerse.Server.Api
             {
                 transport_enabled =
                     m_DistributedTransportEnabled,
+                command_routing_enabled =
+                    m_CommandRoutingEnabled,
                 command_timeout_seconds =
                     m_Commands.CommandTimeoutSeconds,
                 command =
