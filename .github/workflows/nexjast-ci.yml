@@ -259,6 +259,12 @@ jobs:
               "Estate",
               "EstateListResponse",
               "EstateResponse",
+              "EstatePolicies",
+              "EstateManagement",
+              "EstateCreateRequest",
+              "EstateUpdateRequest",
+              "EstateManagementResponse",
+              "EstateRegionAssignmentResponse",
               "RegionCreateRequest",
               "RegionPlacementRequest",
               "RegionLifecycleRequest",
@@ -287,6 +293,30 @@ jobs:
           assert estate_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateResponse"
           assert [p["name"] for p in estate_get["parameters"]] == ["estateId"]
           assert estate_get["parameters"][0]["in"] == "path" and estate_get["parameters"][0]["required"]
+
+          estate_post = doc["paths"]["/api/v1/estates"]["post"]
+          assert estate_post["x-nexverse-scope"] == "estates:manage"
+          assert estate_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateCreateRequest"
+          assert estate_post["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateManagementResponse"
+
+          estate_patch = doc["paths"]["/api/v1/estates/{estateId}"]["patch"]
+          assert estate_patch["x-nexverse-scope"] == "estates:manage"
+          assert estate_patch["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateUpdateRequest"
+          assert estate_patch["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateManagementResponse"
+
+          estate_management = doc["paths"]["/api/v1/estates/{estateId}/management"]["get"]
+          assert estate_management["x-nexverse-scope"] == "estates:manage"
+          assert estate_management["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateManagementResponse"
+
+          estate_region_put = doc["paths"]["/api/v1/estates/{estateId}/regions/{regionId}"]["put"]
+          assert estate_region_put["x-nexverse-scope"] == "estates:manage"
+          assert estate_region_put["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateRegionAssignmentResponse"
+          assert [p["name"] for p in estate_region_put["parameters"]] == ["estateId", "regionId"]
+
+          assert schemas["EstateCreateRequest"]["required"] == ["name", "owner_id"]
+          for prop in ("managers", "allowed_residents", "banned_residents", "allowed_groups"):
+              assert schemas["EstateManagement"]["properties"][prop]["type"] == "array"
+          assert schemas["EstatePolicies"]["properties"]["allow_voice"]["type"] == "boolean"
 
           region_get = doc["paths"]["/api/v1/regions"]["get"]
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
@@ -367,7 +397,8 @@ jobs:
           assert doc["x_nexverse_changelog"][0]["category"] == "regions"
           assert "/api/v1/estates" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "/api/v1/estates/{estateId}" in doc["x_nexverse_changelog"][0]["endpoints"]
-          assert "/api/v1/regions" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/estates/{estateId}/management" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/estates/{estateId}/regions/{regionId}" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
@@ -453,7 +484,12 @@ jobs:
           grep -F 'restartGridRegion' /tmp/nexverse-api-docs.html
           grep -F 'loadGridEstates' /tmp/nexverse-api-docs.html
           grep -F 'gridEstateOptions' /tmp/nexverse-api-docs.html
+          grep -F 'loadEstateManagement' /tmp/nexverse-api-docs.html
+          grep -F 'createEstateManagement' /tmp/nexverse-api-docs.html
+          grep -F 'updateEstateManagement' /tmp/nexverse-api-docs.html
+          grep -F 'assignEstateRegion' /tmp/nexverse-api-docs.html
           grep -F 'estates:read' /tmp/nexverse-api-docs.html
+          grep -F 'estates:manage' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/estates' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/regions/' /tmp/nexverse-api-docs.html
           grep -F '/lifecycle' /tmp/nexverse-api-docs.html
