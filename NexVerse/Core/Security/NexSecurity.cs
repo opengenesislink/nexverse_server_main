@@ -14,6 +14,7 @@ namespace NexVerse.Core.Security
         public const string ProfileWrite = "profile:write";
         public const string RelationshipsRead = "relationships:read";
         public const string RelationshipsWrite = "relationships:write";
+        public const string SecurityManage = "security:manage";
         public const string OfflineAccess = "offline_access";
         public const string UsersRead = "users:read";
         public const string UsersWrite = "users:write";
