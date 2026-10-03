@@ -412,7 +412,7 @@ namespace NexVerse.Server.Api
                     "Optionaler Filter nach Estate-Owner-UUID."),
                 PaginationParameter(
                     "limit",
-                    100,
+                    50,
                     1,
                     100),
                 PaginationParameter(
