@@ -85,6 +85,7 @@ namespace NexVerse.Server.Api
                 // OpenSim represents a pending offer by storing -1 on the target-facing row.
                 bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), 1);
                 bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), -1);
+                Audit(principal, "relationship.request", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.Accepted : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "pending" : "failed", principal_id = owner.ToString(), target_id = target.ToString() });
                 return;
@@ -95,6 +96,7 @@ namespace NexVerse.Server.Api
                 int rights = ReadRights(request, 1);
                 bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
                 bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), rights);
+                Audit(principal, "relationship.accept", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "accepted" : "failed", rights });
                 return;
@@ -104,6 +106,7 @@ namespace NexVerse.Server.Api
             {
                 int rights = ReadRights(request, 1);
                 bool ok = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
+                Audit(principal, "relationship.rights", owner, target, ok);
                 Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = ok ? "updated" : "failed", rights });
                 return;
@@ -113,6 +116,7 @@ namespace NexVerse.Server.Api
             {
                 bool a = m_Friends.Delete(owner, target.ToString());
                 bool b = m_Friends.Delete(target, owner.ToString());
+                Audit(principal, "relationship.remove", owner, target, a || b);
                 Write(response, HttpStatusCode.OK, new { status = (a || b) ? "removed" : "absent" });
                 return;
             }
