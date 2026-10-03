@@ -793,18 +793,18 @@ namespace NexVerse.RegionModules.NodeAgent
             return
                 coordinate >= 0 &&
                 (long)coordinate *
-                Constants.RegionSize <=
-                uint.MaxValue -
-                Constants.MaximumRegionSize;
+                (int)Constants.RegionSize <=
+                (long)uint.MaxValue -
+                (int)Constants.MaximumRegionSize;
         }
 
         private static bool IsValidRegionSize(
             int size)
         {
             return
-                size >= Constants.RegionSize &&
-                size <= Constants.MaximumRegionSize &&
-                size % Constants.RegionSize == 0;
+                size >= (int)Constants.RegionSize &&
+                size <= (int)Constants.MaximumRegionSize &&
+                size % (int)Constants.RegionSize == 0;
         }
 
         private static void TryDelete(
