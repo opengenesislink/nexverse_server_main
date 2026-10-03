@@ -45,6 +45,19 @@ api = require(
     "region_has_agents",
 )
 
+docs = require(
+    "NexVerse/Server/Api/NexApiDocsPage.cs",
+    'id="createGridRegion"',
+    'id="moveGridRegion"',
+    'id="gridMutationDetail"',
+    "watchRegionOperation",
+    "/api/v1/region-operations/",
+    "managed_region_commands=true",
+)
+
+if "Der aktuelle Planer ist absichtlich read-only" in docs:
+    errors.append("Grid Planner still claims to be read-only after mutation controls were implemented")
+
 handlers = require(
     "NexVerse/Server/Api/NexVerseWorldApiHandlers.cs",
     '["/api/v1/regions"]',
