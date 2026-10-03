@@ -77,14 +77,31 @@ namespace NexVerse.Core.Identity
         public string RegionId { get; }
         public string Name { get; }
         public string ServerUri { get; }
+        public int GridX { get; }
+        public int GridY { get; }
+        public int WorldX { get; }
+        public int WorldY { get; }
         public int SizeX { get; }
         public int SizeY { get; }
 
-        public NexRegionRecord(string regionId, string name, string serverUri, int sizeX, int sizeY)
+        public NexRegionRecord(
+            string regionId,
+            string name,
+            string serverUri,
+            int gridX,
+            int gridY,
+            int worldX,
+            int worldY,
+            int sizeX,
+            int sizeY)
         {
             RegionId = regionId ?? string.Empty;
             Name = name ?? string.Empty;
             ServerUri = serverUri ?? string.Empty;
+            GridX = gridX;
+            GridY = gridY;
+            WorldX = worldX;
+            WorldY = worldY;
             SizeX = sizeX;
             SizeY = sizeY;
         }
