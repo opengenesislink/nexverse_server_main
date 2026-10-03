@@ -175,6 +175,15 @@ namespace NexVerse.Server.Api
             bool distributedNexBusEnabled =
                 nexBusConfig != null &&
                 nexBusConfig.GetBoolean("Enabled", false);
+            string nexBusPeers =
+                nexBusConfig == null
+                    ? string.Empty
+                    : nexBusConfig.GetString("Peers", string.Empty);
+            bool nodeCommandRoutingEnabled =
+                distributedNexBusEnabled &&
+                nexBusPeers.Split(
+                    new[] { ';', ',' },
+                    StringSplitOptions.RemoveEmptyEntries).Length > 0;
             int nodeStaleAfterSeconds =
                 nexBusConfig == null
                     ? 90
@@ -355,6 +364,7 @@ namespace NexVerse.Server.Api
                     nodeRegistry,
                     nodeCommands,
                     distributedNexBusEnabled,
+                    nodeCommandRoutingEnabled,
                     adminMinimumLevel);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
