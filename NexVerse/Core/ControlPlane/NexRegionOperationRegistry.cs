@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using NexVerse.Core.Audit;
 using NexVerse.Core.Messaging;
 
 namespace NexVerse.Core.ControlPlane
@@ -60,12 +61,19 @@ namespace NexVerse.Core.ControlPlane
                 StringComparer.OrdinalIgnoreCase);
 
         private readonly IDisposable m_Subscription;
+        private readonly INexAuditSink m_Audit;
         private int m_Disposed;
 
-        public NexRegionOperationRegistry(INexEventBus eventBus)
+        public NexRegionOperationRegistry(
+            INexEventBus eventBus,
+            INexAuditSink audit = null)
         {
             if (eventBus == null)
                 throw new ArgumentNullException(nameof(eventBus));
+
+            m_Audit =
+                audit ??
+                NullNexAuditSink.Instance;
 
             m_Subscription =
                 eventBus.Subscribe(
@@ -78,6 +86,7 @@ namespace NexVerse.Core.ControlPlane
             string operation,
             string nodeId,
             string regionId,
+            string actor,
             string correlationId,
             IReadOnlyDictionary<string, string> details = null)
         {
@@ -93,6 +102,7 @@ namespace NexVerse.Core.ControlPlane
                     operation,
                     nodeId,
                     regionId,
+                    actor,
                     correlationId,
                     now,
                     details);
@@ -187,6 +197,23 @@ namespace NexVerse.Core.ControlPlane
                     record.Details[item.Key] =
                         item.Value ?? string.Empty;
                 }
+
+                m_Audit.Record(
+                    new NexAuditEvent(
+                        record.Actor,
+                        "regions.operation." + state,
+                        string.IsNullOrWhiteSpace(record.RegionId)
+                            ? record.OperationId
+                            : record.RegionId,
+                        record.CorrelationId,
+                        new Dictionary<string, string>
+                        {
+                            ["operation_id"] = record.OperationId,
+                            ["operation"] = record.Operation,
+                            ["node_id"] = record.NodeId,
+                            ["state"] = state,
+                            ["message"] = record.Message
+                        }));
             }
         }
 
@@ -251,6 +278,7 @@ namespace NexVerse.Core.ControlPlane
                 string operation,
                 string nodeId,
                 string regionId,
+                string actor,
                 string correlationId,
                 DateTimeOffset createdAt,
                 IReadOnlyDictionary<string, string> details)
@@ -259,6 +287,7 @@ namespace NexVerse.Core.ControlPlane
                 Operation = operation ?? string.Empty;
                 NodeId = nodeId ?? string.Empty;
                 RegionId = regionId ?? string.Empty;
+                Actor = actor ?? string.Empty;
                 CorrelationId = correlationId ?? string.Empty;
                 CreatedAt = createdAt;
                 UpdatedAt = createdAt;
@@ -278,6 +307,7 @@ namespace NexVerse.Core.ControlPlane
             public string Operation { get; }
             public string NodeId { get; }
             public string RegionId { get; }
+            public string Actor { get; }
             public string CorrelationId { get; }
             public DateTimeOffset CreatedAt { get; }
             public DateTimeOffset UpdatedAt { get; set; }
