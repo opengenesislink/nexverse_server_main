@@ -1657,6 +1657,10 @@ namespace NexVerse.Server.Api
                     {
                         "region_id",
                         "name",
+                        "grid_x",
+                        "grid_y",
+                        "world_x",
+                        "world_y",
                         "size_x",
                         "size_y"
                     },
@@ -1665,6 +1669,10 @@ namespace NexVerse.Server.Api
                         ["region_id"] = new { type = "string", format = "uuid" },
                         ["name"] = new { type = "string" },
                         ["server_uri"] = new { type = "string" },
+                        ["grid_x"] = new { type = "integer" },
+                        ["grid_y"] = new { type = "integer" },
+                        ["world_x"] = new { type = "integer" },
+                        ["world_y"] = new { type = "integer" },
                         ["size_x"] = new { type = "integer" },
                         ["size_y"] = new { type = "integer" }
                     }
