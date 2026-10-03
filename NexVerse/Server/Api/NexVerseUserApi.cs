@@ -719,7 +719,8 @@ namespace NexVerse.Server.Api
             }
 
             if ((path.StartsWith("/api/v1/regions/", StringComparison.OrdinalIgnoreCase) &&
-                 path.EndsWith("/placement", StringComparison.OrdinalIgnoreCase)) ||
+                 (path.EndsWith("/placement", StringComparison.OrdinalIgnoreCase) ||
+                  path.EndsWith("/lifecycle", StringComparison.OrdinalIgnoreCase))) ||
                 path.StartsWith("/api/v1/region-operations/", StringComparison.OrdinalIgnoreCase))
             {
                 m_RegionMutations.Handle(request, response);
