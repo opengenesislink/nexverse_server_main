@@ -77,6 +77,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
 
+      - name: Verify Display Name foundation
+        shell: bash
+        run: python3 tools/ci/verify_display_names.py
+
       - name: Verify resident username normalization
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexResidentNameRegression/NexResidentNameRegression.csproj
@@ -286,6 +290,14 @@ jobs:
           assert user_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateRequest"
           assert user_post["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateResponse"
 
+          user_schema = schemas["User"]
+          for required in ("username", "display_name", "is_display_name_default"):
+              assert required in user_schema["required"], f"User schema missing required display-name field: {required}"
+          assert user_schema["properties"]["display_name"]["maxLength"] == 31
+          assert user_schema["properties"]["display_name_changed"]["minimum"] == 0
+          assert user_schema["properties"]["display_name_next_update"]["minimum"] == 0
+          assert schemas["UserUpdateRequest"]["properties"]["display_name"]["maxLength"] == 31
+
           estates_get = doc["paths"]["/api/v1/estates"]["get"]
           assert estates_get["x-nexverse-scope"] == "estates:read"
           assert estates_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateListResponse"
@@ -399,9 +411,13 @@ jobs:
           assert "0.9.3.1 Dev" not in json.dumps(doc, ensure_ascii=False)
           assert "Resident and Hypergrid statistics dashboard" not in json.dumps(doc, ensure_ascii=False)
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
-          assert doc["x_nexverse_changelog"][0]["status"] == "development"
-          assert doc["x_nexverse_changelog"][0]["category"] == "identity"
-          assert doc["x_nexverse_changelog"][0]["title"] == "NexVerse 0.9.3.3 Dev gestartet"
+          display_change = doc["x_nexverse_changelog"][0]
+          assert display_change["status"] == "implemented"
+          assert display_change["category"] == "identity"
+          assert display_change["title"] == "Persistente Display-Name-Grundlage"
+          assert "/api/v1/users/{principalId}" in display_change["endpoints"]
+          dev_start = next(item for item in doc["x_nexverse_changelog"] if item["title"] == "NexVerse 0.9.3.3 Dev gestartet")
+          assert dev_start["status"] == "development"
           estate_change = next(item for item in doc["x_nexverse_changelog"] if item["title"] == "Estate-Verwaltung: Owner, Listen, Policies und Regionszuordnung")
           assert estate_change["status"] == "implemented"
           assert "/api/v1/estates" in estate_change["endpoints"]
