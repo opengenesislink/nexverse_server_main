@@ -644,20 +644,33 @@ Foundation implemented during the 0.9.3.2 World API line:
 
 Complete Estate API:
 
-- estate create/update/delete;
-- owner;
-- managers;
-- allowed residents;
-- banned residents;
-- allowed groups;
-- estate access;
-- voice policy;
-- scripts policy;
+- [x] estate create/update;
+- estate delete;
+- [x] owner;
+- [x] managers;
+- [x] allowed residents;
+- [x] banned residents;
+- [x] allowed groups;
+- [x] estate access;
+- [x] voice policy;
+- [x] scripts policy;
 - maturity;
 - terrain/environment defaults;
 - experience rules;
-- region membership;
+- [x] region membership;
 - estate templates.
+
+Write/control status added during the 0.9.3.2 World API line:
+
+- `POST /api/v1/estates` creates Estates through the authoritative OpenSim Estate datastore and requires a local NexVerse owner;
+- `PATCH /api/v1/estates/{estateId}` updates name, owner, parent, manager/allow/ban/group lists and supported boolean Estate policies;
+- `GET /api/v1/estates/{estateId}/management` exposes sensitive administrative lists only with `estates:manage`;
+- contradictory access policy is rejected: owner/managers cannot be banned and the same resident cannot be both allowed and banned;
+- `PUT /api/v1/estates/{estateId}/regions/{regionId}` reassigns a registered region and records audit/NexBus events;
+- region reassignment explicitly reports that a running simulator region must be restarted to reload live Estate settings;
+- the API Control Center provides Estate load/create/update and Region→Estate assignment controls;
+- SQLite Estate region lookup was completed so management-region membership works consistently across supported database providers;
+- Estate delete remains intentionally unexposed until the underlying datastore deletion path is implemented consistently and safely.
 
 ---
 

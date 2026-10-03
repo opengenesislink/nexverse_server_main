@@ -167,9 +167,15 @@ namespace NexVerse.Server.Api
                 ["/api/v1/nodes/{nodeId}"] = AuthenticatedOperations(
                     ("get", "Simulator-Node mit Gesundheits- und Regionszustand lesen", "simulators:read", "200")),
                 ["/api/v1/estates"] = AuthenticatedOperations(
-                    ("get", "Estate-Metadaten für Verwaltung und Regionszuordnung durchsuchen", "estates:read", "200")),
+                    ("get", "Estate-Metadaten für Verwaltung und Regionszuordnung durchsuchen", "estates:read", "200"),
+                    ("post", "Estate mit Owner, Listen und Policies erstellen", "estates:manage", "201")),
                 ["/api/v1/estates/{estateId}"] = AuthenticatedOperations(
-                    ("get", "Estate-Metadaten und Regionsanzahl lesen", "estates:read", "200")),
+                    ("get", "Estate-Metadaten und Regionsanzahl lesen", "estates:read", "200"),
+                    ("patch", "Estate-Stammdaten, Owner, Listen und Policies aktualisieren", "estates:manage", "200")),
+                ["/api/v1/estates/{estateId}/management"] = AuthenticatedOperations(
+                    ("get", "Verwaltungsdetails einschließlich Manager-, Zugriffs-, Ban- und Gruppenlisten lesen", "estates:manage", "200")),
+                ["/api/v1/estates/{estateId}/regions/{regionId}"] = AuthenticatedOperations(
+                    ("put", "Region einem Estate zuordnen oder dorthin verschieben", "estates:manage", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200"),
                     ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
@@ -256,10 +262,38 @@ namespace NexVerse.Server.Api
                 "200");
             ApplyJsonContract(
                 paths,
+                "/api/v1/estates",
+                "post",
+                "EstateCreateRequest",
+                "EstateManagementResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
                 "/api/v1/estates/{estateId}",
                 "get",
                 null,
                 "EstateResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/estates/{estateId}",
+                "patch",
+                "EstateUpdateRequest",
+                "EstateManagementResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/estates/{estateId}/management",
+                "get",
+                null,
+                "EstateManagementResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/estates/{estateId}/regions/{regionId}",
+                "put",
+                null,
+                "EstateRegionAssignmentResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -431,6 +465,27 @@ namespace NexVerse.Server.Api
                 "/api/v1/estates/{estateId}",
                 "get",
                 estateIdParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/estates/{estateId}",
+                "patch",
+                estateIdParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/estates/{estateId}/management",
+                "get",
+                estateIdParameter);
+
+            object estateRegionIdParameter =
+                PathParameter(
+                    "regionId",
+                    "UUID der Region, die dem Estate zugeordnet werden soll.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/estates/{estateId}/regions/{regionId}",
+                "put",
+                estateIdParameter,
+                estateRegionIdParameter);
 
             object regionIdParameter =
                 PathParameter(
@@ -741,6 +796,23 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
+                        title = "Estate-Verwaltung: Owner, Listen, Policies und Regionszuordnung",
+                        summary = "Die World API kann Estates mit estates:manage erstellen und bearbeiten, Owner und Manager sowie Allow-/Ban-/Gruppenlisten verwalten, zentrale Estate-Policies setzen und registrierte Regionen einem Estate zuordnen. Verwaltungslisten werden nur über den manage-geschützten Detailendpunkt ausgegeben.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/estates",
+                            "/api/v1/estates/{estateId}",
+                            "/api/v1/estates/{estateId}/management",
+                            "/api/v1/estates/{estateId}/regions/{regionId}",
+                            "/api/v1/docs"
+                        }
+                    },
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "regions",
+                        status = "implemented",
                         title = "Estate-Lesegrundlage für Region Control Plane",
                         summary = "Die privilegierte World API veröffentlicht mit estates:read grundlegende Estate-Metadaten, Owner, Parent-Estate und Regionsanzahl. Der Grid Planner kann diese Liste zur Auswahl der Estate-ID beim Erstellen verwalteter Regionen verwenden, ohne Estate-Zugriffslisten oder andere sensible Detaildaten offenzulegen.",
                         endpoints = new[]
@@ -983,13 +1055,14 @@ namespace NexVerse.Server.Api
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Verwaltung hat mit einer least-privilege Lese-API begonnen; Schreib-, Zugriffslisten- und Policy-Verwaltung bleiben offen.",
+                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Control-Plane unterstützt Lesen, Erstellen und Bearbeiten einschließlich Owner/Manager, Zugriffslisten, zentralen Policies und Regionszuordnung; Delete, Templates und weitere Spezialregeln bleiben offen.",
                             evidence = new[]
                             {
                                 "NexVerseNodeAgentModule veröffentlicht Knoten-/Regionszustand und regelmäßige Statusmeldungen",
                                 "Grid-Layout, VarRegion-Placement-Prüfung, Regionssuche mit Koordinaten und interaktiver Grid Planner sind über die Welt-API verbunden",
                                 "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt, im Control Center bedient und asynchron als Operationen verfolgt",
-                                "GET /api/v1/estates und /api/v1/estates/{estateId} liefern grundlegende Estate-Metadaten mit estates:read"
+                                "GET /api/v1/estates und /api/v1/estates/{estateId} liefern grundlegende Estate-Metadaten mit estates:read",
+                                "estates:manage steuert Estate create/update, Management-Details und Region→Estate-Zuordnung inklusive Audit/NexBus-Ereignissen"
                             }
                         },
                         new
@@ -1659,6 +1732,60 @@ namespace NexVerse.Server.Api
             };
         }
 
+        private static object UuidArraySchema()
+        {
+            return new
+            {
+                type = "array",
+                uniqueItems = true,
+                items = new
+                {
+                    type = "string",
+                    format = "uuid"
+                }
+            };
+        }
+
+        private static object EstateMutationSchema(
+            bool create)
+        {
+            Dictionary<string, object> schema =
+                new Dictionary<string, object>
+                {
+                    ["type"] = "object",
+                    ["properties"] =
+                        new Dictionary<string, object>
+                        {
+                            ["name"] = new { type = "string", maxLength = 64 },
+                            ["owner_id"] = new { type = "string", format = "uuid" },
+                            ["parent_estate_id"] = new { type = "integer", minimum = 0 },
+                            ["managers"] = UuidArraySchema(),
+                            ["allowed_residents"] = UuidArraySchema(),
+                            ["banned_residents"] = UuidArraySchema(),
+                            ["allowed_groups"] = UuidArraySchema(),
+                            ["public_access"] = new { type = "boolean" },
+                            ["allow_voice"] = new { type = "boolean" },
+                            ["allow_direct_teleport"] = new { type = "boolean" },
+                            ["estate_skip_scripts"] = new { type = "boolean" },
+                            ["deny_anonymous"] = new { type = "boolean" },
+                            ["deny_minors"] = new { type = "boolean" },
+                            ["allow_environment_override"] = new { type = "boolean" }
+                        }
+                };
+
+            if (create)
+            {
+                schema["required"] =
+                    new[]
+                    {
+                        "name",
+                        "owner_id"
+                    };
+            }
+
+            return schema;
+        }
+
         private static Dictionary<string, object> BuildSchemas()
         {
             object paginationRef = SchemaRef("Pagination");
@@ -1968,6 +2095,105 @@ namespace NexVerse.Server.Api
                     properties = new Dictionary<string, object>
                     {
                         ["estate"] = estateRef,
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EstatePolicies"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "public_access",
+                        "allow_voice",
+                        "allow_direct_teleport",
+                        "estate_skip_scripts",
+                        "deny_anonymous",
+                        "deny_minors",
+                        "allow_environment_override"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["public_access"] = new { type = "boolean" },
+                        ["allow_voice"] = new { type = "boolean" },
+                        ["allow_direct_teleport"] = new { type = "boolean" },
+                        ["estate_skip_scripts"] = new { type = "boolean" },
+                        ["deny_anonymous"] = new { type = "boolean" },
+                        ["deny_minors"] = new { type = "boolean" },
+                        ["allow_environment_override"] = new { type = "boolean" }
+                    }
+                },
+                ["EstateManagement"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "estate_id",
+                        "name",
+                        "owner_id",
+                        "parent_estate_id",
+                        "managers",
+                        "allowed_residents",
+                        "banned_residents",
+                        "allowed_groups",
+                        "policies",
+                        "region_count",
+                        "region_ids"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["estate_id"] = new { type = "integer", minimum = 1 },
+                        ["name"] = new { type = "string" },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["parent_estate_id"] = new { type = "integer", minimum = 0 },
+                        ["managers"] = UuidArraySchema(),
+                        ["allowed_residents"] = UuidArraySchema(),
+                        ["banned_residents"] = UuidArraySchema(),
+                        ["allowed_groups"] = UuidArraySchema(),
+                        ["policies"] = SchemaRef("EstatePolicies"),
+                        ["region_count"] = new { type = "integer", minimum = 0 },
+                        ["region_ids"] = UuidArraySchema()
+                    }
+                },
+                ["EstateCreateRequest"] = EstateMutationSchema(true),
+                ["EstateUpdateRequest"] = EstateMutationSchema(false),
+                ["EstateManagementResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "estate",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["estate"] = SchemaRef("EstateManagement"),
+                        ["changed_fields"] = new
+                        {
+                            type = "array",
+                            items = new { type = "string" }
+                        },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EstateRegionAssignmentResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "estate",
+                        "region_id",
+                        "already_linked",
+                        "region_restart_required",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["estate"] = estateRef,
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["previous_estate_id"] = new { type = new[] { "integer", "null" } },
+                        ["already_linked"] = new { type = "boolean" },
+                        ["region_restart_required"] = new { type = "boolean" },
+                        ["message"] = new { type = "string" },
                         ["correlation_id"] = new { type = "string" }
                     }
                 },

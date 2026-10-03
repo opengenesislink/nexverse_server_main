@@ -346,6 +346,7 @@ namespace NexVerse.Server.Api
                     apiKeyStore,
                     grid,
                     estateData,
+                    userAccounts,
                     nodeRegistry,
                     regionOperationRegistry,
                     distributedNexBusEnabled,

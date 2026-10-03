@@ -504,7 +504,24 @@ namespace OpenSim.Data.SQLite
 
         public List<UUID> GetRegions(int estateID)
         {
-            return new List<UUID>();
+            List<UUID> result = new List<UUID>();
+
+            using (SqliteCommand cmd = (SqliteCommand)m_connection.CreateCommand())
+            {
+                cmd.CommandText = "select RegionID from estate_map where EstateID = :EstateID";
+                cmd.Parameters.AddWithValue(":EstateID", estateID);
+
+                using (IDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (UUID.TryParse(reader["RegionID"].ToString(), out UUID regionID))
+                            result.Add(regionID);
+                    }
+                }
+            }
+
+            return result;
         }
 
         public bool DeleteEstate(int estateID)
