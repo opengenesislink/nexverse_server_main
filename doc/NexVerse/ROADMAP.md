@@ -3,6 +3,8 @@
 > Status: Active development roadmap  
 > Current stable release: **NexVerse 0.9.3.1**  
 > Active development line: **NexVerse 0.9.3.2 Dev**  
+> Active release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
+> Target stable release: **NexVerse 0.9.3.4**  
 > Active milestone: **NexVerse World API v1**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
@@ -124,6 +126,10 @@ Each development milestone increments the NexVerse product version.
 The first NexVerse development milestone was completed as:
 
 **NexVerse 0.9.3.1 — NEXJAST**
+
+For the current release train, 0.9.3.2 and 0.9.3.3 are development milestones and are not planned as separate stable releases. Development proceeds sequentially through 0.9.3.2 Dev, 0.9.3.3 Dev and 0.9.3.4 Dev. After the 0.9.3.4 scope is complete and release validation passes, the train advances through 0.9.3.4 RC builds to the stable **NexVerse 0.9.3.4** release.
+
+No implementation work from milestone 0.9.3.5 or later is to be started before the 0.9.3.4 release is completed. Existing work already pulled forward from later milestones remains part of the 0.9.3.4 release train and must be completed or explicitly scoped before release.
 
 A larger architectural platform generation will advance to **NexVerse 0.9.4.0**.
 
@@ -675,6 +681,8 @@ Write/control status added during the 0.9.3.2 World API line:
 ---
 
 # Milestone 0.9.3.5
+
+> **Scope gate:** planning may be refined, but implementation begins only after the stable NexVerse 0.9.3.4 release has been completed.
 
 ## 9. Inventory, OAR/IAR, Job Engine and NexBus
 
