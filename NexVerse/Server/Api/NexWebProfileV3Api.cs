@@ -6,6 +6,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using NexVerse.Core.Security;
+using NexVerse.Core.Audit;
+using System.Collections.Generic;
 using OpenMetaverse;
 using OpenSim.Data;
 using OpenSim.Framework;
@@ -24,15 +26,18 @@ namespace NexVerse.Server.Api
         private readonly IUserAccountService m_Accounts;
         private readonly IProfilesData m_Profiles;
         private readonly NexApiAuthenticator m_Authenticator;
+        private readonly INexAuditSink m_Audit;
 
         public NexWebProfileV3Api(
             IUserAccountService accounts,
             IProfilesData profiles,
-            NexApiAuthenticator authenticator)
+            NexApiAuthenticator authenticator,
+            INexAuditSink audit = null)
         {
             m_Accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
             m_Profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
+            m_Audit = audit ?? NullNexAuditSink.Instance;
         }
 
         public void Handle(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse)
@@ -149,6 +154,7 @@ namespace NexVerse.Server.Api
                 if (root.TryGetProperty("visibility", out JsonElement visibility))
                     profile.PublishProfile = string.Equals(visibility.GetString(), "public", StringComparison.OrdinalIgnoreCase);
 
+                    UUID oldPartnerId = profile.PartnerId;
                 if (root.TryGetProperty("partner_id", out JsonElement partner))
                 {
                     if (!principal.HasScope(NexScopes.AdminAll))
@@ -205,6 +211,20 @@ namespace NexVerse.Server.Api
             {
                 WriteJson(response, HttpStatusCode.InternalServerError, new { error = "profile_update_failed" });
                 return;
+            }
+
+            if (oldPartnerId != profile.PartnerId)
+            {
+                m_Audit.Record(new NexAuditEvent(
+                    principal.Subject,
+                    "relationship.partner.update",
+                    "relationship:" + account.PrincipalID,
+                    details: new Dictionary<string, string>
+                    {
+                        ["owner_id"] = account.PrincipalID.ToString(),
+                        ["old_partner_id"] = oldPartnerId.IsZero() ? string.Empty : oldPartnerId.ToString(),
+                        ["partner_id"] = profile.PartnerId.IsZero() ? string.Empty : profile.PartnerId.ToString()
+                    }));
             }
 
             Get(account, response);
