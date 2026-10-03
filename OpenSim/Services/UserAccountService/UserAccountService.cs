@@ -206,6 +206,14 @@ namespace OpenSim.Services.UserAccountService
             else
                 u.UserCountry = string.Empty;
 
+            if (d.Data.ContainsKey("DisplayName") && d.Data["DisplayName"] != null)
+                u.DisplayName = d.Data["DisplayName"].ToString();
+            else
+                u.DisplayName = string.Empty;
+
+            if (d.Data.ContainsKey("DisplayNameChanged") && d.Data["DisplayNameChanged"] != null)
+                Int32.TryParse(d.Data["DisplayNameChanged"], out u.DisplayNameChanged);
+
             u.Active = true;
             if (d.Data.ContainsKey("active") && d.Data["active"] != null)
             {
@@ -342,6 +350,8 @@ namespace OpenSim.Services.UserAccountService
             d.Data["UserFlags"] = data.UserFlags.ToString();
             d.Data["UserTitle"] = data.UserTitle ?? string.Empty;
             d.Data["UserCountry"] = data.UserCountry ?? string.Empty;
+            d.Data["DisplayName"] = data.DisplayName ?? string.Empty;
+            d.Data["DisplayNameChanged"] = data.DisplayNameChanged.ToString();
             d.Data["active"] = data.Active ? "1" : "0";
             d.Data["NexVerseState"] = string.IsNullOrWhiteSpace(data.NexVerseState) ? "active" : data.NexVerseState;
             d.Data["NexVerseStateReason"] = data.NexVerseStateReason ?? string.Empty;
