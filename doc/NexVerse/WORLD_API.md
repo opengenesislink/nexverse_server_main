@@ -249,7 +249,7 @@ The API Control Center at `/api/v1/docs` now contains the first interactive read
 
 VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells are considered occupied during placement validation. The planner highlights the complete proposed footprint and reports conflicting regions.
 
-The Grid Planner can now hand the selected cell and validated footprint to the `regions:manage` mutation path. The next UI step is a dedicated create/move form with node and estate selection plus operation-state feedback.
+The Grid Planner now includes the dedicated mutation form. A selected free cell can be validated and handed directly to region creation with region name, simulator NodeId, Estate ID, optional explicit region UUID and optional Idempotency-Key. For moves, selecting an occupied source cell can prefill the region UUID before a destination cell is chosen. The UI follows the returned `operation_id` until `completed` or `failed` and refreshes the raster after success. Online nodes advertising `managed_region_commands=true` can be loaded into the node selector when the credential also has `simulators:read`.
 
 ## Next API work
 
