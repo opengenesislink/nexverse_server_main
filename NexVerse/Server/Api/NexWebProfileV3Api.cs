@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using System;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -43,17 +44,29 @@ namespace NexVerse.Server.Api
                 !segments[1].Equals("v1", StringComparison.OrdinalIgnoreCase) ||
                 !segments[2].Equals("profiles", StringComparison.OrdinalIgnoreCase) ||
                 !UUID.TryParse(segments[3], out UUID userId))
-                WriteJson(httpResponse, HttpStatusCode.NotFound, new { error = "profile_not_found" }); return;
+            {
+                WriteJson(httpResponse, HttpStatusCode.NotFound, new { error = "profile_not_found" });
+                return;
+            }
 
             UserAccount account = m_Accounts.GetUserAccount(UUID.Zero, userId);
             if (account == null)
-                WriteJson(httpResponse, HttpStatusCode.NotFound, new { error = "profile_not_found" }); return;
+            {
+                WriteJson(httpResponse, HttpStatusCode.NotFound, new { error = "profile_not_found" });
+                return;
+            }
 
             if (string.Equals(httpRequest.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
-                Get(account, httpResponse); return;
+            {
+                Get(account, httpResponse);
+                return;
+            }
 
             if (string.Equals(httpRequest.HttpMethod, "PATCH", StringComparison.OrdinalIgnoreCase))
-                Patch(account, httpRequest.InputStream, httpRequest, httpResponse); return;
+            {
+                Patch(account, httpRequest.InputStream, httpRequest, httpResponse);
+                return;
+            }
 
             httpResponse.AddHeader("Allow", "GET, PATCH");
             WriteJson(httpResponse, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
@@ -102,11 +115,17 @@ namespace NexVerse.Server.Api
                     out UserAccount authenticatedAccount,
                     out int status,
                     out string authError))
+            {
                 WriteJson(response, (HttpStatusCode)status, new { error = authError });
+                return;
+            }
 
             bool self = UUID.TryParse(principal.Subject, out UUID subjectId) && subjectId == account.PrincipalID;
             if (!self && !principal.HasScope(NexScopes.AdminAll))
+            {
                 WriteJson(response, HttpStatusCode.Forbidden, new { error = "profile_owner_required" });
+                return;
+            }
 
             UserProfileProperties profile = new UserProfileProperties { UserId = account.PrincipalID };
             string storeError = string.Empty;
@@ -152,11 +171,15 @@ namespace NexVerse.Server.Api
             catch (JsonException)
             {
                 WriteJson(response, HttpStatusCode.BadRequest, new { error = "invalid_json" });
+                return;
             }
 
             if (!m_Profiles.UpdateAvatarProperties(ref profile, ref storeError) ||
                 !m_Profiles.UpdateAvatarInterests(profile, ref storeError))
+            {
                 WriteJson(response, HttpStatusCode.InternalServerError, new { error = "profile_update_failed" });
+                return;
+            }
 
             Get(account, response);
         }
