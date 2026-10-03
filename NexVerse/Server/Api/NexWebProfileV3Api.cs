@@ -81,7 +81,7 @@ namespace NexVerse.Server.Api
             WriteJson(response, HttpStatusCode.OK, new
             {
                 id = account.PrincipalID.ToString(),
-                username = (account.FirstName + "." + account.LastName).Trim('.'),
+                username = account.Username,
                 display_name = account.EffectiveDisplayName,
                 profile_image = profile.ImageId.ToString(),
                 about = profile.AboutText ?? string.Empty,
