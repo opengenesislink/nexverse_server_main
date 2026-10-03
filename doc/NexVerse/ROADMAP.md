@@ -505,7 +505,11 @@ Implementation status:
 - nodes are classified as `online`, `stale` or `offline`; the default stale threshold is 90 seconds and is configurable with `NodeStaleAfterSeconds`;
 - `GET /api/v1/nodes` and `GET /api/v1/nodes/{nodeId}` expose the registry with the dedicated `simulators:read` scope;
 - grid-layout region entries are enriched with current `node_id` and `node_state` when a NodeAgent ownership mapping is known;
-- `simulators:manage` is reserved for the later command plane and is not yet used to execute simulator mutations.
+- `simulators:manage` now protects the first bidirectional command-plane operation: a directed, non-mutating NodeAgent `ping`;
+- Robust issues commands with a UUID, actor, correlation ID and expiry deadline and tracks asynchronous `pending`, `completed`, `rejected` and `expired` results;
+- NodeAgents execute only commands addressed to their exact `node_id`; the current allowlist contains only `ping`;
+- no legacy console command execution is exposed, and the inherited unreliable region `restart` console path is not used;
+- actual simulator/region lifecycle mutations remain follow-up work after the request/ack transport is proven.
 
 Every simulator node registers with Robust and publishes:
 
@@ -523,6 +527,17 @@ Every simulator node registers with Robust and publishes:
 - heartbeat timestamp.
 
 ### 8.2 Simulator management
+
+Control-plane transport foundation:
+
+- [x] live NodeAgent registry on Robust;
+- [x] dedicated `simulators:read` / `simulators:manage` scopes;
+- [x] directed NodeAgent command request/result protocol over authenticated NexBus;
+- [x] asynchronous command tracking with timeout and bounded history;
+- [x] non-mutating `ping` command as the first end-to-end command-path probe;
+- [ ] controlled start/stop/restart operations;
+- [ ] drain/maintenance lifecycle;
+- [ ] managed update/rollback operations.
 
 World API functions:
 
