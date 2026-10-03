@@ -49,6 +49,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private Timer m_HeartbeatTimer;
         private IDisposable m_CreateRegionSubscription;
         private IDisposable m_MoveRegionSubscription;
+        private IDisposable m_RegionLifecycleSubscription;
         private DateTimeOffset m_StartedAt;
 
         public string NodeId => m_NodeId;
@@ -161,6 +162,10 @@ namespace NexVerse.RegionModules.NodeAgent
                 m_Bus.Subscribe(
                     "region.control.move.requested",
                     HandleMoveRegionCommand);
+            m_RegionLifecycleSubscription =
+                m_Bus.Subscribe(
+                    "region.control.lifecycle.requested",
+                    HandleRegionLifecycleCommand);
 
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
@@ -194,6 +199,8 @@ namespace NexVerse.RegionModules.NodeAgent
             m_CreateRegionSubscription = null;
             m_MoveRegionSubscription?.Dispose();
             m_MoveRegionSubscription = null;
+            m_RegionLifecycleSubscription?.Dispose();
+            m_RegionLifecycleSubscription = null;
             m_HeartbeatTimer?.Dispose();
             m_Bus?.Dispose();
             m_Transport = null;
@@ -536,6 +543,166 @@ namespace NexVerse.RegionModules.NodeAgent
                         operationId,
                         "move",
                         "region_move_unhandled_failure");
+                }
+            });
+        }
+
+        private void HandleRegionLifecycleCommand(
+            NexEvent nexEvent)
+        {
+            if (!IsCommandForThisNode(
+                    nexEvent) ||
+                !TryCommandData(
+                    nexEvent,
+                    "operation_id",
+                    out string operationId) ||
+                !TryCommandData(
+                    nexEvent,
+                    "action",
+                    out string action))
+            {
+                return;
+            }
+
+            action =
+                action.Trim()
+                    .ToLowerInvariant();
+
+            if (action != "start" &&
+                action != "stop" &&
+                action != "restart")
+            {
+                PublishOperationState(
+                    "region.control.operation.failed",
+                    nexEvent,
+                    operationId,
+                    "lifecycle",
+                    "invalid_lifecycle_action");
+                return;
+            }
+
+            PublishOperationState(
+                "region.control.operation.accepted",
+                nexEvent,
+                operationId,
+                action,
+                "accepted");
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (!TryCommandData(
+                            nexEvent,
+                            "region_id",
+                            out string regionIdRaw) ||
+                        !UUID.TryParse(
+                            regionIdRaw,
+                            out UUID regionId) ||
+                        regionId.IsZero())
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            action,
+                            "invalid_command_payload");
+                        return;
+                    }
+
+                    NexVerseManagedRegionHostPlugin host =
+                        NexVerseManagedRegionHostPlugin.Current;
+
+                    if (host == null ||
+                        !host.Enabled)
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            action,
+                            "managed_region_commands_disabled");
+                        return;
+                    }
+
+                    bool success;
+                    string error;
+                    string regionName;
+
+                    switch (action)
+                    {
+                        case "start":
+                            success =
+                                host.TryStartRegion(
+                                    regionId,
+                                    out error,
+                                    out regionName);
+                            break;
+
+                        case "stop":
+                            success =
+                                host.TryStopRegion(
+                                    regionId,
+                                    out error,
+                                    out regionName);
+                            break;
+
+                        default:
+                            success =
+                                host.TryRestartRegion(
+                                    regionId,
+                                    out error,
+                                    out regionName);
+                            break;
+                    }
+
+                    if (!success)
+                    {
+                        PublishOperationState(
+                            "region.control.operation.failed",
+                            nexEvent,
+                            operationId,
+                            action,
+                            error);
+                        return;
+                    }
+
+                    string completedMessage =
+                        action switch
+                        {
+                            "start" => "region_started",
+                            "stop" => "region_stopped",
+                            _ => "region_restarted"
+                        };
+
+                    PublishOperationState(
+                        "region.control.operation.completed",
+                        nexEvent,
+                        operationId,
+                        action,
+                        completedMessage,
+                        new Dictionary<string, string>
+                        {
+                            ["region_id"] =
+                                regionId.ToString(),
+                            ["region_name"] =
+                                regionName ?? string.Empty,
+                            ["action"] =
+                                action
+                        });
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-NODE]: Managed region lifecycle command failed.",
+                        e);
+
+                    PublishOperationState(
+                        "region.control.operation.failed",
+                        nexEvent,
+                        operationId,
+                        action,
+                        "region_lifecycle_unhandled_failure");
                 }
             });
         }

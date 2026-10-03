@@ -19,6 +19,10 @@ host = require(
     "region_not_nexverse_managed",
     "attempting rollback",
     "NexVerseNonFatalGridRegistration",
+    "TryStartRegion(",
+    "TryStopRegion(",
+    "TryRestartRegion(",
+    "managed_region_config_not_found",
 )
 
 if "m_OpenSim.RemoveRegion(" in host:
@@ -28,6 +32,8 @@ node = require(
     "NexVerse/RegionModules/NodeAgent/NexVerseNodeAgentModule.cs",
     '"region.control.create.requested"',
     '"region.control.move.requested"',
+    '"region.control.lifecycle.requested"',
+    "HandleRegionLifecycleCommand",
     '"region.control.operation.accepted"',
     '"region.control.operation.completed"',
     '"region.control.operation.failed"',
@@ -40,6 +46,10 @@ api = require(
     "NexScopes.RegionsManage",
     '"region.control.create.requested"',
     '"region.control.move.requested"',
+    '"region.control.lifecycle.requested"',
+    '"/api/v1/regions/"',
+    '"/lifecycle"',
+    '"node_id_required"',
     "Idempotency-Key",
     "node.ManagedRegionCommands",
     "region_has_agents",
@@ -58,15 +68,23 @@ docs = require(
 if "Der aktuelle Planer ist absichtlich read-only" in docs:
     errors.append("Grid Planner still claims to be read-only after mutation controls were implemented")
 
+router = require(
+    "NexVerse/Server/Api/NexVerseUserApi.cs",
+    'path.EndsWith("/lifecycle"',
+)
+
 handlers = require(
     "NexVerse/Server/Api/NexVerseWorldApiHandlers.cs",
     '["/api/v1/regions"]',
     '"regions:manage"',
     '"/api/v1/regions/{regionId}/placement"',
+    '"/api/v1/regions/{regionId}/lifecycle"',
     '"/api/v1/region-operations/{operationId}"',
     '"RegionCreateRequest"',
     '"RegionPlacementRequest"',
+    '"RegionLifecycleRequest"',
     '"RegionOperation"',
+    '"start", "stop", "restart"',
 )
 
 for config in (

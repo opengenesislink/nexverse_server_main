@@ -100,6 +100,30 @@ namespace NexVerse.Server.Api
                 "/api/v1/regions/";
             const string placementSuffix =
                 "/placement";
+            const string lifecycleSuffix =
+                "/lifecycle";
+
+            if (path.StartsWith(
+                    regionPrefix,
+                    StringComparison.OrdinalIgnoreCase) &&
+                path.EndsWith(
+                    lifecycleSuffix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                string regionId =
+                    path.Substring(
+                        regionPrefix.Length,
+                        path.Length -
+                        regionPrefix.Length -
+                        lifecycleSuffix.Length)
+                        .Trim('/');
+
+                HandleLifecycle(
+                    request,
+                    response,
+                    regionId);
+                return;
+            }
 
             if (path.StartsWith(
                     regionPrefix,
@@ -763,6 +787,290 @@ namespace NexVerse.Server.Api
                                     sizeX,
                                 size_y =
                                     sizeY
+                            },
+                            correlation_id =
+                                correlationId
+                        },
+                        HttpStatusCode.Accepted);
+
+                    CompleteIdempotency(
+                        response,
+                        reservation);
+                    completed = true;
+                }
+                finally
+                {
+                    if (!completed)
+                        AbortIdempotency(
+                            reservation);
+                }
+            }
+        }
+
+        private void HandleLifecycle(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            string regionIdRaw)
+        {
+            if (!RequireMethod(
+                    request,
+                    response,
+                    "POST"))
+            {
+                return;
+            }
+
+            if (!Authenticate(
+                    request,
+                    response,
+                    NexScopes.RegionsManage,
+                    out NexPrincipal principal))
+            {
+                return;
+            }
+
+            if (!RequireMutationInfrastructure(
+                    response))
+            {
+                return;
+            }
+
+            if (!UUID.TryParse(
+                    regionIdRaw,
+                    out UUID regionId) ||
+                regionId.IsZero())
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_region_id",
+                    "A non-zero region UUID is required.");
+                return;
+            }
+
+            if (!TryReadJson(
+                    request,
+                    response,
+                    out JsonDocument document))
+            {
+                return;
+            }
+
+            using (document)
+            {
+                JsonElement root =
+                    document.RootElement;
+
+                string action =
+                    GetOptionalString(
+                        root,
+                        "action")
+                    ?.Trim()
+                    .ToLowerInvariant();
+
+                if (action != "start" &&
+                    action != "stop" &&
+                    action != "restart")
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "invalid_lifecycle_action",
+                        "action must be start, stop or restart.");
+                    return;
+                }
+
+                string requestedNodeId =
+                    GetOptionalString(
+                        root,
+                        "node_id")
+                    ?.Trim();
+
+                NexNodeSnapshot currentNode =
+                    m_Nodes.FindNodeForRegion(
+                        regionId.ToString());
+
+                NexNodeSnapshot targetNode;
+
+                if (action == "start")
+                {
+                    if (currentNode != null)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "region_already_running",
+                            "The region is already reported as running by a simulator node.");
+                        return;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(
+                            requestedNodeId))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "node_id_required",
+                            "node_id is required when starting a stopped managed region.");
+                        return;
+                    }
+
+                    targetNode =
+                        m_Nodes.Get(
+                            requestedNodeId);
+                }
+                else
+                {
+                    if (currentNode == null)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.NotFound,
+                            "region_not_running",
+                            "The region is not currently reported as running by a simulator node.");
+                        return;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(
+                            requestedNodeId) &&
+                        !string.Equals(
+                            requestedNodeId,
+                            currentNode.NodeId,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "region_node_mismatch",
+                            "node_id does not match the node currently hosting the region.");
+                        return;
+                    }
+
+                    targetNode =
+                        currentNode;
+                }
+
+                if (!ValidateTargetNode(
+                        response,
+                        targetNode))
+                {
+                    return;
+                }
+
+                if (action != "start")
+                {
+                    NexNodeRegionSnapshot nodeRegion =
+                        targetNode.Regions.FirstOrDefault(x =>
+                            string.Equals(
+                                x.RegionId,
+                                regionId.ToString(),
+                                StringComparison.OrdinalIgnoreCase));
+
+                    if (nodeRegion != null &&
+                        nodeRegion.AgentCount > 0)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "region_has_agents",
+                            "A managed region cannot be stopped or restarted while root agents are present.");
+                        return;
+                    }
+                }
+
+                string path =
+                    "/api/v1/regions/" +
+                    regionId +
+                    "/lifecycle";
+
+                if (!TryReserveIdempotency(
+                        request,
+                        response,
+                        principal.Subject,
+                        "POST",
+                        path,
+                        root,
+                        out IdempotencyReservation reservation))
+                {
+                    return;
+                }
+
+                bool completed =
+                    false;
+
+                try
+                {
+                    string correlationId =
+                        Correlation(response);
+                    string operationId =
+                        Guid.NewGuid()
+                            .ToString("N");
+
+                    NexRegionOperationSnapshot operation =
+                        m_Operations.Register(
+                            operationId,
+                            action,
+                            targetNode.NodeId,
+                            regionId.ToString(),
+                            principal.Subject,
+                            correlationId,
+                            new Dictionary<string, string>
+                            {
+                                ["action"] =
+                                    action,
+                                ["node_id"] =
+                                    targetNode.NodeId
+                            });
+
+                    m_Audit.Record(
+                        new NexAuditEvent(
+                            principal.Subject,
+                            "regions.lifecycle." +
+                            action +
+                            ".request",
+                            regionId.ToString(),
+                            correlationId,
+                            new Dictionary<string, string>
+                            {
+                                ["operation_id"] =
+                                    operationId,
+                                ["action"] =
+                                    action,
+                                ["node_id"] =
+                                    targetNode.NodeId
+                            }));
+
+                    m_EventBus.Publish(
+                        new NexEvent(
+                            "region.control.lifecycle.requested",
+                            "nexverse.world-api",
+                            new Dictionary<string, string>
+                            {
+                                ["operation_id"] =
+                                    operationId,
+                                ["target_node_id"] =
+                                    targetNode.NodeId,
+                                ["region_id"] =
+                                    regionId.ToString(),
+                                ["action"] =
+                                    action
+                            },
+                            correlationId));
+
+                    WriteJson(
+                        response,
+                        new
+                        {
+                            operation =
+                                OperationPayload(
+                                    operation),
+                            lifecycle = new
+                            {
+                                region_id =
+                                    regionId.ToString(),
+                                node_id =
+                                    targetNode.NodeId,
+                                action
                             },
                             correlation_id =
                                 correlationId

@@ -235,15 +235,16 @@ Managed mutation endpoints are now implemented:
 
 - `POST /api/v1/regions` — queue creation of a NexVerse-managed region on an explicitly selected online NodeAgent
 - `PATCH /api/v1/regions/{regionId}/placement` — queue a placement change for an already running NexVerse-managed region
+- `POST /api/v1/regions/{regionId}/lifecycle` — queue `start`, `stop` or `restart` for a NexVerse-managed region
 - `GET /api/v1/region-operations/{operationId}` — read the asynchronous `queued`, `accepted`, `completed` or `failed` operation state
 
-Both write operations require `regions:manage`; operation status uses `regions:read`. Robust performs the grid/VarRegion collision check before dispatch, records the request in the audit trail and sends an addressed NexBus command to the selected simulator node. The simulator rechecks safety before changing scene state.
+All write operations require `regions:manage`; operation status uses `regions:read`. Robust validates the requested node/state, records the request in the audit trail and sends an addressed NexBus command to the selected simulator node. Placement mutations additionally perform the grid/VarRegion collision check before dispatch. The simulator rechecks safety before changing scene state.
 
 Managed execution is deliberately disabled by default with `ManagedRegionCommands=false` in `[NexVerseNodeAgent]`. It must only be enabled when the bidirectional NexBus path is authenticated and protected by TLS or private networking. A node must advertise this capability in its heartbeat before Robust accepts a mutation for it.
 
-Created regions receive a dedicated NexVerse-managed INI file and a UDP port from the configured managed port range. Moves are permitted only for those managed region files. A move is refused while root agents are present, closes the scene without deleting persisted objects, changes the managed placement and recreates the scene. If recreation fails, the node attempts to restore the previous placement.
+Created regions receive a dedicated NexVerse-managed INI file and a UDP port from the configured managed port range. Moves and lifecycle operations are permitted only for those managed region files. Move, stop and restart are refused while root agents are present. Stop uses the normal scene-close path and therefore persists/deregisters the region without deleting its stored objects. Start reloads the existing managed INI. Restart closes and recreates the same managed region; if recreation fails, the operation reports failure and the region can remain stopped.
 
-Both mutation endpoints accept an optional `Idempotency-Key`. Region operations are currently projected in Robust memory; the later Job Engine will provide durable long-running job history.
+Create, move and lifecycle mutations accept an optional `Idempotency-Key`. For `start`, `node_id` is mandatory because a stopped region is no longer present in the live NodeAgent region projection. For `stop` and `restart`, Robust resolves the current hosting node and rejects an explicitly supplied mismatching node. Region operations are currently projected in Robust memory; the later Job Engine will provide durable long-running job history.
 
 The API Control Center at `/api/v1/docs` now contains the first interactive read-only Grid Planner. It renders the bounded layout as a raster, supports viewport panning and display scaling, shows free/occupied/reserved/conflict states, exposes exact grid/world coordinates on hover or click, and can live-validate a selected origin with a chosen region width/height.
 
@@ -255,7 +256,7 @@ The Grid Planner now includes the dedicated mutation form. A selected free cell 
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The browser-facing authorization/login and consent surface, read-only Grid Planner, NodeAgent registry and managed region create/move execution path are now implemented. The next control-plane work is the polished create/move planner UI, node/estate filtering and broader simulator lifecycle actions; MFA/passkey work remains a later identity-security extension.
+The browser-facing authorization/login and consent surface, Grid Planner, NodeAgent registry and managed region create/move/start/stop/restart execution path are now implemented. The next control-plane work is node/estate filtering, region configuration/health surfaces and broader simulator-service lifecycle actions; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
