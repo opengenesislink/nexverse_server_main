@@ -117,6 +117,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_region_mutations.py
 
+      - name: Verify Estate Control Plane foundation
+        shell: bash
+        run: python3 tools/ci/verify_estate_control.py
+
       - name: Verify NexBus distributed core
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
@@ -252,6 +256,9 @@ jobs:
               "Node",
               "NodeListResponse",
               "NodeResponse",
+              "Estate",
+              "EstateListResponse",
+              "EstateResponse",
               "RegionCreateRequest",
               "RegionPlacementRequest",
               "RegionLifecycleRequest",
@@ -268,6 +275,18 @@ jobs:
           user_post = doc["paths"]["/api/v1/users"]["post"]
           assert user_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateRequest"
           assert user_post["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/UserCreateResponse"
+
+          estates_get = doc["paths"]["/api/v1/estates"]["get"]
+          assert estates_get["x-nexverse-scope"] == "estates:read"
+          assert estates_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateListResponse"
+          assert {p["name"] for p in estates_get["parameters"]} == {"q", "owner_id", "limit", "offset"}
+          assert schemas["Estate"]["required"] == ["estate_id", "name", "owner_id", "parent_estate_id", "region_count"]
+
+          estate_get = doc["paths"]["/api/v1/estates/{estateId}"]["get"]
+          assert estate_get["x-nexverse-scope"] == "estates:read"
+          assert estate_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/EstateResponse"
+          assert [p["name"] for p in estate_get["parameters"]] == ["estateId"]
+          assert estate_get["parameters"][0]["in"] == "path" and estate_get["parameters"][0]["required"]
 
           region_get = doc["paths"]["/api/v1/regions"]["get"]
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
@@ -346,9 +365,9 @@ jobs:
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
           assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
           assert doc["x_nexverse_changelog"][0]["category"] == "regions"
+          assert "/api/v1/estates" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/estates/{estateId}" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "/api/v1/regions" in doc["x_nexverse_changelog"][0]["endpoints"]
-          assert "/api/v1/regions/{regionId}/lifecycle" in doc["x_nexverse_changelog"][0]["endpoints"]
-          assert "/api/v1/region-operations/{operationId}" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
@@ -432,6 +451,10 @@ jobs:
           grep -F 'startGridRegion' /tmp/nexverse-api-docs.html
           grep -F 'stopGridRegion' /tmp/nexverse-api-docs.html
           grep -F 'restartGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'loadGridEstates' /tmp/nexverse-api-docs.html
+          grep -F 'gridEstateOptions' /tmp/nexverse-api-docs.html
+          grep -F 'estates:read' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/estates' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/regions/' /tmp/nexverse-api-docs.html
           grep -F '/lifecycle' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/region-operations/' /tmp/nexverse-api-docs.html
