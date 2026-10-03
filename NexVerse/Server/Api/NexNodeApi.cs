@@ -180,6 +180,8 @@ namespace NexVerse.Server.Api
                     node.RegionCount,
                 agent_count =
                     node.AgentCount,
+                managed_region_commands =
+                    node.ManagedRegionCommands,
                 last_seen =
                     node.LastSeen,
                 last_event_at =

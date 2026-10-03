@@ -239,6 +239,11 @@ namespace NexVerse.Server.Api
                         publicAuditSink,
                         auditStore);
 
+                NexRegionOperationRegistry regionOperationRegistry =
+                    new NexRegionOperationRegistry(
+                        eventBus,
+                        auditSink);
+
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];
 
@@ -340,6 +345,7 @@ namespace NexVerse.Server.Api
                     apiKeyStore,
                     grid,
                     nodeRegistry,
+                    regionOperationRegistry,
                     distributedNexBusEnabled,
                     adminMinimumLevel);
 

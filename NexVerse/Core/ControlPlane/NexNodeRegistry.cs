@@ -50,6 +50,7 @@ namespace NexVerse.Core.ControlPlane
             double cpuSeconds,
             int regionCount,
             int agentCount,
+            bool managedRegionCommands,
             string state,
             DateTimeOffset lastSeen,
             DateTimeOffset lastEventAt,
@@ -64,6 +65,7 @@ namespace NexVerse.Core.ControlPlane
             CpuSeconds = cpuSeconds;
             RegionCount = regionCount;
             AgentCount = agentCount;
+            ManagedRegionCommands = managedRegionCommands;
             State = state ?? "unknown";
             LastSeen = lastSeen;
             LastEventAt = lastEventAt;
@@ -79,6 +81,7 @@ namespace NexVerse.Core.ControlPlane
         public double CpuSeconds { get; }
         public int RegionCount { get; }
         public int AgentCount { get; }
+        public bool ManagedRegionCommands { get; }
         public string State { get; }
         public DateTimeOffset LastSeen { get; }
         public DateTimeOffset LastEventAt { get; }
@@ -274,6 +277,10 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "agent_count",
                     value => record.AgentCount = value);
+                AssignBool(
+                    nexEvent,
+                    "managed_region_commands",
+                    value => record.ManagedRegionCommands = value);
 
                 if (TryData(
                         nexEvent,
@@ -533,6 +540,7 @@ namespace NexVerse.Core.ControlPlane
                     record.CpuSeconds,
                     record.RegionCount,
                     record.AgentCount,
+                    record.ManagedRegionCommands,
                     state,
                     record.LastSeen,
                     record.LastEventAt,
@@ -676,6 +684,23 @@ namespace NexVerse.Core.ControlPlane
             }
         }
 
+        private static void AssignBool(
+            NexEvent nexEvent,
+            string key,
+            Action<bool> assign)
+        {
+            if (TryData(
+                    nexEvent,
+                    key,
+                    out string raw) &&
+                bool.TryParse(
+                    raw,
+                    out bool value))
+            {
+                assign(value);
+            }
+        }
+
         private static void AssignDouble(
             NexEvent nexEvent,
             string key,
@@ -725,6 +750,7 @@ namespace NexVerse.Core.ControlPlane
             public double CpuSeconds;
             public int RegionCount;
             public int AgentCount;
+            public bool ManagedRegionCommands;
             public bool ExplicitOffline;
             public DateTimeOffset LastSeen;
             public DateTimeOffset LastEventAt;

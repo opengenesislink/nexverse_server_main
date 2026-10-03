@@ -603,6 +603,7 @@ namespace NexVerse.Server.Api
         private readonly INexIdempotencyStore m_IdempotencyStore;
         private readonly INexApiKeyStore m_ApiKeys;
         private readonly NexGridControlApi m_GridControl;
+        private readonly NexRegionMutationApi m_RegionMutations;
         private readonly NexNodeApi m_NodeApi;
         private readonly int m_IdempotencyTtlSeconds;
         private readonly int m_AdminMinimumLevel;
@@ -620,6 +621,7 @@ namespace NexVerse.Server.Api
             INexApiKeyStore apiKeys,
             IGridService grid,
             NexNodeRegistry nodeRegistry,
+            NexRegionOperationRegistry regionOperationRegistry,
             bool distributedNexBusEnabled,
             int adminMinimumLevel)
         {
@@ -637,6 +639,16 @@ namespace NexVerse.Server.Api
                 grid,
                 authenticator,
                 nodeRegistry);
+            m_RegionMutations = new NexRegionMutationApi(
+                grid,
+                nodeRegistry,
+                regionOperationRegistry,
+                authenticator,
+                eventBus,
+                m_Audit,
+                idempotencyStore,
+                m_IdempotencyTtlSeconds,
+                distributedNexBusEnabled);
             m_NodeApi = new NexNodeApi(
                 nodeRegistry,
                 authenticator,
@@ -697,7 +709,20 @@ namespace NexVerse.Server.Api
 
             if (string.Equals(path, "/api/v1/regions", StringComparison.OrdinalIgnoreCase))
             {
-                HandleRegionSearch(request, response);
+                if (IsMethod(request, "GET"))
+                    HandleRegionSearch(request, response);
+                else if (IsMethod(request, "POST"))
+                    m_RegionMutations.Handle(request, response);
+                else
+                    WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "GET or POST is required.");
+                return;
+            }
+
+            if ((path.StartsWith("/api/v1/regions/", StringComparison.OrdinalIgnoreCase) &&
+                 path.EndsWith("/placement", StringComparison.OrdinalIgnoreCase)) ||
+                path.StartsWith("/api/v1/region-operations/", StringComparison.OrdinalIgnoreCase))
+            {
+                m_RegionMutations.Handle(request, response);
                 return;
             }
 

@@ -167,7 +167,12 @@ namespace NexVerse.Server.Api
                 ["/api/v1/nodes/{nodeId}"] = AuthenticatedOperations(
                     ("get", "Simulator-Node mit Gesundheits- und Regionszustand lesen", "simulators:read", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
-                    ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200")),
+                    ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200"),
+                    ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
+                ["/api/v1/regions/{regionId}/placement"] = AuthenticatedOperations(
+                    ("patch", "NexVerse-verwaltete Region nach Placement-Prüfung verschieben", "regions:manage", "202")),
+                ["/api/v1/region-operations/{operationId}"] = AuthenticatedOperations(
+                    ("get", "Status einer asynchronen Regionsoperation lesen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
                     ("get", "Authentifiziertes Einwohnerkonto lesen", null, "200")),
                 ["/api/v1/users"] = AuthenticatedOperations(
@@ -242,6 +247,27 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "RegionSearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/regions",
+                "post",
+                "RegionCreateRequest",
+                "RegionMutationAcceptedResponse",
+                "202");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/regions/{regionId}/placement",
+                "patch",
+                "RegionPlacementRequest",
+                "RegionMutationAcceptedResponse",
+                "202");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/region-operations/{operationId}",
+                "get",
+                null,
+                "RegionOperationResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -344,6 +370,39 @@ namespace NexVerse.Server.Api
                 "/api/v1/nodes/{nodeId}",
                 "get",
                 nodeIdParameter);
+
+            object regionIdParameter =
+                PathParameter(
+                    "regionId",
+                    "UUID der zu verschiebenden Region.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/regions/{regionId}/placement",
+                "patch",
+                regionIdParameter,
+                HeaderParameter(
+                    "Idempotency-Key",
+                    false,
+                    "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
+
+            object operationIdParameter =
+                StringPathParameter(
+                    "operationId",
+                    "Kennung der asynchronen Regionsoperation.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/region-operations/{operationId}",
+                "get",
+                operationIdParameter);
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/regions",
+                "post",
+                HeaderParameter(
+                    "Idempotency-Key",
+                    false,
+                    "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
 
             object principalIdParameter =
                 PathParameter(
@@ -606,6 +665,22 @@ namespace NexVerse.Server.Api
                 },
                 x_nexverse_changelog = new object[]
                 {
+                    new
+                    {
+                        date = "2026-10-03",
+                        version = "0.9.3.2",
+                        category = "regions",
+                        status = "implemented",
+                        title = "Regions-Mutationen und interaktive Grid-Planer-Aktionen",
+                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move als Operationen. Der Grid Planner kann Regionen aus einer validierten Zielzelle erstellen oder verschieben und verfolgt die operation_id live; der NodeAgent führt ausschließlich explizit aktivierte NexVerse-managed Mutationen aus.",
+                        endpoints = new[]
+                        {
+                            "/api/v1/regions",
+                            "/api/v1/regions/{regionId}/placement",
+                            "/api/v1/region-operations/{operationId}",
+                            "/api/v1/nodes/{nodeId}"
+                        }
+                    },
                     new
                     {
                         date = "2026-10-03",
@@ -1661,6 +1736,7 @@ namespace NexVerse.Server.Api
                         "cpu_seconds",
                         "region_count",
                         "agent_count",
+                        "managed_region_commands",
                         "last_seen",
                         "last_event_at",
                         "regions"
@@ -1681,6 +1757,7 @@ namespace NexVerse.Server.Api
                         ["cpu_seconds"] = new { type = "number", format = "double", minimum = 0 },
                         ["region_count"] = new { type = "integer", minimum = 0 },
                         ["agent_count"] = new { type = "integer", minimum = 0 },
+                        ["managed_region_commands"] = new { type = "boolean" },
                         ["last_seen"] = new { type = "string", format = "date-time" },
                         ["last_event_at"] = new { type = "string", format = "date-time" },
                         ["regions"] = new
@@ -1733,6 +1810,102 @@ namespace NexVerse.Server.Api
                         ["transport_enabled"] = new { type = "boolean" },
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["node"] = SchemaRef("Node"),
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["RegionCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "name",
+                        "node_id",
+                        "estate_id",
+                        "grid_x",
+                        "grid_y"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["name"] = new { type = "string", maxLength = 128 },
+                        ["node_id"] = new { type = "string", maxLength = 128 },
+                        ["estate_id"] = new { type = "integer", minimum = 1 },
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["grid_x"] = new { type = "integer", minimum = 0 },
+                        ["grid_y"] = new { type = "integer", minimum = 0 },
+                        ["size_x"] = new { type = "integer", minimum = 256, maximum = 4096, @default = 256 },
+                        ["size_y"] = new { type = "integer", minimum = 256, maximum = 4096, @default = 256 }
+                    }
+                },
+                ["RegionPlacementRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "grid_x",
+                        "grid_y"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["grid_x"] = new { type = "integer", minimum = 0 },
+                        ["grid_y"] = new { type = "integer", minimum = 0 }
+                    }
+                },
+                ["RegionOperation"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "operation_id",
+                        "operation",
+                        "state",
+                        "node_id",
+                        "region_id",
+                        "created_at",
+                        "updated_at",
+                        "details"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["operation_id"] = new { type = "string" },
+                        ["operation"] = new { type = "string", @enum = new[] { "create", "move" } },
+                        ["state"] = new { type = "string", @enum = new[] { "queued", "accepted", "completed", "failed" } },
+                        ["message"] = new { type = "string" },
+                        ["node_id"] = new { type = "string" },
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["created_at"] = new { type = "string", format = "date-time" },
+                        ["updated_at"] = new { type = "string", format = "date-time" },
+                        ["details"] = new
+                        {
+                            type = "object",
+                            additionalProperties = new { type = "string" }
+                        }
+                    }
+                },
+                ["RegionMutationAcceptedResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "operation",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["operation"] = SchemaRef("RegionOperation"),
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["RegionOperationResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "operation",
+                        "correlation_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["operation"] = SchemaRef("RegionOperation"),
                         ["correlation_id"] = new { type = "string" }
                     }
                 },

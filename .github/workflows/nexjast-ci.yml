@@ -113,6 +113,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_auth_cutover.py
 
+      - name: Verify Region Control Plane mutations
+        shell: bash
+        run: python3 tools/ci/verify_region_mutations.py
+
       - name: Verify NexBus distributed core
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
@@ -262,6 +266,20 @@ jobs:
           region_get = doc["paths"]["/api/v1/regions"]["get"]
           assert region_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionSearchResponse"
 
+          region_post = doc["paths"]["/api/v1/regions"]["post"]
+          assert region_post["x-nexverse-scope"] == "regions:manage"
+          assert region_post["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionCreateRequest"
+          assert region_post["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+
+          placement_patch = doc["paths"]["/api/v1/regions/{regionId}/placement"]["patch"]
+          assert placement_patch["x-nexverse-scope"] == "regions:manage"
+          assert placement_patch["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionPlacementRequest"
+          assert placement_patch["responses"]["202"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionMutationAcceptedResponse"
+
+          operation_get = doc["paths"]["/api/v1/region-operations/{operationId}"]["get"]
+          assert operation_get["x-nexverse-scope"] == "regions:read"
+          assert operation_get["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/RegionOperationResponse"
+
           grid_layout = doc["paths"]["/api/v1/grid/layout"]["get"]
           assert grid_layout["x-nexverse-scope"] == "regions:read"
           assert grid_layout["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/GridLayoutResponse"
@@ -280,6 +298,7 @@ jobs:
           assert schemas["GridRegionPlacement"]["properties"]["size_x"]["maximum"] == 4096
           assert "node_id" in schemas["GridRegionPlacement"]["properties"]
           assert "node_state" in schemas["GridRegionPlacement"]["properties"]
+          assert schemas["Node"]["properties"]["managed_region_commands"]["type"] == "boolean"
 
           nodes_get = doc["paths"]["/api/v1/nodes"]["get"]
           assert nodes_get["x-nexverse-scope"] == "simulators:read"
@@ -303,8 +322,9 @@ jobs:
           assert "Resident and Hypergrid statistics dashboard" not in json.dumps(doc, ensure_ascii=False)
           assert "Legacy Cleanup and Platform Foundation" not in json.dumps(doc, ensure_ascii=False)
           assert doc["x_nexverse_changelog"][0]["status"] == "implemented"
-          assert doc["x_nexverse_changelog"][0]["category"] == "platform"
-          assert "/api/v1/nodes" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert doc["x_nexverse_changelog"][0]["category"] == "regions"
+          assert "/api/v1/regions" in doc["x_nexverse_changelog"][0]["endpoints"]
+          assert "/api/v1/region-operations/{operationId}" in doc["x_nexverse_changelog"][0]["endpoints"]
           assert "title" in doc["x_nexverse_changelog"][0]
 
           roadmap = doc["x_nexverse_roadmap"]
@@ -380,6 +400,10 @@ jobs:
           grep -F 'Simulator-Nodes' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/nodes' /tmp/nexverse-api-docs.html
           grep -F 'simulators:read' /tmp/nexverse-api-docs.html
+          grep -F 'Region erstellen' /tmp/nexverse-api-docs.html
+          grep -F 'createGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'moveGridRegion' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/region-operations/' /tmp/nexverse-api-docs.html
           if grep -F 'localStorage' /tmp/nexverse-api-docs.html; then
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1
