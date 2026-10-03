@@ -2634,6 +2634,27 @@ namespace NexVerse.Server.Api
             };
         }
 
+        private static string UserName(NexUserRecord user)
+        {
+            if (user == null)
+                return string.Empty;
+
+            if (string.Equals(
+                    user.LastName,
+                    "Resident",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return (user.FirstName ?? string.Empty)
+                    .ToLowerInvariant();
+            }
+
+            return ((user.FirstName ?? string.Empty) +
+                    "." +
+                    (user.LastName ?? string.Empty))
+                .Trim('.')
+                .ToLowerInvariant();
+        }
+
         private static Dictionary<string, object> UserPayload(NexUserRecord user)
         {
             return new Dictionary<string, object>
@@ -2641,6 +2662,7 @@ namespace NexVerse.Server.Api
                 ["principal_id"] = user.PrincipalId,
                 ["first_name"] = user.FirstName,
                 ["last_name"] = user.LastName,
+                ["username"] = UserName(user),
                 ["email"] = user.Email,
                 ["user_level"] = user.UserLevel,
                 ["user_flags"] = user.UserFlags,
