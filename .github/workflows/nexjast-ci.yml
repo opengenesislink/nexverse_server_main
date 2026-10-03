@@ -310,6 +310,9 @@ jobs:
           assert {p["name"] for p in placement["parameters"]} == {"x", "y", "size_x", "size_y"}
           assert schemas["GridCell"]["properties"]["status"]["enum"] == ["free", "occupied", "reserved", "conflict"]
           assert schemas["GridRegionPlacement"]["properties"]["size_x"]["maximum"] == 4096
+          for field in ("grid_x", "grid_y", "world_x", "world_y"):
+              assert field in schemas["Region"]["required"], f"Region schema missing coordinate: {field}"
+              assert schemas["Region"]["properties"][field]["type"] == "integer"
           assert "node_id" in schemas["GridRegionPlacement"]["properties"]
           assert "node_state" in schemas["GridRegionPlacement"]["properties"]
           assert schemas["Node"]["properties"]["managed_region_commands"]["type"] == "boolean"
@@ -424,6 +427,13 @@ jobs:
           grep -F 'Region erstellen' /tmp/nexverse-api-docs.html
           grep -F 'createGridRegion' /tmp/nexverse-api-docs.html
           grep -F 'moveGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'gridRegionSearch' /tmp/nexverse-api-docs.html
+          grep -F 'jumpGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'startGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'stopGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'restartGridRegion' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/regions/' /tmp/nexverse-api-docs.html
+          grep -F '/lifecycle' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/region-operations/' /tmp/nexverse-api-docs.html
           if grep -F 'localStorage' /tmp/nexverse-api-docs.html; then
             echo "::error::API Control Center must not persist credentials in localStorage."
