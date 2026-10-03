@@ -377,6 +377,9 @@ jobs:
           grep -F '/api/v1/grid/layout' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/grid/validate-placement' /tmp/nexverse-api-docs.html
           grep -F 'regions:read' /tmp/nexverse-api-docs.html
+          grep -F 'Simulator-Nodes' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/nodes' /tmp/nexverse-api-docs.html
+          grep -F 'simulators:read' /tmp/nexverse-api-docs.html
           if grep -F 'localStorage' /tmp/nexverse-api-docs.html; then
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1
