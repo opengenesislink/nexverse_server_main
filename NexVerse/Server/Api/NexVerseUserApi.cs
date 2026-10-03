@@ -432,6 +432,61 @@ namespace NexVerse.Server.Api
             return Convert(account);
         }
 
+        public NexUserRecord SetDisplayName(
+            string principalId,
+            string displayName,
+            bool bypassCooldown,
+            out int retryAfterSeconds,
+            out string error)
+        {
+            retryAfterSeconds = 0;
+            error = string.Empty;
+
+            if (!UUID.TryParse(principalId, out UUID id))
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            UserAccount account = m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null || !account.LocalToGrid)
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            if (!DisplayNamePolicy.TryNormalize(displayName, out string normalized, out string validationError))
+            {
+                error = validationError;
+                return null;
+            }
+
+            int now = OpenSim.Framework.Util.UnixTimeSinceEpoch();
+            if (!bypassCooldown && !DisplayNamePolicy.CanChangeNow(account, now))
+            {
+                retryAfterSeconds = Math.Max(1, DisplayNamePolicy.NextChangeAt(account) - now);
+                error = "display_name_cooldown";
+                return null;
+            }
+
+            string stored =
+                string.Equals(normalized, account.DefaultDisplayName, StringComparison.Ordinal)
+                    ? string.Empty
+                    : normalized;
+
+            account.DisplayName = stored;
+            account.DisplayNameChanged = now;
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+            {
+                error = "display_name_update_failed";
+                return null;
+            }
+
+            m_UserAccounts.InvalidateCache(id);
+            return Convert(account);
+        }
+
         public bool VerifyPassword(
             string principalId,
             string password)
@@ -610,6 +665,10 @@ namespace NexVerse.Server.Api
                 account.UserFlags,
                 account.UserTitle,
                 account.UserCountry,
+                account.EffectiveDisplayName,
+                account.IsDisplayNameDefault,
+                account.DisplayNameChanged,
+                DisplayNamePolicy.NextChangeAt(account),
                 account.LocalToGrid,
                 account.Active,
                 account.NexVerseState,
@@ -1823,6 +1882,8 @@ namespace NexVerse.Server.Api
                 string email = existing.Email;
                 string userTitle = existing.UserTitle;
                 string userCountry = existing.UserCountry;
+                string displayName = existing.DisplayName;
+                bool displayNameRequested = false;
                 List<string> changed = new List<string>();
 
                 if (root.TryGetProperty("email", out JsonElement emailElement))
@@ -1859,6 +1920,25 @@ namespace NexVerse.Server.Api
                     changed.Add("user_country");
                 }
 
+                if (root.TryGetProperty("display_name", out JsonElement displayNameElement))
+                {
+                    if (displayNameElement.ValueKind != JsonValueKind.String)
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_display_name", "display_name must be a string.");
+                        return;
+                    }
+
+                    displayName = displayNameElement.GetString() ?? string.Empty;
+                    if (!DisplayNamePolicy.TryNormalize(displayName, out displayName, out string displayNameError))
+                    {
+                        WriteError(response, HttpStatusCode.BadRequest, "invalid_display_name", displayNameError);
+                        return;
+                    }
+
+                    displayNameRequested = true;
+                    changed.Add("display_name");
+                }
+
                 if (root.TryGetProperty("user_title", out JsonElement titleElement))
                 {
                     if (!admin)
@@ -1893,6 +1973,41 @@ namespace NexVerse.Server.Api
                 {
                     WriteError(response, HttpStatusCode.InternalServerError, "user_update_failed", "The user account could not be updated.");
                     return;
+                }
+
+                if (displayNameRequested)
+                {
+                    updated = m_Users.SetDisplayName(
+                        principalId,
+                        displayName,
+                        admin,
+                        out int retryAfterSeconds,
+                        out string displayNameError);
+
+                    if (updated == null)
+                    {
+                        if (string.Equals(displayNameError, "display_name_cooldown", StringComparison.Ordinal))
+                        {
+                            response.AddHeader("Retry-After", retryAfterSeconds.ToString());
+                            WriteError(
+                                response,
+                                HttpStatusCode.TooManyRequests,
+                                "display_name_cooldown",
+                                "Display name can be changed again after the current seven-day cooldown.");
+                            return;
+                        }
+
+                        WriteError(
+                            response,
+                            displayNameError == "user_not_found"
+                                ? HttpStatusCode.NotFound
+                                : HttpStatusCode.InternalServerError,
+                            displayNameError,
+                            displayNameError == "user_not_found"
+                                ? "User account was not found."
+                                : "Display name could not be updated.");
+                        return;
+                    }
                 }
 
                 string correlationId = AddCorrelation(response);
@@ -2496,6 +2611,10 @@ namespace NexVerse.Server.Api
                 ["user_flags"] = user.UserFlags,
                 ["user_title"] = user.UserTitle,
                 ["user_country"] = user.UserCountry,
+                ["display_name"] = user.DisplayName,
+                ["is_display_name_default"] = user.IsDisplayNameDefault,
+                ["display_name_changed"] = user.DisplayNameChanged,
+                ["display_name_next_update"] = user.DisplayNameNextUpdate,
                 ["local_to_grid"] = user.LocalToGrid,
                 ["active"] = user.Active,
                 ["account_state"] = user.AccountState,
