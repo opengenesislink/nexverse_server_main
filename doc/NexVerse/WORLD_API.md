@@ -79,7 +79,9 @@ Account provisioning is fail-closed. A new database record is first written as i
 
 The provisioning response reports authentication, inventory, home, initial start-position and state-finalization results. `ready=true` is emitted only for a finalized active account.
 
-Profile updates accept `email`, `user_country` and, for administrators, `user_title`.
+Profile updates accept `email`, `user_country`, `display_name` and, for administrators, `user_title`.
+
+Display Names are persisted separately from the immutable login identity. User payloads expose `username`, `display_name`, `is_display_name_default`, `display_name_changed` and `display_name_next_update`. A normal resident may change their own Display Name once per seven-day window; the API returns `429 display_name_cooldown` and `Retry-After` if the next update time has not been reached. Administrators may change a resident Display Name without the self-service cooldown. An empty Display Name resets the account to its default presentation name.
 
 Password updates use:
 
