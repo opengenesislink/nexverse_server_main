@@ -171,6 +171,8 @@ namespace NexVerse.Server.Api
                     ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
                 ["/api/v1/regions/{regionId}/placement"] = AuthenticatedOperations(
                     ("patch", "NexVerse-verwaltete Region nach Placement-Prüfung verschieben", "regions:manage", "202")),
+                ["/api/v1/regions/{regionId}/lifecycle"] = AuthenticatedOperations(
+                    ("post", "NexVerse-verwaltete Region starten, stoppen oder neu starten", "regions:manage", "202")),
                 ["/api/v1/region-operations/{operationId}"] = AuthenticatedOperations(
                     ("get", "Status einer asynchronen Regionsoperation lesen", "regions:read", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
@@ -260,6 +262,13 @@ namespace NexVerse.Server.Api
                 "/api/v1/regions/{regionId}/placement",
                 "patch",
                 "RegionPlacementRequest",
+                "RegionMutationAcceptedResponse",
+                "202");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/regions/{regionId}/lifecycle",
+                "post",
+                "RegionLifecycleRequest",
                 "RegionMutationAcceptedResponse",
                 "202");
             ApplyJsonContract(
@@ -374,7 +383,7 @@ namespace NexVerse.Server.Api
             object regionIdParameter =
                 PathParameter(
                     "regionId",
-                    "UUID der zu verschiebenden Region.");
+                    "UUID der NexVerse-verwalteten Region.");
             AddOperationParameters(
                 paths,
                 "/api/v1/regions/{regionId}/placement",
@@ -384,6 +393,15 @@ namespace NexVerse.Server.Api
                     "Idempotency-Key",
                     false,
                     "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
+            AddOperationParameters(
+                paths,
+                "/api/v1/regions/{regionId}/lifecycle",
+                "post",
+                regionIdParameter,
+                HeaderParameter(
+                    "Idempotency-Key",
+                    false,
+                    "Optionaler wiederholungssicherer Anfrageschlüssel; empfohlen insbesondere für restart."));
 
             object operationIdParameter =
                 StringPathParameter(
@@ -671,12 +689,13 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
-                        title = "Regions-Mutationen und interaktive Grid-Planer-Aktionen",
-                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move als Operationen. Der Grid Planner kann Regionen aus einer validierten Zielzelle erstellen oder verschieben und verfolgt die operation_id live; der NodeAgent führt ausschließlich explizit aktivierte NexVerse-managed Mutationen aus.",
+                        title = "Regions-Mutationen, Lifecycle und interaktive Grid-Planer-Aktionen",
+                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move/start/stop/restart als Operationen. Stop und Restart werden bei aktiven Root-Agents verweigert; Start einer gestoppten managed Region erfordert den Ziel-Node. Der Grid Planner kann Regionen erstellen oder verschieben und verfolgt die operation_id live.",
                         endpoints = new[]
                         {
                             "/api/v1/regions",
                             "/api/v1/regions/{regionId}/placement",
+                            "/api/v1/regions/{regionId}/lifecycle",
                             "/api/v1/region-operations/{operationId}",
                             "/api/v1/nodes/{nodeId}"
                         }
@@ -1850,6 +1869,28 @@ namespace NexVerse.Server.Api
                         ["grid_y"] = new { type = "integer", minimum = 0 }
                     }
                 },
+                ["RegionLifecycleRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "action"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["action"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "start", "stop", "restart" }
+                        },
+                        ["node_id"] = new
+                        {
+                            type = "string",
+                            maxLength = 128,
+                            description = "Für start erforderlich; bei stop/restart optional und muss dem aktuellen Host entsprechen."
+                        }
+                    }
+                },
                 ["RegionOperation"] = new
                 {
                     type = "object",
@@ -1867,7 +1908,7 @@ namespace NexVerse.Server.Api
                     properties = new Dictionary<string, object>
                     {
                         ["operation_id"] = new { type = "string" },
-                        ["operation"] = new { type = "string", @enum = new[] { "create", "move" } },
+                        ["operation"] = new { type = "string", @enum = new[] { "create", "move", "start", "stop", "restart" } },
                         ["state"] = new { type = "string", @enum = new[] { "queued", "accepted", "completed", "failed" } },
                         ["message"] = new { type = "string" },
                         ["node_id"] = new { type = "string" },
