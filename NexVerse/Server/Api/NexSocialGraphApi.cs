@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Generic;
+using NexVerse.Core.Audit;
 using NexVerse.Core.Security;
 using OpenMetaverse;
 using OpenSim.Framework;
@@ -19,12 +21,16 @@ namespace NexVerse.Server.Api
         private readonly IUserAccountService m_Accounts;
         private readonly IFriendsService m_Friends;
         private readonly NexApiAuthenticator m_Auth;
+        private readonly IMuteListService m_Mutes;
+        private readonly INexAuditSink m_Audit;
 
-        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth)
+        public NexSocialGraphApi(IUserAccountService accounts, IFriendsService friends, NexApiAuthenticator auth, IMuteListService mutes, INexAuditSink audit)
         {
             m_Accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
             m_Friends = friends ?? throw new ArgumentNullException(nameof(friends));
             m_Auth = auth ?? throw new ArgumentNullException(nameof(auth));
+            m_Mutes = mutes ?? throw new ArgumentNullException(nameof(mutes));
+            m_Audit = audit ?? NullNexAuditSink.Instance;
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
