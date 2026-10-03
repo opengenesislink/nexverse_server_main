@@ -365,13 +365,13 @@ namespace NexVerse.Server.Api
                     limitRaw,
                     out limit) ||
                  limit < 1 ||
-                 limit > 250))
+                 limit > 100))
             {
                 WriteError(
                     response,
                     HttpStatusCode.BadRequest,
                     "invalid_pagination",
-                    "limit must be between 1 and 250.");
+                    "limit must be between 1 and 100.");
                 return false;
             }
 
@@ -380,13 +380,14 @@ namespace NexVerse.Server.Api
                 (!int.TryParse(
                     offsetRaw,
                     out offset) ||
-                 offset < 0))
+                 offset < 0 ||
+                 offset > 10000))
             {
                 WriteError(
                     response,
                     HttpStatusCode.BadRequest,
                     "invalid_pagination",
-                    "offset must be zero or greater.");
+                    "offset must be between 0 and 10000.");
                 return false;
             }
 
