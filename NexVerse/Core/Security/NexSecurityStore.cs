@@ -30,6 +30,16 @@ namespace NexVerse.Core.Security
         public bool Revoked { get; set; }
     }
 
+    public sealed class NexPasskeyCredential
+    {
+        public string CredentialId { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public long SignCount { get; set; }
+        public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    }
+
     public interface INexSecurityStore
     {
         NexSecuritySession CreateSession(string subject, string clientId);
@@ -41,6 +51,9 @@ namespace NexVerse.Core.Security
         bool IsTotpEnabled(string subject);
         bool VerifyTotp(string subject, string code);
         bool DisableTotp(string subject);
+        IReadOnlyList<NexPasskeyCredential> ListPasskeys(string subject);
+        bool RegisterPasskey(NexPasskeyCredential credential);
+        bool RemovePasskey(string subject, string credentialId);
     }
 
     public sealed class PersistentNexSecurityStore : INexSecurityStore
@@ -133,6 +146,33 @@ namespace NexVerse.Core.Security
             lock (m_Sync) { bool removed = m_Data.Totp.Remove(subject); if (removed) Save(); return removed; }
         }
 
+        public IReadOnlyList<NexPasskeyCredential> ListPasskeys(string subject)
+        {
+            lock (m_Sync) return m_Data.Passkeys.Where(x => x.Subject == subject).OrderBy(x => x.Name).ToArray();
+        }
+
+        public bool RegisterPasskey(NexPasskeyCredential credential)
+        {
+            if (credential == null || string.IsNullOrWhiteSpace(credential.Subject) || string.IsNullOrWhiteSpace(credential.CredentialId) || string.IsNullOrWhiteSpace(credential.PublicKey)) return false;
+            lock (m_Sync)
+            {
+                if (m_Data.Passkeys.Any(x => x.CredentialId == credential.CredentialId)) return false;
+                m_Data.Passkeys.Add(credential);
+                Save();
+                return true;
+            }
+        }
+
+        public bool RemovePasskey(string subject, string credentialId)
+        {
+            lock (m_Sync)
+            {
+                int removed = m_Data.Passkeys.RemoveAll(x => x.Subject == subject && x.CredentialId == credentialId);
+                if (removed > 0) Save();
+                return removed > 0;
+            }
+        }
+
         private static string Code(byte[] key, long counter)
         {
             byte[] data = BitConverter.GetBytes(counter);
@@ -174,6 +214,7 @@ namespace NexVerse.Core.Security
             public List<NexSecuritySession> Sessions { get; set; } = new List<NexSecuritySession>();
             public List<NexSecurityEvent> Events { get; set; } = new List<NexSecurityEvent>();
             public Dictionary<string, string> Totp { get; set; } = new Dictionary<string, string>();
+            public List<NexPasskeyCredential> Passkeys { get; set; } = new List<NexPasskeyCredential>();
         }
     }
 }
