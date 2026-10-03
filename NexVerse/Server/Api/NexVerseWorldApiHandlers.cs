@@ -1083,10 +1083,13 @@ namespace NexVerse.Server.Api
                             title = "Identität, Anzeigenamen, Profile und soziales Netzwerk",
                             status = "active",
                             checklist = new { completed = 3, total = 3, open = 0 },
-                            summary = "Die einwohnerkompatible Normalisierung von Benutzernamen ist umgesetzt; Anzeigenamen, WebProfileV3 und das soziale Netzwerk bleiben zukünftiger Umfang.",
+                            summary = "Die einwohnerkompatible Normalisierung von Benutzernamen und die persistente Display-Name-Grundlage sind umgesetzt. Viewer-CAPS, Login, World API und LSL verwenden dieselbe Display-Name-Quelle; WebProfileV3 sowie die vollständige Chat/IM/Gruppen/Suche-Propagation bleiben offen.",
                             evidence = new[]
                             {
-                                "Kurze, punktgetrennte und ältere Resident-Anmeldeformen sind normalisiert und CI-getestet"
+                                "Kurze, punktgetrennte und ältere Resident-Anmeldeformen sind normalisiert und CI-getestet",
+                                "Persistente Display Names mit UserAccount-Migrationen für MySQL/MariaDB, PostgreSQL und SQLite",
+                                "GetDisplayNames/SetDisplayName einschließlich EventQueue-Aktualisierung sowie Login- und LSL-Integration",
+                                "World API stellt Display-Name-Zustand bereit und erzwingt die Sieben-Tage-Selbständerungssperre"
                             }
                         },
                         new
