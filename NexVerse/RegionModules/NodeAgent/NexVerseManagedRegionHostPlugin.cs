@@ -11,6 +11,7 @@ using OpenMetaverse;
 using OpenSim;
 using OpenSim.Framework;
 using OpenSim.Region.Framework.Scenes;
+using OpenSim.Services.Interfaces;
 
 namespace NexVerse.RegionModules.NodeAgent
 {
@@ -266,6 +267,11 @@ namespace NexVerse.RegionModules.NodeAgent
                     return false;
                 }
 
+                IGridService gridService =
+                    manager.Scenes
+                        .FirstOrDefault()
+                        ?.GridService;
+
                 configPath =
                     ConfigPath(regionId);
 
@@ -308,8 +314,14 @@ namespace NexVerse.RegionModules.NodeAgent
 
                     // The explicit estate link above ensures this is
                     // non-interactive and cannot fall back to console prompts.
-                    m_OpenSim.PopulateRegionEstateInfo(
-                        regionInfo);
+                    if (!m_OpenSim.PopulateRegionEstateInfo(
+                            regionInfo))
+                    {
+                        TryDelete(configPath);
+                        error =
+                            "estate_population_failed";
+                        return false;
+                    }
 
                     m_OpenSim.CreateRegion(
                         regionInfo,
@@ -342,6 +354,19 @@ namespace NexVerse.RegionModules.NodeAgent
                     m_Log.Error(
                         "[NEX-REGION-HOST]: Managed region create failed.",
                         e);
+
+                    TryDeregister(
+                        gridService,
+                        regionId);
+
+                    if (!manager.TryGetScene(
+                            regionId,
+                            out Scene _))
+                    {
+                        TryDelete(
+                            configPath);
+                    }
+
                     error =
                         "region_create_failed:" +
                         e.GetType().Name;
@@ -429,6 +454,8 @@ namespace NexVerse.RegionModules.NodeAgent
 
                 string regionName =
                     current.RegionName;
+                IGridService gridService =
+                    scene.GridService;
 
                 try
                 {
@@ -495,6 +522,10 @@ namespace NexVerse.RegionModules.NodeAgent
                             "[NEX-REGION-HOST]: Region move failed; attempting rollback.",
                             moveError);
 
+                        TryDeregister(
+                            gridService,
+                            regionId);
+
                         try
                         {
                             IniConfigSource rollback =
@@ -546,8 +577,12 @@ namespace NexVerse.RegionModules.NodeAgent
                     configPath,
                     regionName);
 
-            m_OpenSim.PopulateRegionEstateInfo(
-                regionInfo);
+            if (!m_OpenSim.PopulateRegionEstateInfo(
+                    regionInfo))
+            {
+                throw new InvalidOperationException(
+                    "Unable to populate managed region estate information.");
+            }
 
             m_OpenSim.CreateRegion(
                 regionInfo,
@@ -812,6 +847,26 @@ namespace NexVerse.RegionModules.NodeAgent
                 size >= (int)Constants.RegionSize &&
                 size <= (int)Constants.MaximumRegionSize &&
                 size % (int)Constants.RegionSize == 0;
+        }
+
+        private static void TryDeregister(
+            IGridService gridService,
+            UUID regionId)
+        {
+            if (gridService == null ||
+                regionId.IsZero())
+            {
+                return;
+            }
+
+            try
+            {
+                gridService.DeregisterRegion(
+                    regionId);
+            }
+            catch
+            {
+            }
         }
 
         private static void TryDelete(
