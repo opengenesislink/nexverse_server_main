@@ -461,6 +461,14 @@ namespace NexVerse.Server.Api
                 return null;
             }
 
+            if (string.Equals(
+                    normalized,
+                    account.EffectiveDisplayName,
+                    StringComparison.Ordinal))
+            {
+                return Convert(account);
+            }
+
             int now = OpenSim.Framework.Util.UnixTimeSinceEpoch();
             if (!bypassCooldown && !DisplayNamePolicy.CanChangeNow(account, now))
             {
@@ -1965,6 +1973,33 @@ namespace NexVerse.Server.Api
                 if (changed.Count == 0)
                 {
                     WriteError(response, HttpStatusCode.BadRequest, "no_changes", "No supported account fields were supplied.");
+                    return;
+                }
+
+                if (displayNameRequested &&
+                    !admin &&
+                    !string.Equals(
+                        displayName,
+                        existing.DisplayName,
+                        StringComparison.Ordinal) &&
+                    existing.DisplayNameNextUpdate >
+                        OpenSim.Framework.Util.UnixTimeSinceEpoch())
+                {
+                    int retryAfterSeconds =
+                        Math.Max(
+                            1,
+                            existing.DisplayNameNextUpdate -
+                            OpenSim.Framework.Util.UnixTimeSinceEpoch());
+
+                    response.AddHeader(
+                        "Retry-After",
+                        retryAfterSeconds.ToString());
+
+                    WriteError(
+                        response,
+                        HttpStatusCode.TooManyRequests,
+                        "display_name_cooldown",
+                        "Display name can be changed again after the current seven-day cooldown.");
                     return;
                 }
 
