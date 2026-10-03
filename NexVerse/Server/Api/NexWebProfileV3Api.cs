@@ -188,9 +188,15 @@ namespace NexVerse.Server.Api
 
                 ProfilePrivacy privacy = LoadPrivacy(account.PrincipalID);
                 bool privacyChanged = false;
-                privacyChanged |= ReadVisibility(root, "online_visibility", ref privacy.OnlineVisibility);
-                privacyChanged |= ReadVisibility(root, "groups_visibility", ref privacy.GroupsVisibility);
-                privacyChanged |= ReadVisibility(root, "search_visibility", ref privacy.SearchVisibility);
+                string onlineVisibility = privacy.OnlineVisibility;
+                string groupsVisibility = privacy.GroupsVisibility;
+                string searchVisibility = privacy.SearchVisibility;
+                privacyChanged |= ReadVisibility(root, "online_visibility", ref onlineVisibility);
+                privacyChanged |= ReadVisibility(root, "groups_visibility", ref groupsVisibility);
+                privacyChanged |= ReadVisibility(root, "search_visibility", ref searchVisibility);
+                privacy.OnlineVisibility = onlineVisibility;
+                privacy.GroupsVisibility = groupsVisibility;
+                privacy.SearchVisibility = searchVisibility;
                 if (privacyChanged && !SavePrivacy(account.PrincipalID, privacy, ref storeError))
                 {
                     WriteJson(response, HttpStatusCode.InternalServerError, new { error = "privacy_update_failed" });
