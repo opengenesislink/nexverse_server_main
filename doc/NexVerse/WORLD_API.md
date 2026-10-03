@@ -231,22 +231,31 @@ These operations require `regions:read`. Grid coordinates are 256m base cells; r
 
 Cells can currently report `free`, `occupied`, `reserved` or `conflict`. Existing GridService reservation flags are respected, and the historical low-Y band reserved by GridService for Hypergrid links is surfaced as reserved.
 
-Planned mutation endpoints:
+Managed mutation endpoints are now implemented:
 
-- `POST /api/v1/regions` — create a region at validated coordinates
-- `PATCH /api/v1/regions/{regionId}/placement` — move a region after validation
+- `POST /api/v1/regions` — queue creation of a NexVerse-managed region on an explicitly selected online NodeAgent
+- `PATCH /api/v1/regions/{regionId}/placement` — queue a placement change for an already running NexVerse-managed region
+- `GET /api/v1/region-operations/{operationId}` — read the asynchronous `queued`, `accepted`, `completed` or `failed` operation state
+
+Both write operations require `regions:manage`; operation status uses `regions:read`. Robust performs the grid/VarRegion collision check before dispatch, records the request in the audit trail and sends an addressed NexBus command to the selected simulator node. The simulator rechecks safety before changing scene state.
+
+Managed execution is deliberately disabled by default with `ManagedRegionCommands=false` in `[NexVerseNodeAgent]`. It must only be enabled when the bidirectional NexBus path is authenticated and protected by TLS or private networking. A node must advertise this capability in its heartbeat before Robust accepts a mutation for it.
+
+Created regions receive a dedicated NexVerse-managed INI file and a UDP port from the configured managed port range. Moves are permitted only for those managed region files. A move is refused while root agents are present, closes the scene without deleting persisted objects, changes the managed placement and recreates the scene. If recreation fails, the node attempts to restore the previous placement.
+
+Both mutation endpoints accept an optional `Idempotency-Key`. Region operations are currently projected in Robust memory; the later Job Engine will provide durable long-running job history.
 
 The API Control Center at `/api/v1/docs` now contains the first interactive read-only Grid Planner. It renders the bounded layout as a raster, supports viewport panning and display scaling, shows free/occupied/reserved/conflict states, exposes exact grid/world coordinates on hover or click, and can live-validate a selected origin with a chosen region width/height.
 
 VarRegions are treated as multi-cell footprints. A 512x512m region, for example, occupies four 256x256m grid cells, and all of those cells are considered occupied during placement validation. The planner highlights the complete proposed footprint and reports conflicting regions.
 
-The later create-region form will reuse the selected cell and validated footprint once the `regions:manage` mutation path and managed simulator-node execution are implemented.
+The Grid Planner can now hand the selected cell and validated footprint to the `regions:manage` mutation path. The next UI step is a dedicated create/move form with node and estate selection plus operation-state feedback.
 
 ## Next API work
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
 
-The browser-facing authorization/login and consent surface is now implemented. The next larger API/control-plane work is the Region Control Plane and its grid-layout administration APIs; MFA/passkey work remains a later identity-security extension.
+The browser-facing authorization/login and consent surface, read-only Grid Planner, NodeAgent registry and managed region create/move execution path are now implemented. The next control-plane work is the polished create/move planner UI, node/estate filtering and broader simulator lifecycle actions; MFA/passkey work remains a later identity-security extension.
 
 
 ## OAuth 2.0 / OpenID Connect identity foundation
