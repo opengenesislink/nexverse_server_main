@@ -2001,6 +2001,7 @@
       <Reference name="OpenSim.Server.Handlers"/>
       <Reference name="OpenSim.Server.Base"/>
       <Reference name="OpenSim.Services.Interfaces"/>
+      <Reference name="OpenSim.Services.FriendsService"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
 

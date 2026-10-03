@@ -14,6 +14,7 @@ using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
+using OpenSim.Services.Friends;
 
 namespace NexVerse.Server.Api
 {
@@ -359,6 +360,15 @@ namespace NexVerse.Server.Api
                     grid,
                     authenticator,
                     true);
+
+                FriendsService friendsService = new FriendsService(config);
+                NexSocialGraphApi socialGraph =
+                    new NexSocialGraphApi(userAccounts, friendsService, authenticator);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/relationships",
+                        apiGate.Wrap(socialGraph.Handle),
+                        "NexVerse Social Graph"));
 
                 IConfig profilesConfig = config.Configs["UserProfilesService"];
                 if (profilesConfig != null && profilesConfig.GetBoolean("Enabled", false))
