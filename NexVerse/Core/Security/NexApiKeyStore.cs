@@ -94,6 +94,7 @@ namespace NexVerse.Core.Security
                     NexScopes.SimulatorsRead,
                     NexScopes.SimulatorsManage,
                     NexScopes.StatisticsRead,
+                    NexScopes.EstatesRead,
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
                     NexScopes.EconomyTransfer
