@@ -581,7 +581,7 @@ Managed region mutations are now connected during the 0.9.3.2 World API line:
 - managed grid-registration collisions fail the operation without terminating the simulator process;
 - create/move requests support persistent `Idempotency-Key` protection and emit audit/NexBus lifecycle state.
 
-Global region jump/search, node/estate filtering and the polished create/move planner form remain subsequent work.
+The API Control Center Grid Planner now also exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support and live asynchronous operation-state feedback. Global region jump/search and richer node/estate filtering remain subsequent work.
 
 The planner must provide:
 
