@@ -534,8 +534,31 @@ namespace OpenSim
                 {
                     scene.SnmpService.Critical("Grid registration failed. Startup aborted.", scene);
                 }
-                // Carrying on now causes a lot of confusion down the
-                // line - we need to get the user's attention
+                // Startup regions retain the historical fail-fast behavior.
+                // NexVerse-managed API mutations opt into a non-fatal path so
+                // a placement race cannot terminate the whole simulator node.
+                if (string.Equals(
+                        regionInfo.GetSetting(
+                            "NexVerseNonFatalGridRegistration"),
+                        "true",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        if (controller != null)
+                            controller.RemoveRegionFromModules(scene);
+                        scene.Close();
+                    }
+                    catch (Exception cleanupError)
+                    {
+                        m_log.WarnFormat(
+                            "[STARTUP]: Managed region cleanup after registration failure also failed: {0}",
+                            cleanupError.Message);
+                    }
+
+                    throw;
+                }
+
                 Environment.Exit(1);
             }
 
