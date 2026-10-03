@@ -298,6 +298,7 @@ jobs:
           assert schemas["GridRegionPlacement"]["properties"]["size_x"]["maximum"] == 4096
           assert "node_id" in schemas["GridRegionPlacement"]["properties"]
           assert "node_state" in schemas["GridRegionPlacement"]["properties"]
+          assert schemas["Node"]["properties"]["managed_region_commands"]["type"] == "boolean"
 
           nodes_get = doc["paths"]["/api/v1/nodes"]["get"]
           assert nodes_get["x-nexverse-scope"] == "simulators:read"
@@ -399,6 +400,10 @@ jobs:
           grep -F 'Simulator-Nodes' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/nodes' /tmp/nexverse-api-docs.html
           grep -F 'simulators:read' /tmp/nexverse-api-docs.html
+          grep -F 'Region erstellen' /tmp/nexverse-api-docs.html
+          grep -F 'createGridRegion' /tmp/nexverse-api-docs.html
+          grep -F 'moveGridRegion' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/region-operations/' /tmp/nexverse-api-docs.html
           if grep -F 'localStorage' /tmp/nexverse-api-docs.html; then
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1
