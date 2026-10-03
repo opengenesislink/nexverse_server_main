@@ -2520,6 +2520,8 @@ namespace OpenSim.Region.ClientStack.Linden
                     OSD.FromString(account.EffectiveDisplayName),
                 ["display_name_next_update"] =
                     OSD.FromDate(nextUpdate),
+                ["display_name_expires"] =
+                    OSD.FromDate(DateTime.UtcNow.AddMonths(1)),
                 ["legacy_first_name"] =
                     OSD.FromString(account.FirstName ?? string.Empty),
                 ["legacy_last_name"] =
