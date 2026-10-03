@@ -350,7 +350,7 @@ namespace NexVerse.Server.Api
             out int offset)
         {
             limit =
-                100;
+                50;
             offset =
                 0;
 
