@@ -196,8 +196,9 @@ namespace NexVerse.Server.Api
             response.ContentType = "application/json; charset=utf-8";
             response.AddHeader("Cache-Control", "no-store");
             byte[] bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
-            response.ContentLength64 = bytes.Length;
-            response.OutputStream.Write(bytes, 0, bytes.Length);
+            response.KeepAlive = false;
+            response.AddHeader("X-Content-Type-Options", "nosniff");
+            response.RawBuffer = bytes;
         }
     }
 }
