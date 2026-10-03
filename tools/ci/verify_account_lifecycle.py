@@ -50,9 +50,9 @@ require(
 )
 
 for path, version in [
-    ("OpenSim/Data/MySQL/Resources/UserAccount.migrations", ":VERSION 7"),
-    ("OpenSim/Data/PGSQL/Resources/UserAccount.migrations", ":VERSION 6"),
-    ("OpenSim/Data/SQLite/Resources/UserAccount.migrations", ":VERSION 4"),
+    ("OpenSim/Data/MySQL/Resources/UserAccount.migrations", ":VERSION 8"),
+    ("OpenSim/Data/PGSQL/Resources/UserAccount.migrations", ":VERSION 7"),
+    ("OpenSim/Data/SQLite/Resources/UserAccount.migrations", ":VERSION 5"),
 ]:
     require(
         path,
