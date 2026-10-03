@@ -75,6 +75,8 @@ require(
     'RegisterSimpleHandler("SetDisplayName"',
     "public void GetDisplayNames(",
     "public void SetDisplayName(",
+    "ScenePresence sp = m_Scene.GetScenePresence(m_AgentID);",
+    "if (sp == null || sp.IsDeleted)",
     'map.TryGetValue("display_name"',
     "displayNameValue is OSDArray changeArray",
     '"SetDisplayNameReply"',
