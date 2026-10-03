@@ -197,8 +197,159 @@ seed = payload.get("seed_capability", "")
 assert seed.startswith("http://127.0.0.1:19100/"), seed
 assert "/CAPS/" in seed, seed
 
+with open("/tmp/nexverse-display-name-agent-id", "w", encoding="utf-8") as handle:
+    handle.write(str(payload["agent_id"]))
+with open("/tmp/nexverse-display-name-seed-url", "w", encoding="utf-8") as handle:
+    handle.write(seed)
+
 print("NexVerse successful Firestorm-protocol simulator placement response: OK")
 PY
+
+AGENT_ID="$(cat /tmp/nexverse-display-name-agent-id)"
+SEED_URL="$(cat /tmp/nexverse-display-name-seed-url)"
+CAPS_RESPONSE="/tmp/nexverse-display-name-caps.xml"
+GET_NAMES_RESPONSE="/tmp/nexverse-display-name-get.xml"
+SET_NAME_RESPONSE="/tmp/nexverse-display-name-set.xml"
+
+cat > /tmp/nexverse-display-name-seed-request.xml <<'XML'
+<?xml version="1.0"?>
+<llsd>
+  <array>
+    <string>GetDisplayNames</string>
+    <string>SetDisplayName</string>
+  </array>
+</llsd>
+XML
+
+curl --silent --show-error --fail --max-time 10 \
+  -H 'Content-Type: application/llsd+xml' \
+  --data-binary @/tmp/nexverse-display-name-seed-request.xml \
+  "$SEED_URL" > "$CAPS_RESPONSE"
+
+python3 - "$CAPS_RESPONSE" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+root = ET.parse(sys.argv[1]).getroot()
+mapping = root.find("map")
+assert mapping is not None
+children = list(mapping)
+values = {}
+for index in range(0, len(children), 2):
+    key = children[index].text or ""
+    value = children[index + 1].text or ""
+    values[key] = value
+
+assert values.get("GetDisplayNames", "").startswith("http://127.0.0.1:19100/"), values
+assert values.get("SetDisplayName", "").startswith("http://127.0.0.1:19100/"), values
+
+with open("/tmp/nexverse-display-name-get-url", "w", encoding="utf-8") as handle:
+    handle.write(values["GetDisplayNames"])
+with open("/tmp/nexverse-display-name-set-url", "w", encoding="utf-8") as handle:
+    handle.write(values["SetDisplayName"])
+PY
+
+GET_DISPLAY_NAMES_URL="$(cat /tmp/nexverse-display-name-get-url)"
+SET_DISPLAY_NAME_URL="$(cat /tmp/nexverse-display-name-set-url)"
+
+curl --silent --show-error --fail --max-time 10 \
+  "$GET_DISPLAY_NAMES_URL?ids=$AGENT_ID" > "$GET_NAMES_RESPONSE"
+
+python3 - "$GET_NAMES_RESPONSE" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+def decode(node):
+    tag = node.tag
+    if tag == "map":
+        children = list(node)
+        result = {}
+        for index in range(0, len(children), 2):
+            result[children[index].text or ""] = decode(children[index + 1])
+        return result
+    if tag == "array":
+        return [decode(child) for child in node]
+    if tag == "boolean":
+        return (node.text or "").lower() in ("1", "true")
+    return node.text or ""
+
+root = ET.parse(sys.argv[1]).getroot()
+data = decode(root[0])
+agents = data["agents"]
+assert len(agents) == 1, data
+agent = agents[0]
+assert agent["username"] == "nexverseci", agent
+assert agent["display_name"] == "NexVerseCI", agent
+assert agent["legacy_first_name"] == "NexVerseCI", agent
+assert agent["legacy_last_name"] == "Resident", agent
+assert agent["is_display_name_default"] is True, agent
+PY
+
+cat > /tmp/nexverse-display-name-set-request.xml <<'XML'
+<?xml version="1.0"?>
+<llsd>
+  <map>
+    <key>display_name</key>
+    <array>
+      <string>NexVerseCI</string>
+      <string>NexVerse CI Display</string>
+    </array>
+  </map>
+</llsd>
+XML
+
+SET_STATUS="$(curl --silent --show-error --max-time 10 \
+  -o "$SET_NAME_RESPONSE" \
+  -w '%{http_code}' \
+  -H 'Content-Type: application/llsd+xml' \
+  --data-binary @/tmp/nexverse-display-name-set-request.xml \
+  "$SET_DISPLAY_NAME_URL")"
+test "$SET_STATUS" = "200"
+
+DISPLAY_NAME_UPDATED=0
+for _ in $(seq 1 20); do
+  curl --silent --show-error --fail --max-time 10 \
+    "$GET_DISPLAY_NAMES_URL?ids=$AGENT_ID" > "$GET_NAMES_RESPONSE"
+
+  if python3 - "$GET_NAMES_RESPONSE" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+def decode(node):
+    if node.tag == "map":
+        children = list(node)
+        return {
+            children[index].text or "": decode(children[index + 1])
+            for index in range(0, len(children), 2)
+        }
+    if node.tag == "array":
+        return [decode(child) for child in node]
+    if node.tag == "boolean":
+        return (node.text or "").lower() in ("1", "true")
+    return node.text or ""
+
+root = ET.parse(sys.argv[1]).getroot()
+data = decode(root[0])
+agent = data["agents"][0]
+assert agent["display_name"] == "NexVerse CI Display", agent
+assert agent["is_display_name_default"] is False, agent
+assert agent["display_name_next_update"] not in ("", "1970-01-01T00:00:00Z"), agent
+PY
+  then
+    DISPLAY_NAME_UPDATED=1
+    break
+  fi
+
+  sleep 0.1
+done
+
+if [ "$DISPLAY_NAME_UPDATED" -ne 1 ]; then
+  echo "::error::SetDisplayName did not persist through GetDisplayNames."
+  cat "$GET_NAMES_RESPONSE"
+  exit 1
+fi
+
+echo "NexVerse viewer GetDisplayNames/SetDisplayName runtime smoke: OK"
 
 REMOTE_CHANNEL=""
 REMOTE_DEADLINE=$((SECONDS + 45))
