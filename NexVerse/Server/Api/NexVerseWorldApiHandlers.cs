@@ -915,10 +915,12 @@ namespace NexVerse.Server.Api
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
                             status = "foundation",
                             checklist = (object)null,
-                            summary = "NodeAgent-Statusmeldungen und Lebenszyklusereignisse sind vorhanden; vollständige Simulator-, Regionen-, Grid-Planer- und Estate-Verwaltung stehen noch aus.",
+                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt; Simulator-Service- und Estate-Verwaltung bleiben offen.",
                             evidence = new[]
                             {
-                                "NexVerseNodeAgentModule veröffentlicht Lebenszyklusereignisse von Knoten/Regionen und regelmäßige Statusmeldungen"
+                                "NexVerseNodeAgentModule veröffentlicht Knoten-/Regionszustand und regelmäßige Statusmeldungen",
+                                "Grid-Layout, VarRegion-Placement-Prüfung und interaktiver Grid Planner sind über die Welt-API verbunden",
+                                "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt und asynchron als Operationen verfolgt"
                             }
                         },
                         new
@@ -968,7 +970,10 @@ namespace NexVerse.Server.Api
                     replay_header = "Idempotency-Replayed",
                     protected_operations = new[]
                     {
-                        "POST /api/v1/users"
+                        "POST /api/v1/users",
+                        "POST /api/v1/regions",
+                        "PATCH /api/v1/regions/{regionId}/placement",
+                        "POST /api/v1/regions/{regionId}/lifecycle"
                     }
                 },
                 x_nexverse_rate_limit = new
