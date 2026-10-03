@@ -671,8 +671,8 @@ namespace NexVerse.Server.Api
                         version = "0.9.3.2",
                         category = "regions",
                         status = "implemented",
-                        title = "Asynchrone Regions-Erstellung und Placement-Mutationen",
-                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move als Operationen. Der NodeAgent führt ausschließlich explizit aktivierte NexVerse-managed Mutationen aus; aktive Avatare blockieren Moves.",
+                        title = "Regions-Mutationen und interaktive Grid-Planer-Aktionen",
+                        summary = "Robust validiert Regionen und Ziel-Nodes, veröffentlicht adressierte NexBus-Kommandos und verfolgt create/move als Operationen. Der Grid Planner kann Regionen aus einer validierten Zielzelle erstellen oder verschieben und verfolgt die operation_id live; der NodeAgent führt ausschließlich explizit aktivierte NexVerse-managed Mutationen aus.",
                         endpoints = new[]
                         {
                             "/api/v1/regions",
