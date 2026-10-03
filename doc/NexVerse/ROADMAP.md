@@ -2,10 +2,10 @@
 
 > Status: Active development roadmap  
 > Current stable release: **NexVerse 0.9.3.1**  
-> Active development line: **NexVerse 0.9.3.2 Dev**  
+> Active development line: **NexVerse 0.9.3.3 Dev**  
 > Active release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
 > Target stable release: **NexVerse 0.9.3.4**  
-> Active milestone: **NexVerse World API v1**  
+> Active milestone: **Identity, Display Names, Profiles and Social Graph**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
@@ -285,8 +285,9 @@ Implemented during NEXJAST:
 
 # Milestone 0.9.3.2
 
-> Status: **Active development since 2 October 2026**  
-> Runtime line: **NexVerse 0.9.3.2 Dev**
+> Status: **Development checkpoint completed 3 October 2026**  
+> Runtime line: **NexVerse 0.9.3.2 Dev**  
+> Release-train role: **completed development milestone; not a separate stable release**
 
 ## 6. NexVerse World API v1
 
@@ -331,7 +332,8 @@ Implementation status:
 - [x] API keys for restricted machine use with hashed secrets, explicit scopes, immediate disable and audited administration;
 - [x] scopes;
 - [x] RBAC;
-- [ ] future MFA/passkey integration.
+
+MFA/passkey integration is intentionally deferred to the 0.9.3.3 identity/security milestone and is not a 0.9.3.2 completion criterion.
 
 Example scopes:
 
@@ -408,9 +410,28 @@ Each endpoint can document:
 - ChatGPT/API-agent usage guidance;
 - security constraints.
 
+### 6.6 0.9.3.2 definition of done
+
+**Development checkpoint status: completed 3 October 2026 — 36/36 explicit roadmap checklist items satisfied.**
+
+Completion evidence:
+
+- World API v1 contract is published through OpenAPI 3.1 and runtime-smoke tested;
+- OAuth2/OIDC, native resident sessions, service accounts and restricted API keys are implemented and regression-tested;
+- account lifecycle, persistent audit history, rate limiting, idempotency and statistics protections are operational;
+- the self-hosted API Control Center renders live contract, changelog, roadmap, statistics and administration surfaces;
+- simulator/Hypergrid/LLLogin and LSL RemoteData compatibility tests remain green in the release CI;
+- work pulled forward for NodeAgent, region and Estate control is retained as part of the bounded 0.9.3.4 release train;
+- MFA/passkey work is carried into 0.9.3.3 rather than blocking this completed checkpoint.
+
+No stable 0.9.3.2 artifact is produced. The repository advances directly to **NexVerse 0.9.3.3 Dev**.
+
 ---
 
 # Milestone 0.9.3.3
+
+> Status: **Active development since 3 October 2026**  
+> Runtime line: **NexVerse 0.9.3.3 Dev**
 
 ## 7. Identity, Display Names, Profiles and Social Graph
 
