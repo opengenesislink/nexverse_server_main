@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 using Mono.Addins;
+using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Messaging;
 using Nini.Config;
 using OpenMetaverse;
@@ -46,6 +47,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private int m_HeartbeatSeconds = 30;
         private SimulatorNexEventTransport m_Transport;
         private DistributedNexEventBus m_Bus;
+        private IDisposable m_CommandSubscription;
         private Timer m_HeartbeatTimer;
         private DateTimeOffset m_StartedAt;
 
@@ -151,6 +153,11 @@ namespace NexVerse.RegionModules.NodeAgent
                     HandleInbound,
                     "NexVerse Simulator NexBus"));
 
+            m_CommandSubscription =
+                m_Bus.Subscribe(
+                    NexNodeCommandProtocol.RequestEvent,
+                    HandleCommandRequest);
+
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
                 null,
@@ -180,6 +187,8 @@ namespace NexVerse.RegionModules.NodeAgent
             }
 
             m_HeartbeatTimer?.Dispose();
+            m_CommandSubscription?.Dispose();
+            m_CommandSubscription = null;
             m_Bus?.Dispose();
             m_Transport = null;
             m_Bus = null;
@@ -202,6 +211,146 @@ namespace NexVerse.RegionModules.NodeAgent
                 return;
 
             m_Bus.Publish(nexEvent);
+        }
+
+        private void HandleCommandRequest(
+            NexEvent nexEvent)
+        {
+            if (nexEvent?.Data == null)
+                return;
+
+            string targetNodeId =
+                CommandData(
+                    nexEvent,
+                    "target_node_id");
+
+            if (!string.Equals(
+                    targetNodeId,
+                    m_NodeId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string commandId =
+                CommandData(
+                    nexEvent,
+                    "command_id");
+            string action =
+                CommandData(
+                    nexEvent,
+                    "action");
+
+            if (!Guid.TryParse(
+                    commandId,
+                    out Guid _))
+            {
+                PublishCommandResult(
+                    commandId,
+                    action,
+                    NexNodeCommandProtocol.RejectedState,
+                    "invalid_command_id",
+                    nexEvent.CorrelationId);
+                return;
+            }
+
+            string expiresRaw =
+                CommandData(
+                    nexEvent,
+                    "expires_at_unix");
+
+            if (!long.TryParse(
+                    expiresRaw,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long expiresAtUnix) ||
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds() >
+                expiresAtUnix)
+            {
+                PublishCommandResult(
+                    commandId,
+                    action,
+                    NexNodeCommandProtocol.RejectedState,
+                    "command_expired",
+                    nexEvent.CorrelationId);
+                return;
+            }
+
+            if (!string.Equals(
+                    action,
+                    NexNodeCommandProtocol.PingAction,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                PublishCommandResult(
+                    commandId,
+                    action,
+                    NexNodeCommandProtocol.RejectedState,
+                    "unsupported_action",
+                    nexEvent.CorrelationId);
+                return;
+            }
+
+            PublishCommandResult(
+                commandId,
+                NexNodeCommandProtocol.PingAction,
+                NexNodeCommandProtocol.CompletedState,
+                "pong",
+                nexEvent.CorrelationId);
+        }
+
+        private void PublishCommandResult(
+            string commandId,
+            string action,
+            string state,
+            string message,
+            string correlationId)
+        {
+            Scene[] scenes =
+                m_Scenes.Values.ToArray();
+
+            Publish(
+                new NexEvent(
+                    NexNodeCommandProtocol.ResultEvent,
+                    "nexverse.simulator",
+                    new Dictionary<string, string>
+                    {
+                        ["command_id"] =
+                            commandId ?? string.Empty,
+                        ["node_id"] =
+                            m_NodeId,
+                        ["action"] =
+                            action ?? string.Empty,
+                        ["state"] =
+                            state ?? string.Empty,
+                        ["message"] =
+                            message ?? string.Empty,
+                        ["region_count"] =
+                            scenes.Length.ToString(
+                                System.Globalization.CultureInfo.InvariantCulture),
+                        ["agent_count"] =
+                            scenes.Sum(scene =>
+                                scene.GetRootAgentCount()).ToString(
+                                System.Globalization.CultureInfo.InvariantCulture),
+                        ["server_version"] =
+                            OpenSim.VersionInfo.Version.Trim()
+                    },
+                    correlationId));
+        }
+
+        private static string CommandData(
+            NexEvent nexEvent,
+            string key)
+        {
+            if (nexEvent?.Data == null ||
+                !nexEvent.Data.TryGetValue(
+                    key,
+                    out string value) ||
+                value == null)
+            {
+                return string.Empty;
+            }
+
+            return value.Trim();
         }
 
         private void PublishHeartbeatSafe()
