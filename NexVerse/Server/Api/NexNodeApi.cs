@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Security;
 using OpenSim.Framework.Servers.HttpServer;
@@ -18,20 +20,30 @@ namespace NexVerse.Server.Api
             new JsonSerializerOptions { WriteIndented = true };
 
         private readonly NexNodeRegistry m_Registry;
+        private readonly NexNodeCommandTracker m_Commands;
         private readonly NexApiAuthenticator m_Authenticator;
+        private readonly INexAuditSink m_Audit;
         private readonly bool m_DistributedTransportEnabled;
 
         public NexNodeApi(
             NexNodeRegistry registry,
+            NexNodeCommandTracker commands,
             NexApiAuthenticator authenticator,
+            INexAuditSink audit,
             bool distributedTransportEnabled)
         {
             m_Registry =
                 registry ??
                 throw new ArgumentNullException(nameof(registry));
+            m_Commands =
+                commands ??
+                throw new ArgumentNullException(nameof(commands));
             m_Authenticator =
                 authenticator ??
                 throw new ArgumentNullException(nameof(authenticator));
+            m_Audit =
+                audit ??
+                NullNexAuditSink.Instance;
             m_DistributedTransportEnabled =
                 distributedTransportEnabled;
         }
@@ -40,12 +52,6 @@ namespace NexVerse.Server.Api
             IOSHttpRequest request,
             IOSHttpResponse response)
         {
-            if (!RequireGet(request, response))
-                return;
-
-            if (!Authenticate(request, response))
-                return;
-
             string path =
                 (request?.UriPath ?? string.Empty)
                     .TrimEnd('/');
@@ -55,29 +61,134 @@ namespace NexVerse.Server.Api
                     "/api/v1/nodes",
                     StringComparison.OrdinalIgnoreCase))
             {
+                if (!RequireMethod(
+                        request,
+                        response,
+                        "GET") ||
+                    !Authenticate(
+                        request,
+                        response,
+                        NexScopes.SimulatorsRead,
+                        out NexPrincipal _))
+                {
+                    return;
+                }
+
                 HandleList(response);
                 return;
             }
 
-            const string prefix =
-                "/api/v1/nodes/";
+            const string commandPrefix =
+                "/api/v1/node-commands/";
 
             if (path.StartsWith(
-                    prefix,
+                    commandPrefix,
                     StringComparison.OrdinalIgnoreCase))
             {
-                string nodeId =
-                    Uri.UnescapeDataString(
-                        path.Substring(prefix.Length));
+                if (!RequireMethod(
+                        request,
+                        response,
+                        "GET") ||
+                    !Authenticate(
+                        request,
+                        response,
+                        NexScopes.SimulatorsRead,
+                        out NexPrincipal _))
+                {
+                    return;
+                }
 
-                if (string.IsNullOrWhiteSpace(nodeId) ||
-                    nodeId.Contains('/'))
+                string commandId =
+                    path.Substring(
+                        commandPrefix.Length);
+
+                if (string.IsNullOrWhiteSpace(commandId) ||
+                    commandId.Contains('/'))
                 {
                     WriteError(
                         response,
                         HttpStatusCode.BadRequest,
-                        "invalid_node_id",
-                        "A single simulator node ID is required.");
+                        "invalid_command_id",
+                        "A single node command UUID is required.");
+                    return;
+                }
+
+                HandleCommandGet(
+                    response,
+                    commandId);
+                return;
+            }
+
+            const string nodePrefix =
+                "/api/v1/nodes/";
+
+            if (path.StartsWith(
+                    nodePrefix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                string tail =
+                    path.Substring(
+                        nodePrefix.Length);
+
+                const string pingSuffix =
+                    "/commands/ping";
+
+                if (tail.EndsWith(
+                        pingSuffix,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!RequireMethod(
+                            request,
+                            response,
+                            "POST") ||
+                        !Authenticate(
+                            request,
+                            response,
+                            NexScopes.SimulatorsManage,
+                            out NexPrincipal principal))
+                    {
+                        return;
+                    }
+
+                    string encodedNodeId =
+                        tail.Substring(
+                            0,
+                            tail.Length -
+                            pingSuffix.Length);
+
+                    if (!TryNodeId(
+                            encodedNodeId,
+                            response,
+                            out string nodeId))
+                    {
+                        return;
+                    }
+
+                    HandlePing(
+                        response,
+                        nodeId,
+                        principal);
+                    return;
+                }
+
+                if (!RequireMethod(
+                        request,
+                        response,
+                        "GET") ||
+                    !Authenticate(
+                        request,
+                        response,
+                        NexScopes.SimulatorsRead,
+                        out NexPrincipal _))
+                {
+                    return;
+                }
+
+                if (!TryNodeId(
+                        tail,
+                        response,
+                        out string nodeId))
+                {
                     return;
                 }
 
@@ -155,6 +266,132 @@ namespace NexVerse.Server.Api
             });
         }
 
+        private void HandlePing(
+            IOSHttpResponse response,
+            string nodeId,
+            NexPrincipal principal)
+        {
+            if (!m_DistributedTransportEnabled)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "node_command_transport_disabled",
+                    "Distributed NexBus transport must be enabled before NodeAgent commands can be issued.");
+                return;
+            }
+
+            NexNodeSnapshot node =
+                m_Registry.Get(nodeId);
+
+            if (node == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.NotFound,
+                    "node_not_found",
+                    "Simulator node was not observed by the NexVerse NodeAgent registry.");
+                return;
+            }
+
+            if (string.Equals(
+                    node.State,
+                    "offline",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Conflict,
+                    "node_offline",
+                    "An explicitly offline simulator node cannot receive a command.");
+                return;
+            }
+
+            string correlationId =
+                NexApiRequestContext.Ensure(response);
+
+            NexNodeCommandSnapshot command;
+
+            try
+            {
+                command =
+                    m_Commands.IssuePing(
+                        node.NodeId,
+                        principal?.Subject,
+                        correlationId);
+            }
+            catch (Exception)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "node_command_publish_failed",
+                    "The directed NodeAgent command could not be published.");
+                return;
+            }
+
+            m_Audit.Record(
+                new NexAuditEvent(
+                    principal?.Subject,
+                    "simulators.command.ping",
+                    node.NodeId,
+                    correlationId,
+                    new Dictionary<string, string>
+                    {
+                        ["command_id"] =
+                            command.CommandId.ToString(),
+                        ["action"] =
+                            command.Action
+                    }));
+
+            WriteJson(
+                response,
+                new
+                {
+                    command =
+                        CommandPayload(command),
+                    status_url =
+                        "/api/v1/node-commands/" +
+                        command.CommandId,
+                    correlation_id =
+                        correlationId
+                },
+                HttpStatusCode.Accepted);
+        }
+
+        private void HandleCommandGet(
+            IOSHttpResponse response,
+            string commandId)
+        {
+            NexNodeCommandSnapshot command =
+                m_Commands.Get(commandId);
+
+            if (command == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.NotFound,
+                    "node_command_not_found",
+                    "NodeAgent command was not found in the bounded command history.");
+                return;
+            }
+
+            string correlationId =
+                NexApiRequestContext.Ensure(response);
+
+            WriteJson(response, new
+            {
+                transport_enabled =
+                    m_DistributedTransportEnabled,
+                command_timeout_seconds =
+                    m_Commands.CommandTimeoutSeconds,
+                command =
+                    CommandPayload(command),
+                correlation_id =
+                    correlationId
+            });
+        }
+
         private static object NodePayload(
             NexNodeSnapshot node)
         {
@@ -205,14 +442,44 @@ namespace NexVerse.Server.Api
             };
         }
 
+        private static object CommandPayload(
+            NexNodeCommandSnapshot command)
+        {
+            return new
+            {
+                command_id =
+                    command.CommandId,
+                node_id =
+                    command.NodeId,
+                action =
+                    command.Action,
+                requested_by =
+                    command.RequestedBy,
+                state =
+                    command.State,
+                message =
+                    command.Message,
+                created_at =
+                    command.CreatedAt,
+                updated_at =
+                    command.UpdatedAt,
+                expires_at =
+                    command.ExpiresAt,
+                correlation_id =
+                    command.CorrelationId
+            };
+        }
+
         private bool Authenticate(
             IOSHttpRequest request,
-            IOSHttpResponse response)
+            IOSHttpResponse response,
+            string scope,
+            out NexPrincipal principal)
         {
             if (m_Authenticator.TryAuthenticate(
                     request,
-                    NexScopes.SimulatorsRead,
-                    out NexPrincipal _,
+                    scope,
+                    out principal,
                     out UserAccount _,
                     out int statusCode,
                     out string error))
@@ -228,19 +495,46 @@ namespace NexVerse.Server.Api
                 response,
                 (HttpStatusCode)statusCode,
                 error,
-                "Authentication or simulators:read authorization is required.");
+                "Authentication or " +
+                scope +
+                " authorization is required.");
 
             return false;
         }
 
-        private static bool RequireGet(
+        private static bool TryNodeId(
+            string encodedNodeId,
+            IOSHttpResponse response,
+            out string nodeId)
+        {
+            nodeId =
+                Uri.UnescapeDataString(
+                    encodedNodeId ?? string.Empty)
+                    .Trim();
+
+            if (string.IsNullOrWhiteSpace(nodeId) ||
+                nodeId.Contains('/'))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_node_id",
+                    "A single simulator node ID is required.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool RequireMethod(
             IOSHttpRequest request,
-            IOSHttpResponse response)
+            IOSHttpResponse response,
+            string method)
         {
             if (request != null &&
                 string.Equals(
                     request.HttpMethod,
-                    "GET",
+                    method,
                     StringComparison.OrdinalIgnoreCase))
             {
                 return true;
@@ -250,7 +544,8 @@ namespace NexVerse.Server.Api
                 response,
                 HttpStatusCode.MethodNotAllowed,
                 "method_not_allowed",
-                "GET is required.");
+                method +
+                " is required.");
 
             return false;
         }
