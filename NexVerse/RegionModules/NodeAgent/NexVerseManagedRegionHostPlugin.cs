@@ -565,12 +565,19 @@ namespace NexVerse.RegionModules.NodeAgent
             string configPath,
             string regionName)
         {
-            return new RegionInfo(
-                regionName,
-                configPath,
-                true,
-                m_OpenSim.ConfigSource.Source,
-                regionName);
+            RegionInfo regionInfo =
+                new RegionInfo(
+                    regionName,
+                    configPath,
+                    true,
+                    m_OpenSim.ConfigSource.Source,
+                    regionName);
+
+            regionInfo.SetExtraSetting(
+                "NexVerseNonFatalGridRegistration",
+                "true");
+
+            return regionInfo;
         }
 
         private bool EstateExists(
