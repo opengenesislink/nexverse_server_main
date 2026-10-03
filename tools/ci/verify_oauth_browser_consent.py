@@ -36,6 +36,10 @@ for token in (
     "frame-ancestors 'none'",
     "Cache-Control",
     "no-store",
+    "Simulatorstatus lesen",
+    "Simulatoren verwalten",
+    "NexScopes.SimulatorsRead",
+    "NexScopes.SimulatorsManage",
 ):
     if token not in page:
         errors.append(f"NexOAuthBrowserPage.cs missing browser security/UI marker: {token}")
