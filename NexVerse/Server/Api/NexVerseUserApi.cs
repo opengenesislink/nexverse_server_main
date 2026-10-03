@@ -652,6 +652,7 @@ namespace NexVerse.Server.Api
             INexApiKeyStore apiKeys,
             IGridService grid,
             IEstateDataService estateData,
+            IUserAccountService userAccounts,
             NexNodeRegistry nodeRegistry,
             NexRegionOperationRegistry regionOperationRegistry,
             bool distributedNexBusEnabled,
@@ -688,7 +689,11 @@ namespace NexVerse.Server.Api
                 distributedNexBusEnabled);
             m_EstateApi = new NexEstateApi(
                 estateData,
-                authenticator);
+                grid,
+                userAccounts,
+                authenticator,
+                eventBus,
+                m_Audit);
             m_AdminMinimumLevel = adminMinimumLevel;
         }
 
