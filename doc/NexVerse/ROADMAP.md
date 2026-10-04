@@ -1543,9 +1543,9 @@ Examples:
 
 # Milestone 0.9.4.0
 
-## 21. NexVerse Platform Generation 1
+## 21. OpenGenesisLINK Generation 1
 
-NexVerse 0.9.4.0 is the consolidation milestone.
+**OpenGenesisLINK v0.9.4.0** is the consolidation milestone and the first release line in which the remaining inherited product identity is deliberately migrated to the OpenGenesisLINK/OGL identity.
 
 It should only be declared when the platform behaves as a coherent NexVerse system rather than as a collection of additions to the OpenSimulator baseline.
 
@@ -1567,7 +1567,65 @@ Target characteristics:
 - Search/Places/Land/Destination services are integrated.
 - monitoring and audit coverage are production-grade.
 - NexBus and Job Engine are core infrastructure.
-- upgrade, backup and rollback procedures exist.
+- upgrade, backup and rollback procedures exist;
+- administrator-visible simulator and Robust console branding uses **OpenGenesisLINK** or the short form **OGL**;
+- newly maintained OpenGenesisLINK console output is German; inherited English output is migrated subsystem-by-subsystem with regression coverage;
+- remaining NexVerse server-platform naming is inventoried and migrated to OpenGenesisLINK where compatibility permits; NexVerse remains a grid/world name, not the server-platform product name;
+- source provenance is tracked per component during clean replacement of inherited OpenSimulator implementation;
+- BSD notices are retained wherever BSD-licensed OpenSimulator code remains; they may disappear only from independently replaced components once no BSD-licensed material remains in those components;
+- the target is an increasingly MPL-2.0-native OpenGenesisLINK codebase without falsely relicensing inherited code.
+
+### 21.1 OGL console and German administration surface
+
+Target console identity:
+
+```text
+OpenGenesisLINK v0.9.4.0
+OGL>
+```
+
+Requirements:
+
+- German command help, status, warning and error text for OpenGenesisLINK-maintained administration surfaces;
+- stable machine-readable error/event identifiers remain language-neutral;
+- legacy OpenSimulator console commands are wrapped, migrated or replaced gradually rather than removed without compatibility analysis;
+- command aliases may preserve old operational workflows during a documented migration window.
+
+### 21.2 OpenGenesisLINK Addon System
+
+The addon manager becomes a core OpenGenesisLINK facility rather than an ad-hoc module loader.
+
+Initial console contract:
+
+```text
+addon search <begriff>
+addon info <addon>
+addon install <addon>
+addon update <addon>
+addon update --all
+addon remove <addon>
+addon list
+addon verify <addon>
+```
+
+Architecture requirements:
+
+- catalog/provider abstraction so development can begin before the public catalog is live;
+- planned official catalog origin: `opengenesislink.de`;
+- signed addon manifests and package integrity verification;
+- addon ID, semantic version, OpenGenesisLINK compatibility range, architecture/runtime requirements and dependencies;
+- dependency resolution with cycle/conflict detection;
+- explicit permissions/capabilities requested by an addon;
+- staged download -> verify -> install -> activate transaction;
+- rollback if installation or activation fails;
+- installed-addon registry and reproducible state;
+- update channel support where appropriate;
+- audit events for install/update/remove operations;
+- no arbitrary unsigned remote code execution by default;
+- offline/local package installation may exist as an explicit administrator action;
+- future World API exposure uses the same addon service rather than a second implementation.
+
+The catalog protocol must be documented and versioned so third-party repositories can be supported later without coupling the core to one website.
 
 ---
 
