@@ -14,6 +14,11 @@ required_warp = (
     '"gif"',
     '"bmp"',
     '"unknown"',
+    "LunaTextureDiagnostic",
+    "CreateLunaTexturePlaceholder",
+    "nex texture status",
+    "nex texture clear",
+    "RecordLunaTextureDiagnostic",
     '[LunaTexture]: missing texture',
     'LunaTextureRasterFallback',
     'Image.FromStream',
@@ -23,6 +28,8 @@ for marker in required_warp:
 
 assert "LunaTextureEnabled = true" in defaults
 assert "LunaTextureRasterFallback = true" in defaults
+assert "LunaTexturePlaceholder = true" in defaults
+assert "LunaTextureDiagnosticLimit = 256" in defaults
 assert "authoritative asset is never rewritten" in defaults
 assert "Phase 1 implementation status" in roadmap
 assert "non-destructive raster decoder fallback" in roadmap
