@@ -48,6 +48,8 @@ namespace NexVerse.Core.ControlPlane
             int processId,
             long workingSetBytes,
             double cpuSeconds,
+            long diskFreeBytes,
+            long diskTotalBytes,
             int regionCount,
             int agentCount,
             bool managedRegionCommands,
@@ -63,6 +65,8 @@ namespace NexVerse.Core.ControlPlane
             ProcessId = processId;
             WorkingSetBytes = workingSetBytes;
             CpuSeconds = cpuSeconds;
+            DiskFreeBytes = diskFreeBytes;
+            DiskTotalBytes = diskTotalBytes;
             RegionCount = regionCount;
             AgentCount = agentCount;
             ManagedRegionCommands = managedRegionCommands;
@@ -79,6 +83,8 @@ namespace NexVerse.Core.ControlPlane
         public int ProcessId { get; }
         public long WorkingSetBytes { get; }
         public double CpuSeconds { get; }
+        public long DiskFreeBytes { get; }
+        public long DiskTotalBytes { get; }
         public int RegionCount { get; }
         public int AgentCount { get; }
         public bool ManagedRegionCommands { get; }
@@ -269,6 +275,8 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "cpu_seconds",
                     value => record.CpuSeconds = value);
+                AssignLong(nexEvent, "disk_free_bytes", value => record.DiskFreeBytes = value);
+                AssignLong(nexEvent, "disk_total_bytes", value => record.DiskTotalBytes = value);
                 AssignInt(
                     nexEvent,
                     "region_count",
@@ -538,6 +546,8 @@ namespace NexVerse.Core.ControlPlane
                     record.ProcessId,
                     record.WorkingSetBytes,
                     record.CpuSeconds,
+                    record.DiskFreeBytes,
+                    record.DiskTotalBytes,
                     record.RegionCount,
                     record.AgentCount,
                     record.ManagedRegionCommands,
@@ -748,6 +758,8 @@ namespace NexVerse.Core.ControlPlane
             public int ProcessId;
             public long WorkingSetBytes;
             public double CpuSeconds;
+            public long DiskFreeBytes;
+            public long DiskTotalBytes;
             public int RegionCount;
             public int AgentCount;
             public bool ManagedRegionCommands;
