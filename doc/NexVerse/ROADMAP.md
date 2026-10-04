@@ -3,7 +3,7 @@
 > Status: Active development roadmap  
 > Current stable release: **NexVerse 0.9.3.4**  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
-> Next development line: **NexVerse 0.9.3.5 Dev**  
+> Active development line: **NexVerse 0.9.3.5 Dev**  
 > Active milestone: **Inventory, OAR/IAR, Job Engine and NexBus**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
@@ -733,7 +733,7 @@ Write/control status added during the 0.9.3.2 World API line:
 
 # Milestone 0.9.3.5
 
-> **Status:** next development milestone after the stable NexVerse 0.9.3.4 release.
+> **Status:** active development milestone since 4 October 2026.
 
 ## 9. Inventory, OAR/IAR, Job Engine and NexBus
 
