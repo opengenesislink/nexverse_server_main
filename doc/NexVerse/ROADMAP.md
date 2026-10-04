@@ -1,11 +1,10 @@
 # NexVerse Server Roadmap
 
 > Status: Active development roadmap  
-> Current stable release: **NexVerse 0.9.3.1**  
-> Active development line: **NexVerse 0.9.3.3 Dev**  
-> Active release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
-> Target stable release: **NexVerse 0.9.3.4**  
-> Active milestone: **Simulator, Region and Estate Control Plane**  
+> Current stable release: **NexVerse 0.9.3.4**  
+> Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
+> Next development line: **NexVerse 0.9.3.5 Dev**  
+> Active milestone: **Inventory, OAR/IAR, Job Engine and NexBus**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
@@ -548,7 +547,7 @@ Checkpoint status: **complete for the 0.9.3.3 foundation**. Implemented:
 
 # Milestone 0.9.3.4
 
-> Status: **Release-scope implementation complete; release validation in progress**
+> Status: **Stable release completed 4 October 2026**
 
 ## 8. Simulator, Region and Estate Control Plane
 
@@ -728,15 +727,27 @@ Write/control status added during the 0.9.3.2 World API line:
 - region reassignment explicitly reports that a running simulator region must be restarted to reload live Estate settings;
 - the API Control Center provides Estate load/create/update and Region→Estate assignment controls;
 - SQLite Estate region lookup was completed so management-region membership works consistently across supported database providers;
-- Estate delete remains intentionally unexposed until the underlying datastore deletion path is implemented consistently and safely.
+- Estate delete is exposed with a fail-safe guard and is refused while regions remain assigned.
 
 ---
 
 # Milestone 0.9.3.5
 
-> **Scope gate:** planning may be refined, but implementation begins only after the stable NexVerse 0.9.3.4 release has been completed.
+> **Status:** next development milestone after the stable NexVerse 0.9.3.4 release.
 
 ## 9. Inventory, OAR/IAR, Job Engine and NexBus
+
+### 9.0 LunaTexture — Texture Recovery & Diagnostics
+
+Planned NexVerse-native resilience layer for Warp3D and asset diagnostics:
+
+- classify missing, corrupt, unsupported and decoder-failed texture assets;
+- validate texture payloads before JPEG2000 decoding;
+- provide controlled decoder fallback and non-destructive render placeholders;
+- diagnose Hypergrid/local asset-source failures separately;
+- suppress repeated warning storms while retaining inspectable diagnostics;
+- expose bounded administrator inspection/retry controls and World API diagnostics;
+- never overwrite the authoritative original asset automatically during recovery.
 
 ### 9.1 Complete Inventory API
 
