@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using Ionic.Zlib;
-using OpenSim.Framework.Serialization;
+using System.Text;
 using CompressionMode = Ionic.Zlib.CompressionMode;
 
 namespace NexVerse.RegionModules.Archives
@@ -86,6 +86,54 @@ namespace NexVerse.RegionModules.Archives
             return result;
         }
     }
+
+        private static bool TryReadTarEntry(BinaryReader reader, out string path, out long size, out byte type)
+        {
+            path = string.Empty;
+            size = 0;
+            type = 0;
+            byte[] header = reader.ReadBytes(512);
+            if (header.Length == 0)
+                return false;
+            if (header.Length != 512)
+                throw new InvalidDataException("Unvollstaendiger TAR-Header.");
+            if (header[0] == 0)
+                return false;
+
+            path = ReadTarText(header, 0, 100);
+            string prefix = ReadTarText(header, 345, 155);
+            if (!string.IsNullOrEmpty(prefix))
+                path = prefix + "/" + path;
+
+            string octalSize = ReadTarText(header, 124, 12).Trim();
+            if (!string.IsNullOrEmpty(octalSize))
+                size = Convert.ToInt64(octalSize, 8);
+            type = header[156];
+            return true;
+        }
+
+        private static string ReadTarText(byte[] buffer, int offset, int length)
+        {
+            string value = Encoding.ASCII.GetString(buffer, offset, length);
+            int nul = value.IndexOf('\0');
+            return (nul >= 0 ? value.Substring(0, nul) : value).Trim();
+        }
+
+        private static void SkipTarPayload(BinaryReader reader, long size)
+        {
+            if (size < 0)
+                throw new InvalidDataException("Ungueltige TAR-Eintragsgroesse.");
+            long padded = ((size + 511L) / 512L) * 512L;
+            const int chunkSize = 8192;
+            while (padded > 0)
+            {
+                int take = (int)Math.Min(chunkSize, padded);
+                byte[] skipped = reader.ReadBytes(take);
+                if (skipped.Length != take)
+                    throw new EndOfStreamException("OAR/TAR endet innerhalb eines Eintrags.");
+                padded -= take;
+            }
+        }
 
     public sealed class OglOarStoragePolicy
     {
