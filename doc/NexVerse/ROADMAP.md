@@ -495,7 +495,7 @@ Implement full Display Name support throughout:
 - IM;
 - groups;
 - objects/creator views where appropriate;
-- search;
+- [x] search/listing foundation;
 - web profiles.
 
 ### 7.3 WebProfileV3
@@ -766,19 +766,19 @@ Support:
 - [x] rename folder;
 - [x] move folder;
 - [x] delete folder (safe move to Trash);
-- restore from trash;
-- empty trash;
+- [x] restore from trash;
+- [x] empty trash;
 - create item;
 - [x] rename item;
 - [x] move item;
-- copy item;
+- [x] copy item;
 - [x] delete item (safe move to Trash);
-- sort;
+- [x] sort (name-ordered search result foundation);
 - search;
 - [x] inspect permissions (item permission masks);
 - [x] update allowed metadata (name/description);
 - links;
-- Lost & Found;
+- [x] Lost & Found;
 - [x] asset reference information (asset UUID/type; read-only foundation).
 
 ### 9.2 OAR management
