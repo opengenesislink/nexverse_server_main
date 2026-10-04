@@ -755,7 +755,8 @@ namespace NexVerse.Server.Api
             m_NodeApi = new NexNodeApi(
                 nodeRegistry,
                 authenticator,
-                distributedNexBusEnabled);
+                distributedNexBusEnabled,
+                eventBus);
             m_EstateApi = new NexEstateApi(
                 estateData,
                 grid,

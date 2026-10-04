@@ -53,6 +53,8 @@ namespace NexVerse.Core.ControlPlane
             int regionCount,
             int agentCount,
             bool managedRegionCommands,
+            bool maintenanceMode,
+            bool draining,
             string state,
             DateTimeOffset lastSeen,
             DateTimeOffset lastEventAt,
@@ -70,6 +72,8 @@ namespace NexVerse.Core.ControlPlane
             RegionCount = regionCount;
             AgentCount = agentCount;
             ManagedRegionCommands = managedRegionCommands;
+            MaintenanceMode = maintenanceMode;
+            Draining = draining;
             State = state ?? "unknown";
             LastSeen = lastSeen;
             LastEventAt = lastEventAt;
@@ -88,6 +92,8 @@ namespace NexVerse.Core.ControlPlane
         public int RegionCount { get; }
         public int AgentCount { get; }
         public bool ManagedRegionCommands { get; }
+        public bool MaintenanceMode { get; }
+        public bool Draining { get; }
         public string State { get; }
         public DateTimeOffset LastSeen { get; }
         public DateTimeOffset LastEventAt { get; }
@@ -285,6 +291,8 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "agent_count",
                     value => record.AgentCount = value);
+                AssignBool(nexEvent, "maintenance_mode", value => record.MaintenanceMode = value);
+                AssignBool(nexEvent, "draining", value => record.Draining = value);
                 AssignBool(
                     nexEvent,
                     "managed_region_commands",
@@ -551,6 +559,8 @@ namespace NexVerse.Core.ControlPlane
                     record.RegionCount,
                     record.AgentCount,
                     record.ManagedRegionCommands,
+                    record.MaintenanceMode,
+                    record.Draining,
                     state,
                     record.LastSeen,
                     record.LastEventAt,
@@ -763,6 +773,8 @@ namespace NexVerse.Core.ControlPlane
             public int RegionCount;
             public int AgentCount;
             public bool ManagedRegionCommands;
+            public bool MaintenanceMode;
+            public bool Draining;
             public bool ExplicitOffline;
             public DateTimeOffset LastSeen;
             public DateTimeOffset LastEventAt;
