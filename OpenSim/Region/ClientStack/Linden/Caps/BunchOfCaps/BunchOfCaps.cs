@@ -2484,7 +2484,7 @@ namespace OpenSim.Region.ClientStack.Linden
                 ["body"] = body
             };
 
-            if (!eventQueue.Enqueue(reply, m_AgentID))
+            if (!eventQueue.Enqueue((OSD)reply, m_AgentID))
             {
                 m_log.WarnFormat(
                     "[CAPS]: Failed to enqueue SetDisplayNameReply for {0}",
@@ -2530,7 +2530,7 @@ namespace OpenSim.Region.ClientStack.Linden
                     ["body"] = body
                 };
 
-                if (!eventQueue.Enqueue(update, presence.UUID))
+                if (!eventQueue.Enqueue((OSD)update, presence.UUID))
                 {
                     m_log.WarnFormat(
                         "[CAPS]: Failed to enqueue DisplayNameUpdate for {0}",
