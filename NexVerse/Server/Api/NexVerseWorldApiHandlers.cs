@@ -761,7 +761,7 @@ namespace NexVerse.Server.Api
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
                         published = "2026-10-04",
-                        compatibility = "NexVerse 0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus",
+                        compatibility = "OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus",
                         highlights = new[]
                         {
                             "0.9.3.5 Entwicklungslinie gestartet",
