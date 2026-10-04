@@ -150,3 +150,12 @@ if errors:
     raise SystemExit(1)
 
 print("NexVerse display-name foundation: OK")
+
+# Firestorm consumes SetDisplayNameReply/DisplayNameUpdate as canonical LLSD
+# event envelopes from EventQueue, not as a synchronous SetDisplayName result.
+require(
+    "OpenSim/Region/ClientStack/Linden/Caps/BunchOfCaps/BunchOfCaps.cs",
+    '["message"] = OSD.FromString("SetDisplayNameReply")',
+    '["message"] = OSD.FromString("DisplayNameUpdate")',
+    "eventQueue.Enqueue((OSD)reply, m_AgentID)",
+)

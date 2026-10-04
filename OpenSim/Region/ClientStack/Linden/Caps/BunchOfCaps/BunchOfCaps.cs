@@ -2478,11 +2478,18 @@ namespace OpenSim.Region.ClientStack.Linden
                         BuildDisplayNameAgent(account)
                 };
 
-            eventQueue.Enqueue(
-                eventQueue.BuildEvent(
-                    "SetDisplayNameReply",
-                    body),
-                m_AgentID);
+            OSDMap reply = new OSDMap
+            {
+                ["message"] = OSD.FromString("SetDisplayNameReply"),
+                ["body"] = body
+            };
+
+            if (!eventQueue.Enqueue((OSD)reply, m_AgentID))
+            {
+                m_log.WarnFormat(
+                    "[CAPS]: Failed to enqueue SetDisplayNameReply for {0}",
+                    m_AgentID);
+            }
         }
 
         private void SendDisplayNameUpdate(
@@ -2517,11 +2524,18 @@ namespace OpenSim.Region.ClientStack.Linden
                     continue;
                 }
 
-                eventQueue.Enqueue(
-                    eventQueue.BuildEvent(
-                        "DisplayNameUpdate",
-                        body),
-                    presence.UUID);
+                OSDMap update = new OSDMap
+                {
+                    ["message"] = OSD.FromString("DisplayNameUpdate"),
+                    ["body"] = body
+                };
+
+                if (!eventQueue.Enqueue((OSD)update, presence.UUID))
+                {
+                    m_log.WarnFormat(
+                        "[CAPS]: Failed to enqueue DisplayNameUpdate for {0}",
+                        presence.UUID);
+                }
             }
         }
 
