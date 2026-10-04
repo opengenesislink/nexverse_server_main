@@ -30,7 +30,7 @@ namespace OpenSim
     public class VersionInfo
     {
         // NexVerse maintains its own version line from the OpenSimulator 0.9.3.0 baseline.
-        public const string ProductName = "NexVerse";
+        public const string ProductName = "OpenGenesisLINK";
         public const string VersionNumber = "0.9.3.5";
         public const string AssemblyVersionNumber = "0.9.3.5";
 
