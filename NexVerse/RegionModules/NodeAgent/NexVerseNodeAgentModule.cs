@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using log4net;
 using Mono.Addins;
 using NexVerse.Core.Messaging;
+using NexVerse.RegionModules.Archives;
 using Nini.Config;
 using OpenMetaverse;
 using OpenSim.Framework.Servers;
@@ -51,6 +52,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private IDisposable m_MoveRegionSubscription;
         private IDisposable m_RegionLifecycleSubscription;
         private IDisposable m_NodeControlSubscription;
+        private IDisposable m_OarControlSubscription;
         private volatile bool m_MaintenanceMode;
         private volatile bool m_Draining;
         private DateTimeOffset m_StartedAt;
@@ -170,6 +172,7 @@ namespace NexVerse.RegionModules.NodeAgent
                     "region.control.lifecycle.requested",
                     HandleRegionLifecycleCommand);
             m_NodeControlSubscription = m_Bus.Subscribe("node.control.requested", HandleNodeControlCommand);
+            m_OarControlSubscription = m_Bus.Subscribe("archive.oar.requested", HandleOarCommand);
 
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
@@ -207,6 +210,8 @@ namespace NexVerse.RegionModules.NodeAgent
             m_RegionLifecycleSubscription = null;
             m_NodeControlSubscription?.Dispose();
             m_NodeControlSubscription = null;
+            m_OarControlSubscription?.Dispose();
+            m_OarControlSubscription = null;
             m_HeartbeatTimer?.Dispose();
             m_Bus?.Dispose();
             m_Transport = null;
@@ -718,6 +723,88 @@ namespace NexVerse.RegionModules.NodeAgent
             });
         }
 
+
+        private void HandleOarCommand(NexEvent nexEvent)
+        {
+            if (!IsCommandForThisNode(nexEvent)
+                || !TryCommandData(nexEvent, "operation_id", out string operationRaw)
+                || !Guid.TryParse(operationRaw, out Guid operationId)
+                || !TryCommandData(nexEvent, "region_id", out string regionRaw)
+                || !UUID.TryParse(regionRaw, out UUID regionId)
+                || !TryCommandData(nexEvent, "action", out string action)
+                || !TryCommandData(nexEvent, "file_name", out string fileName))
+                return;
+
+            if (!m_Scenes.TryGetValue(regionId, out Scene scene))
+            {
+                PublishOarState(nexEvent, operationId, regionId, action, "failed", "region_not_loaded");
+                return;
+            }
+
+            IOglOarOperations operations = scene.RequestModuleInterface<IOglOarOperations>();
+            if (operations == null)
+            {
+                PublishOarState(nexEvent, operationId, regionId, action, "failed", "oar_management_unavailable");
+                return;
+            }
+
+            void Changed(OglOarOperation operation)
+            {
+                if (operation.RequestId != operationId)
+                    return;
+                string state = operation.State.ToString().ToLowerInvariant();
+                PublishOarState(nexEvent, operationId, regionId, action, state, operation.Error);
+                if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
+                    operations.OperationChanged -= Changed;
+            }
+
+            operations.OperationChanged += Changed;
+            try
+            {
+                bool dryRun = nexEvent.Data.TryGetValue("dry_run", out string dryRaw)
+                    && bool.TryParse(dryRaw, out bool parsedDry)
+                    && parsedDry;
+
+                OglOarOperation operation = string.Equals(action, "export", StringComparison.OrdinalIgnoreCase)
+                    ? operations.StartExport(operationId, fileName)
+                    : string.Equals(action, "import", StringComparison.OrdinalIgnoreCase)
+                        ? operations.StartImport(operationId, fileName, dryRun)
+                        : throw new InvalidOperationException("unsupported_oar_action");
+
+                PublishOarState(
+                    nexEvent,
+                    operationId,
+                    regionId,
+                    action,
+                    operation.State.ToString().ToLowerInvariant(),
+                    operation.Error);
+
+                if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
+                    operations.OperationChanged -= Changed;
+            }
+            catch (Exception e)
+            {
+                operations.OperationChanged -= Changed;
+                PublishOarState(nexEvent, operationId, regionId, action, "failed", e.Message);
+            }
+        }
+
+        private void PublishOarState(NexEvent source, Guid operationId, UUID regionId, string action, string state, string message)
+        {
+            Publish(new NexEvent(
+                "archive.oar.operation." + state,
+                "nexverse.simulator",
+                new Dictionary<string, string>
+                {
+                    ["operation_id"] = operationId.ToString(),
+                    ["node_id"] = m_NodeId,
+                    ["region_id"] = regionId.ToString(),
+                    ["action"] = action ?? string.Empty,
+                    ["state"] = state ?? "unknown",
+                    ["message"] = message ?? string.Empty
+                },
+                source.CorrelationId));
+        }
 
         private void HandleNodeControlCommand(NexEvent nexEvent)
         {
