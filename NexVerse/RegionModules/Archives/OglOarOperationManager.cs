@@ -31,6 +31,7 @@ namespace NexVerse.RegionModules.Archives
     public interface IOglOarOperations
     {
         OglOarOperation StartExport(string archiveFileName, Dictionary<string, object> options = null);
+        OglOarOperation StartExport(Guid requestId, string archiveFileName, Dictionary<string, object> options = null);
         OglOarOperation StartImport(string archiveFileName, bool dryRun, Dictionary<string, object> options = null);
         OglOarOperation StartImport(Guid requestId, string archiveFileName, bool dryRun, Dictionary<string, object> options = null);
         event Action<OglOarOperation> OperationChanged;
