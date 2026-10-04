@@ -93,6 +93,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_oar_world_api.py
 
+      - name: Verify OpenGenesisLINK IAR management foundation
+        shell: bash
+        run: python3 tools/ci/verify_iar_management.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
