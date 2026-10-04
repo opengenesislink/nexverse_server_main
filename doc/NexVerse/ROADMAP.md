@@ -821,10 +821,10 @@ World API management surface:
 
 API-driven avatar inventory archives:
 
-- export IAR;
-- import IAR;
+- [x] IAR export operation foundation over authoritative `IInventoryArchiverModule`;
+- [x] IAR import operation foundation with read-only archive validation;
 - partial subtree export;
-- conflict policy;
+- [x] native conflict policy exposed as `merge=true/false` (no invented unsupported modes);
 - progress;
 - failure reporting;
 - encrypted backup option.
