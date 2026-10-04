@@ -355,6 +355,14 @@ namespace NexVerse.Server.Api
                     adminMinimumLevel,
                     new PersistentNexSecurityStore(apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json")));
 
+                NexInventoryApi inventoryApi = new NexInventoryApi(inventory, authenticator);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/inventory",
+                        apiGate.Wrap(inventoryApi.Handle),
+                        "NexVerse Inventory API"),
+                    true);
+
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
                     userAccounts,
                     gridUserData,

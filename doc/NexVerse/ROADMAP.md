@@ -761,7 +761,7 @@ Phase 1 implementation status:
 
 Support:
 
-- browse inventory tree;
+- [x] browse inventory tree (read-only API foundation);
 - create folder;
 - rename folder;
 - move folder;
@@ -775,11 +775,11 @@ Support:
 - delete item;
 - sort;
 - search;
-- inspect permissions;
+- [x] inspect permissions (item permission masks);
 - update allowed metadata;
 - links;
 - Lost & Found;
-- asset reference information.
+- [x] asset reference information (asset UUID/type; read-only foundation).
 
 ### 9.2 OAR management
 
