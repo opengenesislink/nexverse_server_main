@@ -763,13 +763,12 @@ namespace NexVerse.Server.Api
                 return;
             }
             string correlationId = NexApiRequestContext.Ensure(response);
-            m_Audit.Record(new NexAuditEvent
-            {
-                Actor = principal?.Subject ?? string.Empty,
-                Action = "estate.delete",
-                Target = "estate:" + estateId,
-                CorrelationId = correlationId
-            });
+            m_Audit.Record(new NexAuditEvent(
+                principal?.Subject ?? "unknown",
+                "estate.delete",
+                "estate:" + estateId,
+                correlationId,
+                new Dictionary<string,string> { ["estate_name"] = estate.EstateName ?? string.Empty }));
             m_EventBus.Publish(new NexEvent("estate.deleted", "nexverse.robust",
                 new Dictionary<string,string> { ["estate_id"] = estateId.ToString(), ["correlation_id"] = correlationId }));
             WriteJson(response, new { deleted = true, estate_id = estateId, correlation_id = correlationId });
