@@ -29,7 +29,7 @@ namespace NexVerse.Server.Api
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
             m_Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
             m_Bus = bus ?? throw new ArgumentNullException(nameof(bus));
-            m_Subscription = m_Bus.Subscribe("archive.oar.operation.*", ApplyState);
+            m_Subscription = m_Bus.Subscribe("*", ApplyState);
         }
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
@@ -142,7 +142,11 @@ namespace NexVerse.Server.Api
 
         private void ApplyState(NexEvent nexEvent)
         {
-            if (nexEvent?.Data == null
+            if (nexEvent == null || string.IsNullOrWhiteSpace(nexEvent.Name)
+                || !nexEvent.Name.StartsWith("archive.oar.operation.", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (nexEvent.Data == null
                 || !nexEvent.Data.TryGetValue("operation_id", out string raw)
                 || !Guid.TryParse(raw, out Guid id)
                 || !m_Operations.TryGetValue(id, out Record record))
