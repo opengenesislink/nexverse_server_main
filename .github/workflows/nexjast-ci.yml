@@ -220,7 +220,9 @@ jobs:
           trap cleanup EXIT
 
           READY=0
-          for i in $(seq 1 40); do
+          # Robust startup time varies on shared CI runners after full native builds.
+          # Give the control plane 30 seconds while still failing immediately if the process exits.
+          for i in $(seq 1 120); do
             if curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/health > /tmp/nexverse-health.json; then
               READY=1
               break
