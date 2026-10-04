@@ -77,6 +77,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_lunatexture.py
 
+      - name: Verify Inventory API foundation
+        shell: bash
+        run: python3 tools/ci/verify_inventory_api.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
