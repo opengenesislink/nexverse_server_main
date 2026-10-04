@@ -1097,7 +1097,7 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "Identität, Anzeigenamen, Profile und soziales Netzwerk",
                             status = "completed",
-                            checklist = new { completed = 3, total = 3, open = 0 },
+                            checklist = new { completed = 4, total = 4, open = 0 },
                             summary = "Die einwohnerkompatible Normalisierung von Benutzernamen und die persistente Display-Name-Grundlage sind umgesetzt. Viewer-CAPS, Login, World API und LSL verwenden dieselbe Display-Name-Quelle; WebProfileV3 sowie die vollständige Chat/IM/Gruppen/Suche-Propagation bleiben offen.",
                             evidence = new[]
                             {
@@ -1161,7 +1161,7 @@ namespace NexVerse.Server.Api
                             }
                         },
                         new { version = "0.9.3.16", codename = "", title = "Entwicklerplattform, SDKs und Erweiterbarkeit", status = "planned", checklist = (object)null, summary = "Entwicklerportal, offizielle SDKs, Webhooks, Echtzeit-APIs und Modulverträge.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.4.0", codename = "", title = "NexVerse Plattformgeneration 1", status = "planned", checklist = (object)null, summary = "Konsolidierungsmeilenstein für die erste vollständige NexVerse-Plattformgeneration.", evidence = Array.Empty<string>() }
+                        new { version = "0.9.4.0", codename = "", title = "OpenGenesisLINK Generation 1", status = "planned", checklist = (object)null, summary = "Konsolidierungsmeilenstein für die erste vollständige OpenGenesisLINK-Plattformgeneration.", evidence = Array.Empty<string>() }
                     }
                 },
                 x_nexverse_idempotency = new
