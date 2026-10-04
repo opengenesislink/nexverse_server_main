@@ -7,7 +7,7 @@ namespace NexVerse.Core
 {
     public static class NexVersePlatform
     {
-        public const string ProductName = "NexVerse";
+        public const string ProductName = "OpenGenesisLINK";
         public const string MilestoneVersion = "0.9.3.5";
         public const string MilestoneCodename = "";
         public const string MilestoneTitle = "Inventory, OAR/IAR, Job Engine und NexBus";
