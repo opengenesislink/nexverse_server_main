@@ -371,6 +371,14 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK OAR API"),
                     true);
 
+                OglIarApi iarApi = new OglIarApi(authenticator, nodeRegistry, userAccounts, eventBus);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/iar",
+                        apiGate.Wrap(iarApi.Handle),
+                        "OpenGenesisLINK IAR API"),
+                    true);
+
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
                     userAccounts,
                     gridUserData,

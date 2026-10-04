@@ -246,6 +246,47 @@ namespace OpenSim.Region.CoreModules.Avatar.Inventory.Archiver
         }
 
         public bool ArchiveInventory(
+            UUID id, UserAccount userInfo, string invPath, Stream saveStream, Dictionary<string, object> options)
+        {
+            if (userInfo == null || saveStream == null || m_scenes.Count == 0)
+                return false;
+
+            try
+            {
+                InventoryArchiveWriteRequest iarReq = new InventoryArchiveWriteRequest(id, this, m_aScene, userInfo, invPath, saveStream);
+                iarReq.Execute(options ?? new Dictionary<string, object>(), UserAccountService);
+                return true;
+            }
+            catch (EntryPointNotFoundException e)
+            {
+                m_log.Error("[INVENTORY ARCHIVER]: Compression library mismatch during server-authorized IAR export.", e);
+                return false;
+            }
+        }
+
+        public bool DearchiveInventory(
+            UUID id, UserAccount userInfo, string invPath, Stream loadStream, Dictionary<string, object> options)
+        {
+            if (userInfo == null || loadStream == null || m_scenes.Count == 0)
+                return false;
+
+            bool merge = options != null && options.ContainsKey("merge") && (bool)options["merge"];
+            try
+            {
+                InventoryArchiveReadRequest request = new InventoryArchiveReadRequest(
+                    id, this, m_aScene.InventoryService, m_aScene.AssetService, m_aScene.UserAccountService,
+                    userInfo, invPath, loadStream, merge);
+                UpdateClientWithLoadedNodes(userInfo, request.Execute());
+                return true;
+            }
+            catch (EntryPointNotFoundException e)
+            {
+                m_log.Error("[INVENTORY ARCHIVER]: Compression library mismatch during server-authorized IAR import.", e);
+                return false;
+            }
+        }
+
+        public bool ArchiveInventory(
             UUID id, string firstName, string lastName, string invPath, string pass, string savePath,
             Dictionary<string, object> options)
         {

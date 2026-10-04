@@ -121,5 +121,15 @@ namespace OpenSim.Region.Framework.Interfaces
         bool ArchiveInventory(
             UUID id, string firstName, string lastName, string invPath, string pass, Stream saveStream,
             Dictionary<string, object> options);
+
+        // Server-authorized management path. Callers must authorize the account before invoking this overload.
+        bool ArchiveInventory(
+            UUID id, UserAccount userInfo, string invPath, Stream saveStream,
+            Dictionary<string, object> options);
+
+        // Server-authorized management path. Callers must authorize the account before invoking this overload.
+        bool DearchiveInventory(
+            UUID id, UserAccount userInfo, string invPath, Stream loadStream,
+            Dictionary<string, object> options);
     }
 }

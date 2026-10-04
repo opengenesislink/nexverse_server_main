@@ -97,6 +97,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_iar_management.py
 
+      - name: Verify OpenGenesisLINK IAR World API
+        shell: bash
+        run: python3 tools/ci/verify_iar_world_api.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
