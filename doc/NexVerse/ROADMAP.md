@@ -548,6 +548,8 @@ Checkpoint status: **complete for the 0.9.3.3 foundation**. Implemented:
 
 # Milestone 0.9.3.4
 
+> Status: **Release-scope implementation complete; release validation in progress**
+
 ## 8. Simulator, Region and Estate Control Plane
 
 ### 8.1 NexVerse NodeAgent
@@ -584,12 +586,14 @@ World API functions:
 
 - list simulators;
 - inspect health;
-- start/stop/restart managed simulator services;
-- retrieve logs;
-- execute approved administrative commands;
-- maintenance mode;
-- drain users;
-- update/roll back node.
+- [x] node discovery and health inspection;
+- [x] managed region start/stop/restart on simulator nodes;
+- [x] maintenance mode;
+- [x] drain/resume admission state;
+- [x] CPU, memory, disk, uptime, region and agent health telemetry;
+- retrieve logs (post-0.9.3.4 operational enhancement);
+- execute approved general-purpose administrative commands (deferred: 0.9.3.4 exposes bounded region/node commands instead);
+- update/roll back node (deferred to deployment/update orchestration).
 
 ### 8.3 Region management
 
@@ -699,7 +703,7 @@ Foundation implemented during the 0.9.3.2 World API line:
 Complete Estate API:
 
 - [x] estate create/update;
-- estate delete;
+- [x] estate delete (refused while regions remain assigned);
 - [x] owner;
 - [x] managers;
 - [x] allowed residents;
