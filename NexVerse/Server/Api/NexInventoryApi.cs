@@ -110,9 +110,9 @@ namespace NexVerse.Server.Api
                 path.Equals("/api/v1/inventory/tree", StringComparison.OrdinalIgnoreCase))
             {
                 InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
-                List<InventoryFolderBase> folders = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
+                List<InventoryFolderBase> skeleton = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
                 WriteJson(response, new { owner_id = owner.ToString(), root = root == null ? null : FolderPayload(root),
-                    folders = folders.ConvertAll(FolderPayload), folder_count = folders.Count }, HttpStatusCode.OK);
+                    folders = skeleton.ConvertAll(FolderPayload), folder_count = skeleton.Count }, HttpStatusCode.OK);
                 return;
             }
 
@@ -242,8 +242,11 @@ namespace NexVerse.Server.Api
             catch { body = default; WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "A valid JSON object is required."); return false; }
         }
 
-        private static bool TryUuid(JsonElement body, string name, out UUID value) =>
-            body.TryGetProperty(name, out JsonElement e) && UUID.TryParse(e.GetString(), out value);
+        private static bool TryUuid(JsonElement body, string name, out UUID value)
+        {
+            value = UUID.Zero;
+            return body.TryGetProperty(name, out JsonElement e) && UUID.TryParse(e.GetString(), out value);
+        }
 
         private static bool TryName(JsonElement body, string property, out string name)
         {
