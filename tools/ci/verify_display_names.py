@@ -150,3 +150,9 @@ if errors:
     raise SystemExit(1)
 
 print("NexVerse display-name foundation: OK")
+
+# Firestorm consumes SetDisplayNameReply/DisplayNameUpdate as canonical LLSD
+# event envelopes from EventQueue, not as a synchronous SetDisplayName result.
+require('["message"] = OSD.FromString("SetDisplayNameReply")', "SetDisplayNameReply LLSD event envelope missing")
+require('["message"] = OSD.FromString("DisplayNameUpdate")', "DisplayNameUpdate LLSD event envelope missing")
+require("eventQueue.Enqueue(reply, m_AgentID)", "SetDisplayNameReply is not queued as LLSD")
