@@ -52,26 +52,27 @@ namespace NexVerse.RegionModules.Archives
 
                 using FileStream input = File.OpenRead(archivePath);
                 using GZipStream gzip = new(input, CompressionMode.Decompress);
-                TarArchiveReader reader = new(gzip);
-
-                while (reader.ReadEntry(out string path, out TarArchiveReader.TarEntryType type) is byte[] data)
+                using BinaryReader tar = new(gzip, Encoding.UTF8, leaveOpen: true);
+                while (TryReadTarEntry(tar, out string path, out long size, out byte type))
                 {
-                    if (type == TarArchiveReader.TarEntryType.TYPE_DIRECTORY)
-                        continue;
+                    if (type != (byte)'5')
+                    {
+                        result.Entries++;
+                        if (path.Equals("archive.xml", StringComparison.Ordinal))
+                            result.HasControlFile = size > 0;
+                        else if (path.StartsWith("assets/", StringComparison.Ordinal))
+                            result.Assets++;
+                        else if (path.StartsWith("objects/", StringComparison.Ordinal))
+                            result.Objects++;
+                        else if (path.StartsWith("terrains/", StringComparison.Ordinal))
+                            result.Terrains++;
+                        else if (path.StartsWith("settings/", StringComparison.Ordinal))
+                            result.Settings++;
+                        else if (path.StartsWith("landdata/", StringComparison.Ordinal))
+                            result.Parcels++;
+                    }
 
-                    result.Entries++;
-                    if (path.Equals(ArchiveConstants.CONTROL_FILE_PATH, StringComparison.Ordinal))
-                        result.HasControlFile = data.Length > 0;
-                    else if (path.StartsWith(ArchiveConstants.ASSETS_PATH, StringComparison.Ordinal))
-                        result.Assets++;
-                    else if (path.StartsWith(ArchiveConstants.OBJECTS_PATH, StringComparison.Ordinal))
-                        result.Objects++;
-                    else if (path.StartsWith(ArchiveConstants.TERRAINS_PATH, StringComparison.Ordinal))
-                        result.Terrains++;
-                    else if (path.StartsWith(ArchiveConstants.SETTINGS_PATH, StringComparison.Ordinal))
-                        result.Settings++;
-                    else if (path.StartsWith(ArchiveConstants.LANDDATA_PATH, StringComparison.Ordinal))
-                        result.Parcels++;
+                    SkipTarPayload(tar, size);
                 }
 
                 result.Valid = result.HasControlFile && result.Entries > 0;
@@ -85,7 +86,6 @@ namespace NexVerse.RegionModules.Archives
 
             return result;
         }
-    }
 
         private static bool TryReadTarEntry(BinaryReader reader, out string path, out long size, out byte type)
         {
@@ -134,6 +134,7 @@ namespace NexVerse.RegionModules.Archives
                 padded -= take;
             }
         }
+    }
 
     public sealed class OglOarStoragePolicy
     {
