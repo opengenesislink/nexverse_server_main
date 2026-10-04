@@ -157,5 +157,5 @@ require(
     "OpenSim/Region/ClientStack/Linden/Caps/BunchOfCaps/BunchOfCaps.cs",
     '["message"] = OSD.FromString("SetDisplayNameReply")',
     '["message"] = OSD.FromString("DisplayNameUpdate")',
-    "eventQueue.Enqueue(reply, m_AgentID)",
+    "eventQueue.Enqueue((OSD)reply, m_AgentID)",
 )
