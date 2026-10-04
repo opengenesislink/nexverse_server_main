@@ -40,6 +40,7 @@ using Warp3D;
 using Mono.Addins;
 
 using OpenSim.Framework;
+using OpenSim.Framework.Console;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
@@ -79,6 +80,10 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
         // render.
         private readonly HashSet<UUID> m_textureDecodeWarnings = new HashSet<UUID>();
         private readonly object m_textureDecodeWarningsLock = new object();
+        private readonly Dictionary<UUID, LunaTextureDiagnostic> m_lunaTextureDiagnostics = new Dictionary<UUID, LunaTextureDiagnostic>();
+        private readonly Queue<UUID> m_lunaTextureDiagnosticOrder = new Queue<UUID>();
+        private int m_lunaTextureDiagnosticLimit = 256;
+        private bool m_lunaTexturePlaceholder = true;
 
         private bool m_drawPrimVolume = true;   // true if should render the prims on the tile
         private bool m_textureTerrain = true;   // true if to create terrain splatting texture
@@ -125,6 +130,10 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 Util.GetConfigVarFromSections<bool>(source, "LunaTextureEnabled", configSections, m_lunaTextureEnabled);
             m_lunaTextureRasterFallback =
                 Util.GetConfigVarFromSections<bool>(source, "LunaTextureRasterFallback", configSections, m_lunaTextureRasterFallback);
+            m_lunaTexturePlaceholder =
+                Util.GetConfigVarFromSections<bool>(source, "LunaTexturePlaceholder", configSections, m_lunaTexturePlaceholder);
+            m_lunaTextureDiagnosticLimit = Math.Max(16,
+                Util.GetConfigVarFromSections<int>(source, "LunaTextureDiagnosticLimit", configSections, m_lunaTextureDiagnosticLimit));
 
             m_renderMaxHeight = Util.GetConfigVarFromSections<float>(source, "RenderMaxHeight", configSections, m_renderMaxHeight);
             m_renderMinHeight = Util.GetConfigVarFromSections<float>(source, "RenderMinHeight", configSections, m_renderMinHeight);
@@ -161,6 +170,16 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 m_log.Info("[MAPTILE]: No prim mesher loaded, prim rendering will be disabled");
 
             m_scene.RegisterModuleInterface<IMapImageGenerator>(this);
+
+            if (m_lunaTextureEnabled && MainConsole.Instance is not null)
+            {
+                MainConsole.Instance.Commands.AddCommand(
+                    "NexVerse", false, "nex texture status", "nex texture status",
+                    "Show bounded LunaTexture diagnostics for the selected region.", HandleLunaTextureCommand);
+                MainConsole.Instance.Commands.AddCommand(
+                    "NexVerse", false, "nex texture clear", "nex texture clear",
+                    "Clear LunaTexture diagnostics for the selected region.", HandleLunaTextureCommand);
+            }
         }
 
         public void RegionLoaded(Scene scene)
@@ -835,8 +854,100 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             else
                 LogMissingTextureOnce(id, sop);
 
+            if (ret is null && m_lunaTextureEnabled && m_lunaTexturePlaceholder)
+                ret = CreateLunaTexturePlaceholder();
+
             m_warpTextures[id] = ret;
             return ret;
+        }
+
+        private sealed class LunaTextureDiagnostic
+        {
+            public UUID TextureID;
+            public string Classification;
+            public string PrimName;
+            public string Position;
+            public string Reason;
+            public DateTime LastSeenUtc;
+            public int Count;
+        }
+
+        private void RecordLunaTextureDiagnostic(UUID id, SceneObjectPart sop, string classification, string reason)
+        {
+            lock (m_textureDecodeWarningsLock)
+            {
+                if (m_lunaTextureDiagnostics.TryGetValue(id, out LunaTextureDiagnostic existing))
+                {
+                    existing.Count++;
+                    existing.LastSeenUtc = DateTime.UtcNow;
+                    existing.Reason = reason;
+                    return;
+                }
+
+                while (m_lunaTextureDiagnostics.Count >= m_lunaTextureDiagnosticLimit &&
+                       m_lunaTextureDiagnosticOrder.Count > 0)
+                {
+                    UUID oldest = m_lunaTextureDiagnosticOrder.Dequeue();
+                    m_lunaTextureDiagnostics.Remove(oldest);
+                }
+
+                m_lunaTextureDiagnostics[id] = new LunaTextureDiagnostic
+                {
+                    TextureID = id,
+                    Classification = classification,
+                    PrimName = sop?.Name ?? "<unknown>",
+                    Position = sop?.GetWorldPosition().ToString() ?? "<unknown>",
+                    Reason = reason,
+                    LastSeenUtc = DateTime.UtcNow,
+                    Count = 1
+                };
+                m_lunaTextureDiagnosticOrder.Enqueue(id);
+            }
+        }
+
+        private static warp_Texture CreateLunaTexturePlaceholder()
+        {
+            using Bitmap placeholder = new Bitmap(8, 8);
+            using Graphics graphics = Graphics.FromImage(placeholder);
+            graphics.Clear(Color.Gray);
+            using Brush dark = new SolidBrush(Color.FromArgb(72, 72, 72));
+            graphics.FillRectangle(dark, 0, 0, 4, 4);
+            graphics.FillRectangle(dark, 4, 4, 4, 4);
+            return new warp_Texture(placeholder);
+        }
+
+        private void HandleLunaTextureCommand(string module, string[] args)
+        {
+            if (MainConsole.Instance.ConsoleScene is Scene selected && selected != m_scene)
+                return;
+
+            if (args.Length >= 3 && args[2].Equals("clear", StringComparison.OrdinalIgnoreCase))
+            {
+                lock (m_textureDecodeWarningsLock)
+                {
+                    m_lunaTextureDiagnostics.Clear();
+                    m_lunaTextureDiagnosticOrder.Clear();
+                    m_textureDecodeWarnings.Clear();
+                }
+                MainConsole.Instance.Output("[LunaTexture] Diagnostics cleared for region {0}", m_scene.RegionInfo.RegionName);
+                return;
+            }
+
+            List<LunaTextureDiagnostic> snapshot;
+            lock (m_textureDecodeWarningsLock)
+                snapshot = new List<LunaTextureDiagnostic>(m_lunaTextureDiagnostics.Values);
+
+            MainConsole.Instance.Output(
+                "[LunaTexture] Region {0}: {1} diagnostic texture(s), limit {2}",
+                m_scene.RegionInfo.RegionName, snapshot.Count, m_lunaTextureDiagnosticLimit);
+
+            snapshot.Sort((a, b) => b.LastSeenUtc.CompareTo(a.LastSeenUtc));
+            foreach (LunaTextureDiagnostic item in snapshot)
+            {
+                MainConsole.Instance.Output(
+                    "[LunaTexture] {0} class={1} count={2} prim={3} pos={4} reason={5}",
+                    item.TextureID, item.Classification, item.Count, item.PrimName, item.Position, item.Reason);
+            }
         }
 
         private static string ClassifyTexturePayload(byte[] data)
@@ -894,6 +1005,8 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
         private void LogMissingTextureOnce(UUID id, SceneObjectPart sop)
         {
+            RecordLunaTextureDiagnostic(id, sop, "missing", "asset service returned no texture data");
+
             lock (m_textureDecodeWarningsLock)
             {
                 if (!m_textureDecodeWarnings.Add(id))
@@ -913,6 +1026,16 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             SceneObjectPart sop,
             string reason)
         {
+            string classification = "decoder_failed";
+            int marker = reason?.IndexOf("classification=", StringComparison.Ordinal) ?? -1;
+            if (marker >= 0)
+            {
+                int start = marker + "classification=".Length;
+                int end = reason.IndexOfAny(new[] { ';', ' ' }, start);
+                classification = end > start ? reason.Substring(start, end - start) : reason.Substring(start);
+            }
+            RecordLunaTextureDiagnostic(id, sop, classification, reason);
+
             lock (m_textureDecodeWarningsLock)
             {
                 if (!m_textureDecodeWarnings.Add(id))
