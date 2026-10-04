@@ -4,9 +4,8 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using Ionic.Zlib;
 using System.Text;
-using CompressionMode = Ionic.Zlib.CompressionMode;
+using System.IO.Compression;
 
 namespace NexVerse.RegionModules.Archives
 {
