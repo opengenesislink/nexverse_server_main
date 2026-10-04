@@ -757,16 +757,16 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.3",
+                        server_line = "0.9.3.4",
                         codename = NexVersePlatform.MilestoneCodename,
-                        status = "development",
+                        status = "release_candidate",
                         published = "2026-10-03",
-                        compatibility = "Aktive Entwicklungslinie für Identität, Anzeigenamen, Profile und soziales Netzwerk",
+                        compatibility = "Release Candidate für die NexVerse 0.9.3.4 Control Plane",
                         highlights = new[]
                         {
-                            "0.9.3.2 World API v1 als Entwicklungs-Checkpoint abgeschlossen",
-                            "Runtime und Roadmap auf NexVerse 0.9.3.3 Dev umgestellt",
-                            "Fokus auf Display Names, WebProfileV3, soziale Beziehungen und Sicherheits-Erweiterungen"
+                            "0.9.3.2 und 0.9.3.3 Entwicklungs-Checkpoints abgeschlossen",
+                            "NodeAgent-, Region- und Estate-Control-Plane für 0.9.3.4 integriert",
+                            "Runtime auf NexVerse 0.9.3.4 RC1 umgestellt"
                         }
                     },
                     new
@@ -1081,7 +1081,7 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.3",
                             codename = "",
                             title = "Identität, Anzeigenamen, Profile und soziales Netzwerk",
-                            status = "active",
+                            status = "completed",
                             checklist = new { completed = 3, total = 3, open = 0 },
                             summary = "Die einwohnerkompatible Normalisierung von Benutzernamen und die persistente Display-Name-Grundlage sind umgesetzt. Viewer-CAPS, Login, World API und LSL verwenden dieselbe Display-Name-Quelle; WebProfileV3 sowie die vollständige Chat/IM/Gruppen/Suche-Propagation bleiben offen.",
                             evidence = new[]
@@ -1097,7 +1097,7 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.4",
                             codename = "",
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
-                            status = "foundation",
+                            status = "active",
                             checklist = (object)null,
                             summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Control-Plane unterstützt Lesen, Erstellen und Bearbeiten einschließlich Owner/Manager, Zugriffslisten, zentralen Policies und Regionszuordnung; Delete, Templates und weitere Spezialregeln bleiben offen.",
                             evidence = new[]

@@ -8,7 +8,7 @@ namespace NexVerse.Core
     public static class NexVersePlatform
     {
         public const string ProductName = "NexVerse";
-        public const string MilestoneVersion = "0.9.3.3";
+        public const string MilestoneVersion = "0.9.3.4";
         public const string MilestoneCodename = "";
         public const string MilestoneTitle = "Identität, Anzeigenamen, Profile und soziales Netzwerk";
         public const string UiLanguage = "de-DE";
