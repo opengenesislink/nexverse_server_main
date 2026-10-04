@@ -53,9 +53,11 @@ namespace NexVerse.RegionModules.Archives
             if (scene == null)
                 return;
 
-            scene.UnregisterModuleInterface<IOglOarOperations>(null);
             if (m_Managers.TryRemove(scene.RegionInfo.RegionID, out OglOarOperationManager manager))
+            {
+                scene.UnregisterModuleInterface<IOglOarOperations>(manager);
                 manager.Dispose();
+            }
         }
 
         public void RegionLoaded(Scene scene) { }
