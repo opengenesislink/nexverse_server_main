@@ -757,6 +757,21 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.5",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "development",
+                        published = "2026-10-04",
+                        compatibility = "NexVerse 0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus",
+                        highlights = new[]
+                        {
+                            "0.9.3.5 Entwicklungslinie gestartet",
+                            "LunaTexture Recovery & Diagnostics als erster Entwicklungsblock",
+                            "Inventory/OAR/IAR und Job Engine als aktive Roadmap"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
                         server_line = "0.9.3.4",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "release",

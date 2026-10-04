@@ -31,10 +31,10 @@ namespace OpenSim
     {
         // NexVerse maintains its own version line from the OpenSimulator 0.9.3.0 baseline.
         public const string ProductName = "NexVerse";
-        public const string VersionNumber = "0.9.3.4";
-        public const string AssemblyVersionNumber = "0.9.3.4";
+        public const string VersionNumber = "0.9.3.5";
+        public const string AssemblyVersionNumber = "0.9.3.5";
 
-        public const Flavour VERSION_FLAVOUR = Flavour.Release;
+        public const Flavour VERSION_FLAVOUR = Flavour.Dev;
 
         public enum Flavour
         {
