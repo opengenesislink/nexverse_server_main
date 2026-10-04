@@ -55,7 +55,7 @@ using WarpRenderer = Warp3D.Warp3D;
 namespace OpenSim.Region.CoreModules.World.Warp3DMap
 {
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "Warp3DImageModule")]
-    public class Warp3DImageModule : IMapImageGenerator, INonSharedRegionModule
+    public class Warp3DImageModule : IMapImageGenerator, ILunaTextureDiagnostics, INonSharedRegionModule
     {
         private static readonly Color4 WATER_COLOR = new Color4(29, 72, 96, 216);
 //        private static readonly Color4 WATER_COLOR = new Color4(29, 72, 96, 128);
@@ -170,12 +170,20 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 m_log.Info("[MAPTILE]: No prim mesher loaded, prim rendering will be disabled");
 
             m_scene.RegisterModuleInterface<IMapImageGenerator>(this);
+            if (m_lunaTextureEnabled)
+                m_scene.RegisterModuleInterface<ILunaTextureDiagnostics>(this);
 
             if (m_lunaTextureEnabled && MainConsole.Instance is not null)
             {
                 MainConsole.Instance.Commands.AddCommand(
                     "NexVerse", false, "nex texture status", "nex texture status",
                     "Show bounded LunaTexture diagnostics for the selected region.", HandleLunaTextureCommand);
+                MainConsole.Instance.Commands.AddCommand(
+                    "NexVerse", false, "nex texture inspect", "nex texture inspect <texture-uuid>",
+                    "Inspect one LunaTexture diagnostic record.", HandleLunaTextureCommand);
+                MainConsole.Instance.Commands.AddCommand(
+                    "NexVerse", false, "nex texture retry", "nex texture retry <texture-uuid>",
+                    "Evict one Warp3D texture cache entry and retry its asset on the next render.", HandleLunaTextureCommand);
                 MainConsole.Instance.Commands.AddCommand(
                     "NexVerse", false, "nex texture clear", "nex texture clear",
                     "Clear LunaTexture diagnostics for the selected region.", HandleLunaTextureCommand);
@@ -916,6 +924,75 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             return new warp_Texture(placeholder);
         }
 
+        public IReadOnlyList<LunaTextureDiagnosticInfo> GetDiagnostics()
+        {
+            List<LunaTextureDiagnosticInfo> result = new List<LunaTextureDiagnosticInfo>();
+            lock (m_textureDecodeWarningsLock)
+            {
+                foreach (LunaTextureDiagnostic item in m_lunaTextureDiagnostics.Values)
+                    result.Add(ToDiagnosticInfo(item));
+            }
+            result.Sort((a, b) => b.LastSeenUtc.CompareTo(a.LastSeenUtc));
+            return result;
+        }
+
+        public bool TryGetDiagnostic(UUID textureID, out LunaTextureDiagnosticInfo diagnostic)
+        {
+            lock (m_textureDecodeWarningsLock)
+            {
+                if (m_lunaTextureDiagnostics.TryGetValue(textureID, out LunaTextureDiagnostic item))
+                {
+                    diagnostic = ToDiagnosticInfo(item);
+                    return true;
+                }
+            }
+            diagnostic = null;
+            return false;
+        }
+
+        public bool RetryTexture(UUID textureID, out string result)
+        {
+            AssetBase asset = m_scene?.AssetService?.Get(textureID.ToString());
+            if (asset is null)
+            {
+                result = "asset_missing";
+                RecordLunaTextureDiagnostic(textureID, null, "missing", "retry: asset service returned no texture data");
+                return false;
+            }
+
+            string classification = ClassifyTexturePayload(asset.Data);
+            lock (m_textureDecodeWarningsLock)
+                m_textureDecodeWarnings.Remove(textureID);
+            m_warpTextures?.Remove(textureID);
+
+            result = $"cache_evicted; classification={classification}; retry_on_next_render";
+            return true;
+        }
+
+        public void ClearDiagnostics()
+        {
+            lock (m_textureDecodeWarningsLock)
+            {
+                m_lunaTextureDiagnostics.Clear();
+                m_lunaTextureDiagnosticOrder.Clear();
+                m_textureDecodeWarnings.Clear();
+            }
+        }
+
+        private static LunaTextureDiagnosticInfo ToDiagnosticInfo(LunaTextureDiagnostic item)
+        {
+            return new LunaTextureDiagnosticInfo
+            {
+                TextureID = item.TextureID,
+                Classification = item.Classification,
+                PrimName = item.PrimName,
+                Position = item.Position,
+                Reason = item.Reason,
+                LastSeenUtc = item.LastSeenUtc,
+                Count = item.Count
+            };
+        }
+
         private void HandleLunaTextureCommand(string module, string[] args)
         {
             if (MainConsole.Instance.ConsoleScene is Scene selected && selected != m_scene)
@@ -923,13 +1000,38 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
             if (args.Length >= 3 && args[2].Equals("clear", StringComparison.OrdinalIgnoreCase))
             {
-                lock (m_textureDecodeWarningsLock)
-                {
-                    m_lunaTextureDiagnostics.Clear();
-                    m_lunaTextureDiagnosticOrder.Clear();
-                    m_textureDecodeWarnings.Clear();
-                }
+                ClearDiagnostics();
                 MainConsole.Instance.Output("[LunaTexture] Diagnostics cleared for region {0}", m_scene.RegionInfo.RegionName);
+                return;
+            }
+
+            if (args.Length >= 4 &&
+                (args[2].Equals("inspect", StringComparison.OrdinalIgnoreCase) ||
+                 args[2].Equals("retry", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!UUID.TryParse(args[3], out UUID textureID))
+                {
+                    MainConsole.Instance.Output("[LunaTexture] Invalid texture UUID: {0}", args[3]);
+                    return;
+                }
+
+                if (args[2].Equals("retry", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool ok = RetryTexture(textureID, out string retryResult);
+                    MainConsole.Instance.Output("[LunaTexture] Retry {0}: {1}", ok ? "scheduled" : "failed", retryResult);
+                    return;
+                }
+
+                if (!TryGetDiagnostic(textureID, out LunaTextureDiagnosticInfo item))
+                {
+                    MainConsole.Instance.Output("[LunaTexture] No diagnostic record for {0}", textureID);
+                    return;
+                }
+
+                MainConsole.Instance.Output(
+                    "[LunaTexture] {0} class={1} count={2} last={3:o} prim={4} pos={5} reason={6}",
+                    item.TextureID, item.Classification, item.Count, item.LastSeenUtc,
+                    item.PrimName, item.Position, item.Reason);
                 return;
             }
 
