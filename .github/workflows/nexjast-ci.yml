@@ -236,7 +236,7 @@ jobs:
           grep -F '"status": "ok"' /tmp/nexverse-health.json
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/version > /tmp/nexverse-version.json
-          grep -F '"server_version": "NexVerse 0.9.3.3 Dev"' /tmp/nexverse-version.json
+          grep -F '"server_version": "NexVerse 0.9.3.4 RC1"' /tmp/nexverse-version.json
           grep -F '"api_version": "v1"' /tmp/nexverse-version.json
           grep -F '"language": "de-DE"' /tmp/nexverse-version.json
 
