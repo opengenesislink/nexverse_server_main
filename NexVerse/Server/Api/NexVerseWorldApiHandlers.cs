@@ -759,14 +759,14 @@ namespace NexVerse.Server.Api
                         api_version = NexVersePlatform.ApiVersion,
                         server_line = "0.9.3.4",
                         codename = NexVersePlatform.MilestoneCodename,
-                        status = "release_candidate",
-                        published = "2026-10-03",
-                        compatibility = "Release Candidate für die NexVerse 0.9.3.4 Control Plane",
+                        status = "release",
+                        published = "2026-10-04",
+                        compatibility = "Stabile NexVerse 0.9.3.4 Control Plane",
                         highlights = new[]
                         {
                             "0.9.3.2 und 0.9.3.3 Entwicklungs-Checkpoints abgeschlossen",
                             "NodeAgent-, Region- und Estate-Control-Plane für 0.9.3.4 integriert",
-                            "Runtime auf NexVerse 0.9.3.4 RC1 umgestellt"
+                            "NexVerse 0.9.3.4 stabil veröffentlicht"
                         }
                     },
                     new
