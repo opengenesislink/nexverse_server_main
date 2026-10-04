@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -62,9 +63,28 @@ namespace NexVerse.Server.Api
             }
 
             string path = (request.UriPath ?? string.Empty).TrimEnd('/');
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) && path.EndsWith("/restore", StringComparison.OrdinalIgnoreCase))
+            {
+                Restore(request, response, owner, path);
+                return;
+            }
             if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
                 HandleRead(response, owner, path);
+                return;
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/trash/empty", StringComparison.OrdinalIgnoreCase))
+            {
+                EmptyTrash(response, owner);
+                return;
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/items/copy", StringComparison.OrdinalIgnoreCase))
+            {
+                CopyItem(request, response, owner);
                 return;
             }
 
@@ -106,6 +126,21 @@ namespace NexVerse.Server.Api
 
         private void HandleRead(IOSHttpResponse response, UUID owner, string path)
         {
+            if (path.Equals("/api/v1/inventory/search", StringComparison.OrdinalIgnoreCase))
+            {
+                Search(response, owner, null);
+                return;
+            }
+
+            if (path.Equals("/api/v1/inventory/lost-and-found", StringComparison.OrdinalIgnoreCase))
+            {
+                InventoryFolderBase lost = m_Inventory.GetFolderForType(owner, FolderType.LostAndFound);
+                if (lost == null) { NotFound(response, "lost_and_found_not_found"); return; }
+                InventoryCollection lostContent = m_Inventory.GetFolderContent(owner, lost.ID);
+                WriteJson(response, new { folder = FolderPayload(lost), folders = lostContent?.Folders == null ? Array.Empty<object>() : ConvertFolders(lostContent.Folders), items = lostContent?.Items == null ? Array.Empty<object>() : ConvertItems(lostContent.Items) }, HttpStatusCode.OK);
+                return;
+            }
+
             if (path.Equals("/api/v1/inventory", StringComparison.OrdinalIgnoreCase) ||
                 path.Equals("/api/v1/inventory/tree", StringComparison.OrdinalIgnoreCase))
             {
@@ -140,6 +175,92 @@ namespace NexVerse.Server.Api
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
+        }
+
+        private void Search(IOSHttpResponse response, UUID owner, string ignored)
+        {
+            // Query/sort are deliberately bounded to the inventory skeleton and
+            // direct folder contents to avoid an unbounded database operation.
+            List<InventoryFolderBase> folders = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
+            List<InventoryItemBase> items = new List<InventoryItemBase>();
+            foreach (InventoryFolderBase folder in folders)
+            {
+                List<InventoryItemBase> children = m_Inventory.GetFolderItems(owner, folder.ID);
+                if (children != null) items.AddRange(children);
+            }
+            folders.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            items.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            WriteJson(response, new { folders = ConvertFolders(folders), items = ConvertItems(items), folder_count = folders.Count, item_count = items.Count }, HttpStatusCode.OK);
+        }
+
+        private void CopyItem(IOSHttpRequest request, IOSHttpResponse response, UUID owner)
+        {
+            if (!TryBody(request, response, out JsonElement body) ||
+                !TryUuid(body, "item_id", out UUID itemID) ||
+                !TryUuid(body, "folder_id", out UUID folderID))
+            {
+                WriteError(response, HttpStatusCode.BadRequest, "invalid_copy_request", "item_id and folder_id are required.");
+                return;
+            }
+            InventoryItemBase source = m_Inventory.GetItem(owner, itemID);
+            InventoryFolderBase target = m_Inventory.GetFolder(owner, folderID);
+            if (!Owned(source, owner) || !Owned(target, owner)) { NotFound(response, "inventory_copy_source_or_target_not_found"); return; }
+
+            InventoryItemBase copy = (InventoryItemBase)source.Clone();
+            copy.ID = UUID.Random();
+            copy.Folder = folderID;
+            if (body.TryGetProperty("name", out JsonElement n) && !string.IsNullOrWhiteSpace(n.GetString()))
+                copy.Name = n.GetString().Trim();
+            if (!m_Inventory.AddItem(copy)) { WriteError(response, HttpStatusCode.Conflict, "inventory_item_copy_failed", "Item could not be copied."); return; }
+            WriteJson(response, new { item = ItemPayload(copy), copied_from = source.ID.ToString() }, HttpStatusCode.Created);
+        }
+
+        private void EmptyTrash(IOSHttpResponse response, UUID owner)
+        {
+            InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
+            if (trash == null) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable."); return; }
+            if (!m_Inventory.PurgeFolder(trash)) { WriteError(response, HttpStatusCode.Conflict, "trash_purge_failed", "Trash could not be emptied."); return; }
+            WriteJson(response, new { emptied = true, trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
+        }
+
+        private void Restore(IOSHttpRequest request, IOSHttpResponse response, UUID owner, string path)
+        {
+            if (!TryBody(request, response, out JsonElement body) || !TryUuid(body, "folder_id", out UUID targetID))
+            {
+                WriteError(response, HttpStatusCode.BadRequest, "invalid_restore_request", "folder_id is required as restore target.");
+                return;
+            }
+            InventoryFolderBase target = m_Inventory.GetFolder(owner, targetID);
+            InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
+            if (!Owned(target, owner) || trash == null) { NotFound(response, "inventory_restore_target_not_found"); return; }
+
+            const string folderPrefix = "/api/v1/inventory/folders/";
+            const string itemPrefix = "/api/v1/inventory/items/";
+            if (path.StartsWith(folderPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                string raw = path.Substring(folderPrefix.Length);
+                raw = raw.Substring(0, raw.Length - "/restore".Length);
+                if (!UUID.TryParse(raw, out UUID id)) { WriteError(response, HttpStatusCode.BadRequest, "invalid_folder_id", "Folder id must be a UUID."); return; }
+                InventoryFolderBase folder = m_Inventory.GetFolder(owner, id);
+                if (!Owned(folder, owner) || folder.ParentID != trash.ID) { WriteError(response, HttpStatusCode.Conflict, "folder_not_in_trash", "Folder is not directly in Trash."); return; }
+                folder.ParentID = target.ID;
+                if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_restore_failed", "Folder could not be restored."); return; }
+                WriteJson(response, new { restored = true, folder = FolderPayload(folder) }, HttpStatusCode.OK);
+                return;
+            }
+            if (path.StartsWith(itemPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                string raw = path.Substring(itemPrefix.Length);
+                raw = raw.Substring(0, raw.Length - "/restore".Length);
+                if (!UUID.TryParse(raw, out UUID id)) { WriteError(response, HttpStatusCode.BadRequest, "invalid_item_id", "Item id must be a UUID."); return; }
+                InventoryItemBase item = m_Inventory.GetItem(owner, id);
+                if (!Owned(item, owner) || item.Folder != trash.ID) { WriteError(response, HttpStatusCode.Conflict, "item_not_in_trash", "Item is not directly in Trash."); return; }
+                item.Folder = target.ID;
+                if (!m_Inventory.MoveItems(owner, new List<InventoryItemBase> { item })) { WriteError(response, HttpStatusCode.Conflict, "inventory_restore_failed", "Item could not be restored."); return; }
+                WriteJson(response, new { restored = true, item = ItemPayload(item) }, HttpStatusCode.OK);
+                return;
+            }
+            WriteError(response, HttpStatusCode.NotFound, "restore_route_not_found", "Unknown restore endpoint.");
         }
 
         private void CreateFolder(IOSHttpRequest request, IOSHttpResponse response, UUID owner)
