@@ -29,6 +29,7 @@ namespace NexVerse.RegionModules.Archives
     /// <summary>
     /// Read-only validation/dry-run metadata pass. It never mutates a scene or asset service.
     /// Actual imports/exports continue to use IRegionArchiverModule as the authoritative path.
+    /// IRegionArchiverModule is intentionally not reimplemented here.
     /// </summary>
     public static class OglOarInspector
     {
