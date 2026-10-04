@@ -12,6 +12,7 @@ using NexVerse.Core.Messaging;
 using NexVerse.Core.Security;
 using OpenSim.Framework;
 using OpenSim.Framework.Servers.HttpServer;
+using OpenSim.Services.Interfaces;
 
 namespace NexVerse.Server.Api
 {
