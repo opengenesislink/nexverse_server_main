@@ -363,6 +363,14 @@ namespace NexVerse.Server.Api
                         "NexVerse Inventory API"),
                     true);
 
+                OglOarApi oarApi = new OglOarApi(authenticator, nodeRegistry, eventBus);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/oar",
+                        apiGate.Wrap(oarApi.Handle),
+                        "OpenGenesisLINK OAR API"),
+                    true);
+
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
                     userAccounts,
                     gridUserData,

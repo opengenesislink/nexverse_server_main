@@ -31,7 +31,10 @@ namespace NexVerse.RegionModules.Archives
     public interface IOglOarOperations
     {
         OglOarOperation StartExport(string archiveFileName, Dictionary<string, object> options = null);
+        OglOarOperation StartExport(Guid requestId, string archiveFileName, Dictionary<string, object> options = null);
         OglOarOperation StartImport(string archiveFileName, bool dryRun, Dictionary<string, object> options = null);
+        OglOarOperation StartImport(Guid requestId, string archiveFileName, bool dryRun, Dictionary<string, object> options = null);
+        event Action<OglOarOperation> OperationChanged;
         bool TryGet(Guid requestId, out OglOarOperation operation);
     }
 
@@ -57,11 +60,17 @@ namespace NexVerse.RegionModules.Archives
             m_Scene.EventManager.OnOarFileLoaded += HandleLoaded;
         }
 
-        public OglOarOperation StartExport(string archiveFileName, Dictionary<string, object> options = null)
+        public event Action<OglOarOperation> OperationChanged;
+
+        public OglOarOperation StartExport(string archiveFileName, Dictionary<string, object> options = null) =>
+            StartExport(Guid.NewGuid(), archiveFileName, options);
+
+        public OglOarOperation StartExport(Guid requestId, string archiveFileName, Dictionary<string, object> options = null)
         {
+            if (requestId == Guid.Empty)
+                throw new ArgumentException("OAR-Request-ID darf nicht leer sein.", nameof(requestId));
             string path = m_Storage.ResolveArchivePath(archiveFileName);
             Directory.CreateDirectory(m_Storage.RootDirectory);
-            Guid requestId = Guid.NewGuid();
             OglOarOperation operation = Create(requestId, OglOarOperationKind.Export, path);
             operation.State = OglOarOperationState.Running;
             operation.StartedAt = DateTimeOffset.UtcNow;
@@ -78,8 +87,13 @@ namespace NexVerse.RegionModules.Archives
             }
         }
 
-        public OglOarOperation StartImport(string archiveFileName, bool dryRun, Dictionary<string, object> options = null)
+        public OglOarOperation StartImport(string archiveFileName, bool dryRun, Dictionary<string, object> options = null) =>
+            StartImport(Guid.NewGuid(), archiveFileName, dryRun, options);
+
+        public OglOarOperation StartImport(Guid requestId, string archiveFileName, bool dryRun, Dictionary<string, object> options = null)
         {
+            if (requestId == Guid.Empty)
+                throw new ArgumentException("OAR-Request-ID darf nicht leer sein.", nameof(requestId));
             string path = m_Storage.ResolveArchivePath(archiveFileName);
             if (!m_Storage.AcceptsExistingArchive(path, out string policyError))
                 throw new InvalidOperationException(policyError);
@@ -88,7 +102,6 @@ namespace NexVerse.RegionModules.Archives
             if (!inspection.Valid)
                 throw new InvalidDataException(inspection.Error);
 
-            Guid requestId = Guid.NewGuid();
             OglOarOperation operation = Create(requestId, OglOarOperationKind.Import, path);
             operation.Inspection = inspection;
 
@@ -97,6 +110,7 @@ namespace NexVerse.RegionModules.Archives
                 operation.State = OglOarOperationState.Completed;
                 operation.StartedAt = operation.CreatedAt;
                 operation.FinishedAt = DateTimeOffset.UtcNow;
+                OperationChanged?.Invoke(operation);
                 return operation;
             }
 
@@ -155,6 +169,7 @@ namespace NexVerse.RegionModules.Archives
 
             operation.State = OglOarOperationState.Completed;
             operation.FinishedAt = DateTimeOffset.UtcNow;
+            OperationChanged?.Invoke(operation);
         }
 
         private void HandleLoaded(Guid requestId, List<UUID> loadedScenes, string message)
@@ -171,13 +186,15 @@ namespace NexVerse.RegionModules.Archives
 
             operation.State = OglOarOperationState.Completed;
             operation.FinishedAt = DateTimeOffset.UtcNow;
+            OperationChanged?.Invoke(operation);
         }
 
-        private static void Fail(OglOarOperation operation, string error)
+        private void Fail(OglOarOperation operation, string error)
         {
             operation.State = OglOarOperationState.Failed;
             operation.Error = string.IsNullOrWhiteSpace(error) ? "Unbekannter OAR-Fehler." : error;
             operation.FinishedAt = DateTimeOffset.UtcNow;
+            OperationChanged?.Invoke(operation);
         }
 
         public void Dispose()

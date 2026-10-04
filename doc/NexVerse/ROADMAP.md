@@ -809,6 +809,14 @@ API-driven region archives:
 - [x] archive metadata foundation (size, SHA-256 and content counters);
 - [x] storage policy foundation (managed .oar path and maximum archive size);
 
+World API management surface:
+
+- [x] authenticated OAR export start endpoint;
+- [x] authenticated OAR import/dry-run start endpoint;
+- [x] asynchronous operation status endpoint;
+- [x] Robust-to-simulator routing through NexBus and the region NodeAgent;
+- [x] no duplicate archiver path in Robust; simulator uses `IOglOarOperations` -> authoritative `IRegionArchiverModule`.
+
 ### 9.3 IAR management
 
 API-driven avatar inventory archives:
