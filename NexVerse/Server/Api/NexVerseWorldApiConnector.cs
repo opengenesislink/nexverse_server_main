@@ -371,7 +371,7 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK OAR API"),
                     true);
 
-                OglIarApi iarApi = new OglIarApi(authenticator, nodeRegistry, accountService, eventBus);
+                OglIarApi iarApi = new OglIarApi(authenticator, nodeRegistry, userAccounts, eventBus);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/iar",
