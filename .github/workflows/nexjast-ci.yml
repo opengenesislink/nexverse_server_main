@@ -85,6 +85,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_oar_management.py
 
+      - name: Verify OpenGenesisLINK OAR operation layer
+        shell: bash
+        run: python3 tools/ci/verify_oar_operations.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
