@@ -762,21 +762,21 @@ Phase 1 implementation status:
 Support:
 
 - [x] browse inventory tree (read-only API foundation);
-- create folder;
-- rename folder;
-- move folder;
-- delete folder;
+- [x] create folder;
+- [x] rename folder;
+- [x] move folder;
+- [x] delete folder (safe move to Trash);
 - restore from trash;
 - empty trash;
 - create item;
-- rename item;
-- move item;
+- [x] rename item;
+- [x] move item;
 - copy item;
-- delete item;
+- [x] delete item (safe move to Trash);
 - sort;
 - search;
 - [x] inspect permissions (item permission masks);
-- update allowed metadata;
+- [x] update allowed metadata (name/description);
 - links;
 - Lost & Found;
 - [x] asset reference information (asset UUID/type; read-only foundation).

@@ -27,17 +27,15 @@ namespace NexVerse.Server.Api
 
         public void Handle(IOSHttpRequest request, IOSHttpResponse response)
         {
-            if (!string.Equals(request?.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
-            {
-                WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "GET is required.");
-                return;
-            }
+            string method = request?.HttpMethod ?? string.Empty;
+            string requiredScope = method.Equals("GET", StringComparison.OrdinalIgnoreCase)
+                ? NexScopes.InventoryRead : NexScopes.InventoryWrite;
 
-            if (!m_Authenticator.TryAuthenticate(request, NexScopes.InventoryRead, out NexPrincipal principal,
+            if (!m_Authenticator.TryAuthenticate(request, requiredScope, out NexPrincipal principal,
                     out UserAccount account, out int statusCode, out string error))
             {
                 response.AddHeader("WWW-Authenticate", "Bearer");
-                WriteError(response, (HttpStatusCode)statusCode, error, "Authentication or inventory:read authorization is required.");
+                WriteError(response, (HttpStatusCode)statusCode, error, $"Authentication or {requiredScope} authorization is required.");
                 return;
             }
 
@@ -56,151 +54,224 @@ namespace NexVerse.Server.Api
                     WriteError(response, HttpStatusCode.BadRequest, "invalid_owner_id", "owner_id must be a UUID.");
                     return;
                 }
-
                 if (owner != account.PrincipalID && !principal.HasScope(NexScopes.AdminAll))
                 {
-                    WriteError(response, HttpStatusCode.Forbidden, "inventory_owner_forbidden", "Reading another resident inventory requires admin:*.");
+                    WriteError(response, HttpStatusCode.Forbidden, "inventory_owner_forbidden", "Accessing another resident inventory requires admin:*.");
                     return;
                 }
             }
 
             string path = (request.UriPath ?? string.Empty).TrimEnd('/');
-            if (path.Equals("/api/v1/inventory", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/api/v1/inventory/tree", StringComparison.OrdinalIgnoreCase))
+            if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
-                WriteTree(response, owner);
+                HandleRead(response, owner, path);
                 return;
             }
 
-            const string folders = "/api/v1/inventory/folders/";
-            if (path.StartsWith(folders, StringComparison.OrdinalIgnoreCase))
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/folders", StringComparison.OrdinalIgnoreCase))
             {
-                if (!UUID.TryParse(path.Substring(folders.Length), out UUID folderID))
-                {
-                    WriteError(response, HttpStatusCode.BadRequest, "invalid_folder_id", "Folder id must be a UUID.");
-                    return;
-                }
-                WriteFolder(response, owner, folderID);
+                CreateFolder(request, response, owner);
                 return;
             }
 
-            const string items = "/api/v1/inventory/items/";
-            if (path.StartsWith(items, StringComparison.OrdinalIgnoreCase))
+            const string folderPrefix = "/api/v1/inventory/folders/";
+            if (path.StartsWith(folderPrefix, StringComparison.OrdinalIgnoreCase) &&
+                UUID.TryParse(path.Substring(folderPrefix.Length), out UUID folderID))
             {
-                if (!UUID.TryParse(path.Substring(items.Length), out UUID itemID))
-                {
-                    WriteError(response, HttpStatusCode.BadRequest, "invalid_item_id", "Item id must be a UUID.");
-                    return;
-                }
-                WriteItem(response, owner, itemID);
+                if (method.Equals("PATCH", StringComparison.OrdinalIgnoreCase))
+                    UpdateFolder(request, response, owner, folderID);
+                else if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
+                    TrashFolder(response, owner, folderID);
+                else
+                    WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "PATCH or DELETE is required.");
+                return;
+            }
+
+            const string itemPrefix = "/api/v1/inventory/items/";
+            if (path.StartsWith(itemPrefix, StringComparison.OrdinalIgnoreCase) &&
+                UUID.TryParse(path.Substring(itemPrefix.Length), out UUID itemID))
+            {
+                if (method.Equals("PATCH", StringComparison.OrdinalIgnoreCase))
+                    UpdateItem(request, response, owner, itemID);
+                else if (method.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
+                    TrashItem(response, owner, itemID);
+                else
+                    WriteError(response, HttpStatusCode.MethodNotAllowed, "method_not_allowed", "PATCH or DELETE is required.");
                 return;
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
         }
 
-        private void WriteTree(IOSHttpResponse response, UUID owner)
+        private void HandleRead(IOSHttpResponse response, UUID owner, string path)
         {
-            InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
-            List<InventoryFolderBase> folders = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
-            WriteJson(response, new
+            if (path.Equals("/api/v1/inventory", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/api/v1/inventory/tree", StringComparison.OrdinalIgnoreCase))
             {
-                owner_id = owner.ToString(),
-                root = root == null ? null : FolderPayload(root),
-                folders = folders.ConvertAll(FolderPayload),
-                folder_count = folders.Count
-            }, HttpStatusCode.OK);
+                InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
+                List<InventoryFolderBase> skeleton = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
+                WriteJson(response, new { owner_id = owner.ToString(), root = root == null ? null : FolderPayload(root),
+                    folders = skeleton.ConvertAll(FolderPayload), folder_count = skeleton.Count }, HttpStatusCode.OK);
+                return;
+            }
+
+            const string folders = "/api/v1/inventory/folders/";
+            if (path.StartsWith(folders, StringComparison.OrdinalIgnoreCase) &&
+                UUID.TryParse(path.Substring(folders.Length), out UUID folderID))
+            {
+                InventoryFolderBase folder = m_Inventory.GetFolder(owner, folderID);
+                if (!Owned(folder, owner)) { NotFound(response, "inventory_folder_not_found"); return; }
+                InventoryCollection content = m_Inventory.GetFolderContent(owner, folderID);
+                WriteJson(response, new { folder = FolderPayload(folder),
+                    folders = content?.Folders == null ? Array.Empty<object>() : ConvertFolders(content.Folders),
+                    items = content?.Items == null ? Array.Empty<object>() : ConvertItems(content.Items) }, HttpStatusCode.OK);
+                return;
+            }
+
+            const string items = "/api/v1/inventory/items/";
+            if (path.StartsWith(items, StringComparison.OrdinalIgnoreCase) &&
+                UUID.TryParse(path.Substring(items.Length), out UUID itemID))
+            {
+                InventoryItemBase item = m_Inventory.GetItem(owner, itemID);
+                if (!Owned(item, owner)) { NotFound(response, "inventory_item_not_found"); return; }
+                WriteJson(response, new { item = ItemPayload(item) }, HttpStatusCode.OK);
+                return;
+            }
+
+            WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
         }
 
-        private void WriteFolder(IOSHttpResponse response, UUID owner, UUID folderID)
+        private void CreateFolder(IOSHttpRequest request, IOSHttpResponse response, UUID owner)
+        {
+            if (!TryBody(request, response, out JsonElement body)) return;
+            if (!TryUuid(body, "parent_id", out UUID parentID) || !TryName(body, "name", out string name)) {
+                WriteError(response, HttpStatusCode.BadRequest, "invalid_folder", "parent_id and a non-empty name are required."); return; }
+            InventoryFolderBase parent = m_Inventory.GetFolder(owner, parentID);
+            if (!Owned(parent, owner)) { NotFound(response, "inventory_parent_not_found"); return; }
+
+            InventoryFolderBase folder = new InventoryFolderBase(UUID.Random(), name, owner, (short)FolderType.None, parentID, 1);
+            if (!m_Inventory.AddFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_create_failed", "Folder could not be created."); return; }
+            WriteJson(response, new { folder = FolderPayload(folder) }, HttpStatusCode.Created);
+        }
+
+        private void UpdateFolder(IOSHttpRequest request, IOSHttpResponse response, UUID owner, UUID folderID)
         {
             InventoryFolderBase folder = m_Inventory.GetFolder(owner, folderID);
-            if (folder == null || folder.Owner != owner)
-            {
-                WriteError(response, HttpStatusCode.NotFound, "inventory_folder_not_found", "Inventory folder was not found.");
-                return;
-            }
+            if (!Owned(folder, owner)) { NotFound(response, "inventory_folder_not_found"); return; }
+            InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
+            if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be renamed or moved."); return; }
+            if (!TryBody(request, response, out JsonElement body)) return;
 
-            InventoryCollection content = m_Inventory.GetFolderContent(owner, folderID);
-            WriteJson(response, new
-            {
-                folder = FolderPayload(folder),
-                folders = content?.Folders == null ? Array.Empty<object>() : ConvertFolders(content.Folders),
-                items = content?.Items == null ? Array.Empty<object>() : ConvertItems(content.Items)
-            }, HttpStatusCode.OK);
+            bool changed = false;
+            if (body.TryGetProperty("name", out JsonElement n)) {
+                string name = (n.GetString() ?? string.Empty).Trim();
+                if (name.Length == 0 || name.Length > 255) { WriteError(response, HttpStatusCode.BadRequest, "invalid_name", "Folder name must contain 1-255 characters."); return; }
+                folder.Name = name; changed = true;
+            }
+            if (body.TryGetProperty("parent_id", out JsonElement p)) {
+                if (!UUID.TryParse(p.GetString(), out UUID parentID) || parentID == folder.ID) { WriteError(response, HttpStatusCode.BadRequest, "invalid_parent_id", "parent_id must name another folder."); return; }
+                InventoryFolderBase parent = m_Inventory.GetFolder(owner, parentID);
+                if (!Owned(parent, owner)) { NotFound(response, "inventory_parent_not_found"); return; }
+                folder.ParentID = parentID;
+                if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_move_failed", "Folder could not be moved."); return; }
+                changed = true;
+            }
+            if (!changed) { WriteError(response, HttpStatusCode.BadRequest, "no_changes", "name or parent_id is required."); return; }
+            if (!m_Inventory.UpdateFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_update_failed", "Folder could not be updated."); return; }
+            WriteJson(response, new { folder = FolderPayload(folder) }, HttpStatusCode.OK);
         }
 
-        private void WriteItem(IOSHttpResponse response, UUID owner, UUID itemID)
+        private void TrashFolder(IOSHttpResponse response, UUID owner, UUID folderID)
+        {
+            InventoryFolderBase folder = m_Inventory.GetFolder(owner, folderID);
+            InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
+            if (!Owned(folder, owner)) { NotFound(response, "inventory_folder_not_found"); return; }
+            if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be deleted."); return; }
+            InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
+            if (trash == null || trash.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable or protected."); return; }
+            folder.ParentID = trash.ID;
+            if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_trash_failed", "Folder could not be moved to Trash."); return; }
+            WriteJson(response, new { trashed = true, folder_id = folder.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
+        }
+
+        private void UpdateItem(IOSHttpRequest request, IOSHttpResponse response, UUID owner, UUID itemID)
         {
             InventoryItemBase item = m_Inventory.GetItem(owner, itemID);
-            if (item == null || item.Owner != owner)
-            {
-                WriteError(response, HttpStatusCode.NotFound, "inventory_item_not_found", "Inventory item was not found.");
-                return;
+            if (!Owned(item, owner)) { NotFound(response, "inventory_item_not_found"); return; }
+            if (!TryBody(request, response, out JsonElement body)) return;
+            bool changed = false;
+            if (body.TryGetProperty("name", out JsonElement n)) {
+                string name = (n.GetString() ?? string.Empty).Trim();
+                if (name.Length == 0 || name.Length > 255) { WriteError(response, HttpStatusCode.BadRequest, "invalid_name", "Item name must contain 1-255 characters."); return; }
+                item.Name = name; changed = true;
             }
+            if (body.TryGetProperty("description", out JsonElement d)) { item.Description = d.GetString() ?? string.Empty; changed = true; }
+            if (body.TryGetProperty("folder_id", out JsonElement f)) {
+                if (!UUID.TryParse(f.GetString(), out UUID folderID)) { WriteError(response, HttpStatusCode.BadRequest, "invalid_folder_id", "folder_id must be a UUID."); return; }
+                InventoryFolderBase target = m_Inventory.GetFolder(owner, folderID);
+                if (!Owned(target, owner)) { NotFound(response, "inventory_target_folder_not_found"); return; }
+                item.Folder = folderID;
+                if (!m_Inventory.MoveItems(owner, new List<InventoryItemBase> { item })) { WriteError(response, HttpStatusCode.Conflict, "inventory_item_move_failed", "Item could not be moved."); return; }
+                changed = true;
+            }
+            if (!changed) { WriteError(response, HttpStatusCode.BadRequest, "no_changes", "name, description or folder_id is required."); return; }
+            InventoryItemBase persisted = m_Inventory.GetItem(owner, itemID);
+            if (persisted != null) { persisted.Name = item.Name; persisted.Description = item.Description; item = persisted; }
+            if (!m_Inventory.UpdateItem(item)) { WriteError(response, HttpStatusCode.Conflict, "inventory_item_update_failed", "Item could not be updated."); return; }
             WriteJson(response, new { item = ItemPayload(item) }, HttpStatusCode.OK);
         }
 
-        private static object[] ConvertFolders(ICollection<InventoryFolderBase> values)
+        private void TrashItem(IOSHttpResponse response, UUID owner, UUID itemID)
         {
-            List<object> result = new List<object>();
-            foreach (InventoryFolderBase value in values) result.Add(FolderPayload(value));
-            return result.ToArray();
+            InventoryItemBase item = m_Inventory.GetItem(owner, itemID);
+            if (!Owned(item, owner)) { NotFound(response, "inventory_item_not_found"); return; }
+            InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
+            if (trash == null) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable."); return; }
+            item.Folder = trash.ID;
+            if (!m_Inventory.MoveItems(owner, new List<InventoryItemBase> { item })) { WriteError(response, HttpStatusCode.Conflict, "inventory_item_trash_failed", "Item could not be moved to Trash."); return; }
+            WriteJson(response, new { trashed = true, item_id = item.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
         }
 
-        private static object[] ConvertItems(ICollection<InventoryItemBase> values)
+        private static bool Owned(InventoryFolderBase value, UUID owner) => value != null && value.Owner == owner;
+        private static bool Owned(InventoryItemBase value, UUID owner) => value != null && value.Owner == owner;
+
+        private static bool TryBody(IOSHttpRequest request, IOSHttpResponse response, out JsonElement body)
         {
-            List<object> result = new List<object>();
-            foreach (InventoryItemBase value in values) result.Add(ItemPayload(value));
-            return result.ToArray();
+            try { using JsonDocument doc = JsonDocument.Parse(request.InputStream); body = doc.RootElement.Clone(); return body.ValueKind == JsonValueKind.Object; }
+            catch { body = default; WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "A valid JSON object is required."); return false; }
         }
 
-        private static object FolderPayload(InventoryFolderBase folder) => new
+        private static bool TryUuid(JsonElement body, string name, out UUID value)
         {
-            id = folder.ID.ToString(),
-            owner_id = folder.Owner.ToString(),
-            parent_id = folder.ParentID.ToString(),
-            name = folder.Name,
-            type = folder.Type,
-            version = folder.Version
+            value = UUID.Zero;
+            return body.TryGetProperty(name, out JsonElement e) && UUID.TryParse(e.GetString(), out value);
+        }
+
+        private static bool TryName(JsonElement body, string property, out string name)
+        {
+            name = body.TryGetProperty(property, out JsonElement e) ? (e.GetString() ?? string.Empty).Trim() : string.Empty;
+            return name.Length > 0 && name.Length <= 255;
+        }
+
+        private static void NotFound(IOSHttpResponse response, string code) =>
+            WriteError(response, HttpStatusCode.NotFound, code, "Inventory object was not found.");
+
+        private static object[] ConvertFolders(ICollection<InventoryFolderBase> values) { List<object> r = new(); foreach (var v in values) r.Add(FolderPayload(v)); return r.ToArray(); }
+        private static object[] ConvertItems(ICollection<InventoryItemBase> values) { List<object> r = new(); foreach (var v in values) r.Add(ItemPayload(v)); return r.ToArray(); }
+
+        private static object FolderPayload(InventoryFolderBase folder) => new { id = folder.ID.ToString(), owner_id = folder.Owner.ToString(), parent_id = folder.ParentID.ToString(), name = folder.Name, type = folder.Type, version = folder.Version };
+        private static object ItemPayload(InventoryItemBase item) => new {
+            id = item.ID.ToString(), owner_id = item.Owner.ToString(), folder_id = item.Folder.ToString(), asset_id = item.AssetID.ToString(),
+            name = item.Name, description = item.Description, asset_type = item.AssetType, inventory_type = item.InvType,
+            creator_id = item.CreatorId, creator_data = item.CreatorData, creation_date = item.CreationDate, flags = item.Flags,
+            permissions = new { base_mask = item.BasePermissions, current_mask = item.CurrentPermissions, everyone_mask = item.EveryOnePermissions, group_mask = item.GroupPermissions, next_owner_mask = item.NextPermissions }
         };
 
-        private static object ItemPayload(InventoryItemBase item) => new
-        {
-            id = item.ID.ToString(),
-            owner_id = item.Owner.ToString(),
-            folder_id = item.Folder.ToString(),
-            asset_id = item.AssetID.ToString(),
-            name = item.Name,
-            description = item.Description,
-            asset_type = item.AssetType,
-            inventory_type = item.InvType,
-            creator_id = item.CreatorId,
-            creator_data = item.CreatorData,
-            creation_date = item.CreationDate,
-            flags = item.Flags,
-            permissions = new
-            {
-                base_mask = item.BasePermissions,
-                current_mask = item.CurrentPermissions,
-                everyone_mask = item.EveryOnePermissions,
-                group_mask = item.GroupPermissions,
-                next_owner_mask = item.NextPermissions
-            },
-            asset_permissions_union = item.AssetID.IsZero() ? 0 : (int?)null
-        };
-
-        private static void WriteJson(IOSHttpResponse response, object payload, HttpStatusCode status)
-        {
-            byte[] data = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, s_Json));
-            response.StatusCode = (int)status;
-            response.ContentType = "application/json; charset=utf-8";
-            response.RawBuffer = data;
-        }
-
-        private static void WriteError(IOSHttpResponse response, HttpStatusCode status, string code, string message)
-        {
+        private static void WriteJson(IOSHttpResponse response, object payload, HttpStatusCode status) {
+            response.StatusCode = (int)status; response.ContentType = "application/json; charset=utf-8";
+            response.RawBuffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, s_Json)); }
+        private static void WriteError(IOSHttpResponse response, HttpStatusCode status, string code, string message) =>
             WriteJson(response, new { error = code, error_description = message }, status);
-        }
     }
 }
