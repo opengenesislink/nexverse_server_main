@@ -2434,6 +2434,18 @@ namespace OpenSim.Region.ClientStack.Linden
                 (int)HttpStatusCode.OK,
                 string.Empty);
 
+            // The SetDisplayName capability itself must return a successful LLSD body.
+            // Firestorm treats an empty HTTP response as a failed save even if the
+            // asynchronous SetDisplayNameReply event arrives afterwards.
+            OSDMap capReply = new OSDMap
+            {
+                ["status"] = OSD.FromInteger((int)HttpStatusCode.OK),
+                ["reason"] = OSD.FromString(string.Empty),
+                ["content"] = BuildDisplayNameAgent(account)
+            };
+            httpResponse.RawBuffer = Util.UTF8NBGetbytes(OSDParser.SerializeLLSDXmlString(capReply));
+            httpResponse.ContentType = "application/llsd+xml";
+
             SendDisplayNameUpdate(
                 eventQueue,
                 account,

@@ -82,6 +82,8 @@ require(
     '"SetDisplayNameReply"',
     '"DisplayNameUpdate"',
     "BuildDisplayNameAgent(account)",
+    'httpResponse.ContentType = "application/llsd+xml";',
+    "httpResponse.RawBuffer =",
     '"display_name_expires"',
     "account.EffectiveDisplayName",
     "account.Username",
