@@ -224,22 +224,46 @@ namespace OpenSim.Region.CoreModules.Avatar.Friends
         {
             //m_log.DebugFormat("[HGFRIENDS MODULE]: Entering GetOnlineFriends for {0}", userID);
 
-            List<string> fList = new();
-            foreach (string s in friendList)
+            List<string> localFriendIDs = new();
+            Dictionary<string, List<string>> foreignFriendsPerServer = new();
+
+            foreach (string friend in friendList)
             {
-                if (s.Length < 36)
+                if (friend.Length < 36)
+                {
                     m_log.WarnFormat(
                         "[HGFRIENDS MODULE]: Ignoring friend {0} ({1} chars) for {2} since identifier too short",
-                        s, s.Length, userID);
-                else
-                    fList.Add(s.Substring(0, 36));
+                        friend, friend.Length, userID);
+                    continue;
+                }
+
+                if (UUID.TryParse(friend, out UUID localFriendID))
+                {
+                    localFriendIDs.Add(localFriendID.ToString());
+                    continue;
+                }
+
+                if (!Util.ParseUniversalUserIdentifier(friend, out UUID foreignFriendID))
+                    continue;
+
+                string friendsServerURI =
+                    m_uMan.GetUserServerURL(
+                        foreignFriendID,
+                        "FriendsServerURI");
+
+                if (string.IsNullOrEmpty(friendsServerURI))
+                    continue;
+
+                if (!foreignFriendsPerServer.TryGetValue(
+                        friendsServerURI,
+                        out List<string> serverFriends))
+                {
+                    serverFriends = new List<string>();
+                    foreignFriendsPerServer[friendsServerURI] = serverFriends;
+                }
+
+                serverFriends.Add(friend);
             }
-
-            // FIXME: also query the presence status of friends in other grids (like in HGStatusNotifier.Notify())
-
-            PresenceInfo[] presence = PresenceService.GetAgents(fList.ToArray());
-            if (presence.Length == 0)
-                return;
 
             if (!m_OnlineFriendsCache.TryGetValue(userID, out HashSet<UUID> friends))
             {
@@ -247,12 +271,41 @@ namespace OpenSim.Region.CoreModules.Avatar.Friends
                 m_OnlineFriendsCache[userID] = friends;
             }
 
-            foreach (PresenceInfo pi in presence)
+            if (localFriendIDs.Count > 0)
             {
-                if (UUID.TryParse(pi.UserID, out UUID presenceID))
+                PresenceInfo[] presence =
+                    PresenceService.GetAgents(localFriendIDs.ToArray());
+
+                foreach (PresenceInfo pi in presence)
                 {
-                    online.Add(presenceID);
-                    friends.Add(presenceID);
+                    if (UUID.TryParse(pi.UserID, out UUID presenceID))
+                    {
+                        if (!online.Contains(presenceID))
+                            online.Add(presenceID);
+                        friends.Add(presenceID);
+                    }
+                }
+            }
+
+            // A foreign friend's presence is authoritative on their home grid.
+            // statusnotification both announces this user's online state and returns
+            // the subset of the supplied foreign friends that are online there.
+            foreach (KeyValuePair<string, List<string>> remote in foreignFriendsPerServer)
+            {
+                HGFriendsServicesConnector connector =
+                    new HGFriendsServicesConnector(remote.Key);
+
+                List<UUID> remoteOnline =
+                    connector.StatusNotification(
+                        remote.Value,
+                        userID,
+                        true);
+
+                foreach (UUID friendID in remoteOnline)
+                {
+                    if (!online.Contains(friendID))
+                        online.Add(friendID);
+                    friends.Add(friendID);
                 }
             }
 
