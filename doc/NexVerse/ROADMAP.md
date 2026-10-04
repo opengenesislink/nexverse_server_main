@@ -800,12 +800,12 @@ Support:
 
 API-driven region archives:
 
-- export OAR;
-- import OAR;
+- [x] export OAR orchestration foundation via authoritative `IRegionArchiverModule`;
+- [x] import OAR orchestration foundation with mandatory validation and optional dry-run;
 - [x] validate archive foundation (non-mutating control-file/TAR inspection + SHA-256);
 - [x] dry-run inspection foundation (entry/assets/objects/terrain/settings/parcels metadata);
-- progress;
-- failure reporting;
+- [x] operation lifecycle foundation (`queued`, `running`, `completed`, `failed`) keyed by request ID;
+- [x] failure reporting foundation from archiver completion events and synchronous start failures;
 - [x] archive metadata foundation (size, SHA-256 and content counters);
 - [x] storage policy foundation (managed .oar path and maximum archive size);
 
