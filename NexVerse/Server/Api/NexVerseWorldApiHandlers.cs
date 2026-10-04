@@ -1097,16 +1097,16 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.4",
                             codename = "",
                             title = "Simulator-, Regionen- und Estate-Verwaltung",
-                            status = "active",
+                            status = "released",
                             checklist = (object)null,
-                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Control-Plane unterstützt Lesen, Erstellen und Bearbeiten einschließlich Owner/Manager, Zugriffslisten, zentralen Policies und Regionszuordnung; Delete, Templates und weitere Spezialregeln bleiben offen.",
+                            summary = "NodeAgent-Registry, Raster-/Placement-Control-Plane, global durchsuchbarer interaktiver Grid Planner sowie verwaltetes Erstellen, Verschieben, Starten, Stoppen und Neustarten von Regionen sind vorgezogen umgesetzt. Die Estate-Control-Plane unterstützt Lesen, Erstellen, Bearbeiten und sicheres Löschen einschließlich Owner/Manager, Zugriffslisten, zentralen Policies und Regionszuordnung. Templates und weitere Spezialregeln folgen in späteren Meilensteinen.",
                             evidence = new[]
                             {
                                 "NexVerseNodeAgentModule veröffentlicht Knoten-/Regionszustand und regelmäßige Statusmeldungen",
                                 "Grid-Layout, VarRegion-Placement-Prüfung, Regionssuche mit Koordinaten und interaktiver Grid Planner sind über die Welt-API verbunden",
                                 "NexVerse-managed create/move/start/stop/restart werden adressiert über NexBus ausgeführt, im Control Center bedient und asynchron als Operationen verfolgt",
                                 "GET /api/v1/estates und /api/v1/estates/{estateId} liefern grundlegende Estate-Metadaten mit estates:read",
-                                "estates:manage steuert Estate create/update, Management-Details und Region→Estate-Zuordnung inklusive Audit/NexBus-Ereignissen"
+                                "estates:manage steuert Estate create/update/delete, Management-Details und Region→Estate-Zuordnung inklusive Audit/NexBus-Ereignissen"
                             }
                         },
                         new
