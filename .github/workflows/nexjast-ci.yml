@@ -403,7 +403,7 @@ jobs:
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
           assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.4"
-          assert doc["x_nexverse_version_history"][0]["status"] == "release_candidate"
+          assert doc["x_nexverse_version_history"][0]["status"] == "release"
           assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.2"
           assert doc["x_nexverse_version_history"][1]["status"] == "completed"
           assert doc["x_nexverse_changelog"]
@@ -433,7 +433,7 @@ jobs:
           assert milestones["0.9.3.2"]["status"] == "completed"
           assert milestones["0.9.3.2"]["checklist"] == {"completed": 36, "total": 36, "open": 0}
           assert milestones["0.9.3.3"]["status"] == "completed"
-          assert milestones["0.9.3.4"]["status"] == "active"
+          assert milestones["0.9.3.4"]["status"] == "released"
           assert milestones["0.9.3.6"]["status"] == "planned"
 
           from pathlib import Path
