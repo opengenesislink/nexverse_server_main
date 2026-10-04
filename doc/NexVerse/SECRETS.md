@@ -17,6 +17,7 @@ For the current grid configuration:
 
 - `NEXVERSE_DB_PASSWORD` — MariaDB password used by simulator and Robust services.
 - `NEXVERSE_ROBUST_CERT_PASSWORD` — password for the Robust TLS certificate container when that certificate is enabled.
+- `NEXVERSE_NATIVE_TOKEN_SIGNING_KEY` — HMAC signing key for NexVerse native access tokens; generate at least 32 random bytes (for example `openssl rand -hex 64`).
 
 ## Recommended production setup
 
@@ -32,6 +33,7 @@ File format:
 ```text
 NEXVERSE_DB_PASSWORD=<local-secret>
 NEXVERSE_ROBUST_CERT_PASSWORD=<local-secret>
+NEXVERSE_NATIVE_TOKEN_SIGNING_KEY=<local-secret>
 ```
 
 Then restrict access:
