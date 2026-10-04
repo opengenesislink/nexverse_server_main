@@ -173,6 +173,13 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
+                if (IsMethod(request, "DELETE"))
+                {
+                    if (!Authenticate(request, response, NexScopes.EstatesManage, out NexPrincipal principal)) return;
+                    HandleDelete(response, estateId, principal);
+                    return;
+                }
+
                 if (IsMethod(request, "PATCH"))
                 {
                     if (!Authenticate(
@@ -194,7 +201,7 @@ namespace NexVerse.Server.Api
 
                 WriteMethodError(
                     response,
-                    "GET or PATCH is required.");
+                    "GET, PATCH or DELETE is required.");
                 return;
             }
 
@@ -735,6 +742,37 @@ namespace NexVerse.Server.Api
                     },
                     HttpStatusCode.Created);
             }
+        }
+
+
+        private void HandleDelete(IOSHttpResponse response, int estateId, NexPrincipal principal)
+        {
+            EstateSettings estate = LoadEstate(response, estateId);
+            if (estate == null) return;
+            UUID[] regions = SafeRegions(estate);
+            if (regions.Length != 0)
+            {
+                WriteError(response, HttpStatusCode.Conflict, "estate_not_empty",
+                    "Estate deletion is refused while regions are assigned. Reassign all regions first.");
+                return;
+            }
+            if (!m_Estates.DeleteEstate(estateId))
+            {
+                WriteError(response, HttpStatusCode.InternalServerError, "estate_delete_failed",
+                    "The authoritative Estate datastore refused the delete operation.");
+                return;
+            }
+            string correlationId = NexApiRequestContext.Ensure(response);
+            m_Audit.Record(new NexAuditEvent
+            {
+                Actor = principal?.Subject ?? string.Empty,
+                Action = "estate.delete",
+                Target = "estate:" + estateId,
+                CorrelationId = correlationId
+            });
+            m_EventBus.Publish(new NexEvent("estate.deleted", "nexverse.robust",
+                new Dictionary<string,string> { ["estate_id"] = estateId.ToString(), ["correlation_id"] = correlationId }));
+            WriteJson(response, new { deleted = true, estate_id = estateId, correlation_id = correlationId });
         }
 
         private void HandleUpdate(
