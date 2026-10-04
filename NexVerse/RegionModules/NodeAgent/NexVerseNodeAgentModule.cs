@@ -50,6 +50,9 @@ namespace NexVerse.RegionModules.NodeAgent
         private IDisposable m_CreateRegionSubscription;
         private IDisposable m_MoveRegionSubscription;
         private IDisposable m_RegionLifecycleSubscription;
+        private IDisposable m_NodeControlSubscription;
+        private volatile bool m_MaintenanceMode;
+        private volatile bool m_Draining;
         private DateTimeOffset m_StartedAt;
 
         public string NodeId => m_NodeId;
@@ -166,6 +169,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 m_Bus.Subscribe(
                     "region.control.lifecycle.requested",
                     HandleRegionLifecycleCommand);
+            m_NodeControlSubscription = m_Bus.Subscribe("node.control.requested", HandleNodeControlCommand);
 
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
@@ -201,6 +205,8 @@ namespace NexVerse.RegionModules.NodeAgent
             m_MoveRegionSubscription = null;
             m_RegionLifecycleSubscription?.Dispose();
             m_RegionLifecycleSubscription = null;
+            m_NodeControlSubscription?.Dispose();
+            m_NodeControlSubscription = null;
             m_HeartbeatTimer?.Dispose();
             m_Bus?.Dispose();
             m_Transport = null;
@@ -264,6 +270,8 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["disk_total_bytes"] = drive.TotalSize.ToString(),
                 ["region_count"] = scenes.Length.ToString(),
                 ["agent_count"] = agents.ToString(),
+                ["maintenance_mode"] = m_MaintenanceMode.ToString(),
+                ["draining"] = m_Draining.ToString(),
                 ["managed_region_commands"] =
                     (NexVerseManagedRegionHostPlugin.Current?.Enabled == true)
                         .ToString(),
@@ -708,6 +716,50 @@ namespace NexVerse.RegionModules.NodeAgent
                         "region_lifecycle_unhandled_failure");
                 }
             });
+        }
+
+
+        private void HandleNodeControlCommand(NexEvent nexEvent)
+        {
+            if (!IsCommandForThisNode(nexEvent) ||
+                !TryCommandData(nexEvent, "action", out string action))
+                return;
+
+            action = action.Trim().ToLowerInvariant();
+            bool accepted = true;
+            switch (action)
+            {
+                case "maintenance_on":
+                    m_MaintenanceMode = true;
+                    break;
+                case "maintenance_off":
+                    m_MaintenanceMode = false;
+                    break;
+                case "drain":
+                    m_Draining = true;
+                    m_MaintenanceMode = true;
+                    break;
+                case "resume":
+                    m_Draining = false;
+                    m_MaintenanceMode = false;
+                    break;
+                default:
+                    accepted = false;
+                    break;
+            }
+
+            Publish(new NexEvent(
+                accepted ? "node.control.completed" : "node.control.failed",
+                "nexverse.simulator",
+                new Dictionary<string, string>
+                {
+                    ["node_id"] = m_NodeId,
+                    ["action"] = action,
+                    ["maintenance_mode"] = m_MaintenanceMode.ToString(),
+                    ["draining"] = m_Draining.ToString(),
+                    ["message"] = accepted ? "node_control_applied" : "invalid_node_control_action"
+                }));
+            PublishHeartbeatSafe();
         }
 
         private bool IsCommandForThisNode(
