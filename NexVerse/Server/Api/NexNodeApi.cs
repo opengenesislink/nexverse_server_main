@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Security;
+using NexVerse.Core.Messaging;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Services.Interfaces;
 
@@ -20,11 +21,13 @@ namespace NexVerse.Server.Api
         private readonly NexNodeRegistry m_Registry;
         private readonly NexApiAuthenticator m_Authenticator;
         private readonly bool m_DistributedTransportEnabled;
+        private readonly INexEventBus m_EventBus;
 
         public NexNodeApi(
             NexNodeRegistry registry,
             NexApiAuthenticator authenticator,
-            bool distributedTransportEnabled)
+            bool distributedTransportEnabled,
+            INexEventBus eventBus)
         {
             m_Registry =
                 registry ??
@@ -34,17 +37,16 @@ namespace NexVerse.Server.Api
                 throw new ArgumentNullException(nameof(authenticator));
             m_DistributedTransportEnabled =
                 distributedTransportEnabled;
+            m_EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         }
 
         public void Handle(
             IOSHttpRequest request,
             IOSHttpResponse response)
         {
-            if (!RequireGet(request, response))
-                return;
-
-            if (!Authenticate(request, response))
-                return;
+            bool control = request != null && string.Equals(request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase) && (request.UriPath ?? string.Empty).EndsWith("/control", StringComparison.OrdinalIgnoreCase);
+            if (!control && !RequireGet(request, response)) return;
+            if (!Authenticate(request, response, control ? NexScopes.SimulatorsManage : NexScopes.SimulatorsRead)) return;
 
             string path =
                 (request?.UriPath ?? string.Empty)
@@ -61,6 +63,13 @@ namespace NexVerse.Server.Api
 
             const string prefix =
                 "/api/v1/nodes/";
+
+            if (control && path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && path.EndsWith("/control", StringComparison.OrdinalIgnoreCase))
+            {
+                string nodeId = Uri.UnescapeDataString(path.Substring(prefix.Length, path.Length - prefix.Length - "/control".Length)).Trim('/');
+                HandleControl(request, response, nodeId);
+                return;
+            }
 
             if (path.StartsWith(
                     prefix,
@@ -155,6 +164,29 @@ namespace NexVerse.Server.Api
             });
         }
 
+
+        private void HandleControl(IOSHttpRequest request, IOSHttpResponse response, string nodeId)
+        {
+            NexNodeSnapshot node = m_Registry.Get(nodeId);
+            if (node == null) { WriteError(response, HttpStatusCode.NotFound, "node_not_found", "Simulator node was not observed."); return; }
+            if (node.State != "online") { WriteError(response, HttpStatusCode.Conflict, "node_not_online", "Node control requires an online NodeAgent."); return; }
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(request.InputStream);
+                string action = doc.RootElement.TryGetProperty("action", out JsonElement a) ? (a.GetString() ?? "").Trim().ToLowerInvariant() : "";
+                if (action != "maintenance_on" && action != "maintenance_off" && action != "drain" && action != "resume")
+                { WriteError(response, HttpStatusCode.BadRequest, "invalid_action", "Supported actions: maintenance_on, maintenance_off, drain, resume."); return; }
+                m_EventBus.Publish(new NexEvent("node.control.requested", "nexverse.robust", new System.Collections.Generic.Dictionary<string,string>
+                {
+                    ["target_node_id"] = nodeId,
+                    ["action"] = action
+                }));
+                WriteJson(response, new { status = "accepted", node_id = nodeId, action }, HttpStatusCode.Accepted);
+            }
+            catch (JsonException)
+            { WriteError(response, HttpStatusCode.BadRequest, "invalid_json", "A JSON object with action is required."); }
+        }
+
         private static object NodePayload(
             NexNodeSnapshot node)
         {
@@ -192,6 +224,8 @@ namespace NexVerse.Server.Api
                     node.AgentCount,
                 managed_region_commands =
                     node.ManagedRegionCommands,
+                maintenance_mode = node.MaintenanceMode,
+                draining = node.Draining,
                 last_seen =
                     node.LastSeen,
                 last_event_at =
@@ -219,11 +253,12 @@ namespace NexVerse.Server.Api
 
         private bool Authenticate(
             IOSHttpRequest request,
-            IOSHttpResponse response)
+            IOSHttpResponse response,
+            string scope)
         {
             if (m_Authenticator.TryAuthenticate(
                     request,
-                    NexScopes.SimulatorsRead,
+                    scope,
                     out NexPrincipal _,
                     out UserAccount _,
                     out int statusCode,
