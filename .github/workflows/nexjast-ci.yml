@@ -402,8 +402,8 @@ jobs:
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
-          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.3"
-          assert doc["x_nexverse_version_history"][0]["status"] == "development"
+          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.4"
+          assert doc["x_nexverse_version_history"][0]["status"] == "release_candidate"
           assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.2"
           assert doc["x_nexverse_version_history"][1]["status"] == "completed"
           assert doc["x_nexverse_changelog"]
@@ -426,14 +426,14 @@ jobs:
           assert "/api/v1/estates/{estateId}/regions/{regionId}" in estate_change["endpoints"]
 
           roadmap = doc["x_nexverse_roadmap"]
-          assert roadmap["current_milestone"] == "0.9.3.3"
+          assert roadmap["current_milestone"] == "0.9.3.4"
           assert roadmap["current_codename"] == ""
           milestones = {item["version"]: item for item in roadmap["milestones"]}
           assert milestones["0.9.3.1"]["status"] == "released"
           assert milestones["0.9.3.2"]["status"] == "completed"
           assert milestones["0.9.3.2"]["checklist"] == {"completed": 36, "total": 36, "open": 0}
-          assert milestones["0.9.3.3"]["status"] == "active"
-          assert milestones["0.9.3.4"]["status"] == "foundation"
+          assert milestones["0.9.3.3"]["status"] == "completed"
+          assert milestones["0.9.3.4"]["status"] == "active"
           assert milestones["0.9.3.6"]["status"] == "planned"
 
           from pathlib import Path
