@@ -33,8 +33,8 @@ namespace NexVerse.RegionModules.Archives
 
     public interface IOglIarOperations
     {
-        OglIarOperation StartExport(UUID requestId, string firstName, string lastName, string inventoryPath, string password, string archiveFileName, Dictionary<string, object> options = null);
-        OglIarOperation StartImport(UUID requestId, string firstName, string lastName, string inventoryPath, string password, string archiveFileName, bool merge, bool dryRun);
+        OglIarOperation StartExport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, Dictionary<string, object> options = null);
+        OglIarOperation StartImport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, bool merge, bool dryRun);
         bool TryGet(UUID requestId, out OglIarOperation operation);
         event Action<OglIarOperation> OperationChanged;
     }
@@ -56,16 +56,16 @@ namespace NexVerse.RegionModules.Archives
 
         public event Action<OglIarOperation> OperationChanged;
 
-        public OglIarOperation StartExport(UUID requestId, string firstName, string lastName, string inventoryPath, string password, string archiveFileName, Dictionary<string, object> options = null)
+        public OglIarOperation StartExport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, Dictionary<string, object> options = null)
         {
             string path = m_Storage.ResolveArchivePath(archiveFileName);
             Directory.CreateDirectory(m_Storage.RootDirectory);
-            OglIarOperation operation = Create(requestId, OglIarOperationKind.Export, firstName, lastName, inventoryPath, path, false);
+            OglIarOperation operation = Create(requestId, OglIarOperationKind.Export, user, inventoryPath, path, false);
             operation.State = OglIarOperationState.Running;
             FileStream output = File.Create(path);
             try
             {
-                if (!m_Archiver.ArchiveInventory(requestId, firstName, lastName, inventoryPath, password, output, options ?? new Dictionary<string, object>()))
+                if (!m_Archiver.ArchiveInventory(requestId, user, inventoryPath, output, options ?? new Dictionary<string, object>()))
                 {
                     output.Dispose();
                     Fail(operation, "IAR-Export wurde vom Inventory-Archiver abgelehnt.");
@@ -80,7 +80,7 @@ namespace NexVerse.RegionModules.Archives
             }
         }
 
-        public OglIarOperation StartImport(UUID requestId, string firstName, string lastName, string inventoryPath, string password, string archiveFileName, bool merge, bool dryRun)
+        public OglIarOperation StartImport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, bool merge, bool dryRun)
         {
             string path = m_Storage.ResolveArchivePath(archiveFileName);
             if (!m_Storage.AcceptsExistingArchive(path, out string reason))
@@ -88,7 +88,7 @@ namespace NexVerse.RegionModules.Archives
             OglIarInspection inspection = OglIarInspector.Inspect(path);
             if (!inspection.Valid) throw new InvalidDataException(inspection.Error);
 
-            OglIarOperation operation = Create(requestId, OglIarOperationKind.Import, firstName, lastName, inventoryPath, path, merge);
+            OglIarOperation operation = Create(requestId, OglIarOperationKind.Import, user, inventoryPath, path, merge);
             operation.Inspection = inspection;
             if (dryRun)
             {
@@ -103,7 +103,7 @@ namespace NexVerse.RegionModules.Archives
             try
             {
                 Dictionary<string, object> options = new() { ["merge"] = merge };
-                if (!m_Archiver.DearchiveInventory(requestId, firstName, lastName, inventoryPath, password, input, options))
+                if (!m_Archiver.DearchiveInventory(requestId, user, inventoryPath, input, options))
                 {
                     input.Dispose();
                     Fail(operation, "IAR-Import wurde vom Inventory-Archiver abgelehnt.");
@@ -120,13 +120,14 @@ namespace NexVerse.RegionModules.Archives
 
         public bool TryGet(UUID requestId, out OglIarOperation operation) => m_Operations.TryGetValue(requestId, out operation);
 
-        private OglIarOperation Create(UUID id, OglIarOperationKind kind, string first, string last, string invPath, string archivePath, bool merge)
+        private OglIarOperation Create(UUID id, OglIarOperationKind kind, UserAccount user, string invPath, string archivePath, bool merge)
         {
+            if (user == null) throw new ArgumentNullException(nameof(user));
             if (id == UUID.Zero) throw new ArgumentException("IAR-Request-ID darf nicht leer sein.", nameof(id));
             OglIarOperation operation = new()
             {
                 RequestId = id, Kind = kind, State = OglIarOperationState.Queued,
-                UserName = (first + " " + last).Trim(), InventoryPath = invPath ?? string.Empty,
+                UserName = user?.Name ?? string.Empty, InventoryPath = invPath ?? string.Empty,
                 ArchivePath = archivePath, Merge = merge, CreatedAt = DateTimeOffset.UtcNow
             };
             if (!m_Operations.TryAdd(id, operation)) throw new InvalidOperationException("IAR-Request-ID ist bereits registriert.");
