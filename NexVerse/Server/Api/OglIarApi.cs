@@ -9,6 +9,7 @@ using System.Text.Json;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Security;
+using OpenMetaverse;
 using OpenSim.Framework;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Services.Interfaces;
