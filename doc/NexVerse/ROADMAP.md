@@ -747,11 +747,14 @@ Phase 1 implementation status:
 - [x] validate texture payload signatures before/around JPEG2000 decoding;
 - [x] provide a controlled non-destructive raster decoder fallback for PNG/JPEG/GIF/BMP payloads stored as texture assets;
 - [x] deduplicate missing/decode warnings per texture UUID;
-- [ ] provide explicit non-destructive render placeholder textures;
-- [ ] persist bounded diagnostic records beyond the region-module lifetime;
+- [x] provide explicit non-destructive render placeholder textures;
+- [x] expose bounded diagnostic snapshots through a simulator-side `ILunaTextureDiagnostics` contract;
+- [x] provide `nex texture inspect <uuid>` and bounded retry via `nex texture retry <uuid>`;
+- [ ] persist diagnostic records beyond the region-module lifetime;
 - diagnose Hypergrid/local asset-source failures separately;
 - suppress repeated warning storms while retaining inspectable diagnostics;
-- expose bounded administrator inspection/retry controls and World API diagnostics;
+- [x] expose bounded administrator inspection/retry controls;
+- [ ] expose aggregated LunaTexture diagnostics through the World API once the simulator-to-control-plane diagnostics transport is available;
 - never overwrite the authoritative original asset automatically during recovery.
 
 ### 9.1 Complete Inventory API
