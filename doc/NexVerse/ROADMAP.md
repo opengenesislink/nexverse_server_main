@@ -739,11 +739,16 @@ Write/control status added during the 0.9.3.2 World API line:
 
 ### 9.0 LunaTexture — Texture Recovery & Diagnostics
 
-Planned NexVerse-native resilience layer for Warp3D and asset diagnostics:
+NexVerse-native resilience layer for Warp3D and asset diagnostics.
 
-- classify missing, corrupt, unsupported and decoder-failed texture assets;
-- validate texture payloads before JPEG2000 decoding;
-- provide controlled decoder fallback and non-destructive render placeholders;
+Phase 1 implementation status:
+
+- [x] classify missing, empty, JPEG2000, PNG, JPEG, GIF/BMP, unknown and decoder-failed texture assets;
+- [x] validate texture payload signatures before/around JPEG2000 decoding;
+- [x] provide a controlled non-destructive raster decoder fallback for PNG/JPEG/GIF/BMP payloads stored as texture assets;
+- [x] deduplicate missing/decode warnings per texture UUID;
+- [ ] provide explicit non-destructive render placeholder textures;
+- [ ] persist bounded diagnostic records beyond the region-module lifetime;
 - diagnose Hypergrid/local asset-source failures separately;
 - suppress repeated warning storms while retaining inspectable diagnostics;
 - expose bounded administrator inspection/retry controls and World API diagnostics;

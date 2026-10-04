@@ -86,6 +86,8 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
         private bool m_texturePrims = true;     // true if should texture the rendered prims
         private float m_texturePrimSize = 48f;  // size of prim before we consider texturing it
         private bool m_renderMeshes = false;    // true if to render meshes rather than just bounding boxes
+        private bool m_lunaTextureEnabled = true;
+        private bool m_lunaTextureRasterFallback = true;
 
         private const float m_cameraHeight = 4096f;
         private float m_renderMinHeight = -100f;
@@ -119,6 +121,10 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 Util.GetConfigVarFromSections<float>(source, "TexturePrimSize", configSections, m_texturePrimSize);
             m_renderMeshes =
                 Util.GetConfigVarFromSections<bool>(source, "RenderMeshes", configSections, m_renderMeshes);
+            m_lunaTextureEnabled =
+                Util.GetConfigVarFromSections<bool>(source, "LunaTextureEnabled", configSections, m_lunaTextureEnabled);
+            m_lunaTextureRasterFallback =
+                Util.GetConfigVarFromSections<bool>(source, "LunaTextureRasterFallback", configSections, m_lunaTextureRasterFallback);
 
             m_renderMaxHeight = Util.GetConfigVarFromSections<float>(source, "RenderMaxHeight", configSections, m_renderMaxHeight);
             m_renderMinHeight = Util.GetConfigVarFromSections<float>(source, "RenderMinHeight", configSections, m_renderMinHeight);
@@ -755,39 +761,151 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             AssetBase asset = m_scene.AssetService.Get(id.ToString());
             if (asset is not null)
             {
-                try
+                byte[] data = asset.Data;
+                string payloadKind = ClassifyTexturePayload(data);
+
+                if (m_lunaTextureEnabled && (data is null || data.Length == 0))
                 {
-                    Image decoded = m_imgDecoder?.DecodeToImage(asset.Data);
-                    if (decoded != null)
+                    LogTextureDecodeFailureOnce(id, sop, "LunaTexture classified asset payload as empty");
+                }
+                else
+                {
+                    try
                     {
-                        using (decoded)
+                        Image decoded = m_imgDecoder?.DecodeToImage(data);
+                        if (decoded is null && m_lunaTextureEnabled && m_lunaTextureRasterFallback)
+                            decoded = TryDecodeRasterTexture(data, payloadKind);
+
+                        if (decoded != null)
                         {
-                            if (decoded is Bitmap img)
-                                ret = new warp_Texture(img, 8); // reduce textures size to 256 * 256
-                            else
-                                using (Bitmap bitmap = new Bitmap(decoded))
-                                    ret = new warp_Texture(bitmap, 8);
+                            using (decoded)
+                            {
+                                if (decoded is Bitmap img)
+                                    ret = new warp_Texture(img, 8); // reduce textures size to 256 * 256
+                                else
+                                    using (Bitmap bitmap = new Bitmap(decoded))
+                                        ret = new warp_Texture(bitmap, 8);
+                            }
+
+                            if (m_lunaTextureEnabled && payloadKind != "jpeg2000")
+                            {
+                                m_log.InfoFormat(
+                                    "[LunaTexture]: recovered texture {0} for prim {1} from {2} payload without modifying the asset",
+                                    id,
+                                    sop?.Name ?? "<unknown>",
+                                    payloadKind);
+                            }
+                        }
+                        else
+                        {
+                            LogTextureDecodeFailureOnce(
+                                id,
+                                sop,
+                                $"LunaTexture classification={payloadKind}; decoder returned no image");
                         }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        LogTextureDecodeFailureOnce(
-                            id,
-                            sop,
-                            "JPEG2000 decoder returned no image");
+                        Image recovered = null;
+                        if (m_lunaTextureEnabled && m_lunaTextureRasterFallback)
+                            recovered = TryDecodeRasterTexture(data, payloadKind);
+
+                        if (recovered != null)
+                        {
+                            using (recovered)
+                            {
+                                if (recovered is Bitmap img)
+                                    ret = new warp_Texture(img, 8);
+                                else
+                                    using (Bitmap bitmap = new Bitmap(recovered))
+                                        ret = new warp_Texture(bitmap, 8);
+                            }
+
+                            m_log.InfoFormat(
+                                "[LunaTexture]: recovered texture {0} for prim {1} from {2} payload after JPEG2000 decoder failure",
+                                id,
+                                sop?.Name ?? "<unknown>",
+                                payloadKind);
+                        }
+                        else
+                            LogTextureDecodeFailureOnce(id, sop, $"LunaTexture classification={payloadKind}; {e.Message}");
                     }
-                }
-                catch (Exception e)
-                {
-                    LogTextureDecodeFailureOnce(id, sop, e.Message);
                 }
             }
             else
-                m_log.WarnFormat("[Warp3D]: missing texture {0} data for prim {1} at {2}",
-                    id.ToString(), sop.Name, sop.GetWorldPosition().ToString());
+                LogMissingTextureOnce(id, sop);
 
             m_warpTextures[id] = ret;
             return ret;
+        }
+
+        private static string ClassifyTexturePayload(byte[] data)
+        {
+            if (data is null || data.Length == 0)
+                return "empty";
+
+            if (data.Length >= 12 &&
+                data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x0C &&
+                data[4] == 0x6A && data[5] == 0x50 && data[6] == 0x20 && data[7] == 0x20 &&
+                data[8] == 0x0D && data[9] == 0x0A && data[10] == 0x87 && data[11] == 0x0A)
+                return "jpeg2000";
+
+            if (data.Length >= 2 && data[0] == 0xFF && data[1] == 0x4F)
+                return "jpeg2000";
+
+            if (data.Length >= 8 &&
+                data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 &&
+                data[4] == 0x0D && data[5] == 0x0A && data[6] == 0x1A && data[7] == 0x0A)
+                return "png";
+
+            if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+                return "jpeg";
+
+            if (data.Length >= 6 && data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 &&
+                data[3] == 0x38 && (data[4] == 0x37 || data[4] == 0x39) && data[5] == 0x61)
+                return "gif";
+
+            if (data.Length >= 2 && data[0] == 0x42 && data[1] == 0x4D)
+                return "bmp";
+
+            return "unknown";
+        }
+
+        private static Image TryDecodeRasterTexture(byte[] data, string payloadKind)
+        {
+            if (data is null || data.Length == 0)
+                return null;
+
+            if (payloadKind != "png" && payloadKind != "jpeg" &&
+                payloadKind != "gif" && payloadKind != "bmp")
+                return null;
+
+            try
+            {
+                using MemoryStream stream = new MemoryStream(data, false);
+                using Image source = Image.FromStream(stream, true, true);
+                return new Bitmap(source);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void LogMissingTextureOnce(UUID id, SceneObjectPart sop)
+        {
+            lock (m_textureDecodeWarningsLock)
+            {
+                if (!m_textureDecodeWarnings.Add(id))
+                    return;
+            }
+
+            m_log.WarnFormat(
+                "[LunaTexture]: missing texture {0} data for prim {1} at {2}; classification=missing. " +
+                "Further warnings for this texture UUID are suppressed.",
+                id,
+                sop?.Name ?? "<unknown>",
+                sop?.GetWorldPosition().ToString() ?? "<unknown>");
         }
 
         private void LogTextureDecodeFailureOnce(
@@ -802,8 +920,8 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             }
 
             m_log.WarnFormat(
-                "[Warp3D]: Failed to decode texture {0} for prim {1} at {2}; " +
-                "CSJ2K/OpenJPEG fallback exhausted: {3}. Further warnings for " +
+                "[LunaTexture]: Failed to decode texture {0} for prim {1} at {2}; " +
+                "decoder recovery exhausted: {3}. Further warnings for " +
                 "this texture UUID are suppressed.",
                 id,
                 sop?.Name ?? "<unknown>",
