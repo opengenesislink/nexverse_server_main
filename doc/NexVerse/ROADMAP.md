@@ -735,6 +735,19 @@ Write/control status added during the 0.9.3.2 World API line:
 
 > **Status:** active development milestone since 4 October 2026.
 
+## Continuous code quality and LSL compatibility
+
+Applies to every development block from 0.9.3.5 onward:
+
+- review touched subsystems for dead code, obsolete compatibility shims and duplicate implementations;
+- remove legacy code only when viewer, Hypergrid, script and migration compatibility are not required;
+- prefer one authoritative implementation over parallel NexVerse/OpenSim code paths;
+- keep CI regression guards for removed legacy components and newly consolidated paths;
+- continuously reduce warnings, stale configuration and unreachable code;
+- audit the original LSL API independently from NexVerse game/experience extensions;
+- inventory missing original LSL functions across ScriptEngine API/runtime and implement compatible behaviour with regression tests;
+- do not count game-specific functions as substitutes for missing original LSL functions.
+
 ## 9. Inventory, OAR/IAR, Job Engine and NexBus
 
 ### 9.0 LunaTexture — Texture Recovery & Diagnostics
