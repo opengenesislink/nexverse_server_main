@@ -802,12 +802,12 @@ API-driven region archives:
 
 - export OAR;
 - import OAR;
-- validate archive;
-- dry-run inspection;
+- [x] validate archive foundation (non-mutating control-file/TAR inspection + SHA-256);
+- [x] dry-run inspection foundation (entry/assets/objects/terrain/settings/parcels metadata);
 - progress;
 - failure reporting;
-- archive metadata;
-- storage policy.
+- [x] archive metadata foundation (size, SHA-256 and content counters);
+- [x] storage policy foundation (managed .oar path and maximum archive size);
 
 ### 9.3 IAR management
 
