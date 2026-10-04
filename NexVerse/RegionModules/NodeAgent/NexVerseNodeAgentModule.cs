@@ -247,6 +247,7 @@ namespace NexVerse.RegionModules.NodeAgent
             int agents = scenes.Sum(x => x.GetRootAgentCount());
 
             using Process process = Process.GetCurrentProcess();
+            DriveInfo drive = new DriveInfo(Path.GetPathRoot(AppContext.BaseDirectory) ?? "/");
 
             return new Dictionary<string, string>
             {
@@ -259,6 +260,8 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["process_id"] = Environment.ProcessId.ToString(),
                 ["working_set_bytes"] = process.WorkingSet64.ToString(),
                 ["cpu_seconds"] = process.TotalProcessorTime.TotalSeconds.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),
+                ["disk_free_bytes"] = drive.AvailableFreeSpace.ToString(),
+                ["disk_total_bytes"] = drive.TotalSize.ToString(),
                 ["region_count"] = scenes.Length.ToString(),
                 ["agent_count"] = agents.ToString(),
                 ["managed_region_commands"] =

@@ -176,6 +176,16 @@ namespace NexVerse.Server.Api
                     node.WorkingSetBytes,
                 cpu_seconds =
                     node.CpuSeconds,
+                disk_free_bytes =
+                    node.DiskFreeBytes,
+                disk_total_bytes =
+                    node.DiskTotalBytes,
+                health = new
+                {
+                    heartbeat = node.State,
+                    disk_free_percent = node.DiskTotalBytes > 0 ? Math.Round(100.0 * node.DiskFreeBytes / node.DiskTotalBytes, 2) : (double?)null,
+                    accepting_managed_commands = node.State == "online" && node.ManagedRegionCommands
+                },
                 region_count =
                     node.RegionCount,
                 agent_count =
