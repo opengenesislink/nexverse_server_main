@@ -260,6 +260,26 @@ The planner also provides global registered-region search through `GET /api/v1/r
 
 Estate administration is now available in the same Control Center surface. `POST /api/v1/estates` creates an Estate, `PATCH /api/v1/estates/{estateId}` updates it, and `GET /api/v1/estates/{estateId}/management` exposes management-only lists and policies under `estates:manage`. Supported lists are managers, allowed residents, banned residents and allowed groups. Supported policies include public access, voice, direct teleport, script skipping, anonymous/minor denial and environment override. `PUT /api/v1/estates/{estateId}/regions/{regionId}` reassigns a registered region in the authoritative Estate datastore; a running region must then be restarted so its live `EstateSettings` are reloaded.
 
+## Persistent Job Engine: Region migration
+
+OpenGenesisLINK 0.9.3.5 adds cross-node migration for NexVerse-managed regions through the persistent Job Engine.
+
+`POST /api/v1/jobs/regions/migrate` accepts:
+
+```json
+{
+  "region_id": "00000000-0000-0000-0000-000000000000",
+  "target_node_id": "simulator-002",
+  "dry_run": false
+}
+```
+
+The operation runs as job type `regions.migrate`. A dry-run performs the full preflight without changing the source or target. A real migration exports a verified OAR on the source, stops the source region, creates the same region UUID/Estate/grid footprint on the target, imports the OAR, verifies the target projection, and only then retires the old source managed-region configuration. Failures after source shutdown execute a best-effort rollback that stops/removes the target configuration and restarts the source.
+
+Cross-node migration is deliberately refused unless both simulator nodes advertise the same non-empty `MigrationStorageId` from `[OpenGenesisLINKOAR]`. Administrators must use the same identifier only when `StorageRoot` is backed by the same shared filesystem/storage backend on both nodes. Matching directory names on independent local disks are not sufficient. The source region must contain no root agents, the target must be online, outside maintenance/drain state, and both nodes must have `ManagedRegionCommands=true`.
+
+The migration verifies the SHA-256 of the exported OAR and requires the target import to report the identical archive hash. Once a migration starts, normal Job API cancellation is rejected because interruption during the cutover could split authoritative region state between nodes.
+
 ## Next API work
 
 The core user lifecycle, persistent audit history, native session revocation, OAuth/OIDC client flows, API keys and request rate limiting are connected.
