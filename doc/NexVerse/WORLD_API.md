@@ -293,7 +293,7 @@ OpenGenesisLINK 0.9.3.5 provides bounded maintenance for the authoritative Robus
 }
 ```
 
-Only the fixed `analyze` mode is accepted. The request cannot contain SQL, table names, connection strings or credentials. The worker detects the configured OpenSim storage provider and supports MySQL/MariaDB through `OpenSim.Data.MySQL.dll`, PostgreSQL through `OpenSim.Data.PGSQL.dll`, and SQLite through `OpenSim.Data.SQLite.dll`. Unsupported providers fail before any maintenance statement is executed.
+Starting this endpoint requires `admin:*`. Only the fixed `analyze` mode is accepted. The request cannot contain SQL, table names, connection strings or credentials. The worker detects the configured OpenSim storage provider and supports MySQL/MariaDB through `OpenSim.Data.MySQL.dll`, PostgreSQL through `OpenSim.Data.PGSQL.dll`, and SQLite through `OpenSim.Data.SQLite.dll`. Unsupported providers fail before any maintenance statement is executed.
 
 The worker inventories application tables directly from provider metadata, quotes identifiers derived from that metadata, and executes the provider's native ANALYZE command one table at a time. Jobs are serialized so two database-maintenance runs cannot overlap. Cancellation is cooperative between tables and also requests cancellation of the active provider command. A partial ANALYZE run is safe: already refreshed statistics remain valid and no application rows are rewritten by OpenGenesisLINK.
 
