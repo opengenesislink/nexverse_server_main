@@ -91,4 +91,54 @@ namespace NexVerse.Core.Jobs
         private static async Task CopyAsync(string source,string target,CancellationToken token){await using FileStream input=new(source,FileMode.Open,FileAccess.Read,FileShare.Read,1024*1024,true);await using FileStream output=new(target,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);await input.CopyToAsync(output,1024*1024,token).ConfigureAwait(false);await output.FlushAsync(token).ConfigureAwait(false);}
         private static string Required(IReadOnlyDictionary<string,string> p,string key)=>p!=null&&p.TryGetValue(key,out string v)&&!string.IsNullOrWhiteSpace(v)?v.Trim():throw new ArgumentException("Job-Parameter fehlt: "+key);
     }
+    public sealed class OglDirectoryRestoreWorker : IOglJobWorker
+    {
+        public string JobType=>"restore.directory";
+        public async Task<IReadOnlyDictionary<string,string>> ExecuteAsync(OglJobContext context,IReadOnlyDictionary<string,string> parameters,CancellationToken cancellationToken)
+        {
+            string backup=Required(parameters,"backup");string destination=Required(parameters,"destination");
+            string backupRoot=Path.GetFullPath(backup);string destinationRoot=Path.GetFullPath(destination);
+            if(!Directory.Exists(backupRoot))throw new DirectoryNotFoundException("Backup existiert nicht: "+backupRoot);
+            if(Directory.Exists(destinationRoot)||File.Exists(destinationRoot))throw new IOException("Restore-Ziel existiert bereits: "+destinationRoot);
+            string manifestPath=Path.Combine(backupRoot,".ogl-backup.manifest");if(!File.Exists(manifestPath))throw new InvalidDataException("OpenGenesisLINK Backup-Manifest fehlt.");
+            string[] lines=await File.ReadAllLinesAsync(manifestPath,cancellationToken).ConfigureAwait(false);List<(string Hash,string Relative)> entries=new();
+            foreach(string line in lines)
+            {
+                cancellationToken.ThrowIfCancellationRequested();if(string.IsNullOrWhiteSpace(line))continue;int split=line.IndexOf("  ",StringComparison.Ordinal);
+                if(split!=64)throw new InvalidDataException("Ungueltiger Manifest-Eintrag.");
+                string hash=line.Substring(0,64);string relative=line.Substring(split+2);string source=SafeChild(backupRoot,relative);
+                if(!File.Exists(source))throw new InvalidDataException("Backup-Datei fehlt: "+relative);entries.Add((hash,relative));
+            }
+            context.Progress(5,"verifying","Backup-Manifest wird vollstaendig geprueft.");long bytes=0;
+            for(int i=0;i<entries.Count;i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();string source=SafeChild(backupRoot,entries[i].Relative);await using FileStream stream=File.OpenRead(source);string actual=Convert.ToHexString(await SHA256.HashDataAsync(stream,cancellationToken).ConfigureAwait(false));
+                if(!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(entries[i].Hash),Convert.FromHexString(actual)))throw new InvalidDataException("Backup-Integritaetspruefung fehlgeschlagen: "+entries[i].Relative);
+                bytes+=new FileInfo(source).Length;context.Progress(5+(int)(40L*(i+1)/Math.Max(1,entries.Count)),"verifying",entries[i].Relative);
+            }
+            string staging=destinationRoot+".restore-"+Guid.NewGuid().ToString("N");long restored=0;
+            try
+            {
+                Directory.CreateDirectory(staging);context.Progress(48,"restoring","Restore in Staging gestartet.");
+                for(int i=0;i<entries.Count;i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();string source=SafeChild(backupRoot,entries[i].Relative);string target=SafeChild(staging,entries[i].Relative);Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    await CopyAsync(source,target,cancellationToken).ConfigureAwait(false);restored+=new FileInfo(source).Length;context.Progress(48+(int)(45L*(i+1)/Math.Max(1,entries.Count)),"restoring",entries[i].Relative);
+                }
+                cancellationToken.ThrowIfCancellationRequested();context.Progress(96,"committing","Restore wird atomar aktiviert.");if(Directory.Exists(destinationRoot)||File.Exists(destinationRoot))throw new IOException("Restore-Ziel wurde zwischenzeitlich angelegt.");
+                Directory.Move(staging,destinationRoot);return new Dictionary<string,string>{{"destination",destinationRoot},{"file_count",entries.Count.ToString()},{"bytes",restored.ToString()},{"verified","true"}};
+            }
+            finally{if(Directory.Exists(staging))Directory.Delete(staging,true);}
+        }
+        private static string SafeChild(string root,string relative)
+        {
+            if(string.IsNullOrWhiteSpace(relative)||Path.IsPathRooted(relative))throw new InvalidDataException("Ungueltiger relativer Backup-Pfad.");
+            string normalizedRoot=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;string child=Path.GetFullPath(Path.Combine(root,relative));
+            if(!child.StartsWith(normalizedRoot,StringComparison.Ordinal))throw new InvalidDataException("Backup-Pfad verlaesst den erlaubten Bereich.");
+            return child;
+        }
+        private static async Task CopyAsync(string source,string target,CancellationToken token){await using FileStream input=new(source,FileMode.Open,FileAccess.Read,FileShare.Read,1024*1024,true);await using FileStream output=new(target,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);await input.CopyToAsync(output,1024*1024,token).ConfigureAwait(false);await output.FlushAsync(token).ConfigureAwait(false);}
+        private static string Required(IReadOnlyDictionary<string,string> p,string key)=>p!=null&&p.TryGetValue(key,out string v)&&!string.IsNullOrWhiteSpace(v)?v.Trim():throw new ArgumentException("Job-Parameter fehlt: "+key);
+    }
+
 }
