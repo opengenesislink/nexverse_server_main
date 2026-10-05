@@ -181,6 +181,8 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api.Interfaces
        LSL_Integer llGetNumberOfSides();
         LSL_String llGetObjectDesc();
           LSL_List llGetObjectDetails(LSL_Key objectId, LSL_List args);
+          LSL_List llGetExperienceDetails(LSL_Key experienceId);
+       LSL_Integer llAgentInExperience(LSL_Key agentId);
          LSL_Float llGetObjectMass(LSL_Key objectId);
         LSL_String llGetObjectName();
        LSL_Integer llGetObjectPermMask(int mask);
@@ -327,6 +329,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api.Interfaces
            LSL_Key llRequestAgentData(string id, int data);
            LSL_Key llRequestInventoryData(LSL_String name);
               void llRequestPermissions(string agent, int perm);
+              void llRequestExperiencePermissions(LSL_Key agentId, LSL_String reason);
            LSL_Key llRequestSecureURL();
            LSL_Key llRequestSimulatorData(string simulator, int data);
            LSL_Key llRequestURL();
@@ -520,6 +523,11 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api.Interfaces
                void llLinksetDataReset();
         LSL_Integer llLinksetDataWrite(LSL_String name, LSL_String value);
         LSL_Integer llLinksetDataWriteProtected(LSL_String name, LSL_String value, LSL_String pass);
+
+           LSL_Key llCreateKeyValue(LSL_String key, LSL_String value);
+           LSL_Key llReadKeyValue(LSL_String key);
+           LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value);
+           LSL_Key llDeleteKeyValue(LSL_String key);
 
         LSL_Integer llIsFriend(LSL_Key agent_id);
         LSL_Integer llDerezObject(LSL_Key objectUUID, LSL_Integer flag);
