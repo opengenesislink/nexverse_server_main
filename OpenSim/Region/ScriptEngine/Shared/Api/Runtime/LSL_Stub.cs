@@ -2834,15 +2834,39 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value)
+        public LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value, LSL_Integer checkedFlag, LSL_String originalValue)
         {
-            return m_LSL_Functions.llUpdateKeyValue(key, value);
+            return m_LSL_Functions.llUpdateKeyValue(key, value, checkedFlag, originalValue);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LSL_Key llDeleteKeyValue(LSL_String key)
         {
             return m_LSL_Functions.llDeleteKeyValue(key);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llDataSizeKeyValue()
+        {
+            return m_LSL_Functions.llDataSizeKeyValue();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llKeyCountKeyValue()
+        {
+            return m_LSL_Functions.llKeyCountKeyValue();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llKeysKeyValue(LSL_Integer start, LSL_Integer count)
+        {
+            return m_LSL_Functions.llKeysKeyValue(start, count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_String llGetExperienceErrorMessage(LSL_Integer error)
+        {
+            return m_LSL_Functions.llGetExperienceErrorMessage(error);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
