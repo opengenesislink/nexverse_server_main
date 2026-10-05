@@ -539,16 +539,35 @@ namespace NexVerse.RegionModules.Economy
 
             if (!delivered)
             {
+                bool refunded =
+                    salePrice <= 0;
+
+                string refundError =
+                    string.Empty;
+
                 if (salePrice > 0)
                 {
-                    RefundCommerceInternal(
+                    refunded =
+                        RefundCommerceInternal(
+                            orderId,
+                            "Object delivery failed",
+                            out refundError);
+                }
+
+                if (!refunded)
+                {
+                    m_Log.ErrorFormat(
+                        "[NEX-ECONOMY-VIEWER]: Object delivery failed and NexCommerce refund {0} also failed: {1}",
                         orderId,
-                        "Object delivery failed",
-                        out _);
+                        refundError);
                 }
 
                 remoteClient.SendAgentAlertMessage(
-                    "Object delivery failed. Any completed NV$ payment was rolled back.",
+                    refunded
+                        ? "Object delivery failed. The completed NV$ payment was refunded."
+                        : "Object delivery failed and the automatic NV$ refund could not be confirmed. Please contact an administrator with order " +
+                          orderId.ToString("D") +
+                          ".",
                     false);
                 return;
             }
@@ -704,6 +723,28 @@ namespace NexVerse.RegionModules.Economy
                 e.sender);
             SendBalanceRefresh(
                 paymentReceiver);
+
+            LocateClient(
+                e.sender)
+                ?.SendAgentAlertMessage(
+                    "NV$ transfer completed: " +
+                    e.amount +
+                    " NV$.",
+                    false);
+
+            IClientAPI receiverClient =
+                LocateClient(
+                    paymentReceiver);
+
+            if (receiverClient != null &&
+                paymentReceiver != e.sender)
+            {
+                receiverClient.SendAgentAlertMessage(
+                    "NV$ received: " +
+                    e.amount +
+                    " NV$.",
+                    false);
+            }
 
             if (objectPayment)
             {
