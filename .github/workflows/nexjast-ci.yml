@@ -505,7 +505,7 @@ jobs:
           assert milestones["0.9.3.3"]["status"] == "completed"
           assert milestones["0.9.3.4"]["status"] == "released"
           assert milestones["0.9.3.5"]["status"] == "active"
-          assert milestones["0.9.3.5"]["checklist"] == {"completed": 72, "total": 74, "open": 2}
+          assert milestones["0.9.3.5"]["checklist"] == {"completed": 74, "total": 74, "open": 0}
           assert milestones["0.9.3.6"]["status"] == "planned"
 
           from pathlib import Path
