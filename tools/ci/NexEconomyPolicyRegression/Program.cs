@@ -371,6 +371,9 @@ internal static class Program
                 5,
                 feeId));
 
+        Guid bankingTransactionId =
+            Guid.NewGuid();
+
         NexLedgerAppendResult banking =
             economy.BankingTransfer(
                 payerId,
@@ -378,7 +381,7 @@ internal static class Program
                 100,
                 "BANK-TRANSFER",
                 label,
-                Guid.NewGuid());
+                bankingTransactionId);
 
         Require(
             banking.Created &&
@@ -386,6 +389,18 @@ internal static class Program
             economy.GetBalance(merchantId) == 100 &&
             economy.GetBalance(feeId) == 5,
             label + ": banking transfer/fee balances mismatch");
+
+        Require(
+            economy.BankingTransfer(
+                payerId,
+                merchantId,
+                100,
+                "BANK-TRANSFER",
+                label,
+                bankingTransactionId).Status ==
+                NexLedgerAppendStatus.Duplicate &&
+            economy.GetBalance(payerId) == 4895,
+            label + ": banking transfer retry was not idempotent");
 
         RequireThrows<NexLedgerPolicyException>(
             () => economy.BankingTransfer(
@@ -514,11 +529,14 @@ internal static class Program
                     1024,
                     250));
 
+        Guid landOrderId =
+            Guid.NewGuid();
+
         NexCommerceOrder landPurchase =
             economy.PurchaseLandListing(
                 sale.ListingId,
                 payerId,
-                Guid.NewGuid(),
+                landOrderId,
                 label);
 
         Require(
@@ -529,6 +547,16 @@ internal static class Program
             economy.GetBalance(merchantId) == 650 &&
             economy.GetBalance(feeId) == 15,
             label + ": land purchase mismatch");
+
+        Require(
+            economy.PurchaseLandListing(
+                sale.ListingId,
+                payerId,
+                landOrderId,
+                label).PaymentTransactionId ==
+                landPurchase.PaymentTransactionId &&
+            economy.GetBalance(payerId) == 4135,
+            label + ": land purchase retry was not idempotent");
 
         NexLandListing rental =
             economy.CreateLandListing(
@@ -546,12 +574,15 @@ internal static class Program
                     50,
                     7));
 
+        Guid leaseOrderId =
+            Guid.NewGuid();
+
         NexLandLease lease =
             economy.CreateLandLease(
                 rental.ListingId,
                 payerId,
                 2,
-                Guid.NewGuid(),
+                leaseOrderId,
                 label);
 
         Require(
@@ -564,6 +595,17 @@ internal static class Program
             economy.GetBalance(merchantId) == 700 &&
             economy.GetBalance(feeId) == 20,
             label + ": land lease initial settlement mismatch");
+
+        Require(
+            economy.CreateLandLease(
+                rental.ListingId,
+                payerId,
+                2,
+                leaseOrderId,
+                label).LeaseId ==
+                lease.LeaseId &&
+            economy.GetBalance(payerId) == 4080,
+            label + ": land lease retry was not idempotent");
 
         Require(
             economy.SearchLandListings(
