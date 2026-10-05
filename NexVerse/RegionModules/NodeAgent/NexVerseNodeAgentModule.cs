@@ -36,6 +36,7 @@ namespace NexVerse.RegionModules.NodeAgent
         INexVerseEventBusModule,
         ICrossRegionObjectMessageRouter
     {
+        private const int DebugChannel = 0x7fffffff;
         private static readonly ILog m_Log =
             LogManager.GetLogger(typeof(NexVerseNodeAgentModule));
 
@@ -311,7 +312,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 sourceObjectId.IsZero() ||
                 sourceOwnerId.IsZero() ||
                 targetObjectId.IsZero() ||
-                channel == ScriptBaseClass.DEBUG_CHANNEL)
+                channel == DebugChannel)
             {
                 return false;
             }
@@ -439,7 +440,7 @@ namespace NexVerse.RegionModules.NodeAgent
                     "channel",
                     out int channel) ||
                 channel ==
-                    ScriptBaseClass.DEBUG_CHANNEL)
+                    DebugChannel)
             {
                 return;
             }
@@ -635,6 +636,13 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["managed_region_commands"] =
                     (NexVerseManagedRegionHostPlugin.Current?.Enabled == true)
                         .ToString(),
+                ["cross_region_object_messaging"] =
+                    m_ObjectMessagingEnabled.ToString(),
+                ["cross_owner_object_messaging"] =
+                    m_AllowCrossOwnerObjectMessages.ToString(),
+                ["object_messages_per_second"] =
+                    m_ObjectMessagesPerSecond.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture),
                 ["migration_storage_id"] =
                     m_MigrationStorageId,
                 ["luna_texture_diagnostic_count"] =
