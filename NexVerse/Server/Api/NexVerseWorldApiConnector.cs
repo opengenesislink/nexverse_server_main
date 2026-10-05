@@ -305,6 +305,8 @@ namespace NexVerse.Server.Api
                     throw new InvalidOperationException("Unable to load NexVerse World API authentication service.");
 
                 IInventoryService inventory = LoadOptionalService<IInventoryService>(config, "InventoryService");
+                jobRunner.Register(new OglInventoryRepairWorker(inventory));
+
                 IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
                 IGridService grid = LoadOptionalService<IGridService>(config, "GridService");
                 IEstateDataService estateData = LoadOptionalService<IEstateDataService>(config, "EstateDataStore");
