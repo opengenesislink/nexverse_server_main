@@ -97,6 +97,11 @@ namespace NexVerse.Server.Api
                             throw new UnauthorizedAccessException("Resident tokens may create only self-owned experiences.");
                         }
 
+                        Guid explicitId =
+                            BodyOptionalGuid(
+                                body,
+                                "experience_id");
+
                         NexExperience created =
                             m_Store.Create(
                                 owner,
@@ -105,9 +110,9 @@ namespace NexVerse.Server.Api
                                 BodyString(body, "description"),
                                 ParseMaturity(BodyString(body, "maturity")),
                                 principal.Subject,
-                                BodyOptionalGuid(body, "experience_id") is Guid explicitId && explicitId != Guid.Empty
-                                    ? explicitId
-                                    : null);
+                                explicitId == Guid.Empty
+                                    ? null
+                                    : explicitId);
 
                         Audit(principal, "experience.created", created.ExperienceId, response);
 
@@ -235,30 +240,102 @@ namespace NexVerse.Server.Api
                     string operation = BodyString(body, "operation").ToLowerInvariant();
                     string key = BodyString(body, "key");
                     string value = BodyString(body, "value");
-                    bool success;
-                    string result = string.Empty;
+                    bool success = true;
+                    string code = string.Empty;
+                    object result = string.Empty;
+                    string message = string.Empty;
 
                     switch (operation)
                     {
                         case "create":
                             success = m_Store.CreateKeyValue(experience, script, key, value);
+                            if (!success)
+                            {
+                                code = "storage_exception";
+                                message = "Key already exists.";
+                            }
+                            else
+                            {
+                                result = value;
+                            }
                             break;
+
                         case "read":
-                            success = m_Store.TryReadKeyValue(experience, script, key, out result);
+                            success = m_Store.TryReadKeyValue(experience, script, key, out string readValue);
+                            if (success)
+                                result = readValue;
+                            else
+                            {
+                                code = "key_not_found";
+                                message = "Key does not exist.";
+                            }
                             break;
+
                         case "update":
-                            success = m_Store.UpdateKeyValue(experience, script, key, value);
+                            success = m_Store.UpdateKeyValue(
+                                experience,
+                                script,
+                                key,
+                                value,
+                                BodyBool(body, "check_original", false),
+                                BodyString(body, "original_value"),
+                                out bool retryMismatch);
+                            if (success)
+                                result = value;
+                            else if (retryMismatch)
+                            {
+                                code = "retry_update";
+                                message = "Checked update failed because the stored value changed.";
+                            }
                             break;
+
                         case "delete":
                             success = m_Store.DeleteKeyValue(experience, script, key);
+                            if (!success)
+                            {
+                                code = "key_not_found";
+                                message = "Key does not exist.";
+                            }
                             break;
+
+                        case "stats":
+                            result = new
+                            {
+                                used_bytes = m_Store.GetDataSize(experience, script),
+                                quota_bytes = NexExperienceStore.MaxStoreBytes,
+                                key_count = m_Store.GetKeyCount(experience, script)
+                            };
+                            break;
+
+                        case "keys":
+                            int start = BodyNonNegativeInt(body, "start", 0);
+                            int count = BodyPositiveInt(body, "count", 100);
+                            IReadOnlyList<string> keys =
+                                m_Store.ListKeys(
+                                    experience,
+                                    script,
+                                    start,
+                                    count);
+                            if (keys.Count == 0 &&
+                                start >= m_Store.GetKeyCount(experience, script) &&
+                                m_Store.GetKeyCount(experience, script) > 0)
+                            {
+                                success = false;
+                                code = "key_not_found";
+                                message = "Key index is outside the stored key range.";
+                            }
+                            result = new { keys };
+                            break;
+
                         default:
-                            throw new ArgumentException("operation must be create, read, update or delete.");
+                            throw new ArgumentException("operation must be create, read, update, delete, stats or keys.");
                     }
 
                     WriteJson(response, new
                     {
                         success,
+                        code,
+                        message,
                         result,
                         experience_id = experience.ToString("D"),
                         correlation_id = Correlation(response)
@@ -326,6 +403,17 @@ namespace NexVerse.Server.Api
                         NexExperience current = m_Store.Get(experienceId) ??
                             throw new KeyNotFoundException("Experience was not found.");
 
+                        bool enabled =
+                            body.TryGetProperty(
+                                "enabled",
+                                out JsonElement enabledElement)
+                                ? enabledElement.ValueKind == JsonValueKind.True
+                                    ? true
+                                    : enabledElement.ValueKind == JsonValueKind.False
+                                        ? false
+                                        : throw new ArgumentException("enabled must be boolean.")
+                                : current.Enabled;
+
                         NexExperience updated =
                             m_Store.UpdateProfile(
                                 experienceId,
@@ -334,11 +422,7 @@ namespace NexVerse.Server.Api
                                 body.TryGetProperty("description", out _) ? BodyString(body, "description") : current.Description,
                                 body.TryGetProperty("group_id", out _) ? BodyOptionalGuid(body, "group_id") : current.GroupId,
                                 body.TryGetProperty("maturity", out _) ? ParseMaturity(BodyString(body, "maturity")) : current.Maturity,
-                                body.TryGetProperty("enabled", out JsonElement enabled) && enabled.ValueKind == JsonValueKind.False
-                                    ? false
-                                    : body.TryGetProperty("enabled", out enabled) && enabled.ValueKind == JsonValueKind.True
-                                        ? true
-                                        : current.Enabled,
+                                enabled,
                                 principal.Subject);
 
                         Audit(principal, "experience.updated", experienceId, response);
@@ -690,6 +774,38 @@ namespace NexVerse.Server.Api
             if (e.ValueKind == JsonValueKind.False)
                 return false;
             throw new ArgumentException(name + " must be boolean.");
+        }
+
+        private static int BodyNonNegativeInt(
+            JsonElement body,
+            string name,
+            int defaultValue)
+        {
+            if (!body.TryGetProperty(name, out JsonElement element))
+                return defaultValue;
+            if (element.ValueKind != JsonValueKind.Number ||
+                !element.TryGetInt32(out int value) ||
+                value < 0)
+            {
+                throw new ArgumentException(name + " must be a non-negative integer.");
+            }
+            return value;
+        }
+
+        private static int BodyPositiveInt(
+            JsonElement body,
+            string name,
+            int defaultValue)
+        {
+            if (!body.TryGetProperty(name, out JsonElement element))
+                return defaultValue;
+            if (element.ValueKind != JsonValueKind.Number ||
+                !element.TryGetInt32(out int value) ||
+                value < 1)
+            {
+                throw new ArgumentException(name + " must be a positive integer.");
+            }
+            return value;
         }
 
         private static int QueryInt(IOSHttpRequest request, string name, int defaultValue, int min, int max)
