@@ -322,7 +322,7 @@ The 0.9.3.5 Inventory API uses the authoritative configured `IInventoryService`.
 Implemented management operations include:
 
 - `GET /api/v1/inventory/tree` and folder/item reads;
-- `GET /api/v1/inventory/search?q=<text>&limit=<1-500>` for bounded case-insensitive search across folder names and item names/descriptions;
+- `GET /api/v1/inventory/search?q=<text>&limit=<1-500>` for bounded case-insensitive search across folder names and item names/descriptions; the server scans at most 2,000 folders and 10,000 item rows per request and reports `scan.truncated` when those safety bounds are reached;
 - folder create/rename/move and safe Trash handling;
 - item rename/description/move, copy, restore and safe Trash handling;
 - `POST /api/v1/inventory/links` for direct item or folder links using the native link asset types;
