@@ -42,6 +42,34 @@ internal static class Program
             amount,
             memo);
 
+    private static NexLedgerPosting[] BuildTooManyPostings(
+        Guid debitAccount,
+        Guid creditAccount)
+    {
+        int pairCount =
+            NexLedgerTransaction.PostingCountLimit / 2 + 1;
+        List<NexLedgerPosting> postings =
+            new List<NexLedgerPosting>();
+
+        for (int i = 0; i < pairCount; i++)
+        {
+            postings.Add(
+                new NexLedgerPosting(
+                    Guid.NewGuid(),
+                    debitAccount,
+                    NexLedgerSide.Debit,
+                    1));
+            postings.Add(
+                new NexLedgerPosting(
+                    Guid.NewGuid(),
+                    creditAccount,
+                    NexLedgerSide.Credit,
+                    1));
+        }
+
+        return postings.ToArray();
+    }
+
     private static int Main()
     {
         Guid systemId =
@@ -85,6 +113,24 @@ internal static class Program
                     "business:demo",
                     "Demo Merchant")),
             "merchant ledger account was not created");
+
+        RequireThrows<ArgumentOutOfRangeException>(
+            () => new NexLedgerAccount(
+                Guid.NewGuid(),
+                (NexLedgerAccountClass)999,
+                NexLedgerSide.Credit,
+                "invalid:class",
+                "Invalid Class"),
+            "undefined ledger account class was accepted");
+
+        RequireThrows<ArgumentOutOfRangeException>(
+            () => new NexLedgerPosting(
+                Guid.NewGuid(),
+                residentId,
+                NexLedgerSide.Debit,
+                1,
+                new string('x', NexLedgerPosting.MemoLengthLimit + 1)),
+            "oversized posting memo was accepted");
 
         Require(
             !ledger.TryCreateAccount(
@@ -204,6 +250,32 @@ internal static class Program
         Require(
             ledger.ListPostings(residentId, 1, 1).Count == 1,
             "resident posting pagination mismatch");
+
+        RequireThrows<NexLedgerValidationException>(
+            () => new NexLedgerTransaction(
+                Guid.NewGuid(),
+                "too-many-postings",
+                "BAD-COUNT",
+                BuildTooManyPostings(residentId, merchantId)),
+            "oversized posting collection was accepted");
+
+        Dictionary<string, string> oversizedMetadata =
+            new Dictionary<string, string>();
+        for (int i = 0; i <= NexLedgerTransaction.MetadataEntryLimit; i++)
+            oversizedMetadata["k" + i] = "v";
+
+        RequireThrows<ArgumentOutOfRangeException>(
+            () => new NexLedgerTransaction(
+                Guid.NewGuid(),
+                "metadata",
+                "BAD-METADATA",
+                new[]
+                {
+                    new NexLedgerPosting(Guid.NewGuid(), residentId, NexLedgerSide.Debit, 1),
+                    new NexLedgerPosting(Guid.NewGuid(), merchantId, NexLedgerSide.Credit, 1)
+                },
+                metadata: oversizedMetadata),
+            "oversized metadata collection was accepted");
 
         RequireThrows<NexLedgerValidationException>(
             () => new NexLedgerTransaction(
