@@ -765,11 +765,11 @@ Phase 1 implementation status:
 - [x] provide explicit non-destructive render placeholder textures;
 - [x] expose bounded diagnostic snapshots through a simulator-side `ILunaTextureDiagnostics` contract;
 - [x] provide `nex texture inspect <uuid>` and bounded retry via `nex texture retry <uuid>`;
-- [ ] persist diagnostic records beyond the region-module lifetime;
+- [x] persist diagnostic records beyond the region-module lifetime through a bounded per-region JSON store with atomic replacement;
 - diagnose Hypergrid/local asset-source failures separately;
 - suppress repeated warning storms while retaining inspectable diagnostics;
 - [x] expose bounded administrator inspection/retry controls;
-- [ ] expose aggregated LunaTexture diagnostics through the World API once the simulator-to-control-plane diagnostics transport is available;
+- [x] expose aggregated LunaTexture diagnostics through the World API via NodeAgent heartbeat projection into the Robust node registry;
 - never overwrite the authoritative original asset automatically during recovery.
 
 ### 9.1 Complete Inventory API
