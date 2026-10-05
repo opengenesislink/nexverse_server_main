@@ -1130,14 +1130,15 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
                             status = "active",
-                            checklist = new { completed = 72, total = 74, open = 2 },
-                            summary = "Inventar-API-Grundlage, verwaltete OAR/IAR-Abläufe und die persistente Auftragssteuerung sind weitgehend umgesetzt. Native Backup-/Restore-, Asset-Reindex-, Regionsmigrations-, Datenbankwartungs- und Inventarreparatur-Worker sind integriert; offen bleiben vor allem die LunaTexture-Diagnosepersistenz und deren aggregierte World-API-Projektion sowie weitere nicht checkbox-basierte Inventar-/NexBus-Erweiterungen.",
+                            checklist = new { completed = 74, total = 74, open = 0 },
+                            summary = "Alle 74 expliziten 0.9.3.5-Checklist-Punkte sind umgesetzt. Inventar-API-Grundlage, OAR/IAR, persistente Auftragssteuerung, native Betriebs-Worker sowie LunaTexture-Persistenz und deren aggregierte NodeAgent/World-API-Projektion sind integriert; nicht checkbox-basierte Erweiterungen werden weiterhin separat verfolgt.",
                             evidence = new[]
                             {
                                 "Persistente Job Engine mit queued/running/completed/failed/cancelled, Fortschritt, Logs und Result-Metadaten",
                                 "OAR/IAR sind über NexBus/NodeAgent an die autoritativen Archivmodule angebunden",
                                 "Native Backup/Restore-, Asset-Reindex-, Regionsmigrations-, Datenbankwartungs- und Inventarreparatur-Worker sind integriert",
-                                "Inventar-API unterstützt Baum-, Ordner-, Item-Metadaten-, Trash-, Restore-, Copy- und Lost-&-Found-Abläufe"
+                                "Inventar-API unterstützt Baum-, Ordner-, Item-Metadaten-, Trash-, Restore-, Copy- und Lost-&-Found-Abläufe",
+                                "LunaTexture-Diagnosen werden pro Region persistent gespeichert und als datensparsame Aggregate über NodeAgent und World API projiziert"
                             }
                         },
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
