@@ -16,6 +16,9 @@ namespace NexVerse.Server.Api
 {
     internal sealed class NexInventoryApi
     {
+        private const int SearchQueryLengthLimit = 255;
+        private const int SearchFolderScanLimit = 2000;
+        private const int SearchItemScanLimit = 10000;
         private static readonly JsonSerializerOptions s_Json = new JsonSerializerOptions { WriteIndented = true };
         private readonly IInventoryService m_Inventory;
         private readonly IAssetService m_Assets;
@@ -219,6 +222,18 @@ namespace NexVerse.Server.Api
                 (request?.QueryString?["q"] ?? string.Empty)
                     .Trim();
 
+            if (query.Length > SearchQueryLengthLimit)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "query_too_long",
+                    "q must contain at most " +
+                    SearchQueryLengthLimit +
+                    " characters.");
+                return;
+            }
+
             int limit = 100;
             string rawLimit =
                 request?.QueryString?["limit"];
@@ -235,7 +250,7 @@ namespace NexVerse.Server.Api
                 return;
             }
 
-            List<InventoryFolderBase> folders =
+            List<InventoryFolderBase> allFolders =
                 m_Inventory.GetInventorySkeleton(owner) ??
                 new List<InventoryFolderBase>();
 
@@ -243,24 +258,67 @@ namespace NexVerse.Server.Api
                 m_Inventory.GetRootFolder(owner);
 
             if (Owned(root, owner) &&
-                !folders.Any(folder =>
+                !allFolders.Any(folder =>
                     folder.ID == root.ID))
             {
-                folders.Add(root);
+                allFolders.Add(root);
             }
+
+            int availableFolderCount =
+                allFolders.Count;
+
+            List<InventoryFolderBase> folders =
+                allFolders
+                    .Where(folder =>
+                        Owned(folder, owner))
+                    .GroupBy(folder =>
+                        folder.ID)
+                    .Select(group =>
+                        group.First())
+                    .OrderBy(folder =>
+                        folder.ID.ToString(),
+                        StringComparer.Ordinal)
+                    .Take(SearchFolderScanLimit)
+                    .ToList();
+
+            bool scanTruncated =
+                availableFolderCount >
+                folders.Count;
 
             List<InventoryItemBase> items =
                 new List<InventoryItemBase>();
 
+            int scannedFolders = 0;
             foreach (InventoryFolderBase folder in folders)
             {
+                if (items.Count >= SearchItemScanLimit)
+                {
+                    scanTruncated = true;
+                    break;
+                }
+
+                scannedFolders++;
+
                 List<InventoryItemBase> children =
                     m_Inventory.GetFolderItems(
                         owner,
                         folder.ID);
 
-                if (children != null)
-                    items.AddRange(children);
+                if (children == null ||
+                    children.Count == 0)
+                {
+                    continue;
+                }
+
+                int remaining =
+                    SearchItemScanLimit -
+                    items.Count;
+
+                if (children.Count > remaining)
+                    scanTruncated = true;
+
+                items.AddRange(
+                    children.Take(remaining));
             }
 
             bool Matches(string value)
@@ -289,8 +347,9 @@ namespace NexVerse.Server.Api
             InventoryItemBase[] matchedItems =
                 items
                     .Where(item =>
-                        Matches(item.Name) ||
-                        Matches(item.Description))
+                        Owned(item, owner) &&
+                        (Matches(item.Name) ||
+                         Matches(item.Description)))
                     .GroupBy(item => item.ID)
                     .Select(group => group.First())
                     .OrderBy(item =>
@@ -308,6 +367,19 @@ namespace NexVerse.Server.Api
                 {
                     query,
                     limit,
+                    scan = new
+                    {
+                        folder_limit =
+                            SearchFolderScanLimit,
+                        item_limit =
+                            SearchItemScanLimit,
+                        scanned_folders =
+                            scannedFolders,
+                        scanned_items =
+                            items.Count,
+                        truncated =
+                            scanTruncated
+                    },
                     folders =
                         ConvertFolders(matchedFolders),
                     items =
@@ -414,8 +486,8 @@ namespace NexVerse.Server.Api
             }
 
             int inventoryType =
-                SLUtil.ContentTypeToSLInvType(
-                    metadata.ContentType);
+                DefaultInventoryTypeForAsset(
+                    metadata.Type);
 
             if (body.TryGetProperty(
                     "inventory_type",
@@ -435,14 +507,15 @@ namespace NexVerse.Server.Api
                 }
             }
 
-            if (inventoryType ==
-                (int)InventoryType.Folder)
+            if (!IsInventoryTypeCompatible(
+                    metadata.Type,
+                    inventoryType))
             {
                 WriteError(
                     response,
                     HttpStatusCode.BadRequest,
                     "invalid_inventory_type",
-                    "Folder inventory_type is not valid for an item.");
+                    "inventory_type is not compatible with the authoritative asset type.");
                 return;
             }
 
@@ -467,21 +540,29 @@ namespace NexVerse.Server.Api
                 return;
             }
 
-            uint everyonePermissions =
-                OptionalPermissionMask(
+            if (!TryOptionalPermissionMask(
                     body,
                     "everyone_permissions",
-                    0);
-            uint groupPermissions =
-                OptionalPermissionMask(
+                    0,
+                    out uint everyonePermissions) ||
+                !TryOptionalPermissionMask(
                     body,
                     "group_permissions",
-                    0);
-            uint flags =
-                OptionalPermissionMask(
+                    0,
+                    out uint groupPermissions) ||
+                !TryOptionalPermissionMask(
                     body,
                     "flags",
-                    0);
+                    0,
+                    out uint flags))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_optional_mask",
+                    "everyone_permissions, group_permissions and flags must be uint values when supplied.");
+                return;
+            }
 
             string creatorId =
                 UUID.TryParse(
@@ -923,13 +1004,40 @@ namespace NexVerse.Server.Api
         private static bool TryUuid(JsonElement body, string name, out UUID value)
         {
             value = UUID.Zero;
-            return body.TryGetProperty(name, out JsonElement e) && UUID.TryParse(e.GetString(), out value);
+
+            return
+                body.TryGetProperty(
+                    name,
+                    out JsonElement element) &&
+                element.ValueKind ==
+                    JsonValueKind.String &&
+                UUID.TryParse(
+                    element.GetString(),
+                    out value) &&
+                value != UUID.Zero;
         }
 
         private static bool TryName(JsonElement body, string property, out string name)
         {
-            name = body.TryGetProperty(property, out JsonElement e) ? (e.GetString() ?? string.Empty).Trim() : string.Empty;
-            return name.Length > 0 && name.Length <= 255;
+            name = string.Empty;
+
+            if (!body.TryGetProperty(
+                    property,
+                    out JsonElement element) ||
+                element.ValueKind !=
+                    JsonValueKind.String)
+            {
+                return false;
+            }
+
+            name =
+                (element.GetString() ??
+                 string.Empty)
+                    .Trim();
+
+            return
+                name.Length > 0 &&
+                name.Length <= 255;
         }
 
         private static bool TryPermissionMask(
@@ -949,21 +1057,110 @@ namespace NexVerse.Server.Api
                     out value);
         }
 
-        private static uint OptionalPermissionMask(
+        private static bool TryOptionalPermissionMask(
             JsonElement body,
             string name,
-            uint fallback)
+            uint fallback,
+            out uint value)
         {
-            return
-                body.TryGetProperty(
+            value = fallback;
+
+            if (!body.TryGetProperty(
                     name,
-                    out JsonElement element) &&
+                    out JsonElement element))
+            {
+                return true;
+            }
+
+            return
                 element.ValueKind ==
                     JsonValueKind.Number &&
                 element.TryGetUInt32(
-                    out uint value)
-                    ? value
-                    : fallback;
+                    out value);
+        }
+
+        private static int DefaultInventoryTypeForAsset(
+            sbyte assetType)
+        {
+            return (AssetType)assetType switch
+            {
+                AssetType.Texture =>
+                    (int)InventoryType.Texture,
+                AssetType.TextureTGA =>
+                    (int)InventoryType.Texture,
+                AssetType.ImageTGA =>
+                    (int)InventoryType.Texture,
+                AssetType.ImageJPEG =>
+                    (int)InventoryType.Texture,
+                AssetType.Sound =>
+                    (int)InventoryType.Sound,
+                AssetType.SoundWAV =>
+                    (int)InventoryType.Sound,
+                AssetType.CallingCard =>
+                    (int)InventoryType.CallingCard,
+                AssetType.Landmark =>
+                    (int)InventoryType.Landmark,
+                AssetType.Clothing =>
+                    (int)InventoryType.Wearable,
+                AssetType.Bodypart =>
+                    (int)InventoryType.Wearable,
+                AssetType.Object =>
+                    (int)InventoryType.Object,
+                AssetType.Notecard =>
+                    (int)InventoryType.Notecard,
+                AssetType.LSLText =>
+                    (int)InventoryType.LSL,
+                AssetType.LSLBytecode =>
+                    (int)InventoryType.LSL,
+                AssetType.Animation =>
+                    (int)InventoryType.Animation,
+                AssetType.Gesture =>
+                    (int)InventoryType.Gesture,
+                AssetType.Simstate =>
+                    (int)InventoryType.Snapshot,
+                AssetType.Mesh =>
+                    (int)InventoryType.Mesh,
+                AssetType.Settings =>
+                    (int)InventoryType.Settings,
+                AssetType.Material =>
+                    (int)InventoryType.Material,
+                _ =>
+                    (int)InventoryType.Unknown
+            };
+        }
+
+        private static bool IsInventoryTypeCompatible(
+            sbyte assetType,
+            int inventoryType)
+        {
+            AssetType type =
+                (AssetType)assetType;
+
+            if (type == AssetType.Object)
+            {
+                return
+                    inventoryType ==
+                        (int)InventoryType.Object ||
+                    inventoryType ==
+                        (int)InventoryType.Attachment;
+            }
+
+            if (type == AssetType.Texture ||
+                type == AssetType.TextureTGA ||
+                type == AssetType.ImageTGA ||
+                type == AssetType.ImageJPEG)
+            {
+                return
+                    inventoryType ==
+                        (int)InventoryType.Texture ||
+                    inventoryType ==
+                        (int)InventoryType.Snapshot;
+            }
+
+            return
+                inventoryType ==
+                DefaultInventoryTypeForAsset(
+                    assetType);
         }
 
         private static string OptionalString(
