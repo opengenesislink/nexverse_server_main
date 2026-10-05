@@ -36,6 +36,8 @@ namespace NexVerse.RegionModules.Archives
         OglIarOperation StartExport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, Dictionary<string, object> options = null);
         OglIarOperation StartImport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, bool merge, bool dryRun);
         bool TryGet(UUID requestId, out OglIarOperation operation);
+        string CreateEncryptedBackup(string archiveFileName, string backupFileName, string passphrase);
+        OglIarInspection RestoreEncryptedBackup(string backupFileName, string archiveFileName, string passphrase);
         event Action<OglIarOperation> OperationChanged;
     }
 
@@ -119,6 +121,49 @@ namespace NexVerse.RegionModules.Archives
         }
 
         public bool TryGet(UUID requestId, out OglIarOperation operation) => m_Operations.TryGetValue(requestId, out operation);
+
+        public string CreateEncryptedBackup(string archiveFileName, string backupFileName, string passphrase)
+        {
+            string source = m_Storage.ResolveArchivePath(archiveFileName);
+            if (!m_Storage.AcceptsExistingArchive(source, out string reason))
+                throw new InvalidOperationException(reason);
+            OglIarInspection inspection = OglIarInspector.Inspect(source);
+            if (!inspection.Valid)
+                throw new InvalidDataException(inspection.Error);
+
+            string backup = ResolveBackupPath(backupFileName);
+            OglEncryptedBackup.EncryptIar(source, backup, passphrase);
+            return backup;
+        }
+
+        public OglIarInspection RestoreEncryptedBackup(string backupFileName, string archiveFileName, string passphrase)
+        {
+            string backup = ResolveBackupPath(backupFileName);
+            if (!File.Exists(backup))
+                throw new FileNotFoundException("Verschluesseltes IAR-Backup wurde nicht gefunden.", backup);
+            string destination = m_Storage.ResolveArchivePath(archiveFileName);
+            OglEncryptedBackup.DecryptIar(backup, destination, passphrase);
+            OglIarInspection inspection = OglIarInspector.Inspect(destination);
+            if (!inspection.Valid)
+            {
+                File.Delete(destination);
+                throw new InvalidDataException("Entschluesselter Inhalt ist kein gueltiges IAR: " + inspection.Error);
+            }
+            return inspection;
+        }
+
+        private string ResolveBackupPath(string backupFileName)
+        {
+            string safeName = Path.GetFileName(backupFileName ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(safeName) || !safeName.EndsWith(".oglbackup", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Verschluesselte Backups muessen auf .oglbackup enden.", nameof(backupFileName));
+            string root = Path.GetFullPath(m_Storage.RootDirectory);
+            string candidate = Path.GetFullPath(Path.Combine(root, safeName));
+            string prefix = root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!candidate.StartsWith(prefix, StringComparison.Ordinal))
+                throw new InvalidOperationException("Backup-Pfad verlaesst den verwalteten Speicherbereich.");
+            return candidate;
+        }
 
         private OglIarOperation Create(UUID id, OglIarOperationKind kind, UserAccount user, string invPath, string archivePath, bool merge)
         {
