@@ -573,6 +573,22 @@ internal static class Program
                 10).Count == 1,
             label + ": land listing search mismatch");
 
+        NexCommerceOrder ticket =
+            economy.ExecuteCommerceOrder(
+                Guid.NewGuid(),
+                NexCommerceKind.EventTicket,
+                payerId,
+                merchantId,
+                25,
+                "EVENT-TICKET",
+                "ci-event",
+                label);
+
+        Require(
+            ticket.Status == NexCommerceOrderStatus.Completed &&
+            ticket.Kind == NexCommerceKind.EventTicket,
+            label + ": event ticket commerce mismatch");
+
         Require(
             economy.ListCommerceOrders(
                 payerId,
