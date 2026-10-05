@@ -137,6 +137,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_database_maintenance_worker.py
 
+      - name: Verify native inventory repair worker
+        shell: bash
+        run: python3 tools/ci/verify_inventory_repair_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
