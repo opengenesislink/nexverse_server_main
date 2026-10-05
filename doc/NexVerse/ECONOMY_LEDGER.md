@@ -52,9 +52,7 @@ Die SQL-Buchung läuft in einer seriellen Datenbanktransaktion. Transaktions-ID,
 
 Die Runtime-Treiber MySQL/MariaDB, PostgreSQL und SQLite werden nicht in den Ledger-Kern eingebaut. Der Store erhält eine `Func<DbConnection>`; dadurch bleibt der Kern providerneutral. `NexLedgerSqlRuntime` löst die vorhandenen OpenSim-`StorageProvider`-Bezeichnungen auf die bereits mitgelieferten ADO.NET-Treiber auf und erzeugt die Verbindung ausschließlich per Reflection. Der SQLite-CI-Test benutzt genau diesen Resolver.
 
-`NexEconomyConnector` bindet diesen Store jetzt als eigenen Robust-Service ein. `[NexEconomy]` ist standardmäßig deaktiviert. Bei Aktivierung erben leere `StorageProvider`-/`ConnectionString`-Werte die autoritative `[DatabaseService]`-Konfiguration; ein expliziter Override ist nur für eine bewusst getrennte Ledger-Datenbank vorgesehen. Null-Storage wird für NV$ abgelehnt. Der Connector registriert keine HTTP-Routen und keine Viewer-Geldschnittstelle. Ein eigener Robust-CI-Smoke aktiviert den Connector mit temporärem SQLite, prüft Schema v1 und bestätigt ein leeres Journal.
-
-Vor produktiven Transfers fehlen weiterhin echte Matrix-/Crash-/Rollback-Regressionen gegen MySQL/MariaDB und PostgreSQL sowie die fachlichen Konto-/Transferregeln.
+`NexEconomyConnector` bindet diesen Store jetzt als eigenen Robust-Service ein. `[NexEconomy]` ist standardmäßig deaktiviert. Bei Aktivierung erben leere `StorageProvider`-/`ConnectionString`-Werte die autoritative `[DatabaseService]`-Konfiguration; ein expliziter Override ist nur für eine bewusst getrennte Ledger-Datenbank vorgesehen. Null-Storage wird für NV$ abgelehnt. Der Connector registriert keine HTTP-Routen und keine Viewer-Geldschnittstelle. Ein eigener Robust-CI-Smoke aktiviert den Connector mit temporärem SQLite, prüft Schema v2 einschließlich Kontostatus-/Eventtabellen und bestätigt ein leeres Journal.
 
 ## Kontolebenszyklus und Policy
 
@@ -70,16 +68,19 @@ Status:
 
 Die Live-CI-Matrix startet MariaDB und PostgreSQL und prüft neben normalen Commits sowohl explizites Rollback als auch den Verlust einer offenen Verbindung ohne Commit. In beiden Fällen darf kein unvollständiger Transaktionskopf bestehen bleiben.
 
+## World API und Viewer-Adapter
+
+Die privilegierte World API stellt die kontrollierten NV$-Operationen unter `/api/v1/economy` bereit. Balance und Transaktionslesezugriffe verwenden `economy:read`; normale Transfers verwenden `economy:transfer`. Jeder Transfer verlangt einen `Idempotency-Key`, der innerhalb des authentifizierten Principals deterministisch auf eine Ledger-Transaktions-ID abgebildet wird. Kontostatusänderungen und Reversals bleiben `admin:*`.
+
+Der API-Handler besitzt bewusst keinen Zugriff auf `INexLedgerStore.Append`, SQL-Verbindungen oder administrative Geldschöpfung. Er arbeitet ausschließlich über `NexEconomyService`.
+
+Der Simulator verwendet `NexVerseMoneyModule` als `IMoneyModule`-Adapter. Das Modul öffnet keine Ledger-Datenbank. Balance- und Transferoperationen werden über die zentrale World API mit einem eingeschränkten Maschinen-API-Schlüssel ausgeführt. Die Konfiguration `[NexEconomyViewer]` ist standardmäßig deaktiviert; der Schlüssel wird über `NEXVERSE_ECONOMY_API_KEY` aus der Laufzeitumgebung bezogen.
+
+Damit ist Roadmap 10.1 als Ledger-/Policy-/Adapter-Grundlage abgeschlossen. Die folgenden Roadmap-Blöcke ergänzen darauf aufbauend virtuelle Kontonummern, Bankfunktionen, Commerce, Land- und Objektzahlungen.
+
 ## Nächste Schichten
 
-Auf dieser Grundlage folgen:
-
-1. Live-Matrix-/Crash-/Rollback-Tests für MySQL/MariaDB und PostgreSQL;
-2. Kontolebenszyklus und Sperren;
-3. Saldo-/Historien-/Transfer-Service;
-4. Saldo-/Historien-/Transfer-Service;
-5. Audit und Reconciliation;
-6. virtuelle NexVerse-Kontonummern;
-7. World API;
-8. Viewer-`IMoneyModule`-Adapter;
-9. Objekt-, Land- und Commerce-Zahlungsflüsse.
+1. 10.2 virtuelle NexVerse-Kontonummern/IBAN-ähnliche Kennungen;
+2. 10.3 erweiterte Bankfunktionen, Statements, Requests, Limits, Gebühren und Reconciliation;
+3. 10.4 vollständige Viewer-Commerce-Flows;
+4. 10.5+ Land-, Objekt-, Marketplace- und weitere Wirtschaftsabläufe.
