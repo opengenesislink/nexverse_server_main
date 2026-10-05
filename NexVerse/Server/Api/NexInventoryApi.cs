@@ -796,15 +796,15 @@ namespace NexVerse.Server.Api
                     Flags = flags,
                     Name = name,
                     BasePermissions =
-                        (uint)PermissionMask.Copy,
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
                     CurrentPermissions =
-                        (uint)PermissionMask.Copy,
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
                     EveryOnePermissions =
-                        (uint)PermissionMask.Copy,
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
                     GroupPermissions =
-                        (uint)PermissionMask.Copy,
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
                     NextPermissions =
-                        (uint)PermissionMask.Copy
+                        (uint)OpenSim.Framework.PermissionMask.Copy
                 };
 
             if (!m_Inventory.AddItem(link))
@@ -843,7 +843,7 @@ namespace NexVerse.Server.Api
             InventoryItemBase source = m_Inventory.GetItem(owner, itemID);
             InventoryFolderBase target = m_Inventory.GetFolder(owner, folderID);
             if (!Owned(source, owner) || !Owned(target, owner)) { NotFound(response, "inventory_copy_source_or_target_not_found"); return; }
-            if ((source.CurrentPermissions & (uint)PermissionMask.Copy) == 0)
+            if ((source.CurrentPermissions & (uint)OpenSim.Framework.PermissionMask.Copy) == 0)
             {
                 WriteError(
                     response,
