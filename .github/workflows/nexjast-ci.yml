@@ -117,6 +117,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_archive_job_progress.py
 
+      - name: Verify native backup worker
+        shell: bash
+        run: python3 tools/ci/verify_native_backup_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
