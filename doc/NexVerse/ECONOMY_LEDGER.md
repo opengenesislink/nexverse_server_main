@@ -88,7 +88,7 @@ Damit ist Roadmap 10.1 als Ledger-/Policy-/Adapter-Grundlage abgeschlossen. Die 
 
 ## Virtuelle NVBAN-Konten (Roadmap 10.2)
 
-OpenGenesisLINK verwendet fuer virtuelle Kontokennungen das eigene Schema `NVBAN`. Eine Kennung sieht beispielsweise wie `NVBAN-ABCD-EFGH-JKLM-NPQR` aus. Der Praefix ist absichtlich kein ISO-Laendercode und die Kennung ist keine IBAN. Sie darf weder gegenueber Nutzern noch gegenueber externen Systemen als reales Bankkonto dargestellt werden.
+OpenGenesisLINK verwendet fuer virtuelle Kontokennungen das eigene Schema `NVBAN`. Eine Kennung sieht beispielsweise wie `NVBAN-ABCD-EFGH-JKLM-NPQR-STUV` aus. Der Praefix ist absichtlich kein ISO-Laendercode und die Kennung ist keine IBAN. Sie darf weder gegenueber Nutzern noch gegenueber externen Systemen als reales Bankkonto dargestellt werden.
 
 Die Kennung wird deterministisch aus der unveraenderlichen Ledger-Konto-UUID abgeleitet und anschliessend dauerhaft 1:1 in `ogl_ledger_virtual_accounts` gespeichert. Ledger-Schema v3 erzwingt Eindeutigkeit sowohl fuer die Konto-UUID als auch fuer die virtuelle Kennung. Die Kennung ist ein Alias fuer ein bestehendes NV$-Wallet; sie erzeugt kein zweites Saldo- oder Buchungssystem.
 
