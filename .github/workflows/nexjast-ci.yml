@@ -197,6 +197,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
+      - name: Verify cross-region object messaging
+        shell: bash
+        run: python3 tools/ci/verify_object_messaging.py
+
       - name: Verify NodeAgent registry projection
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexNodeRegistryRegression/NexNodeRegistryRegression.csproj
