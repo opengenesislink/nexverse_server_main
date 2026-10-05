@@ -4,6 +4,7 @@ from pathlib import Path
 api = Path("NexVerse/Server/Api/NexInventoryApi.cs").read_text(encoding="utf-8")
 connector = Path("NexVerse/Server/Api/NexVerseWorldApiConnector.cs").read_text(encoding="utf-8")
 security = Path("NexVerse/Core/Security/NexSecurity.cs").read_text(encoding="utf-8")
+world_api = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 
 for marker in (
     '"/api/v1/inventory/tree"',
@@ -52,4 +53,19 @@ assert '"/api/v1/inventory"' in connector
 assert "NexInventoryApi" in connector
 assert 'LoadOptionalService<IAssetService>(config, "AssetService")' in connector
 assert "new NexInventoryApi(" in connector
+
+for marker in (
+    '["/api/v1/inventory/tree"]',
+    '["/api/v1/inventory/search"]',
+    '["/api/v1/inventory/folders"]',
+    '["/api/v1/inventory/folders/{folderId}"]',
+    '["/api/v1/inventory/items"]',
+    '["/api/v1/inventory/items/{itemId}"]',
+    '["/api/v1/inventory/items/copy"]',
+    '["/api/v1/inventory/links"]',
+    '["/api/v1/inventory/lost-and-found"]',
+    '["/api/v1/inventory/trash/empty"]',
+):
+    assert marker in world_api, f"missing Inventory OpenAPI marker: {marker}"
+
 print("Inventory API contract: OK")
