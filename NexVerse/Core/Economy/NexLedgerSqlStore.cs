@@ -1050,6 +1050,10 @@ namespace NexVerse.Core.Economy
             if (policy == null)
                 throw new ArgumentNullException(nameof(policy));
 
+            bool exists =
+                GetTransferPolicy(
+                    policy.AccountId) != null;
+
             using DbConnection connection = OpenConnection();
 
             if (GetAccount(connection, null, policy.AccountId) == null)
@@ -1059,20 +1063,23 @@ namespace NexVerse.Core.Economy
             using DbTransaction transaction =
                 connection.BeginTransaction(IsolationLevel.Serializable);
 
-            using DbCommand update =
-                CreateCommand(
-                    connection,
-                    transaction,
-                    $@"UPDATE {TransferPoliciesTable}
-                       SET max_per_transfer_minor = @max_per_transfer,
-                           daily_outgoing_limit_minor = @daily_limit,
-                           flat_fee_minor = @flat_fee,
-                           fee_account_id = @fee_account_id
-                       WHERE account_id = @account_id");
+            if (exists)
+            {
+                using DbCommand update =
+                    CreateCommand(
+                        connection,
+                        transaction,
+                        $@"UPDATE {TransferPoliciesTable}
+                           SET max_per_transfer_minor = @max_per_transfer,
+                               daily_outgoing_limit_minor = @daily_limit,
+                               flat_fee_minor = @flat_fee,
+                               fee_account_id = @fee_account_id
+                           WHERE account_id = @account_id");
 
-            AddTransferPolicyParameters(update, policy);
-
-            if (update.ExecuteNonQuery() == 0)
+                AddTransferPolicyParameters(update, policy);
+                update.ExecuteNonQuery();
+            }
+            else
             {
                 using DbCommand insert =
                     CreateCommand(
@@ -1220,6 +1227,9 @@ namespace NexVerse.Core.Economy
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            if (GetPaymentRequest(request.RequestId) == null)
+                throw new NexLedgerValidationException("Payment request was not found.");
+
             using DbConnection connection = OpenConnection();
             using DbCommand command =
                 CreateCommand(
@@ -1237,9 +1247,7 @@ namespace NexVerse.Core.Economy
                 request.PaymentTransactionId.ToString("D"));
             AddParameter(command, "@request_id", request.RequestId.ToString("D"));
 
-            if (command.ExecuteNonQuery() != 1)
-                throw new NexLedgerValidationException("Payment request was not found.");
-
+            command.ExecuteNonQuery();
             return request;
         }
 
@@ -1334,6 +1342,9 @@ namespace NexVerse.Core.Economy
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
 
+            if (GetCommerceOrder(order.OrderId) == null)
+                throw new NexLedgerValidationException("Commerce order was not found.");
+
             using DbConnection connection = OpenConnection();
             using DbCommand command =
                 CreateCommand(
@@ -1357,9 +1368,7 @@ namespace NexVerse.Core.Economy
                     : 0L);
             AddParameter(command, "@order_id", order.OrderId.ToString("D"));
 
-            if (command.ExecuteNonQuery() != 1)
-                throw new NexLedgerValidationException("Commerce order was not found.");
-
+            command.ExecuteNonQuery();
             return order;
         }
 
@@ -1465,6 +1474,9 @@ namespace NexVerse.Core.Economy
             if (listing == null)
                 throw new ArgumentNullException(nameof(listing));
 
+            if (GetLandListing(listing.ListingId) == null)
+                throw new NexLedgerValidationException("Land listing was not found.");
+
             using DbConnection connection = OpenConnection();
             using DbCommand command =
                 CreateCommand(
@@ -1481,9 +1493,7 @@ namespace NexVerse.Core.Economy
             AddParameter(command, "@rental_period_days", listing.RentalPeriodDays);
             AddParameter(command, "@listing_id", listing.ListingId.ToString("D"));
 
-            if (command.ExecuteNonQuery() != 1)
-                throw new NexLedgerValidationException("Land listing was not found.");
-
+            command.ExecuteNonQuery();
             return listing;
         }
 
@@ -1574,6 +1584,9 @@ namespace NexVerse.Core.Economy
             if (lease == null)
                 throw new ArgumentNullException(nameof(lease));
 
+            if (GetLandLease(lease.LeaseId) == null)
+                throw new NexLedgerValidationException("Land lease was not found.");
+
             using DbConnection connection = OpenConnection();
             using DbCommand command =
                 CreateCommand(
@@ -1590,9 +1603,7 @@ namespace NexVerse.Core.Economy
             AddParameter(command, "@last_payment_transaction_id", lease.LastPaymentTransactionId.ToString("D"));
             AddParameter(command, "@lease_id", lease.LeaseId.ToString("D"));
 
-            if (command.ExecuteNonQuery() != 1)
-                throw new NexLedgerValidationException("Land lease was not found.");
-
+            command.ExecuteNonQuery();
             return lease;
         }
 
