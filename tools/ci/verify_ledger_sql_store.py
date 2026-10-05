@@ -7,13 +7,19 @@ regression = Path("tools/ci/NexLedgerRegression/Program.cs").read_text(encoding=
 project = Path("tools/ci/NexLedgerRegression/NexLedgerRegression.csproj").read_text(encoding="utf-8")
 
 for marker in (
-    "public sealed class NexLedgerSqlStore : INexLedgerStore",
-    "public const int CurrentSchemaVersion = 1",
+    "public sealed class NexLedgerSqlStore",
+    "INexLedgerStore",
+    "INexLedgerAccountStateStore",
+    "public const int CurrentSchemaVersion = 2",
     "Func<DbConnection>",
     "IsolationLevel.Serializable",
     "ogl_ledger_accounts",
     "ogl_ledger_transactions",
     "ogl_ledger_postings",
+    "ogl_ledger_account_state",
+    "ogl_ledger_account_events",
+    "ApplySchemaVersion2(",
+    "UNIQUE (account_id, state_version)",
     "UNIQUE (transaction_id, sequence_no)",
     "UNIQUE (account_id, posting_id)",
     "FOREIGN KEY (transaction_id)",
@@ -37,6 +43,8 @@ for forbidden in (
     "DELETE FROM ogl_ledger_postings",
     "UPDATE ogl_ledger_transactions",
     "DELETE FROM ogl_ledger_transactions",
+    "UPDATE ogl_ledger_account_events",
+    "DELETE FROM ogl_ledger_account_events",
 ):
     assert forbidden not in sql, f"provider coupling or mutable journal operation found: {forbidden}"
 

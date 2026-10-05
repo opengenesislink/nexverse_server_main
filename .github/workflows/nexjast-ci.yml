@@ -209,6 +209,14 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_ledger_runtime_config.py
 
+      - name: Verify NV dollar account lifecycle and policy
+        shell: bash
+        run: python3 tools/ci/verify_economy_policy.py
+
+      - name: Regression-test NV dollar account lifecycle and policy
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexEconomyPolicyRegression/NexEconomyPolicyRegression.csproj
+
       - name: Verify NV dollar live database matrix contract
         shell: bash
         run: python3 tools/ci/verify_ledger_db_matrix.py
@@ -294,12 +302,14 @@ jobs:
                   "ogl_ledger_accounts",
                   "ogl_ledger_transactions",
                   "ogl_ledger_postings",
+                  "ogl_ledger_account_state",
+                  "ogl_ledger_account_events",
               }
               assert required.issubset(tables), (required, tables)
               version = con.execute(
                   "SELECT MAX(version) FROM ogl_ledger_schema"
               ).fetchone()[0]
-              assert version == 1, version
+              assert version == 2, version
               assert con.execute(
                   "SELECT COUNT(*) FROM ogl_ledger_accounts"
               ).fetchone()[0] == 0
@@ -308,6 +318,12 @@ jobs:
               ).fetchone()[0] == 0
               assert con.execute(
                   "SELECT COUNT(*) FROM ogl_ledger_postings"
+              ).fetchone()[0] == 0
+              assert con.execute(
+                  "SELECT COUNT(*) FROM ogl_ledger_account_state"
+              ).fetchone()[0] == 0
+              assert con.execute(
+                  "SELECT COUNT(*) FROM ogl_ledger_account_events"
               ).fetchone()[0] == 0
           finally:
               con.close()

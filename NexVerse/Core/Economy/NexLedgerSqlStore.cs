@@ -24,14 +24,18 @@ namespace NexVerse.Core.Economy
     /// balances are derived from immutable postings so a committed transaction
     /// is the single accounting source of truth.
     /// </summary>
-    public sealed class NexLedgerSqlStore : INexLedgerStore
+    public sealed class NexLedgerSqlStore :
+        INexLedgerStore,
+        INexLedgerAccountStateStore
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         private const string SchemaTable = "ogl_ledger_schema";
         private const string AccountsTable = "ogl_ledger_accounts";
         private const string TransactionsTable = "ogl_ledger_transactions";
         private const string PostingsTable = "ogl_ledger_postings";
+        private const string AccountStateTable = "ogl_ledger_account_state";
+        private const string AccountEventsTable = "ogl_ledger_account_events";
 
         private readonly Func<DbConnection> m_ConnectionFactory;
         private readonly NexLedgerSqlDialect m_Dialect;
@@ -77,7 +81,14 @@ namespace NexVerse.Core.Economy
             }
 
             if (version < 1)
+            {
                 ApplySchemaVersion1(connection);
+                version =
+                    GetSchemaVersion(connection);
+            }
+
+            if (version < 2)
+                ApplySchemaVersion2(connection);
         }
 
         public bool TryCreateAccount(
@@ -143,6 +154,12 @@ namespace NexVerse.Core.Economy
                     account.CreatedAt.UtcDateTime.Ticks);
 
                 command.ExecuteNonQuery();
+
+                InsertInitialAccountState(
+                    connection,
+                    transaction,
+                    account);
+
                 transaction.Commit();
                 return true;
             }
@@ -188,6 +205,235 @@ namespace NexVerse.Core.Economy
                 connection,
                 null,
                 accountId);
+        }
+
+        public NexLedgerAccountState GetAccountState(
+            Guid accountId)
+        {
+            if (accountId == Guid.Empty)
+                throw new ArgumentException("Ledger account ID is required.", nameof(accountId));
+
+            using DbConnection connection =
+                OpenConnection();
+
+            NexLedgerAccount account =
+                GetAccount(
+                    connection,
+                    null,
+                    accountId);
+
+            if (account == null)
+            {
+                throw new NexLedgerValidationException(
+                    $"Unknown ledger account {accountId}.");
+            }
+
+            return
+                GetAccountState(
+                    connection,
+                    null,
+                    accountId) ??
+                new NexLedgerAccountState(
+                    accountId,
+                    NexLedgerAccountStatus.Active,
+                    0,
+                    account.CreatedAt,
+                    "system",
+                    "legacy_active");
+        }
+
+        public NexLedgerAccountState SetAccountStatus(
+            Guid accountId,
+            NexLedgerAccountStatus status,
+            string actor,
+            string reason)
+        {
+            if (!Enum.IsDefined(typeof(NexLedgerAccountStatus), status))
+                throw new ArgumentOutOfRangeException(nameof(status));
+
+            using DbConnection connection =
+                OpenConnection();
+            using DbTransaction transaction =
+                connection.BeginTransaction(
+                    IsolationLevel.Serializable);
+
+            NexLedgerAccount account =
+                GetAccount(
+                    connection,
+                    transaction,
+                    accountId);
+
+            if (account == null)
+            {
+                transaction.Rollback();
+                throw new NexLedgerValidationException(
+                    $"Unknown ledger account {accountId}.");
+            }
+
+            NexLedgerAccountState persisted =
+                GetAccountState(
+                    connection,
+                    transaction,
+                    accountId);
+
+            NexLedgerAccountState current =
+                persisted ??
+                new NexLedgerAccountState(
+                    accountId,
+                    NexLedgerAccountStatus.Active,
+                    0,
+                    account.CreatedAt,
+                    "system",
+                    "legacy_active");
+
+            if (current.Status ==
+                NexLedgerAccountStatus.Closed &&
+                status != NexLedgerAccountStatus.Closed)
+            {
+                transaction.Rollback();
+                throw new NexLedgerPolicyException(
+                    "Closed ledger accounts cannot be reopened.");
+            }
+
+            if (current.Status == status)
+            {
+                transaction.Rollback();
+                return current;
+            }
+
+            long nextVersion =
+                checked(current.Version + 1);
+            DateTimeOffset now =
+                DateTimeOffset.UtcNow;
+
+            NexLedgerAccountState next =
+                new NexLedgerAccountState(
+                    accountId,
+                    status,
+                    nextVersion,
+                    now,
+                    actor,
+                    reason);
+
+            NexLedgerAccountStateEvent accountEvent =
+                new NexLedgerAccountStateEvent(
+                    Guid.NewGuid(),
+                    accountId,
+                    current.Status,
+                    status,
+                    nextVersion,
+                    now,
+                    actor,
+                    reason);
+
+            try
+            {
+                if (persisted == null)
+                {
+                    InsertAccountState(
+                        connection,
+                        transaction,
+                        next);
+                }
+                else
+                {
+                    using DbCommand update =
+                        CreateCommand(
+                            connection,
+                            transaction,
+                            $@"UPDATE {AccountStateTable}
+                               SET status = @status,
+                                   state_version = @next_version,
+                                   changed_at_utc_ticks = @changed_at,
+                                   changed_by = @changed_by,
+                                   reason = @reason
+                               WHERE account_id = @account_id
+                                 AND state_version = @expected_version");
+
+                    AddParameter(update, "@status", (int)next.Status);
+                    AddParameter(update, "@next_version", next.Version);
+                    AddParameter(update, "@changed_at", next.ChangedAt.UtcDateTime.Ticks);
+                    AddParameter(update, "@changed_by", next.ChangedBy);
+                    AddParameter(update, "@reason", next.Reason);
+                    AddParameter(update, "@account_id", accountId.ToString("D"));
+                    AddParameter(update, "@expected_version", current.Version);
+
+                    if (update.ExecuteNonQuery() != 1)
+                    {
+                        throw new NexLedgerConflictException(
+                            "Ledger account state changed concurrently.");
+                    }
+                }
+
+                InsertAccountStateEvent(
+                    connection,
+                    transaction,
+                    accountEvent);
+
+                transaction.Commit();
+                return next;
+            }
+            catch
+            {
+                SafeRollback(transaction);
+                throw;
+            }
+        }
+
+        public IReadOnlyList<NexLedgerAccountStateEvent> ListAccountStateEvents(
+            Guid accountId,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            using DbConnection connection =
+                OpenConnection();
+
+            if (GetAccount(
+                    connection,
+                    null,
+                    accountId) == null)
+            {
+                throw new NexLedgerValidationException(
+                    $"Unknown ledger account {accountId}.");
+            }
+
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    null,
+                    $@"SELECT
+                            event_id,
+                            account_id,
+                            previous_status,
+                            new_status,
+                            state_version,
+                            occurred_at_utc_ticks,
+                            actor,
+                            reason
+                       FROM {AccountEventsTable}
+                       WHERE account_id = @account_id
+                       ORDER BY state_version ASC
+                       LIMIT @limit OFFSET @offset");
+
+            AddParameter(command, "@account_id", accountId.ToString("D"));
+            AddParameter(command, "@limit", limit);
+            AddParameter(command, "@offset", offset);
+
+            List<NexLedgerAccountStateEvent> result =
+                new List<NexLedgerAccountStateEvent>();
+
+            using DbDataReader reader =
+                command.ExecuteReader();
+
+            while (reader.Read())
+                result.Add(ReadAccountStateEvent(reader));
+
+            return result;
         }
 
         public NexLedgerAppendResult Append(
@@ -558,6 +804,66 @@ namespace NexVerse.Core.Economy
             }
         }
 
+        private void ApplySchemaVersion2(
+            DbConnection connection)
+        {
+            ExecuteNonQuery(
+                connection,
+                null,
+                $@"CREATE TABLE IF NOT EXISTS {AccountStateTable} (
+                    account_id VARCHAR(36) NOT NULL PRIMARY KEY,
+                    status INTEGER NOT NULL,
+                    state_version BIGINT NOT NULL,
+                    changed_at_utc_ticks BIGINT NOT NULL,
+                    changed_by VARCHAR(128) NOT NULL,
+                    reason VARCHAR(255) NOT NULL,
+                    FOREIGN KEY (account_id)
+                        REFERENCES {AccountsTable}(account_id)
+                )");
+
+            ExecuteNonQuery(
+                connection,
+                null,
+                $@"CREATE TABLE IF NOT EXISTS {AccountEventsTable} (
+                    event_id VARCHAR(36) NOT NULL PRIMARY KEY,
+                    account_id VARCHAR(36) NOT NULL,
+                    previous_status INTEGER NOT NULL,
+                    new_status INTEGER NOT NULL,
+                    state_version BIGINT NOT NULL,
+                    occurred_at_utc_ticks BIGINT NOT NULL,
+                    actor VARCHAR(128) NOT NULL,
+                    reason VARCHAR(255) NOT NULL,
+                    UNIQUE (account_id, state_version),
+                    FOREIGN KEY (account_id)
+                        REFERENCES {AccountsTable}(account_id)
+                )");
+
+            try
+            {
+                using DbCommand versionCommand =
+                    CreateCommand(
+                        connection,
+                        null,
+                        $@"INSERT INTO {SchemaTable}
+                            (version, applied_at_utc_ticks)
+                           VALUES
+                            (@version, @applied_at_utc_ticks)");
+
+                AddParameter(versionCommand, "@version", 2);
+                AddParameter(
+                    versionCommand,
+                    "@applied_at_utc_ticks",
+                    DateTimeOffset.UtcNow.UtcDateTime.Ticks);
+
+                versionCommand.ExecuteNonQuery();
+            }
+            catch (DbException)
+            {
+                if (GetSchemaVersion(connection) < 2)
+                    throw;
+            }
+        }
+
         private int GetSchemaVersion(
             DbConnection connection)
         {
@@ -577,6 +883,136 @@ namespace NexVerse.Core.Economy
                 : Convert.ToInt32(
                     raw,
                     CultureInfo.InvariantCulture);
+        }
+
+        private void InsertInitialAccountState(
+            DbConnection connection,
+            DbTransaction transaction,
+            NexLedgerAccount account)
+        {
+            InsertAccountState(
+                connection,
+                transaction,
+                new NexLedgerAccountState(
+                    account.AccountId,
+                    NexLedgerAccountStatus.Active,
+                    0,
+                    account.CreatedAt,
+                    "system",
+                    "account_created"));
+        }
+
+        private void InsertAccountState(
+            DbConnection connection,
+            DbTransaction transaction,
+            NexLedgerAccountState state)
+        {
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    transaction,
+                    $@"INSERT INTO {AccountStateTable}
+                        (account_id, status, state_version, changed_at_utc_ticks,
+                         changed_by, reason)
+                       VALUES
+                        (@account_id, @status, @state_version, @changed_at,
+                         @changed_by, @reason)");
+
+            AddParameter(command, "@account_id", state.AccountId.ToString("D"));
+            AddParameter(command, "@status", (int)state.Status);
+            AddParameter(command, "@state_version", state.Version);
+            AddParameter(command, "@changed_at", state.ChangedAt.UtcDateTime.Ticks);
+            AddParameter(command, "@changed_by", state.ChangedBy);
+            AddParameter(command, "@reason", state.Reason);
+            command.ExecuteNonQuery();
+        }
+
+        private void InsertAccountStateEvent(
+            DbConnection connection,
+            DbTransaction transaction,
+            NexLedgerAccountStateEvent accountEvent)
+        {
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    transaction,
+                    $@"INSERT INTO {AccountEventsTable}
+                        (event_id, account_id, previous_status, new_status,
+                         state_version, occurred_at_utc_ticks, actor, reason)
+                       VALUES
+                        (@event_id, @account_id, @previous_status, @new_status,
+                         @state_version, @occurred_at, @actor, @reason)");
+
+            AddParameter(command, "@event_id", accountEvent.EventId.ToString("D"));
+            AddParameter(command, "@account_id", accountEvent.AccountId.ToString("D"));
+            AddParameter(command, "@previous_status", (int)accountEvent.PreviousStatus);
+            AddParameter(command, "@new_status", (int)accountEvent.NewStatus);
+            AddParameter(command, "@state_version", accountEvent.Version);
+            AddParameter(command, "@occurred_at", accountEvent.OccurredAt.UtcDateTime.Ticks);
+            AddParameter(command, "@actor", accountEvent.Actor);
+            AddParameter(command, "@reason", accountEvent.Reason);
+            command.ExecuteNonQuery();
+        }
+
+        private NexLedgerAccountState GetAccountState(
+            DbConnection connection,
+            DbTransaction transaction,
+            Guid accountId)
+        {
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    transaction,
+                    $@"SELECT
+                            account_id,
+                            status,
+                            state_version,
+                            changed_at_utc_ticks,
+                            changed_by,
+                            reason
+                       FROM {AccountStateTable}
+                       WHERE account_id = @account_id");
+
+            AddParameter(command, "@account_id", accountId.ToString("D"));
+
+            using DbDataReader reader =
+                command.ExecuteReader();
+
+            return reader.Read()
+                ? ReadAccountState(reader)
+                : null;
+        }
+
+        private static NexLedgerAccountState ReadAccountState(
+            DbDataReader reader)
+        {
+            return new NexLedgerAccountState(
+                Guid.Parse(Convert.ToString(reader["account_id"], CultureInfo.InvariantCulture)),
+                (NexLedgerAccountStatus)Convert.ToInt32(reader["status"], CultureInfo.InvariantCulture),
+                Convert.ToInt64(reader["state_version"], CultureInfo.InvariantCulture),
+                new DateTimeOffset(
+                    new DateTime(
+                        Convert.ToInt64(reader["changed_at_utc_ticks"], CultureInfo.InvariantCulture),
+                        DateTimeKind.Utc)),
+                Convert.ToString(reader["changed_by"], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(reader["reason"], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        private static NexLedgerAccountStateEvent ReadAccountStateEvent(
+            DbDataReader reader)
+        {
+            return new NexLedgerAccountStateEvent(
+                Guid.Parse(Convert.ToString(reader["event_id"], CultureInfo.InvariantCulture)),
+                Guid.Parse(Convert.ToString(reader["account_id"], CultureInfo.InvariantCulture)),
+                (NexLedgerAccountStatus)Convert.ToInt32(reader["previous_status"], CultureInfo.InvariantCulture),
+                (NexLedgerAccountStatus)Convert.ToInt32(reader["new_status"], CultureInfo.InvariantCulture),
+                Convert.ToInt64(reader["state_version"], CultureInfo.InvariantCulture),
+                new DateTimeOffset(
+                    new DateTime(
+                        Convert.ToInt64(reader["occurred_at_utc_ticks"], CultureInfo.InvariantCulture),
+                        DateTimeKind.Utc)),
+                Convert.ToString(reader["actor"], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(reader["reason"], CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         private NexLedgerAccount GetAccount(

@@ -48,7 +48,9 @@ namespace NexVerse.Core.Economy
     /// It is deliberately not wired as a production economy backend because
     /// process memory is not durable accounting storage.
     /// </summary>
-    public sealed class InMemoryNexLedgerStore : INexLedgerStore
+    public sealed class InMemoryNexLedgerStore :
+        INexLedgerStore,
+        INexLedgerAccountStateStore
     {
         private readonly object m_Sync =
             new object();
@@ -62,6 +64,10 @@ namespace NexVerse.Core.Economy
             new Dictionary<Guid, List<NexLedgerPosting>>();
         private readonly Dictionary<Guid, long> m_Balances =
             new Dictionary<Guid, long>();
+        private readonly Dictionary<Guid, NexLedgerAccountState> m_AccountStates =
+            new Dictionary<Guid, NexLedgerAccountState>();
+        private readonly Dictionary<Guid, List<NexLedgerAccountStateEvent>> m_AccountStateEvents =
+            new Dictionary<Guid, List<NexLedgerAccountStateEvent>>();
 
         public bool TryCreateAccount(
             NexLedgerAccount account)
@@ -97,6 +103,18 @@ namespace NexVerse.Core.Economy
                 m_Balances.Add(
                     account.AccountId,
                     0);
+                m_AccountStates.Add(
+                    account.AccountId,
+                    new NexLedgerAccountState(
+                        account.AccountId,
+                        NexLedgerAccountStatus.Active,
+                        0,
+                        account.CreatedAt,
+                        "system",
+                        "account_created"));
+                m_AccountStateEvents.Add(
+                    account.AccountId,
+                    new List<NexLedgerAccountStateEvent>());
                 return true;
             }
         }
@@ -263,6 +281,113 @@ namespace NexVerse.Core.Economy
                 }
 
                 return postings
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexLedgerAccountState GetAccountState(
+            Guid accountId)
+        {
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(accountId))
+                {
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+                }
+
+                return m_AccountStates[accountId];
+            }
+        }
+
+        public NexLedgerAccountState SetAccountStatus(
+            Guid accountId,
+            NexLedgerAccountStatus status,
+            string actor,
+            string reason)
+        {
+            if (!Enum.IsDefined(typeof(NexLedgerAccountStatus), status))
+                throw new ArgumentOutOfRangeException(nameof(status));
+
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(accountId))
+                {
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+                }
+
+                NexLedgerAccountState current =
+                    m_AccountStates[accountId];
+
+                if (current.Status ==
+                    NexLedgerAccountStatus.Closed &&
+                    status != NexLedgerAccountStatus.Closed)
+                {
+                    throw new NexLedgerPolicyException(
+                        "Closed ledger accounts cannot be reopened.");
+                }
+
+                if (current.Status == status)
+                    return current;
+
+                long nextVersion =
+                    checked(current.Version + 1);
+                DateTimeOffset now =
+                    DateTimeOffset.UtcNow;
+
+                NexLedgerAccountState next =
+                    new NexLedgerAccountState(
+                        accountId,
+                        status,
+                        nextVersion,
+                        now,
+                        actor,
+                        reason);
+
+                NexLedgerAccountStateEvent accountEvent =
+                    new NexLedgerAccountStateEvent(
+                        Guid.NewGuid(),
+                        accountId,
+                        current.Status,
+                        status,
+                        nextVersion,
+                        now,
+                        actor,
+                        reason);
+
+                m_AccountStates[accountId] =
+                    next;
+                m_AccountStateEvents[accountId]
+                    .Add(accountEvent);
+
+                return next;
+            }
+        }
+
+        public IReadOnlyList<NexLedgerAccountStateEvent> ListAccountStateEvents(
+            Guid accountId,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            lock (m_Sync)
+            {
+                if (!m_AccountStateEvents.TryGetValue(
+                        accountId,
+                        out List<NexLedgerAccountStateEvent> events))
+                {
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+                }
+
+                return events
                     .Skip(offset)
                     .Take(limit)
                     .ToArray();

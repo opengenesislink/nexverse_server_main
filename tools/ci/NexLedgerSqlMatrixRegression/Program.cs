@@ -145,6 +145,78 @@ internal static class Program
             " rollback left a transaction header behind");
     }
 
+    private static void VerifyProviderImplicitRollback(
+        NexLedgerSqlRuntime runtime,
+        string providerLabel)
+    {
+        Guid transactionId =
+            Guid.NewGuid();
+
+        DbConnection connection =
+            runtime.CreateConnection();
+        connection.Open();
+
+        DbTransaction transaction =
+            connection.BeginTransaction(
+                IsolationLevel.Serializable);
+
+        using (DbCommand insert =
+               connection.CreateCommand())
+        {
+            insert.Transaction =
+                transaction;
+            insert.CommandText =
+                @"INSERT INTO ogl_ledger_transactions
+                    (transaction_id, kind, transaction_reference, correlation_id,
+                     currency_code, occurred_at_utc_ticks, metadata_json)
+                  VALUES
+                    (@transaction_id, @kind, @reference, @correlation_id,
+                     @currency_code, @ticks, @metadata_json)";
+
+            AddParameter(insert, "@transaction_id", transactionId.ToString("D"));
+            AddParameter(insert, "@kind", "connection-loss-probe");
+            AddParameter(insert, "@reference", "CONNECTION-LOSS-" + providerLabel);
+            AddParameter(insert, "@correlation_id", "matrix-regression");
+            AddParameter(insert, "@currency_code", NexLedgerCurrency.Code);
+            AddParameter(insert, "@ticks", DateTime.UtcNow.Ticks);
+            AddParameter(insert, "@metadata_json", "{}");
+
+            Require(
+                insert.ExecuteNonQuery() == 1,
+                providerLabel +
+                " connection-loss probe insert failed");
+        }
+
+        // Simulate a process/connection loss: dispose the connection without
+        // Commit() or explicit Rollback(). The provider/database must roll back
+        // the open transaction.
+        connection.Dispose();
+
+        using DbConnection verification =
+            runtime.CreateConnection();
+        verification.Open();
+
+        using DbCommand verify =
+            verification.CreateCommand();
+        verify.CommandText =
+            "SELECT COUNT(*) FROM ogl_ledger_transactions " +
+            "WHERE transaction_id = @transaction_id";
+        AddParameter(
+            verify,
+            "@transaction_id",
+            transactionId.ToString("D"));
+
+        long count =
+            Convert.ToInt64(
+                verify.ExecuteScalar(),
+                CultureInfo.InvariantCulture);
+
+        Require(
+            count == 0,
+            providerLabel +
+            " connection loss left an uncommitted transaction behind");
+    }
+
     private static void RunProvider(
         string storageProvider,
         string connectionString,
@@ -368,6 +440,10 @@ internal static class Program
             " rejected transaction changed balance");
 
         VerifyProviderRollback(
+            runtime,
+            expectedProvider);
+
+        VerifyProviderImplicitRollback(
             runtime,
             expectedProvider);
 

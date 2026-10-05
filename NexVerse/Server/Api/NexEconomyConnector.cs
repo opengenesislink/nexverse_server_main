@@ -27,7 +27,9 @@ namespace NexVerse.Server.Api
         public bool Enabled { get; private set; }
         public string ProviderName { get; private set; } =
             string.Empty;
+        public NexLedgerSqlStore Store { get; private set; }
         public NexDoubleEntryLedger Ledger { get; private set; }
+        public NexEconomyService Economy { get; private set; }
 
         public NexEconomyConnector(
             IConfigSource config,
@@ -96,8 +98,14 @@ namespace NexVerse.Server.Api
                 runtime.CreateStore(
                     initializeSchema);
 
+            Store =
+                store;
             Ledger =
                 new NexDoubleEntryLedger(
+                    store);
+            Economy =
+                new NexEconomyService(
+                    Ledger,
                     store);
             ProviderName =
                 runtime.ProviderName;
