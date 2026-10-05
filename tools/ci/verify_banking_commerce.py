@@ -8,6 +8,7 @@ sql = Path("NexVerse/Core/Economy/NexLedgerSqlStore.cs").read_text(encoding="utf
 api = Path("NexVerse/Server/Api/NexBankingCommerceApi.cs").read_text(encoding="utf-8")
 economy_api = Path("NexVerse/Server/Api/NexEconomyApi.cs").read_text(encoding="utf-8")
 connector = Path("NexVerse/Server/Api/NexVerseWorldApiConnector.cs").read_text(encoding="utf-8")
+openapi = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 viewer = Path("NexVerse/RegionModules/Economy/NexVerseMoneyModule.cs").read_text(encoding="utf-8")
 land = Path("OpenSim/Region/CoreModules/World/Land/LandManagementModule.cs").read_text(encoding="utf-8")
 regression = Path("tools/ci/NexEconomyPolicyRegression/Program.cs").read_text(encoding="utf-8")
@@ -129,6 +130,21 @@ for marker in (
     "new NexBankingCommerceApi(",
 ):
     assert marker in connector, f"missing API registration marker: {marker}"
+
+for marker in (
+    '["/api/v1/banking/transactions"]',
+    '["/api/v1/banking/statements"]',
+    '["/api/v1/banking/transfers"]',
+    '["/api/v1/banking/payment-requests"]',
+    '["/api/v1/commerce/orders"]',
+    '["/api/v1/land-commerce/listings"]',
+    '["/api/v1/land-commerce/leases"]',
+    '["BankingTransferRequest"]',
+    '["PaymentRequestCreateRequest"]',
+    '["CommerceOrderRequest"]',
+    '["LandListingRequest"]',
+):
+    assert marker in openapi, f"missing OpenAPI banking/commerce marker: {marker}"
 
 for marker in (
     '"/api/v1/economy/accounts/ensure"',
