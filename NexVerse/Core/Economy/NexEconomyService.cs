@@ -345,6 +345,35 @@ namespace NexVerse.Core.Economy
             long totalDebit =
                 checked(amountMinor + fee);
 
+            string normalizedReference =
+                RequireReference(reference);
+            Guid effectiveId =
+                transactionId ??
+                Guid.NewGuid();
+
+            NexLedgerTransaction existing =
+                m_Ledger.GetTransaction(effectiveId);
+
+            if (existing != null)
+            {
+                if (!MatchesBankingTransfer(
+                        existing,
+                        fromAccountId,
+                        toAccountId,
+                        amountMinor,
+                        fee,
+                        policy.FeeAccountId,
+                        normalizedReference))
+                {
+                    throw new NexLedgerConflictException(
+                        "Transaction ID already exists with different banking-transfer content.");
+                }
+
+                return new NexLedgerAppendResult(
+                    NexLedgerAppendStatus.Duplicate,
+                    existing);
+            }
+
             if (policy.DailyOutgoingLimitMinor > 0)
             {
                 DateTimeOffset now =
@@ -376,35 +405,6 @@ namespace NexVerse.Core.Economy
             RequireAvailableBalance(
                 from,
                 totalDebit);
-
-            string normalizedReference =
-                RequireReference(reference);
-            Guid effectiveId =
-                transactionId ??
-                Guid.NewGuid();
-
-            NexLedgerTransaction existing =
-                m_Ledger.GetTransaction(effectiveId);
-
-            if (existing != null)
-            {
-                if (!MatchesBankingTransfer(
-                        existing,
-                        fromAccountId,
-                        toAccountId,
-                        amountMinor,
-                        fee,
-                        policy.FeeAccountId,
-                        normalizedReference))
-                {
-                    throw new NexLedgerConflictException(
-                        "Transaction ID already exists with different banking-transfer content.");
-                }
-
-                return new NexLedgerAppendResult(
-                    NexLedgerAppendStatus.Duplicate,
-                    existing);
-            }
 
             List<NexLedgerPosting> postings =
                 new List<NexLedgerPosting>
@@ -784,6 +784,29 @@ namespace NexVerse.Core.Economy
                 m_Workflows.GetLandListing(listingId) ??
                 throw new NexLedgerPolicyException("Land listing was not found.");
 
+            NexCommerceOrder existingOrder =
+                m_Workflows.GetCommerceOrder(orderId);
+
+            if (existingOrder != null)
+            {
+                if (existingOrder.Kind != NexCommerceKind.LandPurchase ||
+                    existingOrder.BuyerAccountId != buyerAccountId ||
+                    !string.Equals(
+                        existingOrder.ExternalReference,
+                        "land-listing:" + listing.ListingId.ToString("D"),
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Land purchase order ID already exists with different content.");
+                }
+
+                if (existingOrder.Status == NexCommerceOrderStatus.Completed ||
+                    existingOrder.Status == NexCommerceOrderStatus.Refunded)
+                {
+                    return existingOrder;
+                }
+            }
+
             if (!listing.Active ||
                 listing.ListingType != NexLandListingType.Sale)
             {
@@ -834,16 +857,6 @@ namespace NexVerse.Core.Economy
             DateTimeOffset now =
                 DateTimeOffset.UtcNow;
 
-            ExecuteCommerceOrder(
-                orderId,
-                NexCommerceKind.Rental,
-                tenantAccountId,
-                listing.SellerAccountId,
-                listing.PriceMinor,
-                "Land rent: " + listing.ParcelName,
-                "land-rental:" + listing.ListingId.ToString("D"),
-                correlationId);
-
             Guid leaseId =
                 DeterministicGuid(
                     "land-lease:" +
@@ -856,6 +869,16 @@ namespace NexVerse.Core.Economy
 
             if (existing != null)
                 return existing;
+
+            ExecuteCommerceOrder(
+                orderId,
+                NexCommerceKind.Rental,
+                tenantAccountId,
+                listing.SellerAccountId,
+                listing.PriceMinor,
+                "Land rent: " + listing.ParcelName,
+                "land-rental:" + listing.ListingId.ToString("D"),
+                correlationId);
 
             return m_Workflows.CreateLandLease(
                 new NexLandLease(
@@ -888,6 +911,47 @@ namespace NexVerse.Core.Economy
 
             if (!lease.Active)
                 throw new NexLedgerPolicyException("Land lease is not active.");
+
+            NexCommerceOrder existingPayment =
+                m_Workflows.GetCommerceOrder(orderId);
+
+            if (existingPayment != null)
+            {
+                string expectedExternal =
+                    "land-lease:" +
+                    lease.LeaseId.ToString("D");
+
+                if (existingPayment.Kind != NexCommerceKind.Rental ||
+                    existingPayment.BuyerAccountId != lease.TenantAccountId ||
+                    existingPayment.SellerAccountId != lease.LandlordAccountId ||
+                    !string.Equals(
+                        existingPayment.ExternalReference,
+                        expectedExternal,
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Rent order ID already exists with different content.");
+                }
+
+                if (existingPayment.Status == NexCommerceOrderStatus.Completed)
+                {
+                    if (lease.LastPaymentTransactionId ==
+                        existingPayment.PaymentTransactionId)
+                    {
+                        return lease;
+                    }
+
+                    DateTimeOffset recoveredNext =
+                        lease.NextDueAt.AddDays(
+                            lease.PeriodDays);
+
+                    return m_Workflows.UpdateLandLease(
+                        lease.Advance(
+                            existingPayment.PaymentTransactionId,
+                            recoveredNext,
+                            DateTimeOffset.UtcNow < lease.EndsAt));
+                }
+            }
 
             DateTimeOffset now =
                 DateTimeOffset.UtcNow;
@@ -1482,9 +1546,25 @@ namespace NexVerse.Core.Economy
                 m_Ledger.GetTransaction(transactionId);
 
             if (existing != null)
+            {
+                if (existing.Postings.Count != 2 ||
+                    !string.Equals(existing.Kind, kind, StringComparison.Ordinal) ||
+                    !string.Equals(existing.Reference, normalizedReference, StringComparison.Ordinal) ||
+                    existing.Postings[0].AccountId != fromAccountId ||
+                    existing.Postings[0].Side != NexLedgerSide.Debit ||
+                    existing.Postings[0].AmountMinor != amountMinor ||
+                    existing.Postings[1].AccountId != toAccountId ||
+                    existing.Postings[1].Side != NexLedgerSide.Credit ||
+                    existing.Postings[1].AmountMinor != amountMinor)
+                {
+                    throw new NexLedgerConflictException(
+                        "Transaction ID already exists with different directed-transfer content.");
+                }
+
                 return new NexLedgerAppendResult(
                     NexLedgerAppendStatus.Duplicate,
                     existing);
+            }
 
             return m_Ledger.Post(
                 new NexLedgerTransaction(
