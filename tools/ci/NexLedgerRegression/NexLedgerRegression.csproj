@@ -16,6 +16,7 @@
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerModel.cs" Link="NexLedgerModel.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerAccountState.cs" Link="NexLedgerAccountState.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexVirtualBankAccount.cs" Link="NexVirtualBankAccount.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexEconomyWorkflow.cs" Link="NexEconomyWorkflow.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerStore.cs" Link="NexLedgerStore.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerSqlStore.cs" Link="NexLedgerSqlStore.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerSqlRuntime.cs" Link="NexLedgerSqlRuntime.cs" />
