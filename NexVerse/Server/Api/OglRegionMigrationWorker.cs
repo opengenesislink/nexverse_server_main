@@ -128,7 +128,7 @@ namespace NexVerse.Server.Api
                     "Quelle und Ziel muessen dieselbe nicht leere OpenGenesisLINK MigrationStorageId melden.");
             }
 
-            GridRegion gridRegion =
+            OpenSim.Services.Interfaces.GridRegion gridRegion =
                 m_Grid.GetRegionByUUID(UUID.Zero, regionId);
 
             if (gridRegion == null)
@@ -175,7 +175,7 @@ namespace NexVerse.Server.Api
 
             context.Log(
                 $"Preflight OK: {regionName} ({regionId}) {sourceNode.NodeId} -> {targetNode.NodeId}, " +
-                $"Grid {gridX},{gridY}, {sizeX}x{sizeY}, Estate {estate.EstateID}, " +
+                $"Grid {gridX},{gridY}, {sizeX}x{sizeY}, Estate {estateId}, " +
                 $"Storage {sourceNode.MigrationStorageId}.");
 
             if (dryRun)
