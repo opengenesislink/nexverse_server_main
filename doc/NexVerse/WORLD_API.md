@@ -332,6 +332,8 @@ Raw asset-backed item creation is deliberately **administrator-only** even when 
 
 The API never creates inventory links by cloning a linked target recursively: link-to-link chains are rejected. Folder links are inventory items with `AssetType.LinkFolder`; normal item links use `AssetType.Link`.
 
+The OpenAPI 3.1 document publishes typed schemas for inventory folders, items, permission masks, bounded search results, asset-backed item creation and link creation so the API Control Center can render these operations without handwritten client assumptions.
+
 ## Persistent Job Engine: Inventory repair
 
 OpenGenesisLINK 0.9.3.5 provides a conservative structural repair job for one resident inventory.
