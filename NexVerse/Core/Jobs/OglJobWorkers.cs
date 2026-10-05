@@ -184,8 +184,9 @@ namespace NexVerse.Core.Jobs
 
             try
             {
-                await using FileStream output=new(staging,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);
-                using Utf8JsonWriter writer=new(output,new JsonWriterOptions{Indented=true});
+                {
+                    await using FileStream output=new(staging,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);
+                    using Utf8JsonWriter writer=new(output,new JsonWriterOptions{Indented=true});
                 writer.WriteStartObject();
                 writer.WriteNumber("format_version",1);
                 writer.WriteString("generated_utc",DateTimeOffset.UtcNow);
@@ -218,7 +219,7 @@ namespace NexVerse.Core.Jobs
                         indexedAssets++;
                     }
 
-                    int progress=8+(int)(82L*processed/Math.Max(1,candidateCount));
+                    int progress=Math.Min(90,8+(int)(82L*processed/Math.Max(1,candidateCount)));
                     if(progress!=lastProgress)
                     {
                         context.Progress(progress,"verifying",RelativePath(assetRoot,file));
@@ -233,8 +234,9 @@ namespace NexVerse.Core.Jobs
                 writer.WriteNumber("ignored_files",ignoredFiles);
                 writer.WriteNumber("stored_bytes",storedBytes);
                 writer.WriteEndObject();
-                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
 
                 cancellationToken.ThrowIfCancellationRequested();
                 context.Progress(96,"committing","Asset-Index wird atomar aktiviert.");
