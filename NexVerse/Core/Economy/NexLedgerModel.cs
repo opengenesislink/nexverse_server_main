@@ -33,6 +33,8 @@ namespace NexVerse.Core.Economy
 
     public sealed class NexLedgerAccount
     {
+        public const int ReferenceLengthLimit = 256;
+        public const int DisplayNameLengthLimit = 255;
         public NexLedgerAccount(
             Guid accountId,
             NexLedgerAccountClass accountClass,
@@ -54,11 +56,19 @@ namespace NexVerse.Core.Economy
                 throw new ArgumentOutOfRangeException(nameof(normalSide));
             }
 
+            string normalizedReference = reference.Trim();
+            string normalizedDisplayName = displayName.Trim();
+
+            if (normalizedReference.Length > ReferenceLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(reference), "Ledger account reference is too long.");
+            if (normalizedDisplayName.Length > DisplayNameLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(displayName), "Ledger account display name is too long.");
+
             AccountId = accountId;
             AccountClass = accountClass;
             NormalSide = normalSide;
-            Reference = reference.Trim();
-            DisplayName = displayName.Trim();
+            Reference = normalizedReference;
+            DisplayName = normalizedDisplayName;
             CurrencyCode = NormalizeCurrency(currencyCode);
             CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
         }
@@ -94,6 +104,7 @@ namespace NexVerse.Core.Economy
 
     public sealed class NexLedgerPosting
     {
+        public const int MemoLengthLimit = 255;
         public NexLedgerPosting(
             Guid postingId,
             Guid accountId,
@@ -113,11 +124,17 @@ namespace NexVerse.Core.Economy
             if (amountMinor <= 0)
                 throw new ArgumentOutOfRangeException(nameof(amountMinor), "Posting amount must be positive.");
 
+            string normalizedMemo =
+                (memo ?? string.Empty)
+                    .Trim();
+            if (normalizedMemo.Length > MemoLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(memo), "Ledger posting memo is too long.");
+
             PostingId = postingId;
             AccountId = accountId;
             Side = side;
             AmountMinor = amountMinor;
-            Memo = (memo ?? string.Empty).Trim();
+            Memo = normalizedMemo;
         }
 
         public Guid PostingId { get; }
@@ -129,6 +146,14 @@ namespace NexVerse.Core.Economy
 
     public sealed class NexLedgerTransaction
     {
+        public const int PostingCountLimit = 128;
+        public const int KindLengthLimit = 64;
+        public const int ReferenceLengthLimit = 255;
+        public const int CorrelationIdLengthLimit = 128;
+        public const int MetadataEntryLimit = 32;
+        public const int MetadataKeyLengthLimit = 64;
+        public const int MetadataValueLengthLimit = 1024;
+
         private readonly ReadOnlyCollection<NexLedgerPosting> m_Postings;
         private readonly ReadOnlyDictionary<string, string> m_Metadata;
 
@@ -149,16 +174,33 @@ namespace NexVerse.Core.Economy
             if (string.IsNullOrWhiteSpace(reference))
                 throw new ArgumentException("Ledger transaction reference is required.", nameof(reference));
 
+            string normalizedKind = kind.Trim();
+            string normalizedReference = reference.Trim();
+            string normalizedCorrelationId =
+                (correlationId ?? string.Empty)
+                    .Trim();
+
+            if (normalizedKind.Length > KindLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(kind), "Ledger transaction kind is too long.");
+            if (normalizedReference.Length > ReferenceLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(reference), "Ledger transaction reference is too long.");
+            if (normalizedCorrelationId.Length > CorrelationIdLengthLimit)
+                throw new ArgumentOutOfRangeException(nameof(correlationId), "Ledger correlation ID is too long.");
+
             TransactionId = transactionId;
-            Kind = kind.Trim();
-            Reference = reference.Trim();
-            CorrelationId = (correlationId ?? string.Empty).Trim();
+            Kind = normalizedKind;
+            Reference = normalizedReference;
+            CorrelationId = normalizedCorrelationId;
             CurrencyCode = NormalizeCurrency(currencyCode);
             OccurredAt = occurredAt ?? DateTimeOffset.UtcNow;
 
             NexLedgerPosting[] postingArray =
                 (postings ?? throw new ArgumentNullException(nameof(postings)))
                     .ToArray();
+
+            if (postingArray.Length > PostingCountLimit)
+                throw new NexLedgerValidationException(
+                    $"A transaction cannot contain more than {PostingCountLimit} postings.");
 
             m_Postings =
                 Array.AsReadOnly(postingArray);
@@ -168,6 +210,11 @@ namespace NexVerse.Core.Economy
                     StringComparer.OrdinalIgnoreCase);
             if (metadata != null)
             {
+                if (metadata.Count > MetadataEntryLimit)
+                    throw new ArgumentOutOfRangeException(
+                        nameof(metadata),
+                        $"Ledger metadata supports at most {MetadataEntryLimit} entries.");
+
                 foreach (KeyValuePair<string, string> item in metadata)
                 {
                     string key =
@@ -175,9 +222,16 @@ namespace NexVerse.Core.Economy
                             .Trim();
                     if (key.Length == 0)
                         throw new ArgumentException("Ledger metadata keys cannot be empty.", nameof(metadata));
+                    if (key.Length > MetadataKeyLengthLimit)
+                        throw new ArgumentOutOfRangeException(nameof(metadata), "Ledger metadata key is too long.");
+
+                    string value =
+                        item.Value ?? string.Empty;
+                    if (value.Length > MetadataValueLengthLimit)
+                        throw new ArgumentOutOfRangeException(nameof(metadata), "Ledger metadata value is too long.");
 
                     metadataCopy[key] =
-                        item.Value ?? string.Empty;
+                        value;
                 }
             }
 
