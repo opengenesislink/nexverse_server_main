@@ -250,6 +250,8 @@ namespace NexVerse.Server.Api
                 IOglJobStore jobStore = new PersistentOglJobStore(
                     apiConfig.GetString("JobStorePath", "data/opengenesislink-jobs.json"));
                 OglJobEventBridge jobBridge = new OglJobEventBridge(jobStore, eventBus);
+                OglJobRunner jobRunner = new OglJobRunner(jobStore);
+                jobRunner.Register(new OglDirectoryBackupWorker());
 
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];
@@ -384,7 +386,7 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK IAR API"),
                     true);
 
-                OglJobsApi jobsApi = new OglJobsApi(authenticator, jobStore);
+                OglJobsApi jobsApi = new OglJobsApi(authenticator, jobStore, jobRunner);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/jobs",
