@@ -1331,15 +1331,16 @@ namespace NexVerse.Server.Api
                             codename = "",
                             title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
                             status = "active",
-                            checklist = new { completed = 74, total = 74, open = 0 },
-                            summary = "Alle 74 expliziten 0.9.3.5-Checklist-Punkte sind umgesetzt. Inventar-API-Grundlage, OAR/IAR, persistente Auftragssteuerung, native Betriebs-Worker sowie LunaTexture-Persistenz und deren aggregierte NodeAgent/World-API-Projektion sind integriert; nicht checkbox-basierte Erweiterungen werden weiterhin separat verfolgt.",
+                            checklist = new { completed = 83, total = 83, open = 0 },
+                            summary = "Alle 83 expliziten 0.9.3.5-Checklist-Punkte sind umgesetzt. Inventar-API-Grundlage, OAR/IAR, persistente Auftragssteuerung, native Betriebs-Worker, LunaTexture-Persistenz sowie die abgesicherte Cross-Region-Objektkommunikation ueber NexBus sind integriert.",
                             evidence = new[]
                             {
                                 "Persistente Job Engine mit queued/running/completed/failed/cancelled, Fortschritt, Logs und Result-Metadaten",
                                 "OAR/IAR sind über NexBus/NodeAgent an die autoritativen Archivmodule angebunden",
                                 "Native Backup/Restore-, Asset-Reindex-, Regionsmigrations-, Datenbankwartungs- und Inventarreparatur-Worker sind integriert",
                                 "Inventar-API unterstützt Baum-, Ordner-, Item-Metadaten-, Trash-, Restore-, Copy- und Lost-&-Found-Abläufe",
-                                "LunaTexture-Diagnosen werden pro Region persistent gespeichert und als datensparsame Aggregate über NodeAgent und World API projiziert"
+                                "LunaTexture-Diagnosen werden pro Region persistent gespeichert und als datensparsame Aggregate über NodeAgent und World API projiziert",
+                                "llRegionSayTo kann fuer nichtlokale Objekt-UUIDs optional ueber den authentifizierten NexBus geroutet werden; Same-Owner-, Rate- und Altersgrenzen sind standardmaessig aktiv"
                             }
                         },
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
