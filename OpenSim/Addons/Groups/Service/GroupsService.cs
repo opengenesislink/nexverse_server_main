@@ -1220,16 +1220,10 @@ namespace OpenSim.Groups
                         member.PrincipalID);
 
                 if (principal != null &&
-                    principal.Data.TryGetValue(
-                        "ActiveGroupID",
-                        out string activeGroup) &&
-                    string.Equals(
-                        activeGroup,
-                        groupId.ToString(),
-                        StringComparison.OrdinalIgnoreCase))
+                    principal.ActiveGroupID == groupId)
                 {
-                    principal.Data["ActiveGroupID"] =
-                        UUID.Zero.ToString();
+                    principal.ActiveGroupID =
+                        UUID.Zero;
                     m_Database.StorePrincipal(principal);
                 }
             }
