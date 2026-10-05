@@ -271,7 +271,15 @@ namespace NexVerse.Server.Api
                         "SHA-256-Pruefung zwischen exportiertem und importiertem Migrations-OAR ist fehlgeschlagen.");
                 }
 
-                context.Progress(90, "retiring_source", "Alte Quell-Konfiguration wird stillgelegt.");
+                context.Progress(90, "verifying_target", "Zielzuordnung wird vor dem finalen Cutover geprueft.");
+                NexNodeSnapshot observed =
+                    await WaitForRegionOnNodeAsync(
+                            regionId,
+                            targetNode.NodeId,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                context.Progress(96, "retiring_source", "Alte Quell-Konfiguration wird nach erfolgreicher Zielpruefung stillgelegt.");
                 await LifecycleAsync(
                         sourceNode.NodeId,
                         regionId,
@@ -280,14 +288,6 @@ namespace NexVerse.Server.Api
                         cancellationToken)
                     .ConfigureAwait(false);
                 sourceStopped = false;
-
-                context.Progress(97, "verifying_target", "Zielzuordnung wird abschliessend geprueft.");
-                NexNodeSnapshot observed =
-                    await WaitForRegionOnNodeAsync(
-                            regionId,
-                            targetNode.NodeId,
-                            cancellationToken)
-                        .ConfigureAwait(false);
 
                 context.Log(
                     $"Migration abgeschlossen: {regionName} laeuft jetzt auf {observed.NodeId}; " +
