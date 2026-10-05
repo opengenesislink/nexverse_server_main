@@ -17,6 +17,8 @@ for marker in (
     "NexLedgerSqlRuntime.Resolve(",
     "runtime.CreateStore(",
     "new NexDoubleEntryLedger(",
+    "new NexEconomyService(",
+    "public NexEconomyService Economy",
     "public static NexEconomyConnector Current",
 ):
     assert marker in connector, f"missing NexEconomy runtime binding marker: {marker}"
