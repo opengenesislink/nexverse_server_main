@@ -176,6 +176,16 @@ namespace NexVerse.Server.Api
                     ("get", "Verwaltungsdetails einschließlich Manager-, Zugriffs-, Ban- und Gruppenlisten lesen", "estates:manage", "200")),
                 ["/api/v1/estates/{estateId}/regions/{regionId}"] = AuthenticatedOperations(
                     ("put", "Region einem Estate zuordnen oder dorthin verschieben", "estates:manage", "200")),
+                ["/api/v1/economy/balance"] = AuthenticatedOperations(
+                    ("get", "NV$-Saldo des eigenen oder autorisierten Kontos lesen", "economy:read", "200")),
+                ["/api/v1/economy/transfers"] = AuthenticatedOperations(
+                    ("post", "Wiederholungssicheren NV$-Transfer ausführen", "economy:transfer", "201")),
+                ["/api/v1/economy/transactions/{transactionId}"] = AuthenticatedOperations(
+                    ("get", "NV$-Transaktion lesen", "economy:read", "200")),
+                ["/api/v1/economy/transactions/{transactionId}/reverse"] = AuthenticatedOperations(
+                    ("post", "NV$-Transaktion als neue Gegenbuchung reversieren", "admin:*", "201")),
+                ["/api/v1/economy/accounts/{accountId}/status"] = AuthenticatedOperations(
+                    ("post", "NV$-Konto sperren, freigeben oder schließen", "admin:*", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200"),
                     ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
@@ -323,6 +333,42 @@ namespace NexVerse.Server.Api
                 null,
                 "EstateRegionAssignmentResponse",
                 "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/balance",
+                "get",
+                null,
+                "EconomyBalanceResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/transfers",
+                "post",
+                "EconomyTransferRequest",
+                "EconomyTransferResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/transactions/{transactionId}",
+                "get",
+                null,
+                "EconomyTransactionResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/transactions/{transactionId}/reverse",
+                "post",
+                "EconomyReverseRequest",
+                "EconomyTransactionResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/accounts/{accountId}/status",
+                "post",
+                "EconomyAccountStatusRequest",
+                "EconomyAccountStateResponse",
+                "200");
+
             ApplyJsonContract(
                 paths,
                 "/api/v1/regions",
@@ -577,6 +623,44 @@ namespace NexVerse.Server.Api
                 "put",
                 estateIdParameter,
                 estateRegionIdParameter);
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/economy/balance",
+                "get",
+                QueryParameter(
+                    "account_id",
+                    false,
+                    "Optionales Konto als UUID; Einwohner lesen standardmäßig ihr eigenes Konto."));
+            AddOperationParameters(
+                paths,
+                "/api/v1/economy/transfers",
+                "post",
+                HeaderParameter(
+                    "Idempotency-Key",
+                    true,
+                    "Pflichtschlüssel für wiederholungssichere NV$-Transfers; maximal 128 Zeichen."));
+            object economyTransactionIdParameter =
+                PathParameter(
+                    "transactionId",
+                    "UUID der NV$-Transaktion.");
+            AddOperationParameters(
+                paths,
+                "/api/v1/economy/transactions/{transactionId}",
+                "get",
+                economyTransactionIdParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/economy/transactions/{transactionId}/reverse",
+                "post",
+                economyTransactionIdParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/economy/accounts/{accountId}/status",
+                "post",
+                PathParameter(
+                    "accountId",
+                    "UUID des NV$-Kontos."));
 
             object regionIdParameter =
                 PathParameter(
@@ -2103,6 +2187,86 @@ namespace NexVerse.Server.Api
                         {
                             type = new[] { "integer", "null" }
                         }
+                    }
+                },
+                ["EconomyTransferRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "to_account_id", "amount" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["from_account_id"] = new { type = "string", format = "uuid" },
+                        ["to_account_id"] = new { type = "string", format = "uuid" },
+                        ["amount"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["reference"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["EconomyAccountStatusRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "status", "reason" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["status"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "active", "locked", "closed" }
+                        },
+                        ["reason"] = new { type = "string", minLength = 1, maxLength = 255 }
+                    }
+                },
+                ["EconomyReverseRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "reason" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["reason"] = new { type = "string", minLength = 1, maxLength = 255 }
+                    }
+                },
+                ["EconomyBalanceResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "account", "currency", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["account"] = new { type = "object" },
+                        ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EconomyTransferResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "status", "transaction", "balances", "currency", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["status"] = new { type = "string", @enum = new[] { "created", "duplicate" } },
+                        ["transaction"] = new { type = "object" },
+                        ["balances"] = new { type = "object" },
+                        ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EconomyTransactionResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "transaction", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["transaction"] = new { type = "object" },
+                        ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["EconomyAccountStateResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "state", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["state"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["Position"] = new

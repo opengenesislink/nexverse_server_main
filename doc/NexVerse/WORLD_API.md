@@ -625,3 +625,35 @@ Every generated World API operation also carries endpoint-level NexVerse metadat
 Administrative operations explicitly state that authorization must never be inferred or escalated. Self-service operations instruct clients to default to the authenticated resident subject. Scoped service operations require the documented functional scope.
 
 The API explorer renders these fields for the selected operation and surfaces the standard OpenAPI `deprecated` flag when present.
+
+
+## NV$ Economy API
+
+OpenGenesisLINK 0.9.3.6 exposes the policy-bound NV$ surface below. The authoritative ledger must be enabled through `[NexEconomy]`; otherwise economy operations return service-unavailable responses.
+
+- `GET /api/v1/economy/balance` — read the authenticated resident balance or, for an authorized service/admin principal, `?account_id=<uuid>`; requires `economy:read`.
+- `POST /api/v1/economy/transfers` — transfer positive integer NV$ units; requires `economy:transfer` and a mandatory `Idempotency-Key`.
+- `GET /api/v1/economy/transactions/{transactionId}` — read a transaction; residents may read only transactions involving their own wallet; requires `economy:read`.
+- `POST /api/v1/economy/transactions/{transactionId}/reverse` — create an append-only deterministic reversal; requires `admin:*`.
+- `POST /api/v1/economy/accounts/{accountId}/status` — set `active`, `locked` or terminal `closed`; requires `admin:*`.
+
+Resident bearer tokens may transfer only from their own account. Machine API keys with `economy:transfer` may specify `from_account_id` and are intended for trusted simulator/service integrations. A transfer retry with the same principal, `Idempotency-Key` and logical body returns the existing transaction instead of booking twice; reusing that key for conflicting transfer content is rejected.
+
+No public API endpoint exposes raw ledger append or administrative adjustment/minting. The API uses `NexEconomyService` as its policy boundary.
+
+### Viewer IMoneyModule adapter
+
+Regions can enable the central adapter with:
+
+```ini
+[NexEconomyViewer]
+Enabled = true
+WorldApiBaseUrl = "https://world.example.invalid"
+ApiKey = "${Environment|NEXVERSE_ECONOMY_API_KEY}"
+FeeWalletId = ""
+UploadCharge = 0
+GroupCreationCharge = 0
+RequestTimeoutMilliseconds = 3000
+```
+
+The API key should contain only the scopes required by the simulator, normally `economy:read` and `economy:transfer`. The region process never receives the SQL connection string and never opens the ledger database. `IMoneyModule` balance and transfer calls are translated into the World API contract.

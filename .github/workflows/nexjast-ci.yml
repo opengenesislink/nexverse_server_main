@@ -217,6 +217,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexEconomyPolicyRegression/NexEconomyPolicyRegression.csproj
 
+      - name: Verify NV dollar World API and Viewer adapter
+        shell: bash
+        run: python3 tools/ci/verify_economy_api_viewer.py
+
       - name: Verify NV dollar live database matrix contract
         shell: bash
         run: python3 tools/ci/verify_ledger_db_matrix.py

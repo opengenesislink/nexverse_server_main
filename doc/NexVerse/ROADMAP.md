@@ -933,11 +933,11 @@ Build the economy around immutable double-entry accounting.
 - [x] SQLite file-backed regression verifies schema migration, reopen persistence, balances, history, idempotency and rejected-booking atomicity.
 - [x] `NexLedgerSqlRuntime` resolves existing MySQL/MariaDB, PostgreSQL and SQLite storage-provider names to the shipped ADO.NET drivers via reflection.
 - [x] Dedicated `NexEconomyConnector` binds the ledger to Robust, inherits `[DatabaseService]` by default, supports an explicit `[NexEconomy]` override and remains disabled by default.
-- [x] Robust SQLite bootstrap smoke verifies real connector loading and schema-v1 creation without exposing payment/API routes.
+- [x] Robust SQLite bootstrap smoke verifies real connector loading and schema-v2 creation before any payment/API route is enabled.
 - [x] Live MariaDB + PostgreSQL matrix regression covers schema migration, durable transactions, explicit rollback and uncommitted connection-loss rollback semantics through the shipped providers.
 - [x] Account lifecycle uses Active/Locked/Closed state with append-only state events; closed accounts are terminal and require zero balance.
 - [x] `NexEconomyService` is the production policy boundary for wallet transfers, overdraft prevention, administrative adjustments and deterministic append-only reversals.
-- [ ] Production World API and Viewer `IMoneyModule` adapter must use `NexEconomyService`; no direct arbitrary journal append is exposed.
+- [x] Production World API and central Viewer `IMoneyModule` adapter use `NexEconomyService`; the simulator has no SQL access and no public endpoint exposes arbitrary journal append.
 
 Account classes:
 
