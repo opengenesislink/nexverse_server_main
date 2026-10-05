@@ -762,7 +762,7 @@ namespace NexVerse.RegionModules.NodeAgent
             {
                 if (operation.RequestId != operationId) return;
                 string state = operation.State.ToString().ToLowerInvariant();
-                PublishIarState(nexEvent, operationId, regionId, action, state, operation.Error, operation.ItemCount, operation.FilteredCount);
+                PublishIarState(nexEvent, operationId, regionId, action, state, operation.Error, operation.ItemCount, operation.FilteredCount, operation.ProgressPercent, operation.ProgressPhase);
                 if (operation.State == OglIarOperationState.Completed || operation.State == OglIarOperationState.Failed)
                     operations.OperationChanged -= Changed;
             }
@@ -778,7 +778,7 @@ namespace NexVerse.RegionModules.NodeAgent
                         ? operations.StartImport(operationId, user, inventoryPath, fileName, merge, dryRun)
                         : throw new InvalidOperationException("unsupported_iar_action");
 
-                PublishIarState(nexEvent, operationId, regionId, action, operation.State.ToString().ToLowerInvariant(), operation.Error, operation.ItemCount, operation.FilteredCount);
+                PublishIarState(nexEvent, operationId, regionId, action, operation.State.ToString().ToLowerInvariant(), operation.Error, operation.ItemCount, operation.FilteredCount, operation.ProgressPercent, operation.ProgressPhase);
                 if (operation.State == OglIarOperationState.Completed || operation.State == OglIarOperationState.Failed)
                     operations.OperationChanged -= Changed;
             }
@@ -789,7 +789,7 @@ namespace NexVerse.RegionModules.NodeAgent
             }
         }
 
-        private void PublishIarState(NexEvent source, UUID operationId, UUID regionId, string action, string state, string message, int itemCount, int filteredCount)
+        private void PublishIarState(NexEvent source, UUID operationId, UUID regionId, string action, string state, string message, int itemCount, int filteredCount, int progress = 0, string phase = "")
         {
             Publish(new NexEvent(
                 "archive.iar.operation." + state,
@@ -803,7 +803,9 @@ namespace NexVerse.RegionModules.NodeAgent
                     ["state"] = state ?? "unknown",
                     ["message"] = message ?? string.Empty,
                     ["item_count"] = itemCount.ToString(),
-                    ["filtered_count"] = filteredCount.ToString()
+                    ["filtered_count"] = filteredCount.ToString(),
+                    ["progress"] = progress.ToString(),
+                    ["phase"] = phase ?? string.Empty
                 },
                 source.CorrelationId));
         }
@@ -837,7 +839,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 if (operation.RequestId != operationId)
                     return;
                 string state = operation.State.ToString().ToLowerInvariant();
-                PublishOarState(nexEvent, operationId, regionId, action, state, operation.Error);
+                PublishOarState(nexEvent, operationId, regionId, action, state, operation.Error, operation.ProgressPercent, operation.ProgressPhase);
                 if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
                     operations.OperationChanged -= Changed;
             }
@@ -861,7 +863,7 @@ namespace NexVerse.RegionModules.NodeAgent
                     regionId,
                     action,
                     operation.State.ToString().ToLowerInvariant(),
-                    operation.Error);
+                    operation.Error, operation.ProgressPercent, operation.ProgressPhase);
 
                 if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
                     operations.OperationChanged -= Changed;
@@ -873,7 +875,7 @@ namespace NexVerse.RegionModules.NodeAgent
             }
         }
 
-        private void PublishOarState(NexEvent source, Guid operationId, UUID regionId, string action, string state, string message)
+        private void PublishOarState(NexEvent source, Guid operationId, UUID regionId, string action, string state, string message, int progress = 0, string phase = "")
         {
             Publish(new NexEvent(
                 "archive.oar.operation." + state,
@@ -885,7 +887,9 @@ namespace NexVerse.RegionModules.NodeAgent
                     ["region_id"] = regionId.ToString(),
                     ["action"] = action ?? string.Empty,
                     ["state"] = state ?? "unknown",
-                    ["message"] = message ?? string.Empty
+                    ["message"] = message ?? string.Empty,
+                    ["progress"] = progress.ToString(),
+                    ["phase"] = phase ?? string.Empty
                 },
                 source.CorrelationId));
         }
