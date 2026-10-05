@@ -37,13 +37,13 @@ The active development roadmap is maintained in:
 
 **[`doc/NexVerse/ROADMAP.md`](doc/NexVerse/ROADMAP.md)**
 
-The roadmap covers the NEXJAST legacy-cleanup milestone and the planned World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the NexVerse 0.9.4.0 consolidation target.
+The roadmap covers the NEXJAST legacy-cleanup milestone and the World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the OpenGenesisLINK v0.9.4.0 consolidation target.
 
 ## Active development: OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus
 
-The 0.9.3.2 and 0.9.3.3 development checkpoints were completed on 3 October 2026. The release train now advances to the bounded 0.9.3.4 Simulator/Region/Estate Control Plane scope while 0.9.3.1 remains the current stable release.
+NexVerse 0.9.3.4 is the completed stable release of the previous product line. Active development continues as **OpenGenesisLINK v0.9.3.5 Dev** with Inventory, OAR/IAR, the persistent Job Engine and NexBus as the current milestone.
 
-The current release train is deliberately bounded: complete 0.9.3.3 Identity/Profile/Social work, then finish 0.9.3.4 Simulator/Region/Estate Control Plane and release that line. No new 0.9.3.5 implementation work starts before the stable 0.9.3.4 release.
+The 0.9.3.5 line retains viewer, Hypergrid, LSL and archive compatibility while moving operational functionality into OpenGenesisLINK-owned APIs, Job Engine workers and control-plane components. The current roadmap progress is published through the World API and kept in sync with `doc/NexVerse/ROADMAP.md` by CI.
 
 ## NexVerse 0.9.3.1 NEXJAST release foundation
 
@@ -60,7 +60,7 @@ See `doc/NexVerse/WORLD_API.md`, `doc/NexVerse/DISPLAY_NAMES.md` and `doc/NexVer
 
 ## Development model
 
-OpenGenesisLINK is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with Firestorm, Second Life protocols, Hypergrid and LSL is retained where useful, while obsolete administration and service implementations are progressively replaced by NexVerse-native components.
+OpenGenesisLINK is a continuation and substantial independent development based on the OpenSimulator 0.9.3.0 source baseline. Compatibility with Firestorm, Second Life protocols, Hypergrid and LSL is retained where useful, while obsolete administration and service implementations are progressively replaced by OpenGenesisLINK-owned components.
 
 New major systems should be API-first, testable, observable and documented. Compatibility-sensitive code must be assessed before removal.
 
