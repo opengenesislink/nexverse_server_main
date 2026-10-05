@@ -252,6 +252,7 @@ namespace NexVerse.Server.Api
                 OglJobEventBridge jobBridge = new OglJobEventBridge(jobStore, eventBus);
                 OglJobRunner jobRunner = new OglJobRunner(jobStore);
                 jobRunner.Register(new OglDirectoryBackupWorker());
+                jobRunner.Register(new OglDirectoryRestoreWorker());
 
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];

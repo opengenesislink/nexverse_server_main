@@ -20,6 +20,7 @@ namespace NexVerse.Server.Api
             if(!Authenticate(request,response))return;
             string path=(request.UriPath??string.Empty).TrimEnd('/');
             if(path.Equals("/api/v1/jobs/backup",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueBackup(request,response);return;}
+            if(path.Equals("/api/v1/jobs/restore",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueRestore(request,response);return;}
             if(path.EndsWith("/cancel",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){string id=path.Substring("/api/v1/jobs/".Length);id=id.Substring(0,id.Length-"/cancel".Length);if(m_Runner.Cancel(id,out string reason)){Json(response,HttpStatusCode.Accepted,m_Jobs.Get(id));return;}Error(response,HttpStatusCode.Conflict,"cancel_rejected",reason);return;}
             if(!string.Equals(request.HttpMethod,"GET",StringComparison.OrdinalIgnoreCase)){Error(response,HttpStatusCode.MethodNotAllowed,"method_not_allowed","GET oder unterstuetztes POST ist erforderlich.");return;}
             if(path.Equals("/api/v1/jobs",StringComparison.OrdinalIgnoreCase)){Json(response,HttpStatusCode.OK,new{jobs=m_Jobs.List()});return;}
@@ -45,6 +46,18 @@ namespace NexVerse.Server.Api
                 Json(response,HttpStatusCode.Accepted,job);
             }
             catch(Exception e){Error(response,HttpStatusCode.BadRequest,"backup_job_rejected",e.Message);}
+        }
+        private void QueueRestore(IOSHttpRequest request,IOSHttpResponse response)
+        {
+            try
+            {
+                using JsonDocument doc=JsonDocument.Parse(request.InputStream);JsonElement root=doc.RootElement;
+                string backup=root.TryGetProperty("backup",out JsonElement b)?b.GetString()??string.Empty:string.Empty;
+                string destination=root.TryGetProperty("destination",out JsonElement d)?d.GetString()??string.Empty:string.Empty;
+                OglJobSnapshot job=m_Runner.Queue("restore.directory","world-api",new System.Collections.Generic.Dictionary<string,string>{{"backup",backup},{"destination",destination}});
+                Json(response,HttpStatusCode.Accepted,job);
+            }
+            catch(Exception e){Error(response,HttpStatusCode.BadRequest,"restore_job_rejected",e.Message);}
         }
         private bool Authenticate(IOSHttpRequest req,IOSHttpResponse res)
         {
