@@ -17,6 +17,14 @@ namespace NexVerse.Core.Jobs
         Task<IReadOnlyDictionary<string,string>> ExecuteAsync(OglJobContext context, IReadOnlyDictionary<string,string> parameters, CancellationToken cancellationToken);
     }
 
+    /// <summary>
+    /// Marker for jobs whose cancellation could leave authoritative state split across nodes.
+    /// Such jobs must finish their own transactional/rollback sequence once started.
+    /// </summary>
+    public interface IOglNonCancellableJobWorker
+    {
+    }
+
     public sealed class OglJobContext
     {
         private readonly IOglJobStore m_Store;
@@ -45,6 +53,7 @@ namespace NexVerse.Core.Jobs
             reason=string.Empty;OglJobSnapshot job=m_Store.Get(jobId);if(job==null){reason="job_not_found";return false;}
             if(job.State==OglJobState.Queued){m_Store.Cancel(jobId,"Vom Administrator abgebrochen.");return true;}
             if(job.State!=OglJobState.Running){reason="job_already_terminal";return false;}
+            if(m_Workers.TryGetValue(job.Type,out IOglJobWorker worker) && worker is IOglNonCancellableJobWorker){reason="job_not_cancellable_safely";return false;}
             if(!m_Running.TryGetValue(jobId,out CancellationTokenSource cts)){reason="worker_not_cancellable";return false;}
             cts.Cancel();return true;
         }

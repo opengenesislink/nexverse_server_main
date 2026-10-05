@@ -834,6 +834,78 @@ namespace NexVerse.RegionModules.NodeAgent
             }
         }
 
+        public bool TryRetireRegion(
+            UUID regionId,
+            out string error,
+            out string regionName)
+        {
+            error = string.Empty;
+            regionName = string.Empty;
+
+            if (!m_Enabled)
+            {
+                error = "managed_region_commands_disabled";
+                return false;
+            }
+
+            if (regionId.IsZero())
+            {
+                error = "invalid_region_id";
+                return false;
+            }
+
+            lock (m_CommandSync)
+            {
+                SceneManager manager = SceneManager.Instance;
+
+                if (manager != null &&
+                    manager.TryGetScene(regionId, out Scene _))
+                {
+                    error = "region_still_running";
+                    return false;
+                }
+
+                string configPath = ConfigPath(regionId);
+                if (!File.Exists(configPath))
+                {
+                    error = "managed_region_config_not_found";
+                    return false;
+                }
+
+                if (!TryResolveManagedRegionName(
+                        configPath,
+                        regionId,
+                        out regionName))
+                {
+                    error = "managed_region_config_invalid";
+                    return false;
+                }
+
+                try
+                {
+                    File.Delete(configPath);
+
+                    m_Log.InfoFormat(
+                        "[NEX-REGION-HOST]: Retired migrated region config {0} ({1}).",
+                        regionName,
+                        regionId);
+
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    m_Log.Error(
+                        "[NEX-REGION-HOST]: Managed region retire failed.",
+                        e);
+
+                    error =
+                        "region_retire_failed:" +
+                        e.GetType().Name;
+                    return false;
+                }
+            }
+        }
+
         private static bool TryResolveManagedRegionName(
             string configPath,
             UUID regionId,

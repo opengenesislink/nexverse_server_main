@@ -129,6 +129,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_asset_reindex_worker.py
 
+      - name: Verify native region migration worker
+        shell: bash
+        run: python3 tools/ci/verify_region_migration_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py

@@ -46,6 +46,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private string m_SharedKey = string.Empty;
         private string m_InboundPath = "/internal/nexbus/v1/events";
         private int m_HeartbeatSeconds = 30;
+        private string m_MigrationStorageId = string.Empty;
         private SimulatorNexEventTransport m_Transport;
         private DistributedNexEventBus m_Bus;
         private Timer m_HeartbeatTimer;
@@ -97,6 +98,12 @@ namespace NexVerse.RegionModules.NodeAgent
                 "InboundPath",
                 "/internal/nexbus/v1/events").Trim();
             m_HeartbeatSeconds = Math.Max(5, config.GetInt("HeartbeatSeconds", 30));
+
+            IConfig oarConfig = source.Configs["OpenGenesisLINKOAR"];
+            m_MigrationStorageId =
+                (oarConfig?.GetString("MigrationStorageId", string.Empty) ?? string.Empty)
+                    .Trim();
+
             int queueCapacity = Math.Max(128, config.GetInt("QueueCapacity", 2048));
             int timeoutMs = Math.Max(250, config.GetInt("RequestTimeoutMilliseconds", 2000));
             int deduplicationWindow = Math.Max(128, config.GetInt("DeduplicationWindow", 10000));
@@ -285,6 +292,8 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["managed_region_commands"] =
                     (NexVerseManagedRegionHostPlugin.Current?.Enabled == true)
                         .ToString(),
+                ["migration_storage_id"] =
+                    m_MigrationStorageId,
                 ["regions"] = string.Join(
                     ";",
                     scenes
@@ -591,7 +600,8 @@ namespace NexVerse.RegionModules.NodeAgent
 
             if (action != "start" &&
                 action != "stop" &&
-                action != "restart")
+                action != "restart" &&
+                action != "retire")
             {
                 PublishOperationState(
                     "region.control.operation.failed",
@@ -668,9 +678,17 @@ namespace NexVerse.RegionModules.NodeAgent
                                     out regionName);
                             break;
 
-                        default:
+                        case "restart":
                             success =
                                 host.TryRestartRegion(
+                                    regionId,
+                                    out error,
+                                    out regionName);
+                            break;
+
+                        default:
+                            success =
+                                host.TryRetireRegion(
                                     regionId,
                                     out error,
                                     out regionName);
@@ -693,7 +711,8 @@ namespace NexVerse.RegionModules.NodeAgent
                         {
                             "start" => "region_started",
                             "stop" => "region_stopped",
-                            _ => "region_restarted"
+                            "restart" => "region_restarted",
+                            _ => "region_retired"
                         };
 
                     PublishOperationState(
@@ -839,7 +858,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 if (operation.RequestId != operationId)
                     return;
                 string state = operation.State.ToString().ToLowerInvariant();
-                PublishOarState(nexEvent, operationId, regionId, action, state, operation.Error, operation.ProgressPercent, operation.ProgressPhase);
+                PublishOarState(nexEvent, operationId, regionId, action, state, operation.Error, operation.ProgressPercent, operation.ProgressPhase, operation.Inspection);
                 if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
                     operations.OperationChanged -= Changed;
             }
@@ -863,7 +882,7 @@ namespace NexVerse.RegionModules.NodeAgent
                     regionId,
                     action,
                     operation.State.ToString().ToLowerInvariant(),
-                    operation.Error, operation.ProgressPercent, operation.ProgressPhase);
+                    operation.Error, operation.ProgressPercent, operation.ProgressPhase, operation.Inspection);
 
                 if (operation.State == OglOarOperationState.Completed || operation.State == OglOarOperationState.Failed)
                     operations.OperationChanged -= Changed;
@@ -875,11 +894,18 @@ namespace NexVerse.RegionModules.NodeAgent
             }
         }
 
-        private void PublishOarState(NexEvent source, Guid operationId, UUID regionId, string action, string state, string message, int progress = 0, string phase = "")
+        private void PublishOarState(
+            NexEvent source,
+            Guid operationId,
+            UUID regionId,
+            string action,
+            string state,
+            string message,
+            int progress = 0,
+            string phase = "",
+            OglOarInspection inspection = null)
         {
-            Publish(new NexEvent(
-                "archive.oar.operation." + state,
-                "nexverse.simulator",
+            Dictionary<string, string> data =
                 new Dictionary<string, string>
                 {
                     ["operation_id"] = operationId.ToString(),
@@ -890,7 +916,19 @@ namespace NexVerse.RegionModules.NodeAgent
                     ["message"] = message ?? string.Empty,
                     ["progress"] = progress.ToString(),
                     ["phase"] = phase ?? string.Empty
-                },
+                };
+
+            if (inspection != null)
+            {
+                data["archive_sha256"] = inspection.Sha256 ?? string.Empty;
+                data["archive_bytes"] = inspection.SizeBytes.ToString();
+                data["archive_valid"] = inspection.Valid.ToString();
+            }
+
+            Publish(new NexEvent(
+                "archive.oar.operation." + state,
+                "nexverse.simulator",
+                data,
                 source.CorrelationId));
         }
 

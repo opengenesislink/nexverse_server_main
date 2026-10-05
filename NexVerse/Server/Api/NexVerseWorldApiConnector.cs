@@ -295,6 +295,15 @@ namespace NexVerse.Server.Api
                 IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
                 IGridService grid = LoadOptionalService<IGridService>(config, "GridService");
                 IEstateDataService estateData = LoadOptionalService<IEstateDataService>(config, "EstateDataStore");
+
+                jobRunner.Register(
+                    new OglRegionMigrationWorker(
+                        nodeRegistry,
+                        eventBus,
+                        grid,
+                        estateData,
+                        apiConfig.GetInt("RegionMigrationOperationTimeoutSeconds", 1800)));
+
                 IPresenceService presence = LoadOptionalService<IPresenceService>(config, "PresenceService");
                 IGridUserData gridUserData = LoadGridUserData(config);
 
