@@ -11,7 +11,8 @@ for marker in (
     "INexLedgerStore",
     "INexLedgerAccountStateStore",
     "INexVirtualBankAccountStore",
-    "public const int CurrentSchemaVersion = 3",
+    "INexEconomyWorkflowStore",
+    "public const int CurrentSchemaVersion = 4",
     "Func<DbConnection>",
     "IsolationLevel.Serializable",
     "ogl_ledger_accounts",
@@ -22,6 +23,12 @@ for marker in (
     "ogl_ledger_virtual_accounts",
     "ApplySchemaVersion2(",
     "ApplySchemaVersion3(",
+    "ApplySchemaVersion4(",
+    "ogl_economy_transfer_policies",
+    "ogl_economy_payment_requests",
+    "ogl_economy_commerce_orders",
+    "ogl_economy_land_listings",
+    "ogl_economy_land_leases",
     "UNIQUE (account_id, state_version)",
     "UNIQUE (transaction_id, sequence_no)",
     "UNIQUE (account_id, posting_id)",
@@ -84,5 +91,6 @@ assert "Mono.Data.Sqlite.dll" in project
 assert "NexLedgerSqlStore.cs" in project
 assert "NexLedgerSqlRuntime.cs" in project
 assert "NexVirtualBankAccount.cs" in project
+assert "NexEconomyWorkflow.cs" in project
 
 print("NV$ durable SQL ledger contract: OK")
