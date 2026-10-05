@@ -472,6 +472,10 @@ jobs:
           assert "node_id" in schemas["GridRegionPlacement"]["properties"]
           assert "node_state" in schemas["GridRegionPlacement"]["properties"]
           assert schemas["Node"]["properties"]["managed_region_commands"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["cross_region_object_messaging"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["cross_owner_object_messaging"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["object_messages_per_second"]["maximum"] == 200
+          assert schemas["Node"]["properties"]["object_message_max_age_seconds"]["maximum"] == 300
 
           nodes_get = doc["paths"]["/api/v1/nodes"]["get"]
           assert nodes_get["x-nexverse-scope"] == "simulators:read"
