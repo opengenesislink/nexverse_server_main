@@ -415,6 +415,11 @@ namespace NexVerse.RegionModules.Experiences
                 "create",
                 key,
                 value,
+                false,
+                string.Empty,
+                0,
+                0,
+                out _,
                 out _,
                 out error);
 
@@ -428,21 +433,47 @@ namespace NexVerse.RegionModules.Experiences
                 "read",
                 key,
                 string.Empty,
+                false,
+                string.Empty,
+                0,
+                0,
                 out value,
+                out _,
                 out error);
 
         public bool UpdateKeyValue(
             UUID scriptItemId,
             string key,
             string value,
-            out string error) =>
-            KeyValue(
-                scriptItemId,
-                "update",
-                key,
-                value,
-                out _,
-                out error);
+            bool checkOriginal,
+            string originalValue,
+            out bool retryMismatch,
+            out string error)
+        {
+            retryMismatch = false;
+
+            bool success =
+                KeyValue(
+                    scriptItemId,
+                    "update",
+                    key,
+                    value,
+                    checkOriginal,
+                    originalValue,
+                    0,
+                    0,
+                    out _,
+                    out string code,
+                    out error);
+
+            retryMismatch =
+                string.Equals(
+                    code,
+                    "retry_update",
+                    StringComparison.OrdinalIgnoreCase);
+
+            return success;
+        }
 
         public bool DeleteKeyValue(
             UUID scriptItemId,
@@ -453,18 +484,145 @@ namespace NexVerse.RegionModules.Experiences
                 "delete",
                 key,
                 string.Empty,
+                false,
+                string.Empty,
+                0,
+                0,
+                out _,
                 out _,
                 out error);
+
+        public bool GetKeyValueStats(
+            UUID scriptItemId,
+            out long usedBytes,
+            out long quotaBytes,
+            out int keyCount,
+            out string error)
+        {
+            usedBytes = 0;
+            quotaBytes = 0;
+            keyCount = 0;
+
+            if (!KeyValue(
+                    scriptItemId,
+                    "stats",
+                    string.Empty,
+                    string.Empty,
+                    false,
+                    string.Empty,
+                    0,
+                    0,
+                    out string result,
+                    out _,
+                    out error))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument document =
+                    JsonDocument.Parse(result);
+
+                JsonElement root = document.RootElement;
+                usedBytes =
+                    root.TryGetProperty("used_bytes", out JsonElement used) &&
+                    used.TryGetInt64(out long usedValue)
+                        ? usedValue
+                        : 0L;
+                quotaBytes =
+                    root.TryGetProperty("quota_bytes", out JsonElement quota) &&
+                    quota.TryGetInt64(out long quotaValue)
+                        ? quotaValue
+                        : 0L;
+                keyCount =
+                    root.TryGetProperty("key_count", out JsonElement count) &&
+                    count.TryGetInt32(out int countValue)
+                        ? countValue
+                        : 0;
+
+                return true;
+            }
+            catch
+            {
+                error = "Invalid Experience K/V stats response.";
+                return false;
+            }
+        }
+
+        public bool ListKeyValueKeys(
+            UUID scriptItemId,
+            int start,
+            int count,
+            out string[] keys,
+            out string error)
+        {
+            keys = Array.Empty<string>();
+
+            if (!KeyValue(
+                    scriptItemId,
+                    "keys",
+                    string.Empty,
+                    string.Empty,
+                    false,
+                    string.Empty,
+                    start,
+                    count,
+                    out string result,
+                    out _,
+                    out error))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument document =
+                    JsonDocument.Parse(result);
+
+                if (!document.RootElement.TryGetProperty(
+                        "keys",
+                        out JsonElement array) ||
+                    array.ValueKind != JsonValueKind.Array)
+                {
+                    error = "Invalid Experience K/V keys response.";
+                    return false;
+                }
+
+                List<string> output =
+                    new List<string>();
+
+                foreach (JsonElement element in array.EnumerateArray())
+                {
+                    if (element.ValueKind == JsonValueKind.String)
+                        output.Add(element.GetString() ?? string.Empty);
+                }
+
+                keys = output.ToArray();
+                return true;
+            }
+            catch
+            {
+                error = "Invalid Experience K/V keys response.";
+                return false;
+            }
+        }
 
         private bool KeyValue(
             UUID scriptItemId,
             string operation,
             string key,
             string value,
+            bool checkOriginal,
+            string originalValue,
+            int start,
+            int count,
             out string result,
+            out string code,
             out string error)
         {
             result = string.Empty;
+            code = string.Empty;
             error = string.Empty;
 
             if (!m_Enabled || scriptItemId.IsZero())
@@ -482,7 +640,11 @@ namespace NexVerse.RegionModules.Experiences
                             script_id = scriptItemId.ToString(),
                             operation,
                             key,
-                            value = value ?? string.Empty
+                            value = value ?? string.Empty,
+                            check_original = checkOriginal,
+                            original_value = originalValue ?? string.Empty,
+                            start,
+                            count
                         });
 
                 using HttpRequestMessage request =
@@ -521,16 +683,34 @@ namespace NexVerse.RegionModules.Experiences
 
                 if (document.RootElement.TryGetProperty(
                         "result",
-                        out JsonElement resultElement) &&
-                    resultElement.ValueKind == JsonValueKind.String)
+                        out JsonElement resultElement))
                 {
                     result =
-                        resultElement.GetString() ??
+                        resultElement.ValueKind == JsonValueKind.String
+                            ? resultElement.GetString() ?? string.Empty
+                            : resultElement.GetRawText();
+                }
+
+                if (document.RootElement.TryGetProperty(
+                        "code",
+                        out JsonElement codeElement) &&
+                    codeElement.ValueKind == JsonValueKind.String)
+                {
+                    code =
+                        codeElement.GetString() ??
                         string.Empty;
                 }
 
                 if (!success)
-                    error = "Experience key/value operation was rejected.";
+                {
+                    error =
+                        document.RootElement.TryGetProperty(
+                            "message",
+                            out JsonElement messageElement) &&
+                        messageElement.ValueKind == JsonValueKind.String
+                            ? messageElement.GetString() ?? "Experience key/value operation was rejected."
+                            : "Experience key/value operation was rejected.";
+                }
 
                 return success;
             }
