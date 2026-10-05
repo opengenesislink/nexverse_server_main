@@ -60,6 +60,22 @@ assert "NexInventoryApi" in connector
 assert 'LoadOptionalService<IAssetService>(config, "AssetService")' in connector
 assert "new NexInventoryApi(" in connector
 
+for schema in (
+    "InventoryPermissions",
+    "InventoryFolder",
+    "InventoryItem",
+    "InventoryTreeResponse",
+    "InventoryFolderContentResponse",
+    "InventoryItemResponse",
+    "InventorySearchScan",
+    "InventorySearchResponse",
+    "InventoryItemCreateRequest",
+    "InventoryItemCreateResponse",
+    "InventoryLinkCreateRequest",
+    "InventoryLinkCreateResponse",
+):
+    assert f'["{schema}"]' in world_api, f"missing Inventory schema: {schema}"
+
 for marker in (
     '["/api/v1/inventory/tree"]',
     '["/api/v1/inventory/search"]',
