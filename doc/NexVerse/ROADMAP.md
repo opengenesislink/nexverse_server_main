@@ -865,6 +865,8 @@ Foundation notes:
 - [x] removed duplicate Robust-side OAR/IAR in-memory operation registries; persistent Job Engine is authoritative;
 - [x] OAR/IAR publish phase-based progress into the Job Engine (`archiver_running` -> `completed`);
 - [x] archive worker cancellation contract refuses unsafe cancellation after the legacy archiver has started;
+- [x] native OGL worker contract/runner with cooperative CancellationToken support;
+- [x] native directory backup worker with staging, SHA-256 manifest, atomic activation and cleanup;
 - cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
