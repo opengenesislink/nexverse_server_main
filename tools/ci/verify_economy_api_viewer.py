@@ -10,6 +10,7 @@ opensim = Path("bin/OpenSim.ini.example").read_text(encoding="utf-8")
 for marker in (
     "internal sealed class NexEconomyApi",
     '"/api/v1/economy/balance"',
+    '"/api/v1/economy/virtual-account"',
     '"/api/v1/economy/transfers"',
     '"/api/v1/economy/transactions/"',
     '"reverse"',
@@ -23,6 +24,8 @@ for marker in (
     "economy.Reverse(",
     "economy.SetAccountStatus(",
     "economy.EnsureResidentAccount(",
+    "economy.EnsureVirtualBankAccount(",
+    "NexVirtualBankAccount.Scheme",
 ):
     assert marker in api, f"missing economy API marker: {marker}"
 
@@ -74,12 +77,14 @@ for forbidden in (
 
 for marker in (
     '["/api/v1/economy/balance"]',
+    '["/api/v1/economy/virtual-account"]',
     '["/api/v1/economy/transfers"]',
     '["/api/v1/economy/transactions/{transactionId}"]',
     '["/api/v1/economy/transactions/{transactionId}/reverse"]',
     '["/api/v1/economy/accounts/{accountId}/status"]',
     '["EconomyTransferRequest"]',
     '["EconomyBalanceResponse"]',
+    '["EconomyVirtualAccountResponse"]',
     '["EconomyTransferResponse"]',
     '["EconomyTransactionResponse"]',
     '["EconomyAccountStatusRequest"]',
