@@ -643,6 +643,9 @@ namespace NexVerse.RegionModules.NodeAgent
                 ["object_messages_per_second"] =
                     m_ObjectMessagesPerSecond.ToString(
                         System.Globalization.CultureInfo.InvariantCulture),
+                ["object_message_max_age_seconds"] =
+                    m_ObjectMessageMaxAgeSeconds.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture),
                 ["migration_storage_id"] =
                     m_MigrationStorageId,
                 ["luna_texture_diagnostic_count"] =
