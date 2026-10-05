@@ -137,8 +137,15 @@ namespace NexVerse.Server.Api
             EstateSettings estate =
                 m_Estates.LoadEstateSettings(regionId, false);
 
-            if (estate == null || estate.EstateID <= 0)
-                throw new InvalidOperationException("Estate-Zuordnung der Region konnte nicht bestimmt werden.");
+            if (estate == null ||
+                estate.EstateID == 0 ||
+                estate.EstateID > int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "Estate-Zuordnung der Region konnte nicht bestimmt oder nicht sicher verarbeitet werden.");
+            }
+
+            int estateId = checked((int)estate.EstateID);
 
             NexNodeRegionSnapshot sourceRegion =
                 sourceNode.Regions.FirstOrDefault(x =>
@@ -180,7 +187,7 @@ namespace NexVerse.Server.Api
                     sourceNode.NodeId,
                     targetNode.NodeId,
                     sourceNode.MigrationStorageId,
-                    estate.EstateID,
+                    estateId,
                     gridX,
                     gridY,
                     sizeX,
@@ -246,7 +253,7 @@ namespace NexVerse.Server.Api
                         gridY,
                         sizeX,
                         sizeY,
-                        estate.EstateID,
+                        estateId,
                         cancellationToken)
                     .ConfigureAwait(false);
                 targetCreated = true;
@@ -299,7 +306,7 @@ namespace NexVerse.Server.Api
                     sourceNode.NodeId,
                     targetNode.NodeId,
                     sourceNode.MigrationStorageId,
-                    estate.EstateID,
+                    estateId,
                     gridX,
                     gridY,
                     sizeX,
