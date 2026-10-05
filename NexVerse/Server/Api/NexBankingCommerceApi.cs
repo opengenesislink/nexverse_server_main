@@ -284,8 +284,18 @@ namespace NexVerse.Server.Api
                 {
                     if (!RequireMethod(method, "POST", response))
                         return;
-                    if (!Authenticate(request, response, NexScopes.AdminAll, out NexPrincipal principal, out _))
+                    if (!Authenticate(request, response, NexScopes.EconomyTransfer, out NexPrincipal principal, out UserAccount account))
                         return;
+                    if (account != null &&
+                        !principal.HasScope(NexScopes.AdminAll))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Forbidden,
+                            "commerce_refund_forbidden",
+                            "Commerce refunds require a trusted service or administrator.");
+                        return;
+                    }
                     HandleRefundOrder(request, response, orderId, principal);
                     return;
                 }
@@ -1382,18 +1392,23 @@ namespace NexVerse.Server.Api
                 if (orderId == Guid.Empty)
                     orderId = Guid.NewGuid();
 
+                NexLandLease existing =
+                    economy.GetLandLease(
+                        leaseId) ??
+                    throw new NexLedgerPolicyException("Land lease was not found.");
+
+                if (authenticated != null &&
+                    existing.TenantAccountId != authenticated.PrincipalID.Guid &&
+                    !principal.HasScope(NexScopes.AdminAll))
+                {
+                    throw new NexLedgerPolicyException("Resident tokens may pay only their own lease.");
+                }
+
                 NexLandLease lease =
                     economy.PayLandRent(
                         leaseId,
                         orderId,
                         Correlation(response));
-
-                if (authenticated != null &&
-                    lease.TenantAccountId != authenticated.PrincipalID.Guid &&
-                    !principal.HasScope(NexScopes.AdminAll))
-                {
-                    throw new NexLedgerPolicyException("Resident tokens may pay only their own lease.");
-                }
 
                 Audit(principal, "land.rent.paid", "land-lease:" + leaseId.ToString("D"), response);
 
