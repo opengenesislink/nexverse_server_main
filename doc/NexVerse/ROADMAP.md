@@ -920,6 +920,19 @@ Implemented transport foundation:
 
 Build the economy around immutable double-entry accounting.
 
+- [x] Immutable account/posting/transaction domain model in `NexVerse.Core.Economy`.
+- [x] Internal currency contract uses code `NVD`, display symbol `NV$` and integer units.
+- [x] Every transaction requires at least two accounts and exactly balanced debit/credit totals.
+- [x] Posting amounts must be positive; duplicate posting IDs and conflicting transaction-ID reuse are rejected.
+- [x] Transaction retries with identical immutable content are idempotent and do not double-book.
+- [x] Account balances use an explicit normal side so wallet/liability and system accounts can be modeled correctly.
+- [x] Storage abstraction `INexLedgerStore` keeps the domain independent from MySQL/MariaDB/PostgreSQL/SQLite.
+- [x] Deterministic in-memory reference store and CI regression cover atomic failure behavior and balance invariants.
+- [x] Ledger account classes and journal payload sizes are explicitly bounded and validated before storage.
+- [ ] Durable transactional SQL store with migrations for supported production database backends.
+- [ ] Account lifecycle/locking and append-only administrative adjustment/reversal policies.
+- [ ] Production service/API and Viewer `IMoneyModule` adapter; no production money flow is enabled before durable storage exists.
+
 Account classes:
 
 - resident;
