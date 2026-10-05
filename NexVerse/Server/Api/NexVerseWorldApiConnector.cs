@@ -7,6 +7,7 @@ using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Messaging;
+using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
 using OpenSim.Data;
@@ -246,6 +247,10 @@ namespace NexVerse.Server.Api
                         eventBus,
                         auditSink);
 
+                IOglJobStore jobStore = new PersistentOglJobStore(
+                    apiConfig.GetString("JobStorePath", "data/opengenesislink-jobs.json"));
+                OglJobEventBridge jobBridge = new OglJobEventBridge(jobStore, eventBus);
+
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];
 
@@ -363,7 +368,7 @@ namespace NexVerse.Server.Api
                         "NexVerse Inventory API"),
                     true);
 
-                OglOarApi oarApi = new OglOarApi(authenticator, nodeRegistry, eventBus);
+                OglOarApi oarApi = new OglOarApi(authenticator, nodeRegistry, eventBus, jobBridge);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/oar",
@@ -371,12 +376,20 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK OAR API"),
                     true);
 
-                OglIarApi iarApi = new OglIarApi(authenticator, nodeRegistry, userAccounts, eventBus);
+                OglIarApi iarApi = new OglIarApi(authenticator, nodeRegistry, userAccounts, eventBus, jobBridge);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/iar",
                         apiGate.Wrap(iarApi.Handle),
                         "OpenGenesisLINK IAR API"),
+                    true);
+
+                OglJobsApi jobsApi = new OglJobsApi(authenticator, jobStore);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/jobs",
+                        apiGate.Wrap(jobsApi.Handle),
+                        "OpenGenesisLINK Jobs API"),
                     true);
 
                 NexStatisticsApi statisticsApi = new NexStatisticsApi(
