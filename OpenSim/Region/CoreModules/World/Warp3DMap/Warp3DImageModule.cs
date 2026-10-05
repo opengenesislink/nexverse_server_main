@@ -30,8 +30,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime;
+using System.Text.Json;
 
 using CSJ2K;
 using Nini.Config;
@@ -84,6 +86,16 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
         private readonly Queue<UUID> m_lunaTextureDiagnosticOrder = new Queue<UUID>();
         private int m_lunaTextureDiagnosticLimit = 256;
         private bool m_lunaTexturePlaceholder = true;
+        private string m_lunaTextureDiagnosticStore = "data/lunatexture";
+        private string m_lunaTextureDiagnosticStorePath = string.Empty;
+        private DateTime m_lunaTextureLastPersistUtc = DateTime.MinValue;
+        private bool m_lunaTextureStoreDirty;
+        private static readonly TimeSpan s_lunaTexturePersistInterval = TimeSpan.FromSeconds(5);
+        private static readonly JsonSerializerOptions s_lunaTextureJson = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true
+        };
 
         private bool m_drawPrimVolume = true;   // true if should render the prims on the tile
         private bool m_textureTerrain = true;   // true if to create terrain splatting texture
@@ -134,6 +146,12 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 Util.GetConfigVarFromSections<bool>(source, "LunaTexturePlaceholder", configSections, m_lunaTexturePlaceholder);
             m_lunaTextureDiagnosticLimit = Math.Max(16,
                 Util.GetConfigVarFromSections<int>(source, "LunaTextureDiagnosticLimit", configSections, m_lunaTextureDiagnosticLimit));
+            m_lunaTextureDiagnosticStore =
+                Util.GetConfigVarFromSections<string>(
+                    source,
+                    "LunaTextureDiagnosticStore",
+                    configSections,
+                    m_lunaTextureDiagnosticStore)?.Trim() ?? string.Empty;
 
             m_renderMaxHeight = Util.GetConfigVarFromSections<float>(source, "RenderMaxHeight", configSections, m_renderMaxHeight);
             m_renderMinHeight = Util.GetConfigVarFromSections<float>(source, "RenderMinHeight", configSections, m_renderMinHeight);
@@ -162,6 +180,13 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 return;
 
             m_scene = scene;
+
+            if (m_lunaTextureEnabled)
+            {
+                m_lunaTextureDiagnosticStorePath =
+                    ResolveLunaTextureDiagnosticStorePath(scene);
+                LoadLunaTextureDiagnostics();
+            }
 
             List<string> renderers = RenderingLoader.ListRenderers(Util.ExecutingDirectory());
             if (renderers.Count > 0)
@@ -200,10 +225,14 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
         public void RemoveRegion(Scene scene)
         {
+            if (m_lunaTextureEnabled)
+                PersistLunaTextureDiagnostics(true);
         }
 
         public void Close()
         {
+            if (m_lunaTextureEnabled)
+                PersistLunaTextureDiagnostics(true);
         }
 
         public string Name
@@ -888,29 +917,273 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 {
                     existing.Count++;
                     existing.LastSeenUtc = DateTime.UtcNow;
+                    existing.Classification = classification ?? existing.Classification;
+                    existing.PrimName = sop?.Name ?? existing.PrimName;
+                    existing.Position = sop?.GetWorldPosition().ToString() ?? existing.Position;
                     existing.Reason = reason;
+                    m_lunaTextureStoreDirty = true;
+                }
+                else
+                {
+                    while (m_lunaTextureDiagnostics.Count >= m_lunaTextureDiagnosticLimit &&
+                           m_lunaTextureDiagnosticOrder.Count > 0)
+                    {
+                        UUID oldest = m_lunaTextureDiagnosticOrder.Dequeue();
+                        m_lunaTextureDiagnostics.Remove(oldest);
+                    }
+
+                    m_lunaTextureDiagnostics[id] = new LunaTextureDiagnostic
+                    {
+                        TextureID = id,
+                        Classification = classification,
+                        PrimName = sop?.Name ?? "<unknown>",
+                        Position = sop?.GetWorldPosition().ToString() ?? "<unknown>",
+                        Reason = reason,
+                        LastSeenUtc = DateTime.UtcNow,
+                        Count = 1
+                    };
+                    m_lunaTextureDiagnosticOrder.Enqueue(id);
+                    m_lunaTextureStoreDirty = true;
+                }
+            }
+
+            PersistLunaTextureDiagnostics(false);
+        }
+
+        private string ResolveLunaTextureDiagnosticStorePath(Scene scene)
+        {
+            if (scene == null || string.IsNullOrWhiteSpace(m_lunaTextureDiagnosticStore))
+                return string.Empty;
+
+            string root = System.IO.Path.IsPathRooted(m_lunaTextureDiagnosticStore)
+                ? m_lunaTextureDiagnosticStore
+                : System.IO.Path.Combine(AppContext.BaseDirectory, m_lunaTextureDiagnosticStore);
+
+            root = System.IO.Path.GetFullPath(root);
+            Directory.CreateDirectory(root);
+
+            return System.IO.Path.Combine(
+                root,
+                scene.RegionInfo.RegionID.ToString() + ".json");
+        }
+
+        private void LoadLunaTextureDiagnostics()
+        {
+            if (string.IsNullOrWhiteSpace(m_lunaTextureDiagnosticStorePath) ||
+                !File.Exists(m_lunaTextureDiagnosticStorePath))
+            {
+                return;
+            }
+
+            try
+            {
+                string json =
+                    File.ReadAllText(m_lunaTextureDiagnosticStorePath);
+                LunaTextureDiagnosticStoreDocument document =
+                    JsonSerializer.Deserialize<LunaTextureDiagnosticStoreDocument>(
+                        json,
+                        s_lunaTextureJson);
+
+                if (document?.Records == null)
+                    return;
+
+                List<LunaTextureDiagnosticStoreRecord> records =
+                    document.Records
+                        .Where(record =>
+                            record != null &&
+                            UUID.TryParse(record.TextureID, out _) &&
+                            record.Count > 0)
+                        .OrderBy(record => record.LastSeenUtc)
+                        .TakeLast(m_lunaTextureDiagnosticLimit)
+                        .ToList();
+
+                lock (m_textureDecodeWarningsLock)
+                {
+                    m_lunaTextureDiagnostics.Clear();
+                    m_lunaTextureDiagnosticOrder.Clear();
+
+                    foreach (LunaTextureDiagnosticStoreRecord record in records)
+                    {
+                        if (!UUID.TryParse(record.TextureID, out UUID textureID))
+                            continue;
+
+                        m_lunaTextureDiagnostics[textureID] =
+                            new LunaTextureDiagnostic
+                            {
+                                TextureID = textureID,
+                                Classification = record.Classification ?? "unknown",
+                                PrimName = record.PrimName ?? "<unknown>",
+                                Position = record.Position ?? "<unknown>",
+                                Reason = record.Reason ?? string.Empty,
+                                LastSeenUtc =
+                                    record.LastSeenUtc == default
+                                        ? DateTime.UtcNow
+                                        : record.LastSeenUtc.ToUniversalTime(),
+                                Count = Math.Max(1, record.Count)
+                            };
+
+                        m_lunaTextureDiagnosticOrder.Enqueue(textureID);
+                        m_textureDecodeWarnings.Add(textureID);
+                    }
+
+                    m_lunaTextureStoreDirty = false;
+                    m_lunaTextureLastPersistUtc = DateTime.UtcNow;
+                }
+
+                m_log.InfoFormat(
+                    "[LunaTexture]: loaded {0} persistent diagnostic record(s) for region {1}",
+                    records.Count,
+                    m_scene?.RegionInfo.RegionName ?? "<unknown>");
+            }
+            catch (Exception e)
+            {
+                m_log.Warn(
+                    "[LunaTexture]: persistent diagnostic store could not be loaded; runtime diagnostics continue in memory.",
+                    e);
+            }
+        }
+
+        private void PersistLunaTextureDiagnostics(bool force)
+        {
+            if (string.IsNullOrWhiteSpace(m_lunaTextureDiagnosticStorePath))
+                return;
+
+            List<LunaTextureDiagnosticStoreRecord> records;
+
+            lock (m_textureDecodeWarningsLock)
+            {
+                if (!m_lunaTextureStoreDirty && !force)
+                    return;
+
+                DateTime now = DateTime.UtcNow;
+                if (!force &&
+                    now - m_lunaTextureLastPersistUtc <
+                    s_lunaTexturePersistInterval)
+                {
                     return;
                 }
 
-                while (m_lunaTextureDiagnostics.Count >= m_lunaTextureDiagnosticLimit &&
-                       m_lunaTextureDiagnosticOrder.Count > 0)
-                {
-                    UUID oldest = m_lunaTextureDiagnosticOrder.Dequeue();
-                    m_lunaTextureDiagnostics.Remove(oldest);
-                }
-
-                m_lunaTextureDiagnostics[id] = new LunaTextureDiagnostic
-                {
-                    TextureID = id,
-                    Classification = classification,
-                    PrimName = sop?.Name ?? "<unknown>",
-                    Position = sop?.GetWorldPosition().ToString() ?? "<unknown>",
-                    Reason = reason,
-                    LastSeenUtc = DateTime.UtcNow,
-                    Count = 1
-                };
-                m_lunaTextureDiagnosticOrder.Enqueue(id);
+                records =
+                    m_lunaTextureDiagnostics.Values
+                        .OrderBy(item => item.LastSeenUtc)
+                        .Select(item =>
+                            new LunaTextureDiagnosticStoreRecord
+                            {
+                                TextureID = item.TextureID.ToString(),
+                                Classification = item.Classification,
+                                PrimName = item.PrimName,
+                                Position = item.Position,
+                                Reason = item.Reason,
+                                LastSeenUtc = item.LastSeenUtc,
+                                Count = item.Count
+                            })
+                        .ToList();
             }
+
+            string tempPath =
+                m_lunaTextureDiagnosticStorePath +
+                ".tmp-" +
+                Guid.NewGuid().ToString("N");
+
+            try
+            {
+                string directory =
+                    System.IO.Path.GetDirectoryName(m_lunaTextureDiagnosticStorePath);
+                if (!string.IsNullOrWhiteSpace(directory))
+                    Directory.CreateDirectory(directory);
+
+                LunaTextureDiagnosticStoreDocument document =
+                    new LunaTextureDiagnosticStoreDocument
+                    {
+                        Version = 1,
+                        RegionID =
+                            m_scene?.RegionInfo.RegionID.ToString() ??
+                            string.Empty,
+                        UpdatedUtc = DateTime.UtcNow,
+                        Records = records
+                    };
+
+                File.WriteAllText(
+                    tempPath,
+                    JsonSerializer.Serialize(
+                        document,
+                        s_lunaTextureJson));
+                File.Move(
+                    tempPath,
+                    m_lunaTextureDiagnosticStorePath,
+                    true);
+
+                lock (m_textureDecodeWarningsLock)
+                {
+                    m_lunaTextureStoreDirty = false;
+                    m_lunaTextureLastPersistUtc = DateTime.UtcNow;
+                }
+            }
+            catch (Exception e)
+            {
+                lock (m_textureDecodeWarningsLock)
+                    m_lunaTextureStoreDirty = true;
+
+                m_log.Warn(
+                    "[LunaTexture]: persistent diagnostic store could not be updated.",
+                    e);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath))
+                        File.Delete(tempPath);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private void DeleteLunaTextureDiagnosticStore()
+        {
+            if (string.IsNullOrWhiteSpace(m_lunaTextureDiagnosticStorePath))
+                return;
+
+            try
+            {
+                if (File.Exists(m_lunaTextureDiagnosticStorePath))
+                    File.Delete(m_lunaTextureDiagnosticStorePath);
+            }
+            catch (Exception e)
+            {
+                m_log.Warn(
+                    "[LunaTexture]: persistent diagnostic store could not be cleared.",
+                    e);
+            }
+        }
+
+        private sealed class LunaTextureDiagnosticStoreDocument
+        {
+            public LunaTextureDiagnosticStoreDocument()
+            {
+            }
+
+            public int Version { get; set; }
+            public string RegionID { get; set; }
+            public DateTime UpdatedUtc { get; set; }
+            public List<LunaTextureDiagnosticStoreRecord> Records { get; set; }
+        }
+
+        private sealed class LunaTextureDiagnosticStoreRecord
+        {
+            public LunaTextureDiagnosticStoreRecord()
+            {
+            }
+
+            public string TextureID { get; set; }
+            public string Classification { get; set; }
+            public string PrimName { get; set; }
+            public string Position { get; set; }
+            public string Reason { get; set; }
+            public DateTime LastSeenUtc { get; set; }
+            public int Count { get; set; }
         }
 
         private static warp_Texture CreateLunaTexturePlaceholder()
@@ -976,7 +1249,11 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
                 m_lunaTextureDiagnostics.Clear();
                 m_lunaTextureDiagnosticOrder.Clear();
                 m_textureDecodeWarnings.Clear();
+                m_lunaTextureStoreDirty = false;
+                m_lunaTextureLastPersistUtc = DateTime.UtcNow;
             }
+
+            DeleteLunaTextureDiagnosticStore();
         }
 
         private static LunaTextureDiagnosticInfo ToDiagnosticInfo(LunaTextureDiagnostic item)

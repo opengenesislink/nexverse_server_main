@@ -268,6 +268,8 @@ namespace NexVerse.RegionModules.NodeAgent
         {
             Scene[] scenes = m_Scenes.Values.ToArray();
             int agents = scenes.Sum(x => x.GetRootAgentCount());
+            LunaTextureNodeSummary lunaTexture =
+                CollectLunaTextureDiagnostics(scenes);
 
             using Process process = Process.GetCurrentProcess();
             DriveInfo drive = new DriveInfo(Path.GetPathRoot(AppContext.BaseDirectory) ?? "/");
@@ -294,12 +296,107 @@ namespace NexVerse.RegionModules.NodeAgent
                         .ToString(),
                 ["migration_storage_id"] =
                     m_MigrationStorageId,
+                ["luna_texture_diagnostic_count"] =
+                    lunaTexture.DiagnosticCount.ToString(),
+                ["luna_texture_occurrence_count"] =
+                    lunaTexture.OccurrenceCount.ToString(),
+                ["luna_texture_regions_affected"] =
+                    lunaTexture.RegionsAffected.ToString(),
+                ["luna_texture_last_seen_utc"] =
+                    lunaTexture.LastSeenUtc?.ToString("O") ?? string.Empty,
+                ["luna_texture_classifications_json"] =
+                    JsonSerializer.Serialize(lunaTexture.Classifications),
                 ["regions"] = string.Join(
                     ";",
                     scenes
                         .OrderBy(x => x.RegionInfo.RegionName, StringComparer.OrdinalIgnoreCase)
                         .Select(x => x.RegionInfo.RegionID + "|" + x.RegionInfo.RegionName))
             };
+        }
+
+        private LunaTextureNodeSummary CollectLunaTextureDiagnostics(
+            Scene[] scenes)
+        {
+            LunaTextureNodeSummary summary =
+                new LunaTextureNodeSummary();
+
+            foreach (Scene scene in scenes)
+            {
+                try
+                {
+                    ILunaTextureDiagnostics diagnostics =
+                        scene.RequestModuleInterface<ILunaTextureDiagnostics>();
+
+                    if (diagnostics == null)
+                        continue;
+
+                    IReadOnlyList<LunaTextureDiagnosticInfo> records =
+                        diagnostics.GetDiagnostics();
+
+                    if (records == null || records.Count == 0)
+                        continue;
+
+                    summary.RegionsAffected++;
+
+                    foreach (LunaTextureDiagnosticInfo record in records)
+                    {
+                        if (record == null)
+                            continue;
+
+                        summary.DiagnosticCount++;
+                        long occurrences =
+                            Math.Max(1, record.Count);
+                        summary.OccurrenceCount += occurrences;
+
+                        string classification =
+                            string.IsNullOrWhiteSpace(record.Classification)
+                                ? "unknown"
+                                : record.Classification.Trim().ToLowerInvariant();
+
+                        if (!summary.Classifications.TryGetValue(
+                                classification,
+                                out long current))
+                        {
+                            current = 0;
+                        }
+
+                        summary.Classifications[classification] =
+                            current + occurrences;
+
+                        DateTime seen =
+                            record.LastSeenUtc.Kind == DateTimeKind.Utc
+                                ? record.LastSeenUtc
+                                : record.LastSeenUtc.ToUniversalTime();
+
+                        if (!summary.LastSeenUtc.HasValue ||
+                            seen > summary.LastSeenUtc.Value)
+                        {
+                            summary.LastSeenUtc = seen;
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    m_Log.DebugFormat(
+                        "[NEX-NODE]: LunaTexture diagnostics unavailable for region {0}: {1}",
+                        scene?.RegionInfo.RegionName ?? "<unknown>",
+                        e.Message);
+                }
+            }
+
+            return summary;
+        }
+
+        private sealed class LunaTextureNodeSummary
+        {
+            public int DiagnosticCount;
+            public long OccurrenceCount;
+            public int RegionsAffected;
+            public DateTime? LastSeenUtc;
+
+            public Dictionary<string, long> Classifications { get; } =
+                new Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
         }
 
         private void PublishRegionEvent(string name, Scene scene)

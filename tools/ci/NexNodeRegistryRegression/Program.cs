@@ -43,6 +43,11 @@ internal static class Program
                 ["cpu_seconds"] = "3.500",
                 ["region_count"] = "2",
                 ["agent_count"] = "7",
+                ["luna_texture_diagnostic_count"] = "3",
+                ["luna_texture_occurrence_count"] = "8",
+                ["luna_texture_regions_affected"] = "2",
+                ["luna_texture_last_seen_utc"] = "2026-10-05T18:00:00.0000000Z",
+                ["luna_texture_classifications_json"] = "{\"missing\":5,\"png\":3}",
                 ["regions"] =
                     "11111111-1111-1111-1111-111111111111|Alpha;" +
                     "22222222-2222-2222-2222-222222222222|Beta"
@@ -56,6 +61,17 @@ internal static class Program
         Require(first.Hostname == "sim-a.internal", "hostname mismatch");
         Require(first.RegionCount == 2, "heartbeat region count mismatch");
         Require(first.AgentCount == 7, "heartbeat agent count mismatch");
+        Require(first.LunaTextureDiagnosticCount == 3,
+            "LunaTexture diagnostic count mismatch");
+        Require(first.LunaTextureOccurrenceCount == 8,
+            "LunaTexture occurrence count mismatch");
+        Require(first.LunaTextureRegionsAffected == 2,
+            "LunaTexture affected-region count mismatch");
+        Require(first.LunaTextureLastSeen.HasValue,
+            "LunaTexture last-seen timestamp missing");
+        Require(first.LunaTextureClassifications["missing"] == 5 &&
+                first.LunaTextureClassifications["png"] == 3,
+            "LunaTexture classification projection mismatch");
         Require(first.Regions.Count == 2, "heartbeat region list mismatch");
 
         bus.Publish(Event(
@@ -95,6 +111,11 @@ internal static class Program
                 ["node_id"] = "sim-a",
                 ["region_count"] = "1",
                 ["agent_count"] = "4",
+                ["luna_texture_diagnostic_count"] = "0",
+                ["luna_texture_occurrence_count"] = "0",
+                ["luna_texture_regions_affected"] = "0",
+                ["luna_texture_last_seen_utc"] = "",
+                ["luna_texture_classifications_json"] = "{}",
                 ["regions"] =
                     "11111111-1111-1111-1111-111111111111|Alpha"
             }));
@@ -104,6 +125,12 @@ internal static class Program
 
         Require(pruned.Regions.Count == 1,
             "heartbeat must prune regions no longer reported");
+        Require(pruned.LunaTextureDiagnosticCount == 0 &&
+                pruned.LunaTextureOccurrenceCount == 0 &&
+                pruned.LunaTextureRegionsAffected == 0 &&
+                !pruned.LunaTextureLastSeen.HasValue &&
+                pruned.LunaTextureClassifications.Count == 0,
+            "heartbeat must refresh LunaTexture aggregate projection");
         Require(registry.FindNodeForRegion(
                     "22222222-2222-2222-2222-222222222222") == null,
             "removed heartbeat region must not retain node ownership");

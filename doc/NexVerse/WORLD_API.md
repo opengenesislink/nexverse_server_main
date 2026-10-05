@@ -37,6 +37,20 @@ The response reports its effective privacy level through:
 - `detail_level=aggregate|authenticated`
 - `protected_details=false|true`
 
+## LunaTexture diagnostics projection
+
+LunaTexture keeps detailed recovery diagnostics on the simulator where the rendering failure occurs. Each enabled Warp3D region persists a bounded diagnostic store under `LunaTextureDiagnosticStore` (default: `data/lunatexture`) using per-region JSON files, store format version `1`, and atomic file replacement. `nex texture clear` clears both the in-memory state and the persistent region store.
+
+The NodeAgent heartbeat projects only aggregate diagnostic data to Robust:
+
+- diagnostic texture record count;
+- total observed occurrence count;
+- number of affected regions;
+- most recent diagnostic timestamp;
+- occurrence counts grouped by LunaTexture classification.
+
+Detailed prim names, positions and diagnostic reasons are not transmitted through NexBus. `GET /api/v1/nodes` exposes a `luna_texture` aggregate across online nodes and each node object contains its own `luna_texture` summary. `GET /api/v1/nodes/{nodeId}` exposes the same node-level summary. These endpoints remain protected by `simulators:read`.
+
 ## Privileged user API foundation
 
 The authenticated user-management foundation now implements:
@@ -213,7 +227,7 @@ Protected endpoints:
 - `GET /api/v1/nodes` — list observed simulator nodes
 - `GET /api/v1/nodes/{nodeId}` — inspect one simulator node
 
-Both require `simulators:read`. Responses expose node ID, hostname, NexVerse version, online/stale/offline state, uptime, process ID, working-set memory, CPU time, region/agent counts, heartbeat timestamps and the currently reported region list. The default stale threshold is 90 seconds and can be changed with `NodeStaleAfterSeconds` in `[NexBus]`.
+Both require `simulators:read`. Responses expose node ID, hostname, OpenGenesisLINK server version, online/stale/offline state, uptime, process ID, working-set memory, CPU time, region/agent counts, heartbeat timestamps, the currently reported region list and a privacy-bounded `luna_texture` diagnostic summary. The list endpoint additionally aggregates LunaTexture data across currently online simulator nodes. The default stale threshold is 90 seconds and can be changed with `NodeStaleAfterSeconds` in `[NexBus]`.
 
 The API Control Center exposes the same protected data in a dedicated **Simulatoren** view with online/stale/offline counts, NodeAgent transport status, process/resource information and per-node region details. Credentials entered there remain in the open page only and are not persisted.
 
