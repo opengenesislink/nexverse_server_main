@@ -185,6 +185,30 @@ namespace NexVerse.Server.Api
                     ("post", "NexVerse-verwaltete Region starten, stoppen oder neu starten", "regions:manage", "202")),
                 ["/api/v1/region-operations/{operationId}"] = AuthenticatedOperations(
                     ("get", "Status einer asynchronen Regionsoperation lesen", "regions:read", "200")),
+                ["/api/v1/inventory/tree"] = AuthenticatedOperations(
+                    ("get", "Inventarwurzel und Ordnerstruktur lesen", "inventory:read", "200")),
+                ["/api/v1/inventory/search"] = AuthenticatedOperations(
+                    ("get", "Inventarordner und Items begrenzt durchsuchen", "inventory:read", "200")),
+                ["/api/v1/inventory/folders"] = AuthenticatedOperations(
+                    ("post", "Inventarordner erstellen", "inventory:write", "201")),
+                ["/api/v1/inventory/folders/{folderId}"] = AuthenticatedOperations(
+                    ("get", "Inventarordner samt direktem Inhalt lesen", "inventory:read", "200"),
+                    ("patch", "Inventarordner umbenennen oder verschieben", "inventory:write", "200"),
+                    ("delete", "Inventarordner sicher in den Papierkorb verschieben", "inventory:write", "200")),
+                ["/api/v1/inventory/items"] = AuthenticatedOperations(
+                    ("post", "Inventaritem aus vorhandenem Asset erzeugen", "inventory:write + admin:*", "201")),
+                ["/api/v1/inventory/items/{itemId}"] = AuthenticatedOperations(
+                    ("get", "Inventaritem lesen", "inventory:read", "200"),
+                    ("patch", "Inventaritem umbenennen, beschreiben oder verschieben", "inventory:write", "200"),
+                    ("delete", "Inventaritem sicher in den Papierkorb verschieben", "inventory:write", "200")),
+                ["/api/v1/inventory/items/copy"] = AuthenticatedOperations(
+                    ("post", "Eigenes Inventaritem in einen Zielordner kopieren", "inventory:write", "201")),
+                ["/api/v1/inventory/links"] = AuthenticatedOperations(
+                    ("post", "Direkten Item- oder Ordnerlink erzeugen", "inventory:write", "201")),
+                ["/api/v1/inventory/lost-and-found"] = AuthenticatedOperations(
+                    ("get", "Lost-&-Found-Ordner und direkten Inhalt lesen", "inventory:read", "200")),
+                ["/api/v1/inventory/trash/empty"] = AuthenticatedOperations(
+                    ("post", "Papierkorb des ausgewählten Inventars endgültig leeren", "inventory:write", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
                     ("get", "Authentifiziertes Einwohnerkonto lesen", null, "200")),
                 ["/api/v1/users"] = AuthenticatedOperations(
@@ -528,6 +552,102 @@ namespace NexVerse.Server.Api
                     "Idempotency-Key",
                     false,
                     "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
+
+            object inventoryOwnerParameter =
+                QueryParameter(
+                    "owner_id",
+                    false,
+                    "Optionaler Inventory-Owner als UUID; ein fremder Owner erfordert zusätzlich admin:*.");
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/tree",
+                "get",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/search",
+                "get",
+                inventoryOwnerParameter,
+                QueryParameter(
+                    "q",
+                    false,
+                    "Optionaler, nicht zwischen Groß-/Kleinschreibung unterscheidender Suchbegriff."),
+                IntegerQueryParameter(
+                    "limit",
+                    false,
+                    1,
+                    500,
+                    "Maximale Anzahl Ordner und Items je Ergebnistyp; Standard 100."));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/folders",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items/copy",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/links",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/lost-and-found",
+                "get",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/trash/empty",
+                "post",
+                inventoryOwnerParameter);
+
+            object inventoryFolderIdParameter =
+                PathParameter(
+                    "folderId",
+                    "UUID des Inventarordners.");
+            foreach (string method in new[]
+                     {
+                         "get",
+                         "patch",
+                         "delete"
+                     })
+            {
+                AddOperationParameters(
+                    paths,
+                    "/api/v1/inventory/folders/{folderId}",
+                    method,
+                    inventoryFolderIdParameter,
+                    inventoryOwnerParameter);
+            }
+
+            object inventoryItemIdParameter =
+                PathParameter(
+                    "itemId",
+                    "UUID des Inventaritems.");
+            foreach (string method in new[]
+                     {
+                         "get",
+                         "patch",
+                         "delete"
+                     })
+            {
+                AddOperationParameters(
+                    paths,
+                    "/api/v1/inventory/items/{itemId}",
+                    method,
+                    inventoryItemIdParameter,
+                    inventoryOwnerParameter);
+            }
 
             object principalIdParameter =
                 PathParameter(
