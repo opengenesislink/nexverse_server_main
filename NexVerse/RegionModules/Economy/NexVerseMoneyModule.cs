@@ -482,16 +482,21 @@ namespace NexVerse.RegionModules.Economy
                 return;
             }
 
+            Guid orderId =
+                Guid.NewGuid();
+
             bool paid =
                 salePrice <= 0 ||
-                MoveMoneyInternal(
+                CommercePaymentInternal(
                     agentID,
                     seller,
                     salePrice,
+                    "ObjectSale",
                     "Object purchase: " +
                     root.Name,
-                    "object-buy-" +
-                    Guid.NewGuid().ToString("N"),
+                    "object:" +
+                    group.UUID.ToString(),
+                    orderId,
                     out string paymentError);
 
             if (!paid)
@@ -516,14 +521,9 @@ namespace NexVerse.RegionModules.Economy
             {
                 if (salePrice > 0)
                 {
-                    MoveMoneyInternal(
-                        seller,
-                        agentID,
-                        salePrice,
-                        "Object purchase rollback: " +
-                        root.Name,
-                        "object-buy-rollback-" +
-                        Guid.NewGuid().ToString("N"),
+                    RefundCommerceInternal(
+                        orderId,
+                        "Object delivery failed",
                         out _);
                 }
 
@@ -630,15 +630,31 @@ namespace NexVerse.RegionModules.Economy
             if (objectPayment)
                 paymentReceiver = objectOwner;
 
+            Guid commerceOrderId =
+                Guid.NewGuid();
+
             bool success =
-                MoveMoneyInternal(
-                    e.sender,
-                    paymentReceiver,
-                    e.amount,
-                    e.description,
-                    "viewer-event-" +
-                    Guid.NewGuid().ToString("N"),
-                    out string reason);
+                objectPayment
+                    ? CommercePaymentInternal(
+                        e.sender,
+                        paymentReceiver,
+                        e.amount,
+                        "VendorPayment",
+                        string.IsNullOrWhiteSpace(e.description)
+                            ? "Inworld object payment"
+                            : e.description,
+                        "object:" +
+                        e.receiver.ToString(),
+                        commerceOrderId,
+                        out string reason)
+                    : MoveMoneyInternal(
+                        e.sender,
+                        paymentReceiver,
+                        e.amount,
+                        e.description,
+                        "viewer-event-" +
+                        Guid.NewGuid().ToString("N"),
+                        out reason);
 
             if (!success)
             {
@@ -705,6 +721,160 @@ namespace NexVerse.RegionModules.Economy
                     string.IsNullOrWhiteSpace(reason)
                         ? "NV$ fee transfer failed."
                         : reason);
+            }
+        }
+
+
+        private bool CommercePaymentInternal(
+            UUID buyer,
+            UUID seller,
+            int amount,
+            string kind,
+            string reference,
+            string externalReference,
+            Guid orderId,
+            out string reason)
+        {
+            reason =
+                string.Empty;
+
+            if (!m_Enabled ||
+                buyer.IsZero() ||
+                seller.IsZero() ||
+                buyer == seller ||
+                amount <= 0 ||
+                orderId == Guid.Empty)
+            {
+                reason =
+                    "Invalid NV$ commerce payment.";
+                return false;
+            }
+
+            try
+            {
+                if (!EnsureLocalServiceWallet(
+                        buyer,
+                        out reason) ||
+                    !EnsureLocalServiceWallet(
+                        seller,
+                        out reason))
+                {
+                    return false;
+                }
+
+                byte[] payload =
+                    JsonSerializer.SerializeToUtf8Bytes(
+                        new
+                        {
+                            order_id =
+                                orderId.ToString(),
+                            kind,
+                            buyer_account_id =
+                                buyer.ToString(),
+                            seller_account_id =
+                                seller.ToString(),
+                            amount,
+                            reference =
+                                string.IsNullOrWhiteSpace(reference)
+                                    ? "NexCommerce payment"
+                                    : reference,
+                            external_reference =
+                                externalReference ??
+                                string.Empty
+                        });
+
+                using HttpRequestMessage request =
+                    CreateRequest(
+                        HttpMethod.Post,
+                        "/api/v1/commerce/orders");
+
+                request.Content =
+                    new ByteArrayContent(
+                        payload);
+                request.Content.Headers.ContentType =
+                    new MediaTypeHeaderValue(
+                        "application/json");
+
+                using HttpResponseMessage response =
+                    m_Http.Send(request);
+
+                if (response.IsSuccessStatusCode)
+                    return true;
+
+                reason =
+                    ReadErrorMessage(
+                        response);
+                return false;
+            }
+            catch (Exception e)
+            {
+                reason =
+                    "NexCommerce service unavailable.";
+
+                m_Log.WarnFormat(
+                    "[NEX-ECONOMY-VIEWER]: Commerce payment {0}->{1} failed: {2}",
+                    buyer,
+                    seller,
+                    e.Message);
+                return false;
+            }
+        }
+
+        private bool RefundCommerceInternal(
+            Guid orderId,
+            string reasonText,
+            out string reason)
+        {
+            reason =
+                string.Empty;
+
+            try
+            {
+                byte[] payload =
+                    JsonSerializer.SerializeToUtf8Bytes(
+                        new
+                        {
+                            reason =
+                                string.IsNullOrWhiteSpace(reasonText)
+                                    ? "Commerce rollback"
+                                    : reasonText
+                        });
+
+                using HttpRequestMessage request =
+                    CreateRequest(
+                        HttpMethod.Post,
+                        "/api/v1/commerce/orders/" +
+                        orderId.ToString("D") +
+                        "/refund");
+
+                request.Content =
+                    new ByteArrayContent(
+                        payload);
+                request.Content.Headers.ContentType =
+                    new MediaTypeHeaderValue(
+                        "application/json");
+
+                using HttpResponseMessage response =
+                    m_Http.Send(request);
+
+                if (response.IsSuccessStatusCode)
+                    return true;
+
+                reason =
+                    ReadErrorMessage(
+                        response);
+                return false;
+            }
+            catch (Exception e)
+            {
+                reason =
+                    "NexCommerce refund service unavailable.";
+
+                m_Log.WarnFormat(
+                    "[NEX-ECONOMY-VIEWER]: Commerce refund {0} failed: {1}",
+                    orderId,
+                    e.Message);
+                return false;
             }
         }
 
