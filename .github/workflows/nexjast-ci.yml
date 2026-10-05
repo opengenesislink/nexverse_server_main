@@ -125,6 +125,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_restore_worker.py
 
+      - name: Verify native asset reindex worker
+        shell: bash
+        run: python3 tools/ci/verify_native_asset_reindex_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py

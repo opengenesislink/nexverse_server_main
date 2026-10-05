@@ -3,7 +3,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -139,6 +141,158 @@ namespace NexVerse.Core.Jobs
         }
         private static async Task CopyAsync(string source,string target,CancellationToken token){await using FileStream input=new(source,FileMode.Open,FileAccess.Read,FileShare.Read,1024*1024,true);await using FileStream output=new(target,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);await input.CopyToAsync(output,1024*1024,token).ConfigureAwait(false);await output.FlushAsync(token).ConfigureAwait(false);}
         private static string Required(IReadOnlyDictionary<string,string> p,string key)=>p!=null&&p.TryGetValue(key,out string v)&&!string.IsNullOrWhiteSpace(v)?v.Trim():throw new ArgumentException("Job-Parameter fehlt: "+key);
+    }
+
+    public sealed class OglAssetReindexWorker : IOglJobWorker
+    {
+        private readonly string m_AssetRoot;
+        private readonly string m_IndexPath;
+
+        public OglAssetReindexWorker(string assetRoot,string indexPath)
+        {
+            m_AssetRoot=assetRoot??string.Empty;
+            m_IndexPath=indexPath??string.Empty;
+        }
+
+        public string JobType=>"assets.reindex";
+
+        public async Task<IReadOnlyDictionary<string,string>> ExecuteAsync(OglJobContext context,IReadOnlyDictionary<string,string> parameters,CancellationToken cancellationToken)
+        {
+            if(string.IsNullOrWhiteSpace(m_AssetRoot))throw new InvalidOperationException("FSAssetStore BaseDirectory ist nicht konfiguriert.");
+            if(string.IsNullOrWhiteSpace(m_IndexPath))throw new InvalidOperationException("AssetIndexPath ist nicht konfiguriert.");
+
+            string assetRoot=Path.GetFullPath(m_AssetRoot);
+            string indexPath=Path.GetFullPath(m_IndexPath);
+            if(!Directory.Exists(assetRoot))throw new DirectoryNotFoundException("FSAssetStore-Verzeichnis existiert nicht: "+assetRoot);
+
+            context.Progress(2,"inventory","Asset-Dateien werden erfasst.");
+            EnumerationOptions options=new(){RecurseSubdirectories=true,IgnoreInaccessible=false,AttributesToSkip=FileAttributes.ReparsePoint};
+            int candidateCount=0;int ignoredFiles=0;
+            foreach(string file in Directory.EnumerateFiles(assetRoot,"*",options))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if(TryExpectedHash(file,out _,out _))candidateCount++;else ignoredFiles++;
+            }
+            context.Log($"{candidateCount} Asset-Dateien erkannt, {ignoredFiles} sonstige Dateien ignoriert.");
+            context.Progress(8,"verifying","Asset-Inhalte werden gegen ihre SHA-256-Dateinamen geprueft.");
+
+            string indexDirectory=Path.GetDirectoryName(indexPath);
+            if(!string.IsNullOrWhiteSpace(indexDirectory))Directory.CreateDirectory(indexDirectory);
+            string staging=indexPath+".staging-"+Guid.NewGuid().ToString("N");
+            long storedBytes=0;int indexedAssets=0;int compressedAssets=0;int duplicateHashes=0;int processed=0;int lastProgress=-1;
+            HashSet<string> seenHashes=new(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                {
+                    await using FileStream output=new(staging,FileMode.CreateNew,FileAccess.Write,FileShare.None,1024*1024,true);
+                    using Utf8JsonWriter writer=new(output,new JsonWriterOptions{Indented=true});
+                writer.WriteStartObject();
+                writer.WriteNumber("format_version",1);
+                writer.WriteString("generated_utc",DateTimeOffset.UtcNow);
+                writer.WriteString("asset_root",assetRoot);
+                writer.WriteStartArray("assets");
+
+                foreach(string file in Directory.EnumerateFiles(assetRoot,"*",options))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if(!TryExpectedHash(file,out string expectedHash,out bool compressed))continue;
+
+                    string actualHash=await ComputePayloadHashAsync(file,compressed,cancellationToken).ConfigureAwait(false);
+                    if(!string.Equals(expectedHash,actualHash,StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("Asset-Integritaetspruefung fehlgeschlagen: "+RelativePath(assetRoot,file));
+
+                    processed++;
+                    if(!seenHashes.Add(expectedHash))
+                    {
+                        duplicateHashes++;
+                    }
+                    else
+                    {
+                        FileInfo info=new(file);storedBytes+=info.Length;if(compressed)compressedAssets++;
+                        writer.WriteStartObject();
+                        writer.WriteString("hash",expectedHash);
+                        writer.WriteString("relative_path",RelativePath(assetRoot,file));
+                        writer.WriteBoolean("compressed",compressed);
+                        writer.WriteNumber("stored_bytes",info.Length);
+                        writer.WriteEndObject();
+                        indexedAssets++;
+                    }
+
+                    int progress=Math.Min(90,8+(int)(82L*processed/Math.Max(1,candidateCount)));
+                    if(progress!=lastProgress)
+                    {
+                        context.Progress(progress,"verifying",RelativePath(assetRoot,file));
+                        lastProgress=progress;
+                    }
+                }
+
+                writer.WriteEndArray();
+                writer.WriteNumber("indexed_assets",indexedAssets);
+                writer.WriteNumber("compressed_assets",compressedAssets);
+                writer.WriteNumber("duplicate_hashes",duplicateHashes);
+                writer.WriteNumber("ignored_files",ignoredFiles);
+                writer.WriteNumber("stored_bytes",storedBytes);
+                writer.WriteEndObject();
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                context.Progress(96,"committing","Asset-Index wird atomar aktiviert.");
+                File.Move(staging,indexPath,true);
+
+                return new Dictionary<string,string>
+                {
+                    {"asset_root",assetRoot},
+                    {"index_path",indexPath},
+                    {"indexed_assets",indexedAssets.ToString()},
+                    {"compressed_assets",compressedAssets.ToString()},
+                    {"duplicate_hashes",duplicateHashes.ToString()},
+                    {"ignored_files",ignoredFiles.ToString()},
+                    {"stored_bytes",storedBytes.ToString()},
+                    {"verified","true"}
+                };
+            }
+            finally
+            {
+                if(File.Exists(staging))File.Delete(staging);
+            }
+        }
+
+        private static async Task<string> ComputePayloadHashAsync(string path,bool compressed,CancellationToken token)
+        {
+            await using FileStream input=new(path,FileMode.Open,FileAccess.Read,FileShare.Read,1024*1024,true);
+            if(compressed)
+            {
+                using GZipStream gzip=new(input,CompressionMode.Decompress,false);
+                return Convert.ToHexString(await SHA256.HashDataAsync(gzip,token).ConfigureAwait(false));
+            }
+            return Convert.ToHexString(await SHA256.HashDataAsync(input,token).ConfigureAwait(false));
+        }
+
+        private static bool TryExpectedHash(string path,out string hash,out bool compressed)
+        {
+            string name=Path.GetFileName(path);compressed=name.EndsWith(".gz",StringComparison.OrdinalIgnoreCase);
+            if(compressed)name=Path.GetFileNameWithoutExtension(name);
+            if(name.Length!=64){hash=string.Empty;return false;}
+            for(int i=0;i<name.Length;i++)
+            {
+                char c=name[i];
+                if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')||(c>='A'&&c<='F'))){hash=string.Empty;return false;}
+            }
+            hash=name.ToUpperInvariant();return true;
+        }
+
+        private static string RelativePath(string root,string file)
+        {
+            string normalizedRoot=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+            string full=Path.GetFullPath(file);
+            if(!full.StartsWith(normalizedRoot,StringComparison.Ordinal))throw new InvalidDataException("Asset-Pfad verlaesst den erlaubten Bereich.");
+            string relative=Path.GetRelativePath(root,full).Replace(Path.DirectorySeparatorChar,'/');
+            if(Path.AltDirectorySeparatorChar!=Path.DirectorySeparatorChar)relative=relative.Replace(Path.AltDirectorySeparatorChar,'/');
+            return relative;
+        }
     }
 
 }

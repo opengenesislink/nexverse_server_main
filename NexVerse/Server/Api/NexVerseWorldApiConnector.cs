@@ -253,6 +253,14 @@ namespace NexVerse.Server.Api
                 OglJobRunner jobRunner = new OglJobRunner(jobStore);
                 jobRunner.Register(new OglDirectoryBackupWorker());
                 jobRunner.Register(new OglDirectoryRestoreWorker());
+                IConfig assetServiceConfig = config.Configs["AssetService"];
+                string assetRoot = assetServiceConfig == null
+                    ? string.Empty
+                    : assetServiceConfig.GetString("BaseDirectory", string.Empty);
+                string assetIndexPath = apiConfig.GetString(
+                    "AssetIndexPath",
+                    "data/opengenesislink-assets-index.json");
+                jobRunner.Register(new OglAssetReindexWorker(assetRoot, assetIndexPath));
 
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];

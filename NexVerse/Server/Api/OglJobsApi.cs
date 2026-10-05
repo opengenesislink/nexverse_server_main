@@ -21,6 +21,7 @@ namespace NexVerse.Server.Api
             string path=(request.UriPath??string.Empty).TrimEnd('/');
             if(path.Equals("/api/v1/jobs/backup",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueBackup(request,response);return;}
             if(path.Equals("/api/v1/jobs/restore",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueRestore(request,response);return;}
+            if(path.Equals("/api/v1/jobs/assets/reindex",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueAssetReindex(response);return;}
             if(path.EndsWith("/cancel",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){string id=path.Substring("/api/v1/jobs/".Length);id=id.Substring(0,id.Length-"/cancel".Length);if(m_Runner.Cancel(id,out string reason)){Json(response,HttpStatusCode.Accepted,m_Jobs.Get(id));return;}Error(response,HttpStatusCode.Conflict,"cancel_rejected",reason);return;}
             if(!string.Equals(request.HttpMethod,"GET",StringComparison.OrdinalIgnoreCase)){Error(response,HttpStatusCode.MethodNotAllowed,"method_not_allowed","GET oder unterstuetztes POST ist erforderlich.");return;}
             if(path.Equals("/api/v1/jobs",StringComparison.OrdinalIgnoreCase)){Json(response,HttpStatusCode.OK,new{jobs=m_Jobs.List()});return;}
@@ -58,6 +59,15 @@ namespace NexVerse.Server.Api
                 Json(response,HttpStatusCode.Accepted,job);
             }
             catch(Exception e){Error(response,HttpStatusCode.BadRequest,"restore_job_rejected",e.Message);}
+        }
+        private void QueueAssetReindex(IOSHttpResponse response)
+        {
+            try
+            {
+                OglJobSnapshot job=m_Runner.Queue("assets.reindex","world-api",new System.Collections.Generic.Dictionary<string,string>());
+                Json(response,HttpStatusCode.Accepted,job);
+            }
+            catch(Exception e){Error(response,HttpStatusCode.BadRequest,"asset_reindex_job_rejected",e.Message);}
         }
         private bool Authenticate(IOSHttpRequest req,IOSHttpResponse res)
         {
