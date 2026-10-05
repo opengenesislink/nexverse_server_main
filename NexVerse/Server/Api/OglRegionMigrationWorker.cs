@@ -510,7 +510,7 @@ namespace NexVerse.Server.Api
                 if (e?.Data == null ||
                     !e.Data.TryGetValue("operation_id", out string eventOperationId) ||
                     !string.Equals(eventOperationId, operationId, StringComparison.OrdinalIgnoreCase) ||
-                    !e.Name.StartsWith(eventPrefix, StringComparison.OrdinalIgnoreCase))
+                    !(e.Name ?? string.Empty).StartsWith(eventPrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
@@ -523,11 +523,13 @@ namespace NexVerse.Server.Api
 
                 progress?.Invoke(e);
 
-                if (e.Name.EndsWith(".completed", StringComparison.OrdinalIgnoreCase))
+                string eventName = e.Name ?? string.Empty;
+
+                if (eventName.EndsWith(".completed", StringComparison.OrdinalIgnoreCase))
                 {
                     completion.TrySetResult(e);
                 }
-                else if (e.Name.EndsWith(".failed", StringComparison.OrdinalIgnoreCase))
+                else if (eventName.EndsWith(".failed", StringComparison.OrdinalIgnoreCase))
                 {
                     string message = Data(e, "message");
                     completion.TrySetException(
@@ -536,7 +538,7 @@ namespace NexVerse.Server.Api
                                 ? "Remote-Operation ist fehlgeschlagen."
                                 : message));
                 }
-                else if (e.Name.EndsWith(".cancelled", StringComparison.OrdinalIgnoreCase))
+                else if (eventName.EndsWith(".cancelled", StringComparison.OrdinalIgnoreCase))
                 {
                     completion.TrySetException(
                         new InvalidOperationException("Remote-Operation wurde abgebrochen."));
