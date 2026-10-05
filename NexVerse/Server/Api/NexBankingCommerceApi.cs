@@ -1183,11 +1183,17 @@ namespace NexVerse.Server.Api
 
             try
             {
+                Guid listingId =
+                    BodyOptionalGuid(
+                        body,
+                        "listing_id");
+
+                if (listingId == Guid.Empty)
+                    listingId = Guid.NewGuid();
+
                 NexLandListing listing =
                     new NexLandListing(
-                        BodyOptionalGuid(body, "listing_id") is Guid id && id != Guid.Empty
-                            ? id
-                            : Guid.NewGuid(),
+                        listingId,
                         ParseEnum<NexLandListingType>(BodyString(body, "type"), "type"),
                         BodyGuid(body, "region_id"),
                         BodyString(body, "region_name"),
