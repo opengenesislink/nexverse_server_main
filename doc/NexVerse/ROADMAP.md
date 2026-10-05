@@ -932,7 +932,9 @@ Build the economy around immutable double-entry accounting.
 - [x] Provider-neutral `NexLedgerSqlStore` persists accounts, immutable transactions and postings through ADO.NET with schema versioning and serializable append transactions.
 - [x] SQLite file-backed regression verifies schema migration, reopen persistence, balances, history, idempotency and rejected-booking atomicity.
 - [x] `NexLedgerSqlRuntime` resolves existing MySQL/MariaDB, PostgreSQL and SQLite storage-provider names to the shipped ADO.NET drivers via reflection.
-- [ ] Robust `[DatabaseService]` / `[NexEconomy]` configuration binding and live MySQL/MariaDB + PostgreSQL matrix regression.
+- [x] Dedicated `NexEconomyConnector` binds the ledger to Robust, inherits `[DatabaseService]` by default, supports an explicit `[NexEconomy]` override and remains disabled by default.
+- [x] Robust SQLite bootstrap smoke verifies real connector loading and schema-v1 creation without exposing payment/API routes.
+- [ ] Live MySQL/MariaDB + PostgreSQL matrix regression including crash/rollback validation.
 - [ ] Account lifecycle/locking and append-only administrative adjustment/reversal policies.
 - [ ] Production service/API and Viewer `IMoneyModule` adapter; no production money flow is enabled before provider wiring and DB matrix validation exist.
 
