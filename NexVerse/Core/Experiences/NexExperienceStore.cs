@@ -66,9 +66,10 @@ namespace NexVerse.Core.Experiences
     public sealed class NexExperienceStore
     {
         public const int CurrentSchemaVersion = 1;
-        public const int MaxKeyLength = 128;
-        public const int MaxValueLength = 4096;
-        public const int MaxKeysPerExperience = 4096;
+        public const int MaxKeyLength = 1011;
+        public const int MaxValueLength = 4095;
+        public const int MaxKeysPerExperience = 65536;
+        public const long MaxStoreBytes = 128L * 1024L * 1024L;
         public const int MaxLogs = 10000;
 
         private readonly object m_Sync = new object();
@@ -445,6 +446,13 @@ namespace NexVerse.Core.Experiences
                     throw new InvalidOperationException("Experience key/value quota exceeded.");
 
                 experience.KeyValues.Add(normalized, value ?? string.Empty);
+
+                if (GetStoreBytes(experience) > MaxStoreBytes)
+                {
+                    experience.KeyValues.Remove(normalized);
+                    throw new InvalidOperationException("Experience key/value storage quota exceeded.");
+                }
+
                 experience.UpdatedAt = DateTimeOffset.UtcNow;
                 Save();
                 return true;
@@ -469,7 +477,10 @@ namespace NexVerse.Core.Experiences
             Guid experienceId,
             Guid scriptItemId,
             string key,
-            string value)
+            string value,
+            bool checkOriginal,
+            string originalValue,
+            out bool retryMismatch)
         {
             lock (m_Sync)
             {
@@ -477,15 +488,104 @@ namespace NexVerse.Core.Experiences
                 NexExperience experience = Find(experienceId);
                 string normalized = ValidateKey(key);
                 ValidateValue(value);
+                retryMismatch = false;
 
-                if (!experience.KeyValues.ContainsKey(normalized))
+                bool exists =
+                    experience.KeyValues.TryGetValue(
+                        normalized,
+                        out string current);
+
+                if (checkOriginal &&
+                    exists &&
+                    !string.Equals(
+                        current,
+                        originalValue ?? string.Empty,
+                        StringComparison.Ordinal))
+                {
+                    retryMismatch = true;
                     return false;
+                }
+
+                if (!exists &&
+                    experience.KeyValues.Count >= MaxKeysPerExperience)
+                {
+                    throw new InvalidOperationException("Experience key/value quota exceeded.");
+                }
 
                 experience.KeyValues[normalized] = value ?? string.Empty;
+
+                if (GetStoreBytes(experience) > MaxStoreBytes)
+                {
+                    if (exists)
+                        experience.KeyValues[normalized] = current;
+                    else
+                        experience.KeyValues.Remove(normalized);
+
+                    throw new InvalidOperationException("Experience key/value storage quota exceeded.");
+                }
+
                 experience.UpdatedAt = DateTimeOffset.UtcNow;
                 Save();
                 return true;
             }
+        }
+
+        public int GetKeyCount(
+            Guid experienceId,
+            Guid scriptItemId)
+        {
+            lock (m_Sync)
+            {
+                RequireBoundScript(experienceId, scriptItemId);
+                return Find(experienceId).KeyValues.Count;
+            }
+        }
+
+        public IReadOnlyList<string> ListKeys(
+            Guid experienceId,
+            Guid scriptItemId,
+            int start,
+            int count)
+        {
+            if (start < 0)
+                throw new ArgumentOutOfRangeException(nameof(start));
+            if (count < 1 || count > 1024)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            lock (m_Sync)
+            {
+                RequireBoundScript(experienceId, scriptItemId);
+                return Find(experienceId).KeyValues.Keys
+                    .OrderBy(x => x, StringComparer.Ordinal)
+                    .Skip(start)
+                    .Take(count)
+                    .ToArray();
+            }
+        }
+
+        public long GetDataSize(
+            Guid experienceId,
+            Guid scriptItemId)
+        {
+            lock (m_Sync)
+            {
+                RequireBoundScript(experienceId, scriptItemId);
+                return GetStoreBytes(Find(experienceId));
+            }
+        }
+
+        private static long GetStoreBytes(
+            NexExperience experience)
+        {
+            long bytes = 0;
+
+            foreach (KeyValuePair<string, string> entry in experience.KeyValues)
+            {
+                bytes += System.Text.Encoding.UTF8.GetByteCount(entry.Key);
+                bytes += System.Text.Encoding.UTF8.GetByteCount(entry.Value ?? string.Empty);
+            }
+
+            return bytes;
         }
 
         public bool DeleteKeyValue(
