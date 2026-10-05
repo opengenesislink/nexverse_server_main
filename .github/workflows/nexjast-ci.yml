@@ -197,6 +197,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
+      - name: Verify NV dollar ledger contract
+        shell: bash
+        run: python3 tools/ci/verify_ledger_foundation.py
+
       - name: Verify NV dollar double-entry ledger
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexLedgerRegression/NexLedgerRegression.csproj
