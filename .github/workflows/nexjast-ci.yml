@@ -121,6 +121,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_backup_worker.py
 
+      - name: Verify native restore worker
+        shell: bash
+        run: python3 tools/ci/verify_native_restore_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
