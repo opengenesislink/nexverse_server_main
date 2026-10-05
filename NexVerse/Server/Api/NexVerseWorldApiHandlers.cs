@@ -1129,12 +1129,15 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.5",
                             codename = "",
                             title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
-                            status = "foundation",
-                            checklist = (object)null,
-                            summary = "Der verteilte NexBus ist als Infrastruktur umgesetzt; Inventararchiv-APIs, Auftragssteuerung und unterstützte regionsübergreifende Objektkommunikation stehen noch aus.",
+                            status = "active",
+                            checklist = new { completed = 72, total = 74, open = 2 },
+                            summary = "Inventar-API-Grundlage, verwaltete OAR/IAR-Abläufe und die persistente Auftragssteuerung sind weitgehend umgesetzt. Native Backup-/Restore-, Asset-Reindex-, Regionsmigrations-, Datenbankwartungs- und Inventarreparatur-Worker sind integriert; offen bleiben vor allem die LunaTexture-Diagnosepersistenz und deren aggregierte World-API-Projektion sowie weitere nicht checkbox-basierte Inventar-/NexBus-Erweiterungen.",
                             evidence = new[]
                             {
-                                "Authentifizierter HMAC-Peer-Transport, Ereignis-Deduplizierung und begrenzte ausgehende Zustellung"
+                                "Persistente Job Engine mit queued/running/completed/failed/cancelled, Fortschritt, Logs und Result-Metadaten",
+                                "OAR/IAR sind über NexBus/NodeAgent an die autoritativen Archivmodule angebunden",
+                                "Native Backup/Restore-, Asset-Reindex-, Regionsmigrations-, Datenbankwartungs- und Inventarreparatur-Worker sind integriert",
+                                "Inventar-API unterstützt Baum-, Ordner-, Item-Metadaten-, Trash-, Restore-, Copy- und Lost-&-Found-Abläufe"
                             }
                         },
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },

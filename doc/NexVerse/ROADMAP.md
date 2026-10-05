@@ -1,4 +1,4 @@
-# NexVerse Server Roadmap
+# OpenGenesisLINK Roadmap
 
 > Status: Active development roadmap  
 > Current stable release: **NexVerse 0.9.3.4**  
@@ -10,9 +10,9 @@
 
 ## 1. Vision
 
-NexVerse Server is being developed from the OpenSimulator 0.9.3.0 source baseline into an independent virtual-world platform.
+OpenGenesisLINK is being developed from the OpenSimulator 0.9.3.0 source baseline and the former NexVerse Server line into an independent virtual-world server platform.
 
-The long-term objective is not to preserve every historical OpenSimulator subsystem. NexVerse keeps protocol and viewer compatibility where it is useful, while legacy administration, voice, web, monitoring and service components are replaced by modern NexVerse-native implementations.
+The long-term objective is not to preserve every historical OpenSimulator subsystem. OpenGenesisLINK keeps protocol and viewer compatibility where it is useful, while legacy administration, voice, web, monitoring and service components are progressively replaced by OpenGenesisLINK-owned implementations.
 
 The target architecture is centered around:
 
@@ -32,9 +32,9 @@ The target architecture is centered around:
 
 ## 2. Development principles
 
-### 2.1 NexVerse Clean Core
+### 2.1 OpenGenesisLINK Clean Core
 
-New NexVerse functionality should be implemented in NexVerse-owned modules and namespaces instead of extending obsolete OpenSimulator subsystems indefinitely.
+New OpenGenesisLINK functionality should be implemented in OpenGenesisLINK-owned modules and stable extension contracts instead of extending obsolete OpenSimulator subsystems indefinitely. Compatibility-sensitive `NexVerse.*` namespaces may remain temporarily until a safe migration path exists.
 
 A legacy component may remain only when at least one of the following is true:
 
@@ -130,7 +130,7 @@ For the current release train, 0.9.3.2 and 0.9.3.3 are development milestones an
 
 No implementation work from milestone 0.9.3.5 or later is to be started before the 0.9.3.4 release is completed. Existing work already pulled forward from later milestones remains part of the 0.9.3.4 release train and must be completed or explicitly scoped before release.
 
-A larger architectural platform generation will advance to **NexVerse 0.9.4.0**.
+The larger architectural platform generation will advance to **OpenGenesisLINK v0.9.4.0**.
 
 ## 4. Compatibility levels
 
@@ -138,7 +138,7 @@ The product version should not be overloaded to represent every protocol revisio
 
 Planned examples:
 
-- NexVerse Server Version
+- OpenGenesisLINK Server Version
 - NexVerse API Version
 - NexVerse Internal Protocol Version
 - LSL Compatibility Level
@@ -837,7 +837,7 @@ Examples:
 
 - [x] OAR import/export projected into the persistent Job Engine;
 - [x] IAR import/export projected into the persistent Job Engine;
-- inventory repair;
+- [x] inventory repair;
 - [x] region migration;
 - [x] backup;
 - [x] restore;
@@ -871,6 +871,7 @@ Foundation notes:
 - [x] native asset reindex worker with SHA-256 blob verification and atomic OGL index activation;
 - [x] transactional cross-node region migration worker with shared-storage preflight, OAR hash verification and rollback;
 - [x] native database maintenance worker with provider-aware table discovery, bounded ANALYZE-only execution, dry-run and secret redaction;
+- [x] native inventory repair worker with dry-run default, bounded structural repair, root reattachment and no delete/direct-database path;
 - cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
@@ -1650,7 +1651,7 @@ addon verify <addon>
 Architecture requirements:
 
 - catalog/provider abstraction so development can begin before the public catalog is live;
-- planned official catalog origin: `opengenesislink.de`;
+- official catalog origin: `addons.opengenesislink.de`;
 - signed addon manifests and package integrity verification;
 - addon ID, semantic version, OpenGenesisLINK compatibility range, architecture/runtime requirements and dependencies;
 - dependency resolution with cycle/conflict detection;

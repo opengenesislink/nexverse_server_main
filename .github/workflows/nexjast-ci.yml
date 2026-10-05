@@ -137,6 +137,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_database_maintenance_worker.py
 
+      - name: Verify native inventory repair worker
+        shell: bash
+        run: python3 tools/ci/verify_inventory_repair_worker.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
@@ -500,6 +504,8 @@ jobs:
           assert milestones["0.9.3.2"]["checklist"] == {"completed": 36, "total": 36, "open": 0}
           assert milestones["0.9.3.3"]["status"] == "completed"
           assert milestones["0.9.3.4"]["status"] == "released"
+          assert milestones["0.9.3.5"]["status"] == "active"
+          assert milestones["0.9.3.5"]["checklist"] == {"completed": 72, "total": 74, "open": 2}
           assert milestones["0.9.3.6"]["status"] == "planned"
 
           from pathlib import Path
@@ -520,6 +526,7 @@ jobs:
               ("0.9.3.1 — NEXJAST", "0.9.3.1"),
               ("0.9.3.2", "0.9.3.2"),
               ("0.9.3.3", "0.9.3.3"),
+              ("0.9.3.5", "0.9.3.5"),
           ):
               published = milestones[api_version]["checklist"]
               parsed = sections[source_name]

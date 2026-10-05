@@ -1,10 +1,10 @@
 # NexVerse World API
 
-The NexVerse World API is the new Robust-hosted control-plane API.
+The NexVerse World API is the Robust-hosted control-plane API for the NexVerse grid deployment running on OpenGenesisLINK.
 
-Active server development line: **NexVerse 0.9.3.3 Dev — Identity, Display Names, Profiles and Social Graph**
+Active server development line: **OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine and NexBus**
 
-The World API v1 milestone itself was completed as the 0.9.3.2 development checkpoint on 3 October 2026 and remains the control-plane API foundation for the current release train.
+World API v1 was completed as the 0.9.3.2 development checkpoint on 3 October 2026 and remains the control-plane API foundation for the active OpenGenesisLINK development line. NexVerse continues as the deployment/grid identity.
 
 Current development endpoint:
 
@@ -300,6 +300,25 @@ The worker inventories application tables directly from provider metadata, quote
 `dry_run=true` connects to the configured database and inventories the tables but executes no ANALYZE statement. Job results expose only provider name, database name, counts, elapsed time and dry-run state. The configured connection string and secrets are never returned; provider error messages are redacted for password values.
 
 OpenGenesisLINK 0.9.3.5 deliberately does not expose arbitrary SQL, `VACUUM`, `VACUUM FULL`, `OPTIMIZE TABLE`, schema migration, repair or rebuild operations through this API. Those operations can require stronger maintenance-window and backup/rollback guarantees and remain separate operational work.
+
+## Persistent Job Engine: Inventory repair
+
+OpenGenesisLINK 0.9.3.5 provides a conservative structural repair job for one resident inventory.
+
+`POST /api/v1/jobs/inventory/repair` accepts:
+
+```json
+{
+  "owner_id": "00000000-0000-0000-0000-000000000000",
+  "dry_run": true
+}
+```
+
+Starting this endpoint requires `admin:*`. The job type is `inventory.repair`; `dry_run` defaults to `true`. The worker reads the authoritative `IInventoryService` inventory root and folder skeleton, detects missing parent references, self-parenting folders and parent cycles, and reports the required repairs through normal Job Engine progress/log/result metadata.
+
+A real repair only reattaches structurally invalid folders to the resident's authoritative inventory root. It does not delete folders or items, purge Trash, rewrite assets, or access the inventory database directly. Repairs are bounded to 1000 actions per job and are revalidated after mutation. Cancellation is cooperative between individual folder moves; a partially cancelled job leaves already-moved folders in valid root-attached locations.
+
+This first repair worker deliberately does not attempt low-level recovery of database rows that are invisible through `IInventoryService`. Such recovery requires a separately specified datastore-maintenance contract so that MySQL/MariaDB, PostgreSQL and SQLite behavior remains explicit and testable.
 
 Configuration:
 
