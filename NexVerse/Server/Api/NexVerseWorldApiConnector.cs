@@ -413,6 +413,35 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK NV$ Economy API"),
                     true);
 
+                NexBankingCommerceApi bankingCommerceApi =
+                    new NexBankingCommerceApi(
+                        authenticator,
+                        userAccounts,
+                        auditSink,
+                        () =>
+                            NexEconomyConnector.Current?.Enabled == true
+                                ? NexEconomyConnector.Current.Economy
+                                : null);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/banking",
+                        apiGate.Wrap(bankingCommerceApi.HandleBanking),
+                        "OpenGenesisLINK NV$ Banking API"),
+                    true);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/commerce",
+                        apiGate.Wrap(bankingCommerceApi.HandleCommerce),
+                        "OpenGenesisLINK NexCommerce API"),
+                    true);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/land-commerce",
+                        apiGate.Wrap(bankingCommerceApi.HandleLandCommerce),
+                        "OpenGenesisLINK Land Commerce API"),
+                    true);
+
                 NexInventoryApi inventoryApi =
                     new NexInventoryApi(
                         inventory,

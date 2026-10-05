@@ -1735,19 +1735,85 @@ namespace OpenSim.Region.CoreModules.World.Land
 
         public void EventManagerOnLandBuy(Object o, EventManager.LandBuyArgs e)
         {
-            if (e.economyValidated && e.landValidated)
+            if (e == null ||
+                !e.landValidated)
             {
-                ILandObject land;
-                lock (m_landList)
-                {
-                    if (!m_landList.TryGetValue(e.parcelLocalID, out land) || land is null)
-                        return;
-                }
-
-                land.UpdateLandSold(e.agentId, e.groupId, e.groupOwned, (uint)e.transactionID, e.parcelPrice, e.parcelArea);
-                m_scene.ForEachClient(SendParcelOverlay);
-                land.SendLandUpdateToAvatars();
+                return;
             }
+
+            ILandObject land;
+            lock (m_landList)
+            {
+                if (!m_landList.TryGetValue(e.parcelLocalID, out land) || land is null)
+                    return;
+            }
+
+            if (!e.economyValidated)
+            {
+                if (e.parcelPrice <= 0)
+                {
+                    e.economyValidated = true;
+                }
+                else
+                {
+                    IMoneyModule money =
+                        m_scene.RequestModuleInterface<IMoneyModule>();
+
+                    string description =
+                        String.Format(
+                            "Land purchase: {0} in {1}",
+                            land.LandData.Name,
+                            m_scene.RegionInfo.RegionName);
+
+                    bool paid =
+                        money != null &&
+                        money.AmountCovered(
+                            e.agentId,
+                            e.parcelPrice) &&
+                        money.MoveMoney(
+                            e.agentId,
+                            e.parcelOwnerID,
+                            e.parcelPrice,
+                            default(MoneyTransactionType),
+                            description);
+
+                    if (!paid)
+                    {
+                        ScenePresence buyer =
+                            m_scene.GetScenePresence(
+                                e.agentId);
+
+                        buyer?.ControllingClient
+                            ?.SendAgentAlertMessage(
+                                "Land purchase failed because the NV$ payment could not be completed.",
+                                true);
+
+                        return;
+                    }
+
+                    e.amountDebited =
+                        e.parcelPrice;
+                    e.transactionID =
+                        e.agentId.GetHashCode();
+                    e.economyValidated =
+                        true;
+                }
+            }
+
+            if (!e.economyValidated)
+                return;
+
+            land.UpdateLandSold(
+                e.agentId,
+                e.groupId,
+                e.groupOwned,
+                (uint)e.transactionID,
+                e.parcelPrice,
+                e.parcelArea);
+
+            m_scene.ForEachClient(
+                SendParcelOverlay);
+            land.SendLandUpdateToAvatars();
         }
 
         // After receiving a land buy packet, first the data needs to

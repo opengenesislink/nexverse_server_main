@@ -18,6 +18,7 @@ namespace NexVerse.Core.Economy
         private readonly NexDoubleEntryLedger m_Ledger;
         private readonly INexLedgerAccountStateStore m_States;
         private readonly INexVirtualBankAccountStore m_VirtualAccounts;
+        private readonly INexEconomyWorkflowStore m_Workflows;
 
         public NexEconomyService(
             NexDoubleEntryLedger ledger,
@@ -31,6 +32,8 @@ namespace NexVerse.Core.Economy
                 throw new ArgumentNullException(nameof(states));
             m_VirtualAccounts =
                 states as INexVirtualBankAccountStore;
+            m_Workflows =
+                states as INexEconomyWorkflowStore;
         }
 
         public NexLedgerAccount EnsureResidentAccount(
@@ -117,6 +120,992 @@ namespace NexVerse.Core.Economy
                     "Virtual NVBAN account storage is not available.");
 
             return m_VirtualAccounts.GetVirtualBankAccountByIdentifier(identifier);
+        }
+
+
+        public NexLedgerAccount EnsureWalletAccount(
+            Guid accountId,
+            NexLedgerAccountClass accountClass,
+            string displayName)
+        {
+            if (accountId == Guid.Empty)
+                throw new ArgumentException("Wallet account ID is required.", nameof(accountId));
+            if (!IsWalletClass(accountClass))
+                throw new NexLedgerPolicyException("Requested account class is not a transferable NV$ wallet.");
+
+            NexLedgerAccount existing =
+                m_Ledger.GetAccount(accountId);
+
+            if (existing != null)
+            {
+                if (existing.AccountClass != accountClass ||
+                    existing.NormalSide != NexLedgerSide.Credit)
+                {
+                    throw new NexLedgerConflictException(
+                        "Account UUID is already used by an incompatible ledger account.");
+                }
+
+                return existing;
+            }
+
+            string prefix =
+                accountClass
+                    .ToString()
+                    .ToLowerInvariant();
+
+            NexLedgerAccount created =
+                new NexLedgerAccount(
+                    accountId,
+                    accountClass,
+                    NexLedgerSide.Credit,
+                    prefix + ":" + accountId.ToString("D"),
+                    string.IsNullOrWhiteSpace(displayName)
+                        ? accountId.ToString("D")
+                        : displayName);
+
+            if (m_Ledger.TryCreateAccount(created))
+                return created;
+
+            return RequireAccount(accountId);
+        }
+
+        public IReadOnlyList<NexLedgerTransaction> ListTransactions(
+            Guid accountId,
+            DateTimeOffset? from = null,
+            DateTimeOffset? to = null,
+            int offset = 0,
+            int limit = 100)
+        {
+            RequireAccount(accountId);
+
+            if (from.HasValue &&
+                to.HasValue &&
+                to.Value < from.Value)
+            {
+                throw new ArgumentOutOfRangeException(nameof(to));
+            }
+
+            return m_Ledger.ListTransactions(
+                accountId,
+                from,
+                to,
+                offset,
+                limit);
+        }
+
+        public NexBankStatement GetStatement(
+            Guid accountId,
+            DateTimeOffset from,
+            DateTimeOffset to,
+            int offset = 0,
+            int limit = 500)
+        {
+            RequireAccount(accountId);
+
+            if (to < from)
+                throw new ArgumentOutOfRangeException(nameof(to));
+
+            DateTimeOffset beforeFrom =
+                from == DateTimeOffset.MinValue
+                    ? from
+                    : from.AddTicks(-1);
+
+            long opening =
+                m_Ledger.GetBalanceAt(
+                    accountId,
+                    beforeFrom);
+
+            long closing =
+                m_Ledger.GetBalanceAt(
+                    accountId,
+                    to);
+
+            return new NexBankStatement(
+                accountId,
+                from,
+                to,
+                opening,
+                closing,
+                m_Ledger.ListTransactions(
+                    accountId,
+                    from,
+                    to,
+                    offset,
+                    limit));
+        }
+
+        public NexReconciliationReport ReconcileAccount(
+            Guid accountId)
+        {
+            RequireAccount(accountId);
+
+            long derived =
+                m_Ledger.GetBalance(accountId);
+            long recomputed =
+                m_Ledger.GetBalanceAt(
+                    accountId,
+                    DateTimeOffset.MaxValue);
+
+            IReadOnlyList<NexLedgerTransaction> transactions =
+                m_Ledger.ListTransactions(
+                    accountId,
+                    null,
+                    null,
+                    0,
+                    1000);
+
+            bool balanced =
+                derived == recomputed;
+
+            foreach (NexLedgerTransaction transaction in transactions)
+                transaction.Validate();
+
+            return new NexReconciliationReport(
+                accountId,
+                derived,
+                recomputed,
+                transactions.Count,
+                balanced);
+        }
+
+        public NexAccountTransferPolicy GetTransferPolicy(
+            Guid accountId)
+        {
+            RequireWorkflows();
+            RequireAccount(accountId);
+
+            return
+                m_Workflows.GetTransferPolicy(accountId) ??
+                new NexAccountTransferPolicy(accountId);
+        }
+
+        public NexAccountTransferPolicy SetTransferPolicy(
+            NexAccountTransferPolicy policy)
+        {
+            RequireWorkflows();
+
+            if (policy == null)
+                throw new ArgumentNullException(nameof(policy));
+
+            RequireWalletAccount(
+                policy.AccountId,
+                "policy");
+
+            if (policy.FlatFeeMinor > 0)
+            {
+                NexLedgerAccount feeAccount =
+                    RequireWalletAccount(
+                        policy.FeeAccountId,
+                        "fee");
+
+                RequireActive(
+                    feeAccount.AccountId,
+                    "fee");
+            }
+
+            return m_Workflows.SetTransferPolicy(policy);
+        }
+
+        public NexLedgerAppendResult BankingTransfer(
+            Guid fromAccountId,
+            Guid toAccountId,
+            long amountMinor,
+            string reference,
+            string correlationId = null,
+            Guid? transactionId = null)
+        {
+            RequireWorkflows();
+
+            if (fromAccountId == toAccountId)
+                throw new NexLedgerPolicyException("Source and destination accounts must differ.");
+            if (amountMinor <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amountMinor));
+
+            NexLedgerAccount from =
+                RequireWalletAccount(fromAccountId, "source");
+            NexLedgerAccount to =
+                RequireWalletAccount(toAccountId, "destination");
+
+            RequireActive(from.AccountId, "source");
+            RequireActive(to.AccountId, "destination");
+
+            NexAccountTransferPolicy policy =
+                GetTransferPolicy(fromAccountId);
+
+            if (policy.MaxPerTransferMinor > 0 &&
+                amountMinor > policy.MaxPerTransferMinor)
+            {
+                throw new NexLedgerPolicyException(
+                    "Transfer exceeds the configured per-transaction NV$ limit.");
+            }
+
+            long fee =
+                policy.FlatFeeMinor;
+
+            long totalDebit =
+                checked(amountMinor + fee);
+
+            string normalizedReference =
+                RequireReference(reference);
+            Guid effectiveId =
+                transactionId ??
+                Guid.NewGuid();
+
+            NexLedgerTransaction existing =
+                m_Ledger.GetTransaction(effectiveId);
+
+            if (existing != null)
+            {
+                if (!MatchesBankingTransfer(
+                        existing,
+                        fromAccountId,
+                        toAccountId,
+                        amountMinor,
+                        fee,
+                        policy.FeeAccountId,
+                        normalizedReference))
+                {
+                    throw new NexLedgerConflictException(
+                        "Transaction ID already exists with different banking-transfer content.");
+                }
+
+                return new NexLedgerAppendResult(
+                    NexLedgerAppendStatus.Duplicate,
+                    existing);
+            }
+
+            if (policy.DailyOutgoingLimitMinor > 0)
+            {
+                DateTimeOffset now =
+                    DateTimeOffset.UtcNow;
+                DateTimeOffset dayStart =
+                    new DateTimeOffset(
+                        now.Year,
+                        now.Month,
+                        now.Day,
+                        0,
+                        0,
+                        0,
+                        TimeSpan.Zero);
+
+                long used =
+                    m_Workflows.GetOutgoingTotal(
+                        fromAccountId,
+                        dayStart,
+                        dayStart.AddDays(1));
+
+                if (checked(used + totalDebit) >
+                    policy.DailyOutgoingLimitMinor)
+                {
+                    throw new NexLedgerPolicyException(
+                        "Transfer exceeds the configured daily NV$ outgoing limit.");
+                }
+            }
+
+            RequireAvailableBalance(
+                from,
+                totalDebit);
+
+            List<NexLedgerPosting> postings =
+                new List<NexLedgerPosting>
+                {
+                    new NexLedgerPosting(
+                        DeterministicGuid("bank-transfer-debit:" + effectiveId.ToString("D")),
+                        from.AccountId,
+                        NexLedgerSide.Debit,
+                        totalDebit,
+                        "NV$ banking transfer debit"),
+                    new NexLedgerPosting(
+                        DeterministicGuid("bank-transfer-credit:" + effectiveId.ToString("D")),
+                        to.AccountId,
+                        NexLedgerSide.Credit,
+                        amountMinor,
+                        "NV$ banking transfer credit")
+                };
+
+            if (fee > 0)
+            {
+                NexLedgerAccount feeAccount =
+                    RequireWalletAccount(
+                        policy.FeeAccountId,
+                        "fee");
+                RequireActive(feeAccount.AccountId, "fee");
+
+                postings.Add(
+                    new NexLedgerPosting(
+                        DeterministicGuid("bank-transfer-fee:" + effectiveId.ToString("D")),
+                        feeAccount.AccountId,
+                        NexLedgerSide.Credit,
+                        fee,
+                        "NV$ transfer fee"));
+            }
+
+            Dictionary<string, string> metadata =
+                new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["from_account_id"] = fromAccountId.ToString("D"),
+                    ["to_account_id"] = toAccountId.ToString("D"),
+                    ["amount_minor"] = amountMinor.ToString(),
+                    ["fee_minor"] = fee.ToString(),
+                    ["fee_account_id"] = policy.FeeAccountId.ToString("D")
+                };
+
+            return m_Ledger.Post(
+                new NexLedgerTransaction(
+                    effectiveId,
+                    "bank_transfer",
+                    normalizedReference,
+                    postings,
+                    correlationId,
+                    metadata));
+        }
+
+        public NexPaymentRequest CreatePaymentRequest(
+            Guid payeeAccountId,
+            Guid payerAccountId,
+            long amountMinor,
+            string reference,
+            DateTimeOffset? expiresAt = null,
+            Guid? requestId = null)
+        {
+            RequireWorkflows();
+
+            NexLedgerAccount payee =
+                RequireWalletAccount(payeeAccountId, "payee");
+            NexLedgerAccount payer =
+                RequireWalletAccount(payerAccountId, "payer");
+
+            RequireActive(payee.AccountId, "payee");
+            RequireActive(payer.AccountId, "payer");
+
+            NexPaymentRequest request =
+                new NexPaymentRequest(
+                    requestId ?? Guid.NewGuid(),
+                    payeeAccountId,
+                    payerAccountId,
+                    amountMinor,
+                    reference,
+                    NexPaymentRequestStatus.Pending,
+                    DateTimeOffset.UtcNow,
+                    expiresAt);
+
+            return m_Workflows.CreatePaymentRequest(request);
+        }
+
+        public NexPaymentRequest GetPaymentRequest(Guid requestId)
+        {
+            RequireWorkflows();
+
+            NexPaymentRequest request =
+                m_Workflows.GetPaymentRequest(requestId);
+
+            if (request != null &&
+                request.Status == NexPaymentRequestStatus.Pending &&
+                request.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                request =
+                    m_Workflows.UpdatePaymentRequest(
+                        request.WithStatus(
+                            NexPaymentRequestStatus.Expired));
+            }
+
+            return request;
+        }
+
+        public IReadOnlyList<NexPaymentRequest> ListPaymentRequests(
+            Guid accountId,
+            int offset = 0,
+            int limit = 100)
+        {
+            RequireWorkflows();
+            RequireAccount(accountId);
+
+            return m_Workflows.ListPaymentRequests(
+                accountId,
+                offset,
+                limit);
+        }
+
+        public NexPaymentRequest PayPaymentRequest(
+            Guid requestId,
+            Guid payerAccountId,
+            string correlationId = null)
+        {
+            RequireWorkflows();
+
+            NexPaymentRequest request =
+                GetPaymentRequest(requestId) ??
+                throw new NexLedgerPolicyException("Payment request was not found.");
+
+            if (request.Status == NexPaymentRequestStatus.Paid)
+                return request;
+
+            if (request.Status != NexPaymentRequestStatus.Pending)
+                throw new NexLedgerPolicyException("Payment request is not payable.");
+
+            if (request.PayerAccountId != payerAccountId)
+                throw new NexLedgerPolicyException("Payment request payer does not match.");
+
+            Guid transactionId =
+                DeterministicGuid(
+                    "payment-request:" +
+                    request.RequestId.ToString("D"));
+
+            NexLedgerAppendResult result =
+                BankingTransfer(
+                    request.PayerAccountId,
+                    request.PayeeAccountId,
+                    request.AmountMinor,
+                    request.Reference,
+                    correlationId,
+                    transactionId);
+
+            return m_Workflows.UpdatePaymentRequest(
+                request.WithStatus(
+                    NexPaymentRequestStatus.Paid,
+                    result.Transaction.TransactionId));
+        }
+
+        public NexPaymentRequest CancelPaymentRequest(
+            Guid requestId,
+            Guid payeeAccountId)
+        {
+            RequireWorkflows();
+
+            NexPaymentRequest request =
+                GetPaymentRequest(requestId) ??
+                throw new NexLedgerPolicyException("Payment request was not found.");
+
+            if (request.PayeeAccountId != payeeAccountId)
+                throw new NexLedgerPolicyException("Only the payee can cancel the payment request.");
+
+            if (request.Status != NexPaymentRequestStatus.Pending)
+                return request;
+
+            return m_Workflows.UpdatePaymentRequest(
+                request.WithStatus(
+                    NexPaymentRequestStatus.Cancelled));
+        }
+
+        public NexLedgerAppendResult Refund(
+            Guid originalTransactionId,
+            string actor,
+            string reason) =>
+            Reverse(
+                originalTransactionId,
+                actor,
+                reason);
+
+        public NexCommerceOrder ExecuteCommerceOrder(
+            Guid orderId,
+            NexCommerceKind kind,
+            Guid buyerAccountId,
+            Guid sellerAccountId,
+            long amountMinor,
+            string reference,
+            string externalReference = "",
+            string correlationId = null)
+        {
+            RequireWorkflows();
+
+            NexCommerceOrder existing =
+                m_Workflows.GetCommerceOrder(orderId);
+
+            if (existing != null)
+            {
+                if (existing.Kind != kind ||
+                    existing.BuyerAccountId != buyerAccountId ||
+                    existing.SellerAccountId != sellerAccountId ||
+                    existing.AmountMinor != amountMinor ||
+                    !string.Equals(existing.Reference, reference?.Trim(), StringComparison.Ordinal) ||
+                    !string.Equals(existing.ExternalReference, (externalReference ?? string.Empty).Trim(), StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Commerce order ID already exists with different immutable content.");
+                }
+
+                if (existing.Status == NexCommerceOrderStatus.Completed ||
+                    existing.Status == NexCommerceOrderStatus.Refunded)
+                {
+                    return existing;
+                }
+            }
+            else
+            {
+                existing =
+                    m_Workflows.CreateCommerceOrder(
+                        new NexCommerceOrder(
+                            orderId,
+                            kind,
+                            buyerAccountId,
+                            sellerAccountId,
+                            amountMinor,
+                            reference,
+                            externalReference));
+            }
+
+            Guid transactionId =
+                DeterministicGuid(
+                    "commerce-order:" +
+                    orderId.ToString("D"));
+
+            NexLedgerAppendResult payment =
+                BankingTransfer(
+                    buyerAccountId,
+                    sellerAccountId,
+                    amountMinor,
+                    reference,
+                    correlationId,
+                    transactionId);
+
+            return m_Workflows.UpdateCommerceOrder(
+                existing.Complete(
+                    payment.Transaction.TransactionId));
+        }
+
+        public NexCommerceOrder GetCommerceOrder(Guid orderId)
+        {
+            RequireWorkflows();
+            return m_Workflows.GetCommerceOrder(orderId);
+        }
+
+        public IReadOnlyList<NexCommerceOrder> ListCommerceOrders(
+            Guid accountId,
+            int offset = 0,
+            int limit = 100)
+        {
+            RequireWorkflows();
+            RequireAccount(accountId);
+
+            return m_Workflows.ListCommerceOrders(
+                accountId,
+                offset,
+                limit);
+        }
+
+        public NexCommerceOrder RefundCommerceOrder(
+            Guid orderId,
+            string actor,
+            string reason)
+        {
+            RequireWorkflows();
+
+            NexCommerceOrder order =
+                m_Workflows.GetCommerceOrder(orderId) ??
+                throw new NexLedgerPolicyException("Commerce order was not found.");
+
+            if (order.Status == NexCommerceOrderStatus.Refunded)
+                return order;
+
+            if (order.Status != NexCommerceOrderStatus.Completed ||
+                order.PaymentTransactionId == Guid.Empty)
+            {
+                throw new NexLedgerPolicyException(
+                    "Only completed commerce orders can be refunded.");
+            }
+
+            NexLedgerAppendResult refund =
+                Refund(
+                    order.PaymentTransactionId,
+                    actor,
+                    reason);
+
+            return m_Workflows.UpdateCommerceOrder(
+                order.Refund(
+                    refund.Transaction.TransactionId));
+        }
+
+        public NexLandListing CreateLandListing(
+            NexLandListing listing)
+        {
+            RequireWorkflows();
+
+            if (listing == null)
+                throw new ArgumentNullException(nameof(listing));
+
+            RequireWalletAccount(
+                listing.SellerAccountId,
+                "land seller");
+
+            return m_Workflows.CreateLandListing(listing);
+        }
+
+        public NexLandListing GetLandListing(Guid listingId)
+        {
+            RequireWorkflows();
+            return m_Workflows.GetLandListing(listingId);
+        }
+
+        public IReadOnlyList<NexLandListing> SearchLandListings(
+            string query,
+            NexLandListingType? type,
+            int offset = 0,
+            int limit = 100)
+        {
+            RequireWorkflows();
+
+            return m_Workflows.SearchLandListings(
+                query,
+                type,
+                offset,
+                limit);
+        }
+
+        public NexLandListing DeactivateLandListing(
+            Guid listingId,
+            Guid sellerAccountId)
+        {
+            RequireWorkflows();
+
+            NexLandListing listing =
+                m_Workflows.GetLandListing(listingId) ??
+                throw new NexLedgerPolicyException("Land listing was not found.");
+
+            if (listing.SellerAccountId != sellerAccountId)
+                throw new NexLedgerPolicyException("Only the seller can deactivate the land listing.");
+
+            if (!listing.Active)
+                return listing;
+
+            return m_Workflows.UpdateLandListing(
+                listing.Deactivate());
+        }
+
+        public NexCommerceOrder PurchaseLandListing(
+            Guid listingId,
+            Guid buyerAccountId,
+            Guid orderId,
+            string correlationId = null)
+        {
+            RequireWorkflows();
+
+            NexLandListing listing =
+                m_Workflows.GetLandListing(listingId) ??
+                throw new NexLedgerPolicyException("Land listing was not found.");
+
+            NexCommerceOrder existingOrder =
+                m_Workflows.GetCommerceOrder(orderId);
+
+            if (existingOrder != null)
+            {
+                if (existingOrder.Kind != NexCommerceKind.LandPurchase ||
+                    existingOrder.BuyerAccountId != buyerAccountId ||
+                    !string.Equals(
+                        existingOrder.ExternalReference,
+                        "land-listing:" + listing.ListingId.ToString("D"),
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Land purchase order ID already exists with different content.");
+                }
+
+                if (existingOrder.Status == NexCommerceOrderStatus.Completed ||
+                    existingOrder.Status == NexCommerceOrderStatus.Refunded)
+                {
+                    return existingOrder;
+                }
+            }
+
+            if (!listing.Active ||
+                listing.ListingType != NexLandListingType.Sale)
+            {
+                throw new NexLedgerPolicyException(
+                    "Land listing is not an active sale listing.");
+            }
+
+            NexCommerceOrder order =
+                ExecuteCommerceOrder(
+                    orderId,
+                    NexCommerceKind.LandPurchase,
+                    buyerAccountId,
+                    listing.SellerAccountId,
+                    listing.PriceMinor,
+                    "Land purchase: " + listing.ParcelName,
+                    "land-listing:" + listing.ListingId.ToString("D"),
+                    correlationId);
+
+            m_Workflows.UpdateLandListing(
+                listing.Deactivate());
+
+            return order;
+        }
+
+        public NexLandLease CreateLandLease(
+            Guid listingId,
+            Guid tenantAccountId,
+            int periods,
+            Guid orderId,
+            string correlationId = null)
+        {
+            RequireWorkflows();
+
+            if (periods < 1 || periods > 120)
+                throw new ArgumentOutOfRangeException(nameof(periods));
+
+            NexLandListing listing =
+                m_Workflows.GetLandListing(listingId) ??
+                throw new NexLedgerPolicyException("Land listing was not found.");
+
+            if (!listing.Active ||
+                listing.ListingType != NexLandListingType.Rental)
+            {
+                throw new NexLedgerPolicyException(
+                    "Land listing is not an active rental listing.");
+            }
+
+            DateTimeOffset now =
+                DateTimeOffset.UtcNow;
+
+            Guid leaseId =
+                DeterministicGuid(
+                    "land-lease:" +
+                    listingId.ToString("D") +
+                    ":" +
+                    tenantAccountId.ToString("D"));
+
+            NexLandLease existing =
+                m_Workflows.GetLandLease(leaseId);
+
+            if (existing != null)
+                return existing;
+
+            ExecuteCommerceOrder(
+                orderId,
+                NexCommerceKind.Rental,
+                tenantAccountId,
+                listing.SellerAccountId,
+                listing.PriceMinor,
+                "Land rent: " + listing.ParcelName,
+                "land-rental:" + listing.ListingId.ToString("D"),
+                correlationId);
+
+            return m_Workflows.CreateLandLease(
+                new NexLandLease(
+                    leaseId,
+                    listingId,
+                    tenantAccountId,
+                    listing.SellerAccountId,
+                    listing.PriceMinor,
+                    listing.RentalPeriodDays,
+                    now,
+                    now.AddDays(
+                        checked(listing.RentalPeriodDays * periods)),
+                    now.AddDays(listing.RentalPeriodDays),
+                    true,
+                    DeterministicGuid(
+                        "commerce-order:" +
+                        orderId.ToString("D"))));
+        }
+
+        public NexLandLease PayLandRent(
+            Guid leaseId,
+            Guid orderId,
+            string correlationId = null)
+        {
+            RequireWorkflows();
+
+            NexLandLease lease =
+                m_Workflows.GetLandLease(leaseId) ??
+                throw new NexLedgerPolicyException("Land lease was not found.");
+
+            if (!lease.Active)
+                throw new NexLedgerPolicyException("Land lease is not active.");
+
+            NexCommerceOrder existingPayment =
+                m_Workflows.GetCommerceOrder(orderId);
+
+            if (existingPayment != null)
+            {
+                string expectedExternal =
+                    "land-lease:" +
+                    lease.LeaseId.ToString("D");
+
+                if (existingPayment.Kind != NexCommerceKind.Rental ||
+                    existingPayment.BuyerAccountId != lease.TenantAccountId ||
+                    existingPayment.SellerAccountId != lease.LandlordAccountId ||
+                    !string.Equals(
+                        existingPayment.ExternalReference,
+                        expectedExternal,
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Rent order ID already exists with different content.");
+                }
+
+                if (existingPayment.Status == NexCommerceOrderStatus.Completed)
+                {
+                    if (lease.LastPaymentTransactionId ==
+                        existingPayment.PaymentTransactionId)
+                    {
+                        return lease;
+                    }
+
+                    DateTimeOffset recoveredNext =
+                        lease.NextDueAt.AddDays(
+                            lease.PeriodDays);
+
+                    return m_Workflows.UpdateLandLease(
+                        lease.Advance(
+                            existingPayment.PaymentTransactionId,
+                            recoveredNext,
+                            DateTimeOffset.UtcNow < lease.EndsAt));
+                }
+            }
+
+            DateTimeOffset now =
+                DateTimeOffset.UtcNow;
+
+            if (now >= lease.EndsAt ||
+                lease.NextDueAt >= lease.EndsAt)
+            {
+                throw new NexLedgerPolicyException(
+                    "No further rent payment is due for this lease.");
+            }
+
+            if (now < lease.NextDueAt)
+                throw new NexLedgerPolicyException("Land rent is not due yet.");
+
+            NexCommerceOrder payment =
+                ExecuteCommerceOrder(
+                    orderId,
+                    NexCommerceKind.Rental,
+                    lease.TenantAccountId,
+                    lease.LandlordAccountId,
+                    lease.RentMinor,
+                    "Recurring land rent",
+                    "land-lease:" + lease.LeaseId.ToString("D"),
+                    correlationId);
+
+            DateTimeOffset next =
+                lease.NextDueAt.AddDays(
+                    lease.PeriodDays);
+
+            bool active =
+                now < lease.EndsAt;
+
+            return m_Workflows.UpdateLandLease(
+                lease.Advance(
+                    payment.PaymentTransactionId,
+                    next,
+                    active));
+        }
+
+        public NexLandLease GetLandLease(
+            Guid leaseId)
+        {
+            RequireWorkflows();
+            return m_Workflows.GetLandLease(leaseId);
+        }
+
+        public IReadOnlyList<NexLandLease> ListLandLeases(
+            Guid accountId,
+            int offset = 0,
+            int limit = 100)
+        {
+            RequireWorkflows();
+            RequireAccount(accountId);
+
+            return m_Workflows.ListLandLeases(
+                accountId,
+                offset,
+                limit);
+        }
+
+        public NexLedgerAccount EnsureEscrowAccount(
+            Guid escrowId,
+            string displayName)
+        {
+            if (escrowId == Guid.Empty)
+                throw new ArgumentException("Escrow account ID is required.", nameof(escrowId));
+
+            NexLedgerAccount existing =
+                m_Ledger.GetAccount(escrowId);
+
+            if (existing != null)
+            {
+                if (existing.AccountClass != NexLedgerAccountClass.Escrow ||
+                    existing.NormalSide != NexLedgerSide.Credit)
+                {
+                    throw new NexLedgerConflictException(
+                        "Escrow UUID is already used by an incompatible account.");
+                }
+
+                return existing;
+            }
+
+            NexLedgerAccount created =
+                new NexLedgerAccount(
+                    escrowId,
+                    NexLedgerAccountClass.Escrow,
+                    NexLedgerSide.Credit,
+                    "escrow:" + escrowId.ToString("D"),
+                    string.IsNullOrWhiteSpace(displayName)
+                        ? "NV$ Escrow"
+                        : displayName);
+
+            if (m_Ledger.TryCreateAccount(created))
+                return created;
+
+            return RequireAccount(escrowId);
+        }
+
+        public NexLedgerAppendResult FundEscrow(
+            Guid fromAccountId,
+            Guid escrowId,
+            long amountMinor,
+            string reference,
+            string correlationId = null,
+            Guid? transactionId = null)
+        {
+            NexLedgerAccount from =
+                RequireWalletAccount(fromAccountId, "escrow source");
+            NexLedgerAccount escrow =
+                EnsureEscrowAccount(
+                    escrowId,
+                    "NV$ Escrow");
+
+            RequireActive(from.AccountId, "escrow source");
+            RequireActive(escrow.AccountId, "escrow");
+            RequireAvailableBalance(from, amountMinor);
+
+            return PostDirectedTransfer(
+                "escrow_fund",
+                from.AccountId,
+                escrow.AccountId,
+                amountMinor,
+                reference,
+                correlationId,
+                transactionId ?? Guid.NewGuid());
+        }
+
+        public NexLedgerAppendResult ReleaseEscrow(
+            Guid escrowId,
+            Guid toAccountId,
+            long amountMinor,
+            string reference,
+            string correlationId = null,
+            Guid? transactionId = null)
+        {
+            NexLedgerAccount escrow =
+                EnsureEscrowAccount(
+                    escrowId,
+                    "NV$ Escrow");
+            NexLedgerAccount to =
+                RequireWalletAccount(toAccountId, "escrow destination");
+
+            RequireActive(escrow.AccountId, "escrow");
+            RequireActive(to.AccountId, "escrow destination");
+            RequireAvailableBalance(escrow, amountMinor);
+
+            return PostDirectedTransfer(
+                "escrow_release",
+                escrow.AccountId,
+                to.AccountId,
+                amountMinor,
+                reference,
+                correlationId,
+                transactionId ?? Guid.NewGuid());
         }
 
         public NexLedgerAccount GetAccount(Guid accountId) =>
@@ -526,6 +1515,111 @@ namespace NexVerse.Core.Economy
                     original.CurrencyCode);
 
             return m_Ledger.Post(reversal);
+        }
+
+
+        private void RequireWorkflows()
+        {
+            if (m_Workflows == null)
+            {
+                throw new InvalidOperationException(
+                    "Banking/commerce workflow storage is not available.");
+            }
+        }
+
+        private NexLedgerAppendResult PostDirectedTransfer(
+            string kind,
+            Guid fromAccountId,
+            Guid toAccountId,
+            long amountMinor,
+            string reference,
+            string correlationId,
+            Guid transactionId)
+        {
+            if (amountMinor <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amountMinor));
+
+            string normalizedReference =
+                RequireReference(reference);
+
+            NexLedgerTransaction existing =
+                m_Ledger.GetTransaction(transactionId);
+
+            if (existing != null)
+            {
+                if (existing.Postings.Count != 2 ||
+                    !string.Equals(existing.Kind, kind, StringComparison.Ordinal) ||
+                    !string.Equals(existing.Reference, normalizedReference, StringComparison.Ordinal) ||
+                    existing.Postings[0].AccountId != fromAccountId ||
+                    existing.Postings[0].Side != NexLedgerSide.Debit ||
+                    existing.Postings[0].AmountMinor != amountMinor ||
+                    existing.Postings[1].AccountId != toAccountId ||
+                    existing.Postings[1].Side != NexLedgerSide.Credit ||
+                    existing.Postings[1].AmountMinor != amountMinor)
+                {
+                    throw new NexLedgerConflictException(
+                        "Transaction ID already exists with different directed-transfer content.");
+                }
+
+                return new NexLedgerAppendResult(
+                    NexLedgerAppendStatus.Duplicate,
+                    existing);
+            }
+
+            return m_Ledger.Post(
+                new NexLedgerTransaction(
+                    transactionId,
+                    kind,
+                    normalizedReference,
+                    new[]
+                    {
+                        new NexLedgerPosting(
+                            DeterministicGuid(kind + ":debit:" + transactionId.ToString("D")),
+                            fromAccountId,
+                            NexLedgerSide.Debit,
+                            amountMinor,
+                            kind + " debit"),
+                        new NexLedgerPosting(
+                            DeterministicGuid(kind + ":credit:" + transactionId.ToString("D")),
+                            toAccountId,
+                            NexLedgerSide.Credit,
+                            amountMinor,
+                            kind + " credit")
+                    },
+                    correlationId));
+        }
+
+        private static bool MatchesBankingTransfer(
+            NexLedgerTransaction transaction,
+            Guid fromAccountId,
+            Guid toAccountId,
+            long amountMinor,
+            long feeMinor,
+            Guid feeAccountId,
+            string reference)
+        {
+            if (transaction == null ||
+                !string.Equals(transaction.Kind, "bank_transfer", StringComparison.Ordinal) ||
+                !string.Equals(transaction.Reference, reference, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (!transaction.Metadata.TryGetValue("from_account_id", out string from) ||
+                !transaction.Metadata.TryGetValue("to_account_id", out string to) ||
+                !transaction.Metadata.TryGetValue("amount_minor", out string amount) ||
+                !transaction.Metadata.TryGetValue("fee_minor", out string fee) ||
+                !transaction.Metadata.TryGetValue("fee_account_id", out string feeAccount))
+            {
+                return false;
+            }
+
+            return
+                string.Equals(from, fromAccountId.ToString("D"), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(to, toAccountId.ToString("D"), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(amount, amountMinor.ToString(), StringComparison.Ordinal) &&
+                string.Equals(fee, feeMinor.ToString(), StringComparison.Ordinal) &&
+                string.Equals(feeAccount, feeAccountId.ToString("D"), StringComparison.OrdinalIgnoreCase);
         }
 
         private NexLedgerAccount RequireAccount(

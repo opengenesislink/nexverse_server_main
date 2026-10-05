@@ -146,6 +146,45 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (string.Equals(
+                    path,
+                    "/api/v1/economy/accounts/ensure",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (!method.Equals("POST", StringComparison.OrdinalIgnoreCase))
+                {
+                    MethodNotAllowed(response, "POST");
+                    return;
+                }
+
+                if (!Authenticate(
+                        request,
+                        response,
+                        NexScopes.EconomyTransfer,
+                        out NexPrincipal principal,
+                        out UserAccount account))
+                {
+                    return;
+                }
+
+                if (account != null &&
+                    !principal.HasScope(NexScopes.AdminAll))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Forbidden,
+                        "economy_wallet_provision_forbidden",
+                        "Wallet provisioning is restricted to trusted services and administrators.");
+                    return;
+                }
+
+                HandleEnsureWallet(
+                    request,
+                    response,
+                    principal);
+                return;
+            }
+
             const string transactionPrefix =
                 "/api/v1/economy/transactions/";
 
@@ -610,6 +649,116 @@ namespace NexVerse.Server.Api
                     result.Created
                         ? HttpStatusCode.Created
                         : HttpStatusCode.OK);
+            }
+            catch (Exception e)
+            {
+                WriteEconomyFailure(
+                    response,
+                    e);
+            }
+        }
+
+        private void HandleEnsureWallet(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            NexPrincipal principal)
+        {
+            NexEconomyService economy =
+                RequireEconomy(response);
+
+            if (economy == null)
+                return;
+
+            if (!TryBody(
+                    request,
+                    response,
+                    out JsonElement body))
+            {
+                return;
+            }
+
+            if (!TryGuid(
+                    body,
+                    "account_id",
+                    out Guid accountId))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "account_id_required",
+                    "account_id is required.");
+                return;
+            }
+
+            string rawClass =
+                GetOptionalString(
+                    body,
+                    "account_class")
+                    .Replace("-", string.Empty)
+                    .Replace("_", string.Empty);
+
+            NexLedgerAccountClass accountClass;
+
+            if (rawClass.Equals("group", StringComparison.OrdinalIgnoreCase))
+                accountClass = NexLedgerAccountClass.Group;
+            else if (rawClass.Equals("business", StringComparison.OrdinalIgnoreCase) ||
+                     rawClass.Equals("merchant", StringComparison.OrdinalIgnoreCase))
+                accountClass = NexLedgerAccountClass.Business;
+            else if (rawClass.Equals("estate", StringComparison.OrdinalIgnoreCase))
+                accountClass = NexLedgerAccountClass.Estate;
+            else if (rawClass.Equals("objectmerchantendpoint", StringComparison.OrdinalIgnoreCase) ||
+                     rawClass.Equals("object", StringComparison.OrdinalIgnoreCase))
+                accountClass = NexLedgerAccountClass.ObjectMerchantEndpoint;
+            else
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_account_class",
+                    "account_class must be group, business, estate or object_merchant_endpoint.");
+                return;
+            }
+
+            try
+            {
+                NexLedgerAccount account =
+                    economy.EnsureWalletAccount(
+                        accountId,
+                        accountClass,
+                        GetOptionalString(
+                            body,
+                            "display_name"));
+
+                NexLedgerAccountState state =
+                    economy.GetAccountState(
+                        account.AccountId);
+
+                m_Audit.Record(
+                    new NexAuditEvent(
+                        principal.Subject,
+                        "economy.wallet.ensure",
+                        "ledger-account:" +
+                        account.AccountId.ToString("D"),
+                        Correlation(response),
+                        new Dictionary<string, string>
+                        {
+                            ["account_class"] =
+                                account.AccountClass.ToString()
+                        }));
+
+                WriteJson(
+                    response,
+                    new
+                    {
+                        account =
+                            AccountPayload(
+                                account,
+                                economy.GetBalance(account.AccountId),
+                                state),
+                        correlation_id =
+                            Correlation(response)
+                    },
+                    HttpStatusCode.OK);
             }
             catch (Exception e)
             {

@@ -3,6 +3,7 @@ from pathlib import Path
 
 model = Path("NexVerse/Core/Economy/NexLedgerAccountState.cs").read_text(encoding="utf-8")
 virtual = Path("NexVerse/Core/Economy/NexVirtualBankAccount.cs").read_text(encoding="utf-8")
+workflow = Path("NexVerse/Core/Economy/NexEconomyWorkflow.cs").read_text(encoding="utf-8")
 service = Path("NexVerse/Core/Economy/NexEconomyService.cs").read_text(encoding="utf-8")
 memory = Path("NexVerse/Core/Economy/NexLedgerStore.cs").read_text(encoding="utf-8")
 sql = Path("NexVerse/Core/Economy/NexLedgerSqlStore.cs").read_text(encoding="utf-8")
@@ -28,6 +29,18 @@ for marker in (
     assert marker in virtual, f"missing virtual account marker: {marker}"
 
 for marker in (
+    "NexPaymentRequest",
+    "NexAccountTransferPolicy",
+    "NexCommerceOrder",
+    "NexLandListing",
+    "NexLandLease",
+    "NexBankStatement",
+    "NexReconciliationReport",
+    "INexEconomyWorkflowStore",
+):
+    assert marker in workflow, f"missing banking/commerce model marker: {marker}"
+
+for marker in (
     "public sealed class NexEconomyService",
     "EnsureResidentAccount(",
     "AdministrativeAdjustment(",
@@ -35,6 +48,18 @@ for marker in (
     "SetAccountStatus(",
     "EnsureVirtualBankAccount(",
     "ResolveVirtualBankAccount(",
+    "BankingTransfer(",
+    "CreatePaymentRequest(",
+    "PayPaymentRequest(",
+    "RefundCommerceOrder(",
+    "FundEscrow(",
+    "ReleaseEscrow(",
+    "GetStatement(",
+    "ReconcileAccount(",
+    "PurchaseLandListing(",
+    "CreateLandLease(",
+    "PayLandRent(",
+    "ExecuteCommerceOrder(",
     "Insufficient NV$ balance",
     "Closed ledger accounts cannot be reopened",
     "A ledger account can be closed only with zero balance",
@@ -49,16 +74,28 @@ for marker in (
     "m_AccountStateEvents",
     "m_VirtualBankAccountsByAccount",
     "GetOrCreateVirtualBankAccount(",
+    "INexEconomyWorkflowStore",
+    "m_TransferPolicies",
+    "m_PaymentRequests",
+    "m_CommerceOrders",
+    "m_LandListings",
+    "m_LandLeases",
 ):
     assert marker in memory, f"missing in-memory lifecycle marker: {marker}"
 
 for marker in (
-    "CurrentSchemaVersion = 3",
+    "CurrentSchemaVersion = 4",
     "ogl_ledger_account_state",
     "ogl_ledger_account_events",
     "ApplySchemaVersion2(",
     "ApplySchemaVersion3(",
+    "ApplySchemaVersion4(",
     "ogl_ledger_virtual_accounts",
+    "ogl_economy_transfer_policies",
+    "ogl_economy_payment_requests",
+    "ogl_economy_commerce_orders",
+    "ogl_economy_land_listings",
+    "ogl_economy_land_leases",
     "GetOrCreateVirtualBankAccount(",
     "SetAccountStatus(",
     "ListAccountStateEvents(",
@@ -84,7 +121,14 @@ for marker in (
     "schema version mismatch",
     "resident NVBAN mapping mismatch",
     "NVBAN mappings were not persisted",
+    "banking transfer/fee balances mismatch",
+    "payment request settlement mismatch",
+    "reconciliation failed",
+    "escrow balances mismatch",
+    "commerce refund mismatch",
+    "land purchase mismatch",
+    "land lease initial settlement mismatch",
 ):
     assert marker in regression, f"missing policy regression marker: {marker}"
 
-print("NV$ account lifecycle, NVBAN and policy contract: OK")
+print("NV$ banking, commerce, land and policy contract: OK")

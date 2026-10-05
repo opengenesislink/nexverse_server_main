@@ -957,7 +957,7 @@ These identifiers must never be represented as real-world bank accounts.
 
 - [x] dedicated non-IBAN `NVBAN` scheme with an unmistakable `NVBAN-` prefix and restricted human-readable alphabet;
 - [x] deterministic collision-resistant identifier derivation bound to the immutable ledger account UUID;
-- [x] one-to-one persistent mapping in ledger schema v3 for SQLite, MariaDB/MySQL and PostgreSQL;
+- [x] one-to-one persistent mapping introduced in ledger schema v3 and retained in current schema v4 for SQLite, MariaDB/MySQL and PostgreSQL;
 - [x] in-memory reference-store support and regression coverage for assignment, idempotency, reverse lookup and SQL persistence;
 - [x] policy-bound `NexEconomyService` access; API code never writes the mapping table directly;
 - [x] authenticated `GET /api/v1/economy/virtual-account` World API contract using `economy:read`;
@@ -966,57 +966,63 @@ These identifiers must never be represented as real-world bank accounts.
 
 ### 10.3 Banking functions
 
-- balances;
-- transaction history;
-- statements;
-- transfers;
-- payment requests;
-- refunds;
-- escrow;
-- limits;
-- fees;
-- recurring payments later;
-- account locking;
-- reconciliation;
-- audit trails.
+**Status: completed on the 0.9.3.6 development line.** Generic scheduled/recurring payments remain the explicitly deferred post-foundation item; recurring land rent has a persistent due-date model in 10.5.
+
+- [x] balances through the immutable ledger;
+- [x] bounded transaction history with account authorization;
+- [x] date-bounded statements with opening/closing balances;
+- [x] idempotent banking transfers by ledger UUID or OpenGenesisLINK `NVBAN`;
+- [x] persistent payment requests with pay/cancel/expiry state;
+- [x] refunds as append-only reversals;
+- [x] dedicated escrow accounts with controlled fund/release flows;
+- [x] per-transfer and daily outgoing limits;
+- [x] optional flat transfer fees routed to an explicit fee wallet;
+- [x] account locking from the 10.1 lifecycle remains enforced by every banking transfer;
+- [x] reconciliation recomputes account balance from immutable postings;
+- [x] World API banking mutations emit persistent audit events through the existing audit sink;
+- [x] generic recurring payments remain intentionally deferred as originally specified; the storage/service design does not fake a scheduler.
 
 ### 10.4 Viewer economy compatibility
 
 Support Firestorm-visible flows including:
 
-- balance;
-- pay resident;
-- pay object;
-- buy object;
-- buy contents;
-- land purchase;
-- group accounting where applicable;
-- transaction notifications.
+- [x] balance through the central World API;
+- [x] pay resident;
+- [x] pay object, resolving the local object owner while still raising `OnObjectPaid`;
+- [x] buy object with price/sale-type validation and compensating refund when object delivery fails;
+- [x] buy contents through the authoritative `IBuySellModule` sale-type path after NV$ settlement;
+- [x] land purchase: the native parcel ownership commit runs only after successful NV$ settlement;
+- [x] group accounting: local groups are provisioned as central NV$ group wallets on demand;
+- [x] transaction notifications through balance refreshes and explicit purchase/payment failure/success messages;
+- [x] simulator remains database-isolated; all money/commerce operations cross the authenticated World API.
 
 ### 10.5 Land commerce
 
-- parcel for sale;
-- buy land;
-- abandon land;
-- transfer land;
-- rent/lease model;
-- recurring rent;
-- land listing;
-- land search;
-- purchase history;
-- estate restrictions.
+- [x] native parcel-for-sale state remains authoritative in `LandManagementModule`;
+- [x] buy land is settlement-gated before `UpdateLandSold`;
+- [x] native abandon-land flow remains authoritative and unchanged by the economy layer;
+- [x] native parcel transfer/deed flow remains authoritative and unchanged by the economy layer;
+- [x] persistent sale/rental listing model;
+- [x] persistent lease model with tenant, landlord, term, rent, next due date and last payment;
+- [x] recurring rent settlement is represented as explicit NexCommerce rental transactions at each due date;
+- [x] land listing creation/deactivation;
+- [x] bounded land search by region/parcel name and listing type;
+- [x] land purchase/rental history is available through NexCommerce orders;
+- [x] native parcel/estate permissions remain the authority for actual parcel sale/ownership changes; the catalog cannot bypass them.
 
 ### 10.6 NexCommerce
 
-Unify:
+**Status: completed as the common transaction/order layer.**
 
-- inworld vendor payments;
-- object sales;
-- marketplace purchases;
-- land purchases;
-- event tickets;
-- rentals;
-- merchant refunds.
+- [x] inworld vendor/object payments;
+- [x] object sales;
+- [x] marketplace purchases;
+- [x] land purchases;
+- [x] event-ticket orders;
+- [x] rentals;
+- [x] merchant refunds as immutable ledger reversals;
+- [x] common persistent order state links every completed/refunded commerce operation to its ledger transaction;
+- [x] service remains policy-bound through `NexEconomyService`; no commerce endpoint can append arbitrary journal entries.
 
 ---
 

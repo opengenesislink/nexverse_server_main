@@ -188,6 +188,50 @@ namespace NexVerse.Server.Api
                     ("post", "NV$-Transaktion als neue Gegenbuchung reversieren", "admin:*", "201")),
                 ["/api/v1/economy/accounts/{accountId}/status"] = AuthenticatedOperations(
                     ("post", "NV$-Konto sperren, freigeben oder schließen", "admin:*", "200")),
+                ["/api/v1/economy/accounts/ensure"] = AuthenticatedOperations(
+                    ("post", "Vertrauenswürdiges Gruppen-, Business-, Estate- oder Objekt-Wallet provisionieren", "economy:transfer (service/admin)", "200")),
+                ["/api/v1/banking/transactions"] = AuthenticatedOperations(
+                    ("get", "NV$-Transaktionshistorie des eigenen oder autorisierten Kontos lesen", "economy:read", "200")),
+                ["/api/v1/banking/statements"] = AuthenticatedOperations(
+                    ("get", "NV$-Kontoauszug mit Anfangs-/Endsaldo erzeugen", "economy:read", "200")),
+                ["/api/v1/banking/reconciliation"] = AuthenticatedOperations(
+                    ("get", "Ledger-Saldo aus unveränderlichen Buchungen abgleichen", "economy:read", "200")),
+                ["/api/v1/banking/transfers"] = AuthenticatedOperations(
+                    ("post", "NV$-Bankingtransfer per Konto-ID oder NVBAN mit Limits/Gebühren ausführen", "economy:transfer", "201")),
+                ["/api/v1/banking/payment-requests"] = AuthenticatedOperations(
+                    ("get", "Zahlungsanforderungen des Kontos lesen", "economy:read", "200"),
+                    ("post", "Zahlungsanforderung erstellen", "economy:transfer", "201")),
+                ["/api/v1/banking/payment-requests/{requestId}/pay"] = AuthenticatedOperations(
+                    ("post", "Zahlungsanforderung bezahlen", "economy:transfer", "200")),
+                ["/api/v1/banking/payment-requests/{requestId}/cancel"] = AuthenticatedOperations(
+                    ("post", "Eigene Zahlungsanforderung stornieren", "economy:transfer", "200")),
+                ["/api/v1/banking/accounts/{accountId}/policy"] = AuthenticatedOperations(
+                    ("get", "Transferlimits und Gebührenpolicy lesen", "economy:read", "200"),
+                    ("put", "Transferlimits und Gebührenpolicy administrativ setzen", "admin:*", "200")),
+                ["/api/v1/banking/escrow/{escrowId}/fund"] = AuthenticatedOperations(
+                    ("post", "NV$ in Escrow einzahlen", "economy:transfer", "201")),
+                ["/api/v1/banking/escrow/{escrowId}/release"] = AuthenticatedOperations(
+                    ("post", "NV$ aus Escrow freigeben", "economy:transfer (service/admin)", "201")),
+                ["/api/v1/commerce/orders"] = AuthenticatedOperations(
+                    ("get", "NexCommerce-Kaufhistorie lesen", "economy:read", "200"),
+                    ("post", "NexCommerce-Auftrag ausführen", "economy:transfer", "201")),
+                ["/api/v1/commerce/orders/{orderId}"] = AuthenticatedOperations(
+                    ("get", "NexCommerce-Auftrag lesen", "economy:read", "200")),
+                ["/api/v1/commerce/orders/{orderId}/refund"] = AuthenticatedOperations(
+                    ("post", "Commerce-Auftrag als Ledger-Gegenbuchung erstatten", "economy:transfer (service/admin)", "200")),
+                ["/api/v1/land-commerce/listings"] = AuthenticatedOperations(
+                    ("get", "Landangebote durchsuchen", "economy:read", "200"),
+                    ("post", "Land-/Mietangebot administrativ anlegen", "admin:*", "201")),
+                ["/api/v1/land-commerce/listings/{listingId}/deactivate"] = AuthenticatedOperations(
+                    ("post", "Landangebot deaktivieren", "admin:*", "200")),
+                ["/api/v1/land-commerce/listings/{listingId}/purchase"] = AuthenticatedOperations(
+                    ("post", "Landangebot über NexCommerce kaufen", "economy:transfer", "201")),
+                ["/api/v1/land-commerce/listings/{listingId}/lease"] = AuthenticatedOperations(
+                    ("post", "Mietvertrag anlegen und erste Miete begleichen", "economy:transfer", "201")),
+                ["/api/v1/land-commerce/leases"] = AuthenticatedOperations(
+                    ("get", "Mietverträge des Kontos lesen", "economy:read", "200")),
+                ["/api/v1/land-commerce/leases/{leaseId}/pay"] = AuthenticatedOperations(
+                    ("post", "Fällige wiederkehrende Landmiete begleichen", "economy:transfer", "200")),
                 ["/api/v1/regions"] = AuthenticatedOperations(
                     ("get", "Auswählbare Home-/Startregionen durchsuchen", "regions:read", "200"),
                     ("post", "NexVerse-verwaltete Region auf einem Simulator-Node erstellen", "regions:manage", "202")),
@@ -377,6 +421,30 @@ namespace NexVerse.Server.Api
                 "EconomyAccountStatusRequest",
                 "EconomyAccountStateResponse",
                 "200");
+            ApplyJsonContract(paths, "/api/v1/economy/accounts/ensure", "post", "EconomyWalletEnsureRequest", "EconomyBalanceResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/transactions", "get", null, "BankingTransactionsResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/statements", "get", null, "BankingStatementResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/reconciliation", "get", null, "BankingReconciliationResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/transfers", "post", "BankingTransferRequest", "EconomyTransferResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/banking/payment-requests", "get", null, "PaymentRequestListResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/payment-requests", "post", "PaymentRequestCreateRequest", "PaymentRequestResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/banking/payment-requests/{requestId}/pay", "post", null, "PaymentRequestResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/payment-requests/{requestId}/cancel", "post", null, "PaymentRequestResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/accounts/{accountId}/policy", "get", null, "BankingPolicyResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/accounts/{accountId}/policy", "put", "BankingPolicyRequest", "BankingPolicyResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/banking/escrow/{escrowId}/fund", "post", "EscrowTransferRequest", "EconomyTransactionResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/banking/escrow/{escrowId}/release", "post", "EscrowTransferRequest", "EconomyTransactionResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/commerce/orders", "get", null, "CommerceOrderListResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/commerce/orders", "post", "CommerceOrderRequest", "CommerceOrderResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/commerce/orders/{orderId}", "get", null, "CommerceOrderResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/commerce/orders/{orderId}/refund", "post", "EconomyReverseRequest", "CommerceOrderResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/listings", "get", null, "LandListingListResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/listings", "post", "LandListingRequest", "LandListingResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/listings/{listingId}/deactivate", "post", "LandSellerRequest", "LandListingResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/listings/{listingId}/purchase", "post", "LandPurchaseRequest", "CommerceOrderResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/listings/{listingId}/lease", "post", "LandLeaseCreateRequest", "LandLeaseResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/leases", "get", null, "LandLeaseListResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/land-commerce/leases/{leaseId}/pay", "post", "LandRentPayRequest", "LandLeaseResponse", "200");
 
             ApplyJsonContract(
                 paths,
@@ -2222,6 +2290,150 @@ namespace NexVerse.Server.Api
                         ["correlation_id"] = new { type = "string" }
                     }
                 },
+                ["EconomyWalletEnsureRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "account_id", "account_class" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["account_id"] = new { type = "string", format = "uuid" },
+                        ["account_class"] = new { type = "string", @enum = new[] { "group", "business", "estate", "object_merchant_endpoint" } },
+                        ["display_name"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["BankingTransferRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "amount" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["from_account_id"] = new { type = "string", format = "uuid" },
+                        ["to_account_id"] = new { type = "string", format = "uuid" },
+                        ["to_nvban"] = new { type = "string", pattern = "^NVBAN-" },
+                        ["amount"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["reference"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["PaymentRequestCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "payer_account_id", "amount", "reference" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["payee_account_id"] = new { type = "string", format = "uuid" },
+                        ["payer_account_id"] = new { type = "string", format = "uuid" },
+                        ["amount"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["reference"] = new { type = "string", maxLength = 255 },
+                        ["expires_at"] = new { type = "string", format = "date-time" }
+                    }
+                },
+                ["BankingPolicyRequest"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["max_per_transfer"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["daily_outgoing_limit"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["flat_fee"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["fee_account_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["EscrowTransferRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "amount" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["from_account_id"] = new { type = "string", format = "uuid" },
+                        ["to_account_id"] = new { type = "string", format = "uuid" },
+                        ["amount"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["reference"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["CommerceOrderRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "kind", "seller_account_id", "amount", "reference" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["order_id"] = new { type = "string", format = "uuid" },
+                        ["kind"] = new { type = "string", @enum = new[] { "VendorPayment", "ObjectSale", "MarketplacePurchase", "LandPurchase", "EventTicket", "Rental", "MerchantRefund" } },
+                        ["buyer_account_id"] = new { type = "string", format = "uuid" },
+                        ["seller_account_id"] = new { type = "string", format = "uuid" },
+                        ["amount"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["reference"] = new { type = "string", maxLength = 255 },
+                        ["external_reference"] = new { type = "string", maxLength = 255 }
+                    }
+                },
+                ["LandListingRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "type", "region_id", "parcel_id", "parcel_local_id", "seller_account_id", "area", "price" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["listing_id"] = new { type = "string", format = "uuid" },
+                        ["type"] = new { type = "string", @enum = new[] { "Sale", "Rental" } },
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["region_name"] = new { type = "string" },
+                        ["parcel_id"] = new { type = "string", format = "uuid" },
+                        ["parcel_local_id"] = new { type = "integer", minimum = 1 },
+                        ["parcel_name"] = new { type = "string" },
+                        ["seller_account_id"] = new { type = "string", format = "uuid" },
+                        ["estate_id"] = new { type = "string", format = "uuid" },
+                        ["area"] = new { type = "integer", minimum = 1 },
+                        ["price"] = new { type = "integer", format = "int64", minimum = 1 },
+                        ["rental_period_days"] = new { type = "integer", minimum = 0 }
+                    }
+                },
+                ["LandSellerRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "seller_account_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["seller_account_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["LandPurchaseRequest"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["buyer_account_id"] = new { type = "string", format = "uuid" },
+                        ["order_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["LandLeaseCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "periods" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["tenant_account_id"] = new { type = "string", format = "uuid" },
+                        ["periods"] = new { type = "integer", minimum = 1, maximum = 120 },
+                        ["order_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["LandRentPayRequest"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["order_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["BankingTransactionsResponse"] = new { type = "object" },
+                ["BankingStatementResponse"] = new { type = "object" },
+                ["BankingReconciliationResponse"] = new { type = "object" },
+                ["PaymentRequestListResponse"] = new { type = "object" },
+                ["PaymentRequestResponse"] = new { type = "object" },
+                ["BankingPolicyResponse"] = new { type = "object" },
+                ["CommerceOrderListResponse"] = new { type = "object" },
+                ["CommerceOrderResponse"] = new { type = "object" },
+                ["LandListingListResponse"] = new { type = "object" },
+                ["LandListingResponse"] = new { type = "object" },
+                ["LandLeaseListResponse"] = new { type = "object" },
+                ["LandLeaseResponse"] = new { type = "object" },
                 ["EconomyTransferRequest"] = new
                 {
                     type = "object",

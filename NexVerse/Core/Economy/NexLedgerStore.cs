@@ -37,8 +37,15 @@ namespace NexVerse.Core.Economy
         NexLedgerAppendResult Append(NexLedgerTransaction transaction);
         NexLedgerTransaction GetTransaction(Guid transactionId);
         long GetBalance(Guid accountId);
+        long GetBalanceAt(Guid accountId, DateTimeOffset atOrBefore);
         IReadOnlyList<NexLedgerPosting> ListPostings(
             Guid accountId,
+            int offset,
+            int limit);
+        IReadOnlyList<NexLedgerTransaction> ListTransactions(
+            Guid accountId,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
             int offset,
             int limit);
     }
@@ -51,7 +58,8 @@ namespace NexVerse.Core.Economy
     public sealed class InMemoryNexLedgerStore :
         INexLedgerStore,
         INexLedgerAccountStateStore,
-        INexVirtualBankAccountStore
+        INexVirtualBankAccountStore,
+        INexEconomyWorkflowStore
     {
         private readonly object m_Sync =
             new object();
@@ -73,6 +81,16 @@ namespace NexVerse.Core.Economy
             new Dictionary<Guid, NexVirtualBankAccount>();
         private readonly Dictionary<string, NexVirtualBankAccount> m_VirtualBankAccountsByIdentifier =
             new Dictionary<string, NexVirtualBankAccount>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<Guid, NexAccountTransferPolicy> m_TransferPolicies =
+            new Dictionary<Guid, NexAccountTransferPolicy>();
+        private readonly Dictionary<Guid, NexPaymentRequest> m_PaymentRequests =
+            new Dictionary<Guid, NexPaymentRequest>();
+        private readonly Dictionary<Guid, NexCommerceOrder> m_CommerceOrders =
+            new Dictionary<Guid, NexCommerceOrder>();
+        private readonly Dictionary<Guid, NexLandListing> m_LandListings =
+            new Dictionary<Guid, NexLandListing>();
+        private readonly Dictionary<Guid, NexLandLease> m_LandLeases =
+            new Dictionary<Guid, NexLandLease>();
 
         public bool TryCreateAccount(
             NexLedgerAccount account)
@@ -361,6 +379,405 @@ namespace NexVerse.Core.Economy
             }
         }
 
+
+        public long GetBalanceAt(
+            Guid accountId,
+            DateTimeOffset atOrBefore)
+        {
+            lock (m_Sync)
+            {
+                if (!m_Accounts.TryGetValue(
+                        accountId,
+                        out NexLedgerAccount account))
+                {
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+                }
+
+                long balance = 0;
+
+                foreach (NexLedgerTransaction transaction in
+                         m_Transactions.Values
+                             .Where(x => x.OccurredAt <= atOrBefore)
+                             .OrderBy(x => x.OccurredAt)
+                             .ThenBy(x => x.TransactionId))
+                {
+                    foreach (NexLedgerPosting posting in
+                             transaction.Postings.Where(x => x.AccountId == accountId))
+                    {
+                        checked
+                        {
+                            long delta =
+                                posting.Side == account.NormalSide
+                                    ? posting.AmountMinor
+                                    : -posting.AmountMinor;
+                            balance += delta;
+                        }
+                    }
+                }
+
+                return balance;
+            }
+        }
+
+        public IReadOnlyList<NexLedgerTransaction> ListTransactions(
+            Guid accountId,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(accountId))
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+
+                IEnumerable<NexLedgerTransaction> query =
+                    m_Transactions.Values
+                        .Where(x => x.Postings.Any(p => p.AccountId == accountId));
+
+                if (from.HasValue)
+                    query = query.Where(x => x.OccurredAt >= from.Value);
+                if (to.HasValue)
+                    query = query.Where(x => x.OccurredAt <= to.Value);
+
+                return query
+                    .OrderByDescending(x => x.OccurredAt)
+                    .ThenByDescending(x => x.TransactionId)
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexAccountTransferPolicy GetTransferPolicy(Guid accountId)
+        {
+            lock (m_Sync)
+            {
+                m_TransferPolicies.TryGetValue(
+                    accountId,
+                    out NexAccountTransferPolicy policy);
+                return policy;
+            }
+        }
+
+        public NexAccountTransferPolicy SetTransferPolicy(
+            NexAccountTransferPolicy policy)
+        {
+            if (policy == null)
+                throw new ArgumentNullException(nameof(policy));
+
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(policy.AccountId))
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {policy.AccountId}.");
+
+                m_TransferPolicies[policy.AccountId] = policy;
+                return policy;
+            }
+        }
+
+        public long GetOutgoingTotal(
+            Guid accountId,
+            DateTimeOffset fromInclusive,
+            DateTimeOffset toExclusive)
+        {
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(accountId))
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+
+                long total = 0;
+
+                checked
+                {
+                    foreach (NexLedgerTransaction transaction in
+                             m_Transactions.Values.Where(x =>
+                                 x.OccurredAt >= fromInclusive &&
+                                 x.OccurredAt < toExclusive))
+                    {
+                        foreach (NexLedgerPosting posting in transaction.Postings)
+                        {
+                            if (posting.AccountId == accountId &&
+                                posting.Side == NexLedgerSide.Debit)
+                            {
+                                total += posting.AmountMinor;
+                            }
+                        }
+                    }
+                }
+
+                return total;
+            }
+        }
+
+        public NexPaymentRequest CreatePaymentRequest(NexPaymentRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            lock (m_Sync)
+            {
+                if (m_PaymentRequests.TryGetValue(request.RequestId, out NexPaymentRequest existing))
+                    return existing;
+
+                m_PaymentRequests.Add(request.RequestId, request);
+                return request;
+            }
+        }
+
+        public NexPaymentRequest GetPaymentRequest(Guid requestId)
+        {
+            lock (m_Sync)
+            {
+                m_PaymentRequests.TryGetValue(requestId, out NexPaymentRequest request);
+                return request;
+            }
+        }
+
+        public IReadOnlyList<NexPaymentRequest> ListPaymentRequests(
+            Guid accountId,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            lock (m_Sync)
+            {
+                return m_PaymentRequests.Values
+                    .Where(x => x.PayeeAccountId == accountId || x.PayerAccountId == accountId)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ThenByDescending(x => x.RequestId)
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexPaymentRequest UpdatePaymentRequest(NexPaymentRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            lock (m_Sync)
+            {
+                if (!m_PaymentRequests.ContainsKey(request.RequestId))
+                    throw new NexLedgerValidationException("Payment request was not found.");
+
+                m_PaymentRequests[request.RequestId] = request;
+                return request;
+            }
+        }
+
+        public NexCommerceOrder CreateCommerceOrder(NexCommerceOrder order)
+        {
+            if (order == null)
+                throw new ArgumentNullException(nameof(order));
+
+            lock (m_Sync)
+            {
+                if (m_CommerceOrders.TryGetValue(order.OrderId, out NexCommerceOrder existing))
+                    return existing;
+
+                m_CommerceOrders.Add(order.OrderId, order);
+                return order;
+            }
+        }
+
+        public NexCommerceOrder GetCommerceOrder(Guid orderId)
+        {
+            lock (m_Sync)
+            {
+                m_CommerceOrders.TryGetValue(orderId, out NexCommerceOrder order);
+                return order;
+            }
+        }
+
+        public IReadOnlyList<NexCommerceOrder> ListCommerceOrders(
+            Guid accountId,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            lock (m_Sync)
+            {
+                return m_CommerceOrders.Values
+                    .Where(x => x.BuyerAccountId == accountId || x.SellerAccountId == accountId)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ThenByDescending(x => x.OrderId)
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexCommerceOrder UpdateCommerceOrder(NexCommerceOrder order)
+        {
+            if (order == null)
+                throw new ArgumentNullException(nameof(order));
+
+            lock (m_Sync)
+            {
+                if (!m_CommerceOrders.ContainsKey(order.OrderId))
+                    throw new NexLedgerValidationException("Commerce order was not found.");
+
+                m_CommerceOrders[order.OrderId] = order;
+                return order;
+            }
+        }
+
+        public NexLandListing CreateLandListing(NexLandListing listing)
+        {
+            if (listing == null)
+                throw new ArgumentNullException(nameof(listing));
+
+            lock (m_Sync)
+            {
+                if (m_LandListings.TryGetValue(listing.ListingId, out NexLandListing existing))
+                    return existing;
+
+                m_LandListings.Add(listing.ListingId, listing);
+                return listing;
+            }
+        }
+
+        public NexLandListing GetLandListing(Guid listingId)
+        {
+            lock (m_Sync)
+            {
+                m_LandListings.TryGetValue(listingId, out NexLandListing listing);
+                return listing;
+            }
+        }
+
+        public IReadOnlyList<NexLandListing> SearchLandListings(
+            string query,
+            NexLandListingType? type,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            string normalized = (query ?? string.Empty).Trim();
+
+            lock (m_Sync)
+            {
+                IEnumerable<NexLandListing> result =
+                    m_LandListings.Values.Where(x => x.Active);
+
+                if (type.HasValue)
+                    result = result.Where(x => x.ListingType == type.Value);
+
+                if (normalized.Length > 0)
+                {
+                    result = result.Where(x =>
+                        x.RegionName.IndexOf(normalized, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        x.ParcelName.IndexOf(normalized, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+
+                return result
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ThenByDescending(x => x.ListingId)
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexLandListing UpdateLandListing(NexLandListing listing)
+        {
+            if (listing == null)
+                throw new ArgumentNullException(nameof(listing));
+
+            lock (m_Sync)
+            {
+                if (!m_LandListings.ContainsKey(listing.ListingId))
+                    throw new NexLedgerValidationException("Land listing was not found.");
+
+                m_LandListings[listing.ListingId] = listing;
+                return listing;
+            }
+        }
+
+        public NexLandLease CreateLandLease(NexLandLease lease)
+        {
+            if (lease == null)
+                throw new ArgumentNullException(nameof(lease));
+
+            lock (m_Sync)
+            {
+                if (m_LandLeases.TryGetValue(lease.LeaseId, out NexLandLease existing))
+                    return existing;
+
+                m_LandLeases.Add(lease.LeaseId, lease);
+                return lease;
+            }
+        }
+
+        public NexLandLease GetLandLease(Guid leaseId)
+        {
+            lock (m_Sync)
+            {
+                m_LandLeases.TryGetValue(leaseId, out NexLandLease lease);
+                return lease;
+            }
+        }
+
+        public IReadOnlyList<NexLandLease> ListLandLeases(
+            Guid accountId,
+            int offset,
+            int limit)
+        {
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            if (limit < 1 || limit > 1000)
+                throw new ArgumentOutOfRangeException(nameof(limit));
+
+            lock (m_Sync)
+            {
+                return m_LandLeases.Values
+                    .Where(x => x.TenantAccountId == accountId || x.LandlordAccountId == accountId)
+                    .OrderByDescending(x => x.StartsAt)
+                    .ThenByDescending(x => x.LeaseId)
+                    .Skip(offset)
+                    .Take(limit)
+                    .ToArray();
+            }
+        }
+
+        public NexLandLease UpdateLandLease(NexLandLease lease)
+        {
+            if (lease == null)
+                throw new ArgumentNullException(nameof(lease));
+
+            lock (m_Sync)
+            {
+                if (!m_LandLeases.ContainsKey(lease.LeaseId))
+                    throw new NexLedgerValidationException("Land lease was not found.");
+
+                m_LandLeases[lease.LeaseId] = lease;
+                return lease;
+            }
+        }
+
         public NexLedgerAccountState GetAccountState(
             Guid accountId)
         {
@@ -549,12 +966,32 @@ namespace NexVerse.Core.Economy
             Guid accountId) =>
             m_Store.GetBalance(accountId);
 
+        public long GetBalanceAt(
+            Guid accountId,
+            DateTimeOffset atOrBefore) =>
+            m_Store.GetBalanceAt(
+                accountId,
+                atOrBefore);
+
         public IReadOnlyList<NexLedgerPosting> ListPostings(
             Guid accountId,
             int offset = 0,
             int limit = 100) =>
             m_Store.ListPostings(
                 accountId,
+                offset,
+                limit);
+
+        public IReadOnlyList<NexLedgerTransaction> ListTransactions(
+            Guid accountId,
+            DateTimeOffset? from = null,
+            DateTimeOffset? to = null,
+            int offset = 0,
+            int limit = 100) =>
+            m_Store.ListTransactions(
+                accountId,
+                from,
+                to,
                 offset,
                 limit);
     }
