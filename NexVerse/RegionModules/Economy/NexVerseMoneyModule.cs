@@ -732,6 +732,16 @@ namespace NexVerse.RegionModules.Economy
 
             try
             {
+                if (!EnsureLocalServiceWallet(
+                        fromUser,
+                        out reason) ||
+                    !EnsureLocalServiceWallet(
+                        toUser,
+                        out reason))
+                {
+                    return false;
+                }
+
                 byte[] payload =
                     JsonSerializer.SerializeToUtf8Bytes(
                         new
@@ -894,6 +904,111 @@ namespace NexVerse.RegionModules.Economy
                 string.Empty);
         }
 
+
+
+        private bool EnsureLocalServiceWallet(
+            UUID accountId,
+            out string reason)
+        {
+            reason =
+                string.Empty;
+
+            if (!TryResolveLocalGroup(
+                    accountId,
+                    out string groupName))
+            {
+                return true;
+            }
+
+            try
+            {
+                byte[] payload =
+                    JsonSerializer.SerializeToUtf8Bytes(
+                        new
+                        {
+                            account_id =
+                                accountId.ToString(),
+                            account_class =
+                                "group",
+                            display_name =
+                                string.IsNullOrWhiteSpace(groupName)
+                                    ? accountId.ToString()
+                                    : groupName
+                        });
+
+                using HttpRequestMessage request =
+                    CreateRequest(
+                        HttpMethod.Post,
+                        "/api/v1/economy/accounts/ensure");
+
+                request.Content =
+                    new ByteArrayContent(
+                        payload);
+                request.Content.Headers.ContentType =
+                    new MediaTypeHeaderValue(
+                        "application/json");
+
+                using HttpResponseMessage response =
+                    m_Http.Send(request);
+
+                if (response.IsSuccessStatusCode)
+                    return true;
+
+                reason =
+                    ReadErrorMessage(
+                        response);
+
+                return false;
+            }
+            catch (Exception e)
+            {
+                reason =
+                    "NV$ group wallet provisioning failed.";
+
+                m_Log.WarnFormat(
+                    "[NEX-ECONOMY-VIEWER]: Group wallet {0} provisioning failed: {1}",
+                    accountId,
+                    e.Message);
+
+                return false;
+            }
+        }
+
+        private bool TryResolveLocalGroup(
+            UUID groupId,
+            out string groupName)
+        {
+            groupName =
+                string.Empty;
+
+            if (groupId.IsZero())
+                return false;
+
+            lock (m_Sync)
+            {
+                foreach (Scene scene in
+                         m_Scenes.Values)
+                {
+                    IGroupsModule groups =
+                        scene.RequestModuleInterface<IGroupsModule>();
+
+                    GroupRecord record =
+                        groups?.GetGroupRecord(
+                            groupId);
+
+                    if (record == null)
+                        continue;
+
+                    groupName =
+                        record.GroupName ??
+                        string.Empty;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private bool TryResolveLocalObjectOwner(
             UUID objectId,
