@@ -33,6 +33,8 @@ for marker in (
     '"object.message.requested"',
     '"object.message.received"',
     "TryTakeObjectMessageRateSlot",
+    "ObjectMessageRateEntryLimit = 8192",
+    '"nexverse.simulator"',
     "m_AllowCrossOwnerObjectMessages",
     "targetPart.OwnerID",
     "sourcePart.OwnerID != sourceOwnerId",
