@@ -254,6 +254,8 @@ Safety defaults are deliberately restrictive:
 
 Successful remote delivery emits `object.message.received` with object, region, node and request-event identifiers. The initial implementation intentionally uses UUID fan-out across configured NexBus peers; a later object-directory optimization may reduce fan-out without changing the LSL contract.
 
+The protected Node API projects the effective simulator capability as `cross_region_object_messaging`, `cross_owner_object_messaging`, `object_messages_per_second` and `object_message_max_age_seconds`. Its health object also reports `accepting_remote_object_messages`, so administrators can distinguish configured policy from a node that is currently offline or stale.
+
 ## Region-grid administration API
 
 The first read-only Region Control Plane foundation is implemented and is used as the data contract for the later administrator raster planner.
