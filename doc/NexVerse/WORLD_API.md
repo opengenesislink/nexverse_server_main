@@ -39,7 +39,7 @@ The response reports its effective privacy level through:
 
 ## LunaTexture diagnostics projection
 
-LunaTexture keeps detailed recovery diagnostics on the simulator where the rendering failure occurs. Each enabled Warp3D region persists a bounded diagnostic store under `LunaTextureDiagnosticStore` (default: `data/lunatexture`) using per-region JSON files and atomic file replacement. `nex texture clear` clears both the in-memory state and the persistent region store.
+LunaTexture keeps detailed recovery diagnostics on the simulator where the rendering failure occurs. Each enabled Warp3D region persists a bounded diagnostic store under `LunaTextureDiagnosticStore` (default: `data/lunatexture`) using per-region JSON files, store format version `1`, and atomic file replacement. `nex texture clear` clears both the in-memory state and the persistent region store.
 
 The NodeAgent heartbeat projects only aggregate diagnostic data to Robust:
 
