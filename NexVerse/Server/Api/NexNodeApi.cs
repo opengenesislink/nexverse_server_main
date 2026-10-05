@@ -122,6 +122,10 @@ namespace NexVerse.Server.Api
                     m_Registry.StaleAfterSeconds,
                 count =
                     nodes.Length,
+                luna_texture =
+                    LunaTextureAggregatePayload(
+                        nodes.Where(node =>
+                            node.State == "online")),
                 nodes =
                     nodes.Select(NodePayload).ToArray(),
                 correlation_id =
@@ -226,6 +230,8 @@ namespace NexVerse.Server.Api
                     node.ManagedRegionCommands,
                 maintenance_mode = node.MaintenanceMode,
                 draining = node.Draining,
+                luna_texture =
+                    LunaTextureNodePayload(node),
                 last_seen =
                     node.LastSeen,
                 last_event_at =
@@ -248,6 +254,84 @@ namespace NexVerse.Server.Api
                         last_seen =
                             region.LastSeen
                     }).ToArray()
+            };
+        }
+
+        private static object LunaTextureNodePayload(
+            NexNodeSnapshot node)
+        {
+            return new
+            {
+                diagnostic_count =
+                    node.LunaTextureDiagnosticCount,
+                occurrence_count =
+                    node.LunaTextureOccurrenceCount,
+                regions_affected =
+                    node.LunaTextureRegionsAffected,
+                last_seen =
+                    node.LunaTextureLastSeen,
+                classifications =
+                    node.LunaTextureClassifications
+            };
+        }
+
+        private static object LunaTextureAggregatePayload(
+            System.Collections.Generic.IEnumerable<NexNodeSnapshot> source)
+        {
+            NexNodeSnapshot[] nodes =
+                (source ?? Array.Empty<NexNodeSnapshot>())
+                    .ToArray();
+
+            System.Collections.Generic.Dictionary<string, long> classifications =
+                new System.Collections.Generic.Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (NexNodeSnapshot node in nodes)
+            {
+                foreach (System.Collections.Generic.KeyValuePair<string, long> item
+                         in node.LunaTextureClassifications)
+                {
+                    classifications.TryGetValue(
+                        item.Key,
+                        out long current);
+                    classifications[item.Key] =
+                        current + Math.Max(0, item.Value);
+                }
+            }
+
+            DateTimeOffset? lastSeen =
+                nodes
+                    .Where(node =>
+                        node.LunaTextureLastSeen.HasValue)
+                    .Select(node =>
+                        node.LunaTextureLastSeen)
+                    .OrderByDescending(value =>
+                        value)
+                    .FirstOrDefault();
+
+            return new
+            {
+                source = "online_nodes",
+                node_count =
+                    nodes.Length,
+                diagnostic_count =
+                    nodes.Sum(node =>
+                        Math.Max(
+                            0,
+                            node.LunaTextureDiagnosticCount)),
+                occurrence_count =
+                    nodes.Sum(node =>
+                        Math.Max(
+                            0L,
+                            node.LunaTextureOccurrenceCount)),
+                regions_affected =
+                    nodes.Sum(node =>
+                        Math.Max(
+                            0,
+                            node.LunaTextureRegionsAffected)),
+                last_seen =
+                    lastSeen,
+                classifications
             };
         }
 
