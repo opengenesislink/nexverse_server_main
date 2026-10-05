@@ -48,11 +48,28 @@ namespace OpenSim.Region.Framework.Interfaces
             UUID scriptItemId,
             string key,
             string value,
+            bool checkOriginal,
+            string originalValue,
+            out bool retryMismatch,
             out string error);
 
         bool DeleteKeyValue(
             UUID scriptItemId,
             string key,
+            out string error);
+
+        bool GetKeyValueStats(
+            UUID scriptItemId,
+            out long usedBytes,
+            out long quotaBytes,
+            out int keyCount,
+            out string error);
+
+        bool ListKeyValueKeys(
+            UUID scriptItemId,
+            int start,
+            int count,
+            out string[] keys,
             out string error);
     }
 }
