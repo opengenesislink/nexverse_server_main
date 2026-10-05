@@ -7,7 +7,9 @@ regression = Path("tools/ci/NexLedgerRegression/Program.cs").read_text(encoding=
 project = Path("tools/ci/NexLedgerRegression/NexLedgerRegression.csproj").read_text(encoding="utf-8")
 
 for marker in (
-    "public sealed class NexLedgerSqlStore : INexLedgerStore",
+    "public sealed class NexLedgerSqlStore",
+    "INexLedgerStore",
+    "INexLedgerAccountStateStore",
     "public const int CurrentSchemaVersion = 2",
     "Func<DbConnection>",
     "IsolationLevel.Serializable",
