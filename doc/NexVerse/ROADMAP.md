@@ -955,6 +955,15 @@ Provide fictional virtual account identifiers/IBAN-style numbers for NexVerse-on
 
 These identifiers must never be represented as real-world bank accounts.
 
+- [x] dedicated non-IBAN `NVBAN` scheme with an unmistakable `NVBAN-` prefix and restricted human-readable alphabet;
+- [x] deterministic collision-resistant identifier derivation bound to the immutable ledger account UUID;
+- [x] one-to-one persistent mapping in ledger schema v3 for SQLite, MariaDB/MySQL and PostgreSQL;
+- [x] in-memory reference-store support and regression coverage for assignment, idempotency, reverse lookup and SQL persistence;
+- [x] policy-bound `NexEconomyService` access; API code never writes the mapping table directly;
+- [x] authenticated `GET /api/v1/economy/virtual-account` World API contract using `economy:read`;
+- [x] resident tokens may read only their own virtual account; service/admin reads follow the existing account-read authorization boundary;
+- [x] API response explicitly labels the identifier OpenGenesisLINK-only and not a real-world bank account or IBAN.
+
 ### 10.3 Banking functions
 
 - balances;
