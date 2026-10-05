@@ -205,6 +205,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_ledger_sql_store.py
 
+      - name: Verify NV dollar Robust runtime configuration
+        shell: bash
+        run: python3 tools/ci/verify_ledger_runtime_config.py
+
       - name: Verify NV dollar double-entry ledger
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexLedgerRegression/NexLedgerRegression.csproj
@@ -248,6 +252,84 @@ jobs:
           test -f bin/NexVerse.Core.dll
           test -f bin/NexVerse.Server.Api.dll
           test -f bin/NexVerse.RegionModules.dll
+
+      - name: Runtime smoke test NV dollar Robust bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f /tmp/opengenesislink-economy-ci.db /tmp/opengenesislink-economy-ci.db-journal /tmp/opengenesislink-economy-ci.db-wal /tmp/opengenesislink-economy-ci.db-shm
+
+          cd bin
+          dotnet Robust.dll -inifile Robust.NexEconomy.Tests.ini > ../nexverse-economy-smoke.log 2>&1 &
+          ROBUST_PID=$!
+
+          cleanup() {
+            kill "$ROBUST_PID" 2>/dev/null || true
+            wait "$ROBUST_PID" 2>/dev/null || true
+            rm -f /tmp/opengenesislink-economy-ci.db /tmp/opengenesislink-economy-ci.db-journal /tmp/opengenesislink-economy-ci.db-wal /tmp/opengenesislink-economy-ci.db-shm
+          }
+          trap cleanup EXIT
+
+          READY=0
+          for i in $(seq 1 120); do
+            if [ -f /tmp/opengenesislink-economy-ci.db ]; then
+              if python3 - <<'PY'
+          import sqlite3
+
+          path = "/tmp/opengenesislink-economy-ci.db"
+          con = sqlite3.connect(path, timeout=1)
+          try:
+              tables = {
+                  row[0]
+                  for row in con.execute(
+                      "SELECT name FROM sqlite_master WHERE type='table'"
+                  )
+              }
+              required = {
+                  "ogl_ledger_schema",
+                  "ogl_ledger_accounts",
+                  "ogl_ledger_transactions",
+                  "ogl_ledger_postings",
+              }
+              assert required.issubset(tables), (required, tables)
+              version = con.execute(
+                  "SELECT MAX(version) FROM ogl_ledger_schema"
+              ).fetchone()[0]
+              assert version == 1, version
+              assert con.execute(
+                  "SELECT COUNT(*) FROM ogl_ledger_accounts"
+              ).fetchone()[0] == 0
+              assert con.execute(
+                  "SELECT COUNT(*) FROM ogl_ledger_transactions"
+              ).fetchone()[0] == 0
+              assert con.execute(
+                  "SELECT COUNT(*) FROM ogl_ledger_postings"
+              ).fetchone()[0] == 0
+          finally:
+              con.close()
+          PY
+              then
+                READY=1
+                break
+              fi
+            fi
+
+            if ! kill -0 "$ROBUST_PID" 2>/dev/null; then
+              echo "::error::Robust exited before the NV dollar ledger schema became ready."
+              cat ../nexverse-economy-smoke.log
+              exit 1
+            fi
+
+            sleep 0.25
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            echo "::error::NV dollar ledger schema did not become ready."
+            cat ../nexverse-economy-smoke.log
+            exit 1
+          fi
+
+          grep -F '[NEX-ECONOMY]: NV$ ledger runtime enabled with provider sqlite' ../nexverse-economy-smoke.log
 
       - name: Runtime regression local secret env loading
         shell: bash
