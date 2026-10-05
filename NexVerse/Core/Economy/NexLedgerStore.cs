@@ -50,7 +50,8 @@ namespace NexVerse.Core.Economy
     /// </summary>
     public sealed class InMemoryNexLedgerStore :
         INexLedgerStore,
-        INexLedgerAccountStateStore
+        INexLedgerAccountStateStore,
+        INexVirtualBankAccountStore
     {
         private readonly object m_Sync =
             new object();
@@ -68,6 +69,10 @@ namespace NexVerse.Core.Economy
             new Dictionary<Guid, NexLedgerAccountState>();
         private readonly Dictionary<Guid, List<NexLedgerAccountStateEvent>> m_AccountStateEvents =
             new Dictionary<Guid, List<NexLedgerAccountStateEvent>>();
+        private readonly Dictionary<Guid, NexVirtualBankAccount> m_VirtualBankAccountsByAccount =
+            new Dictionary<Guid, NexVirtualBankAccount>();
+        private readonly Dictionary<string, NexVirtualBankAccount> m_VirtualBankAccountsByIdentifier =
+            new Dictionary<string, NexVirtualBankAccount>(StringComparer.OrdinalIgnoreCase);
 
         public bool TryCreateAccount(
             NexLedgerAccount account)
@@ -128,6 +133,75 @@ namespace NexVerse.Core.Economy
                     accountId,
                     out NexLedgerAccount account);
                 return account;
+            }
+        }
+
+        public NexVirtualBankAccount GetVirtualBankAccount(Guid accountId)
+        {
+            if (accountId == Guid.Empty)
+                return null;
+
+            lock (m_Sync)
+            {
+                m_VirtualBankAccountsByAccount.TryGetValue(
+                    accountId,
+                    out NexVirtualBankAccount account);
+                return account;
+            }
+        }
+
+        public NexVirtualBankAccount GetVirtualBankAccountByIdentifier(string identifier)
+        {
+            string normalized = NexVirtualBankAccount.NormalizeIdentifier(identifier);
+
+            lock (m_Sync)
+            {
+                m_VirtualBankAccountsByIdentifier.TryGetValue(
+                    normalized,
+                    out NexVirtualBankAccount account);
+                return account;
+            }
+        }
+
+        public NexVirtualBankAccount GetOrCreateVirtualBankAccount(
+            Guid accountId,
+            string identifier,
+            DateTimeOffset createdAt)
+        {
+            string normalized = NexVirtualBankAccount.NormalizeIdentifier(identifier);
+
+            lock (m_Sync)
+            {
+                if (!m_Accounts.ContainsKey(accountId))
+                    throw new NexLedgerValidationException(
+                        $"Unknown ledger account {accountId}.");
+
+                if (m_VirtualBankAccountsByAccount.TryGetValue(
+                        accountId,
+                        out NexVirtualBankAccount existing))
+                {
+                    if (!string.Equals(existing.Identifier, normalized, StringComparison.Ordinal))
+                        throw new NexLedgerConflictException(
+                            "Ledger account already has a different NVBAN identifier.");
+                    return existing;
+                }
+
+                if (m_VirtualBankAccountsByIdentifier.TryGetValue(
+                        normalized,
+                        out NexVirtualBankAccount collision))
+                {
+                    if (collision.AccountId != accountId)
+                        throw new NexLedgerConflictException(
+                            "NVBAN identifier is already assigned to another ledger account.");
+                    return collision;
+                }
+
+                NexVirtualBankAccount created =
+                    new NexVirtualBankAccount(accountId, normalized, createdAt);
+
+                m_VirtualBankAccountsByAccount.Add(accountId, created);
+                m_VirtualBankAccountsByIdentifier.Add(created.Identifier, created);
+                return created;
             }
         }
 
