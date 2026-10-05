@@ -526,8 +526,12 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api.Interfaces
 
            LSL_Key llCreateKeyValue(LSL_String key, LSL_String value);
            LSL_Key llReadKeyValue(LSL_String key);
-           LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value);
+           LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value, LSL_Integer checkedFlag, LSL_String originalValue);
            LSL_Key llDeleteKeyValue(LSL_String key);
+           LSL_Key llDataSizeKeyValue();
+           LSL_Key llKeyCountKeyValue();
+           LSL_Key llKeysKeyValue(LSL_Integer start, LSL_Integer count);
+         LSL_String llGetExperienceErrorMessage(LSL_Integer error);
 
         LSL_Integer llIsFriend(LSL_Key agent_id);
         LSL_Integer llDerezObject(LSL_Key objectUUID, LSL_Integer flag);
