@@ -867,6 +867,7 @@ Foundation notes:
 - [x] archive worker cancellation contract refuses unsafe cancellation after the legacy archiver has started;
 - [x] native OGL worker contract/runner with cooperative CancellationToken support;
 - [x] native directory backup worker with staging, SHA-256 manifest, atomic activation and cleanup;
+- [x] native restore worker with full manifest verification, path-confinement, staging and non-destructive atomic activation;
 - cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
