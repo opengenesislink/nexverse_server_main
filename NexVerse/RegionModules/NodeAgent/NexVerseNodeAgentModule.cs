@@ -295,6 +295,301 @@ namespace NexVerse.RegionModules.NodeAgent
             m_Bus.Publish(nexEvent);
         }
 
+        public bool TryRoute(
+            UUID sourceRegionId,
+            UUID sourceObjectId,
+            UUID sourceOwnerId,
+            string sourceName,
+            Vector3 sourcePosition,
+            UUID targetObjectId,
+            int channel,
+            string message)
+        {
+            if (!Enabled ||
+                m_Bus == null ||
+                sourceRegionId.IsZero() ||
+                sourceObjectId.IsZero() ||
+                sourceOwnerId.IsZero() ||
+                targetObjectId.IsZero() ||
+                channel == ScriptBaseClass.DEBUG_CHANNEL)
+            {
+                return false;
+            }
+
+            if (!m_Scenes.TryGetValue(
+                    sourceRegionId,
+                    out Scene sourceScene))
+            {
+                return false;
+            }
+
+            SceneObjectPart sourcePart =
+                sourceScene.GetSceneObjectPart(
+                    sourceObjectId);
+            if (sourcePart == null ||
+                sourcePart.IsDeleted ||
+                sourcePart.OwnerID != sourceOwnerId)
+            {
+                return false;
+            }
+
+            string payload =
+                message ?? string.Empty;
+            if (payload.Length > 1023)
+                payload = payload[..1023];
+
+            if (!TryTakeObjectMessageRateSlot(
+                    m_ObjectMessageOutboundRates,
+                    sourceObjectId))
+            {
+                m_Log.WarnFormat(
+                    "[NEX-OBJECT]: Rate limit reached for source object {0} in region {1}.",
+                    sourceObjectId,
+                    sourceScene.RegionInfo.RegionName);
+                return false;
+            }
+
+            Dictionary<string, string> data =
+                new Dictionary<string, string>
+                {
+                    ["source_node_id"] =
+                        m_NodeId,
+                    ["source_region_id"] =
+                        sourceRegionId.ToString(),
+                    ["source_object_id"] =
+                        sourceObjectId.ToString(),
+                    ["source_owner_id"] =
+                        sourceOwnerId.ToString(),
+                    ["source_name"] =
+                        string.IsNullOrWhiteSpace(sourceName)
+                            ? sourcePart.Name ?? string.Empty
+                            : sourceName.Trim(),
+                    ["source_position"] =
+                        string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "{0:R},{1:R},{2:R}",
+                            sourcePosition.X,
+                            sourcePosition.Y,
+                            sourcePosition.Z),
+                    ["target_object_id"] =
+                        targetObjectId.ToString(),
+                    ["channel"] =
+                        channel.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture),
+                    ["message"] =
+                        payload
+                };
+
+            Publish(new NexEvent(
+                "object.message.requested",
+                "nexverse.simulator",
+                data));
+
+            return true;
+        }
+
+        private void HandleObjectMessage(
+            NexEvent nexEvent)
+        {
+            if (!Enabled ||
+                nexEvent == null ||
+                nexEvent.Data == null)
+            {
+                return;
+            }
+
+            TimeSpan age =
+                DateTimeOffset.UtcNow -
+                nexEvent.Timestamp;
+            if (age >
+                    TimeSpan.FromSeconds(
+                        m_ObjectMessageMaxAgeSeconds) ||
+                age <
+                    TimeSpan.FromSeconds(-5))
+            {
+                return;
+            }
+
+            if (!TryCommandData(
+                    nexEvent,
+                    "source_object_id",
+                    out string rawSourceObject) ||
+                !UUID.TryParse(
+                    rawSourceObject,
+                    out UUID sourceObjectId) ||
+                sourceObjectId.IsZero() ||
+                !TryCommandData(
+                    nexEvent,
+                    "source_owner_id",
+                    out string rawSourceOwner) ||
+                !UUID.TryParse(
+                    rawSourceOwner,
+                    out UUID sourceOwnerId) ||
+                sourceOwnerId.IsZero() ||
+                !TryCommandData(
+                    nexEvent,
+                    "target_object_id",
+                    out string rawTarget) ||
+                !UUID.TryParse(
+                    rawTarget,
+                    out UUID targetObjectId) ||
+                targetObjectId.IsZero() ||
+                !TryCommandInt(
+                    nexEvent,
+                    "channel",
+                    out int channel) ||
+                channel ==
+                    ScriptBaseClass.DEBUG_CHANNEL)
+            {
+                return;
+            }
+
+            string sourceName =
+                nexEvent.Data.TryGetValue(
+                    "source_name",
+                    out string rawName)
+                    ? rawName ?? string.Empty
+                    : string.Empty;
+            string message =
+                nexEvent.Data.TryGetValue(
+                    "message",
+                    out string rawMessage)
+                    ? rawMessage ?? string.Empty
+                    : string.Empty;
+            if (message.Length > 1023)
+                message = message[..1023];
+
+            foreach (Scene scene in
+                     m_Scenes.Values)
+            {
+                SceneObjectPart targetPart =
+                    scene.GetSceneObjectPart(
+                        targetObjectId);
+                if (targetPart == null ||
+                    targetPart.IsDeleted)
+                {
+                    continue;
+                }
+
+                if (!m_AllowCrossOwnerObjectMessages &&
+                    targetPart.OwnerID !=
+                        sourceOwnerId)
+                {
+                    m_Log.DebugFormat(
+                        "[NEX-OBJECT]: Cross-owner object message rejected from {0} to {1}.",
+                        sourceObjectId,
+                        targetObjectId);
+                    return;
+                }
+
+                if (!TryTakeObjectMessageRateSlot(
+                        m_ObjectMessageInboundRates,
+                        sourceObjectId))
+                {
+                    m_Log.WarnFormat(
+                        "[NEX-OBJECT]: Inbound rate limit reached for source object {0}.",
+                        sourceObjectId);
+                    return;
+                }
+
+                IWorldComm worldComm =
+                    scene.RequestModuleInterface<IWorldComm>();
+                if (worldComm == null)
+                    return;
+
+                worldComm.DeliverMessageTo(
+                    targetObjectId,
+                    channel,
+                    Vector3.Zero,
+                    sourceName,
+                    sourceObjectId,
+                    message);
+
+                Publish(new NexEvent(
+                    "object.message.received",
+                    "nexverse.simulator",
+                    new Dictionary<string, string>
+                    {
+                        ["source_object_id"] =
+                            sourceObjectId.ToString(),
+                        ["source_owner_id"] =
+                            sourceOwnerId.ToString(),
+                        ["target_object_id"] =
+                            targetObjectId.ToString(),
+                        ["target_region_id"] =
+                            scene.RegionInfo.RegionID.ToString(),
+                        ["target_node_id"] =
+                            m_NodeId,
+                        ["channel"] =
+                            channel.ToString(
+                                System.Globalization.CultureInfo.InvariantCulture),
+                        ["request_event_id"] =
+                            nexEvent.EventId.ToString()
+                    },
+                    nexEvent.CorrelationId));
+
+                return;
+            }
+        }
+
+        private bool TryTakeObjectMessageRateSlot(
+            ConcurrentDictionary<UUID, ObjectMessageRateState> rates,
+            UUID sourceObjectId)
+        {
+            long currentSecond =
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            ObjectMessageRateState state =
+                rates.GetOrAdd(
+                    sourceObjectId,
+                    _ => new ObjectMessageRateState());
+
+            lock (state.SyncRoot)
+            {
+                if (state.WindowSecond !=
+                    currentSecond)
+                {
+                    state.WindowSecond =
+                        currentSecond;
+                    state.Count = 0;
+                }
+
+                state.LastSeenSecond =
+                    currentSecond;
+
+                if (state.Count >=
+                    m_ObjectMessagesPerSecond)
+                {
+                    return false;
+                }
+
+                state.Count++;
+            }
+
+            if (rates.Count > 4096)
+                PruneObjectMessageRateStates(
+                    rates,
+                    currentSecond);
+
+            return true;
+        }
+
+        private static void PruneObjectMessageRateStates(
+            ConcurrentDictionary<UUID, ObjectMessageRateState> rates,
+            long currentSecond)
+        {
+            foreach (KeyValuePair<UUID, ObjectMessageRateState> item in rates)
+            {
+                if (currentSecond -
+                        item.Value.LastSeenSecond >
+                    60)
+                {
+                    rates.TryRemove(
+                        item.Key,
+                        out _);
+                }
+            }
+        }
+
         private void PublishHeartbeatSafe()
         {
             try
@@ -1292,6 +1587,16 @@ namespace NexVerse.RegionModules.NodeAgent
         {
             response.StatusCode = (int)status;
             response.RawBuffer = JsonSerializer.SerializeToUtf8Bytes(payload);
+        }
+
+        private sealed class ObjectMessageRateState
+        {
+            public object SyncRoot { get; } =
+                new object();
+
+            public long WindowSecond;
+            public long LastSeenSecond;
+            public int Count;
         }
 
         private sealed class SimulatorNexEventTransport : INexEventTransport
