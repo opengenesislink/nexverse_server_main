@@ -264,6 +264,10 @@ namespace NexVerse.Core.Economy
                         reason);
             }
 
+            Guid adjustmentId =
+                transactionId ??
+                Guid.NewGuid();
+
             Dictionary<string, string> metadata =
                 new Dictionary<string, string>(
                     StringComparer.OrdinalIgnoreCase)
@@ -274,9 +278,9 @@ namespace NexVerse.Core.Economy
 
             return m_Ledger.Post(
                 new NexLedgerTransaction(
-                    transactionId ?? Guid.NewGuid(),
+                    adjustmentId,
                     "admin_adjustment",
-                    "ADJ-" + RequireReference(reason),
+                    "ADJ-" + adjustmentId.ToString("N"),
                     new[]
                     {
                         systemPosting,
@@ -371,7 +375,8 @@ namespace NexVerse.Core.Economy
                         posting.AccountId,
                         reversedSide,
                         posting.AmountMinor,
-                        "Reversal: " + posting.Memo));
+                        BoundedMemo(
+                            "Reversal: " + posting.Memo)));
             }
 
             foreach (KeyValuePair<Guid, long> item in
@@ -541,6 +546,24 @@ namespace NexVerse.Core.Economy
             {
                 throw new ArgumentOutOfRangeException(nameof(reason));
             }
+        }
+
+        private static string BoundedMemo(
+            string value)
+        {
+            string normalized =
+                (value ?? string.Empty)
+                    .Trim();
+
+            if (normalized.Length <=
+                NexLedgerPosting.MemoLengthLimit)
+            {
+                return normalized;
+            }
+
+            return normalized.Substring(
+                0,
+                NexLedgerPosting.MemoLengthLimit);
         }
 
         private static Guid DeterministicGuid(
