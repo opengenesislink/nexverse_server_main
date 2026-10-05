@@ -105,6 +105,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_iar_encrypted_backup.py
 
+      - name: Verify OpenGenesisLINK Job Engine foundation
+        shell: bash
+        run: python3 tools/ci/verify_job_engine.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py

@@ -825,7 +825,7 @@ API-driven avatar inventory archives:
 - [x] IAR import operation foundation with read-only archive validation;
 - partial subtree export;
 - [x] native conflict policy exposed as `merge=true/false` (no invented unsupported modes);
-- progress;
+- [x] progress;
 - failure reporting;
 - encrypted backup option.
 
@@ -846,14 +846,22 @@ Examples:
 
 Job API should expose:
 
-- queued;
-- running;
-- completed;
-- failed;
-- cancelled;
+- [x] queued;
+- [x] running;
+- [x] completed;
+- [x] failed;
+- [x] cancelled;
 - progress;
-- logs;
-- result metadata.
+- [x] logs;
+- [x] result metadata.
+
+Foundation notes:
+
+- [x] persistent JSON-backed job registry with atomic replacement;
+- [x] strict lifecycle transitions and bounded per-job logs;
+- [x] interrupted running jobs fail explicitly after process restart rather than silently resuming;
+- [x] NexBus correlation bridge can project existing asynchronous operations into jobs;
+- cancellation is a lifecycle capability only; workers must explicitly support safe cancellation before an API may promise active cancellation.
 
 ### 9.5 NexBus
 
