@@ -46,6 +46,8 @@ namespace NexVerse.Core.Economy
         {
             if (accountId == Guid.Empty)
                 throw new ArgumentException("Ledger account ID is required.", nameof(accountId));
+            if (!Enum.IsDefined(typeof(NexLedgerAccountClass), accountClass))
+                throw new ArgumentOutOfRangeException(nameof(accountClass));
             if (string.IsNullOrWhiteSpace(reference))
                 throw new ArgumentException("Ledger account reference is required.", nameof(reference));
             if (string.IsNullOrWhiteSpace(displayName))
