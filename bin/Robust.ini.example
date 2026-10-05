@@ -107,6 +107,7 @@
     GridServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:GridServiceConnector"
     GridInfoServerInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:GridInfoServerInConnector"
     NexVerseWorldApiConnector = "NexVerseWorldApi@${Const|PublicPort}/NexVerse.Server.Api.dll:NexVerseWorldApiConnector"
+    NexEconomyConnector = "NexEconomy@${Const|PrivatePort}/NexVerse.Server.Api.dll:NexEconomyConnector"
     AuthenticationServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AuthenticationServiceConnector"
     AvatarServiceConnector = "${Const|PrivatePort}/OpenSim.Server.Handlers.dll:AvatarServiceConnector"
     LLLoginServiceInConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:LLLoginServiceInConnector"
@@ -219,6 +220,19 @@
     ;  rather than caching_sha2_password is set in /etc/mysql/mysql.conf.d/mysqld.cnf (not applicable to MariaDB).
     StorageProvider = "OpenSim.Data.MySQL.dll"
     ConnectionString = "Data Source=localhost;Database=opensim;User ID=opensim;Password=*****;Old Guids=true;SslMode=None;"
+
+[NexEconomy]
+    ; Native OpenGenesisLINK NV$ double-entry ledger bootstrap.
+    ; Disabled until the durable database backend has been validated for this installation.
+    Enabled = false
+
+    ; Leave these empty to inherit StorageProvider and ConnectionString from [DatabaseService].
+    ; Set them only when the NV$ ledger intentionally uses a dedicated database.
+    StorageProvider = ""
+    ConnectionString = ""
+
+    ; When enabled, create/upgrade the OpenGenesisLINK ledger schema on startup.
+    InitializeSchema = true
 
 [EstateDataStore]
     ; NexVerse World API Estate discovery uses the same authoritative
