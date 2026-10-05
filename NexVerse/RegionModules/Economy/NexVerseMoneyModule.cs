@@ -356,17 +356,37 @@ namespace NexVerse.RegionModules.Economy
             UUID toUser,
             int amount,
             MoneyTransactionType type,
-            string text) =>
-            MoveMoneyInternal(
+            string text)
+        {
+            string reference =
+                string.IsNullOrWhiteSpace(text)
+                    ? type.ToString()
+                    : text;
+
+            if (reference.StartsWith(
+                    "Land purchase:",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return CommercePaymentInternal(
+                    fromUser,
+                    toUser,
+                    amount,
+                    "LandPurchase",
+                    reference,
+                    "viewer-land-purchase",
+                    Guid.NewGuid(),
+                    out _);
+            }
+
+            return MoveMoneyInternal(
                 fromUser,
                 toUser,
                 amount,
-                string.IsNullOrWhiteSpace(text)
-                    ? type.ToString()
-                    : text,
+                reference,
                 "viewer-" +
                 Guid.NewGuid().ToString("N"),
                 out _);
+        }
 
         public bool ObjectGiveMoney(
             UUID objectID,
@@ -633,9 +653,13 @@ namespace NexVerse.RegionModules.Economy
             Guid commerceOrderId =
                 Guid.NewGuid();
 
-            bool success =
-                objectPayment
-                    ? CommercePaymentInternal(
+            string reason;
+            bool success;
+
+            if (objectPayment)
+            {
+                success =
+                    CommercePaymentInternal(
                         e.sender,
                         paymentReceiver,
                         e.amount,
@@ -646,8 +670,12 @@ namespace NexVerse.RegionModules.Economy
                         "object:" +
                         e.receiver.ToString(),
                         commerceOrderId,
-                        out string reason)
-                    : MoveMoneyInternal(
+                        out reason);
+            }
+            else
+            {
+                success =
+                    MoveMoneyInternal(
                         e.sender,
                         paymentReceiver,
                         e.amount,
@@ -655,6 +683,7 @@ namespace NexVerse.RegionModules.Economy
                         "viewer-event-" +
                         Guid.NewGuid().ToString("N"),
                         out reason);
+            }
 
             if (!success)
             {
