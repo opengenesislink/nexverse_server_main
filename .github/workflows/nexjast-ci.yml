@@ -109,6 +109,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_job_engine.py
 
+      - name: Verify OAR/IAR Job Engine integration
+        shell: bash
+        run: python3 tools/ci/verify_job_api_integration.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py

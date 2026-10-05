@@ -835,8 +835,8 @@ Long-running operations become jobs rather than blocking HTTP calls.
 
 Examples:
 
-- OAR import/export;
-- IAR import/export;
+- [x] OAR import/export projected into the persistent Job Engine;
+- [x] IAR import/export projected into the persistent Job Engine;
 - inventory repair;
 - region migration;
 - backup;
@@ -861,6 +861,8 @@ Foundation notes:
 - [x] strict lifecycle transitions and bounded per-job logs;
 - [x] interrupted running jobs fail explicitly after process restart rather than silently resuming;
 - [x] NexBus correlation bridge can project existing asynchronous operations into jobs;
+- [x] `/api/v1/jobs` list/detail API with compatibility reads from existing OAR/IAR operation URLs;
+- [x] removed duplicate Robust-side OAR/IAR in-memory operation registries; persistent Job Engine is authoritative;
 - cancellation is a lifecycle capability only; workers must explicitly support safe cancellation before an API may promise active cancellation.
 
 ### 9.5 NexBus

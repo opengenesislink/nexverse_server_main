@@ -21,6 +21,8 @@ namespace NexVerse.Core.Jobs
         public OglJobSnapshot RegisterOperation(string jobType,string operationId,string actor,string correlationId,IReadOnlyDictionary<string,string> metadata=null)
             => m_Jobs.Create(jobType,actor,correlationId,metadata,operationId);
 
+        public OglJobSnapshot Get(string jobId) => m_Jobs.Get(jobId);
+
         private void Handle(NexEvent e)
         {
             if(e?.Data==null||!e.Data.TryGetValue("operation_id",out string id)||string.IsNullOrWhiteSpace(id))return;
