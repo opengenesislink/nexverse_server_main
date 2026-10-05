@@ -17,6 +17,7 @@ using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
+using OpenSim.Groups;
 using OpenSim.Services.Friends;
 using OpenSim.Services.EstateService;
 
@@ -441,6 +442,27 @@ namespace NexVerse.Server.Api
                         "/api/v1/land-commerce",
                         apiGate.Wrap(bankingCommerceApi.HandleLandCommerce),
                         "OpenGenesisLINK Land Commerce API"),
+                    true);
+
+                GroupsService nexGroupsService =
+                    new GroupsService(
+                        config);
+
+                NexGroupsApi nexGroupsApi =
+                    new NexGroupsApi(
+                        authenticator,
+                        auditSink,
+                        nexGroupsService,
+                        () =>
+                            NexEconomyConnector.Current?.Enabled == true
+                                ? NexEconomyConnector.Current.Economy
+                                : null);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/groups",
+                        apiGate.Wrap(nexGroupsApi.Handle),
+                        "OpenGenesisLINK NexGroups API"),
                     true);
 
                 IConfig experiencesConfig =
