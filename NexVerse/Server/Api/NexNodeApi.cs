@@ -220,7 +220,10 @@ namespace NexVerse.Server.Api
                 {
                     heartbeat = node.State,
                     disk_free_percent = node.DiskTotalBytes > 0 ? Math.Round(100.0 * node.DiskFreeBytes / node.DiskTotalBytes, 2) : (double?)null,
-                    accepting_managed_commands = node.State == "online" && node.ManagedRegionCommands
+                    accepting_managed_commands = node.State == "online" && node.ManagedRegionCommands,
+                    accepting_remote_object_messages =
+                        node.State == "online" &&
+                        node.CrossRegionObjectMessaging
                 },
                 region_count =
                     node.RegionCount,
@@ -228,6 +231,14 @@ namespace NexVerse.Server.Api
                     node.AgentCount,
                 managed_region_commands =
                     node.ManagedRegionCommands,
+                cross_region_object_messaging =
+                    node.CrossRegionObjectMessaging,
+                cross_owner_object_messaging =
+                    node.CrossOwnerObjectMessaging,
+                object_messages_per_second =
+                    node.ObjectMessagesPerSecond,
+                object_message_max_age_seconds =
+                    node.ObjectMessageMaxAgeSeconds,
                 maintenance_mode = node.MaintenanceMode,
                 draining = node.Draining,
                 luna_texture =

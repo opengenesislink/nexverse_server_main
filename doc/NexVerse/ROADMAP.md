@@ -900,7 +900,15 @@ Implemented transport foundation:
 
 ### 9.6 Cross-region object-to-object communication
 
-Provide a supported mechanism for objects in different regions and different simulators to communicate through NexBus while retaining permission, rate-limit and abuse controls.
+- [x] Existing `llRegionSayTo` keeps native local behavior and gains an optional NexBus fallback only for non-local UUID targets.
+- [x] Simulator NodeAgent validates the source scene/object/owner before publishing `object.message.requested`.
+- [x] Receiving nodes resolve the exact target object UUID and inject through the native `IWorldComm` listener path.
+- [x] Same-owner policy is the secure default; cross-owner routing requires explicit `AllowCrossOwnerObjectMessages=true`.
+- [x] Per-source outbound and inbound rate limits are configurable and bounded.
+- [x] Delayed events are rejected by maximum age in addition to NexBus EventId deduplication.
+- [x] Existing 1023-character and debug-channel restrictions remain enforced.
+- [x] Delivery receipts are projected as `object.message.received`.
+- [x] Feature is configuration-driven and disabled by default; it requires the authenticated NexBus transport and is not automatically extended to untrusted Hypergrid peers.
 
 ---
 

@@ -235,6 +235,27 @@ The separate `simulators:manage` scope is defined for the later command plane. N
 
 Grid-layout region records include `node_id` and `node_state` when ownership can be resolved from the live registry. Operational host/process details remain available only through the simulator API and are not copied into the `regions:read` response.
 
+## Cross-region object messaging
+
+OpenGenesisLINK 0.9.3.5 adds an opt-in remote fallback for the existing LSL `llRegionSayTo` behavior. Local targets remain completely local. Only when the requested UUID is not present as an avatar or scene object in the current region does the script API ask the NodeAgent's cross-region router to publish an `object.message.requested` NexBus event.
+
+The receiving simulator scans only its currently loaded scenes for the exact target object UUID and injects the message through the normal `IWorldComm.DeliverMessageTo` path. A receiving script therefore continues to observe an ordinary `listen` event with the original source object UUID, source object name, channel and message. No second scripting API is required.
+
+The feature is disabled by default with `CrossRegionObjectMessaging=false` in `[NexVerseNodeAgent]`. It is intended only for a trusted OpenGenesisLINK NexBus topology protected by HMAC plus TLS/private networking. It is not a permission bypass for arbitrary Hypergrid peers.
+
+Safety defaults are deliberately restrictive:
+
+- `AllowCrossOwnerObjectMessages=false` requires source and target objects to have the same owner UUID;
+- `ObjectMessagesPerSecond=20` applies a fixed per-source-object rate limit on both outbound and inbound delivery;
+- `ObjectMessageMaxAgeSeconds=30` drops delayed/replayed events outside the accepted time window in addition to NexBus EventId deduplication;
+- message payloads retain the existing `llRegionSayTo` 1023-character limit;
+- the LSL debug channel is never routed remotely;
+- the source object and owner are revalidated against the local source scene before publication.
+
+Successful remote delivery emits `object.message.received` with object, region, node and request-event identifiers. The initial implementation intentionally uses UUID fan-out across configured NexBus peers; a later object-directory optimization may reduce fan-out without changing the LSL contract.
+
+The protected Node API projects the effective simulator capability as `cross_region_object_messaging`, `cross_owner_object_messaging`, `object_messages_per_second` and `object_message_max_age_seconds`. Its health object also reports `accepting_remote_object_messages`, so administrators can distinguish configured policy from a node that is currently offline or stale.
+
 ## Region-grid administration API
 
 The first read-only Region Control Plane foundation is implemented and is used as the data contract for the later administrator raster planner.

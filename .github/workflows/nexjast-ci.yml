@@ -197,6 +197,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexBusRegression/NexBusRegression.csproj
 
+      - name: Verify cross-region object messaging
+        shell: bash
+        run: python3 tools/ci/verify_object_messaging.py
+
       - name: Verify NodeAgent registry projection
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexNodeRegistryRegression/NexNodeRegistryRegression.csproj
@@ -468,6 +472,10 @@ jobs:
           assert "node_id" in schemas["GridRegionPlacement"]["properties"]
           assert "node_state" in schemas["GridRegionPlacement"]["properties"]
           assert schemas["Node"]["properties"]["managed_region_commands"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["cross_region_object_messaging"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["cross_owner_object_messaging"]["type"] == "boolean"
+          assert schemas["Node"]["properties"]["object_messages_per_second"]["maximum"] == 200
+          assert schemas["Node"]["properties"]["object_message_max_age_seconds"]["maximum"] == 300
 
           nodes_get = doc["paths"]["/api/v1/nodes"]["get"]
           assert nodes_get["x-nexverse-scope"] == "simulators:read"
@@ -556,7 +564,7 @@ jobs:
           assert milestones["0.9.3.3"]["status"] == "completed"
           assert milestones["0.9.3.4"]["status"] == "released"
           assert milestones["0.9.3.5"]["status"] == "active"
-          assert milestones["0.9.3.5"]["checklist"] == {"completed": 74, "total": 74, "open": 0}
+          assert milestones["0.9.3.5"]["checklist"] == {"completed": 83, "total": 83, "open": 0}
           assert milestones["0.9.3.6"]["status"] == "planned"
 
           from pathlib import Path

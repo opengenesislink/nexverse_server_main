@@ -54,6 +54,10 @@ namespace NexVerse.Core.ControlPlane
             int regionCount,
             int agentCount,
             bool managedRegionCommands,
+            bool crossRegionObjectMessaging,
+            bool crossOwnerObjectMessaging,
+            int objectMessagesPerSecond,
+            int objectMessageMaxAgeSeconds,
             string migrationStorageId,
             bool maintenanceMode,
             bool draining,
@@ -79,6 +83,10 @@ namespace NexVerse.Core.ControlPlane
             RegionCount = regionCount;
             AgentCount = agentCount;
             ManagedRegionCommands = managedRegionCommands;
+            CrossRegionObjectMessaging = crossRegionObjectMessaging;
+            CrossOwnerObjectMessaging = crossOwnerObjectMessaging;
+            ObjectMessagesPerSecond = Math.Max(0, objectMessagesPerSecond);
+            ObjectMessageMaxAgeSeconds = Math.Max(0, objectMessageMaxAgeSeconds);
             MigrationStorageId = migrationStorageId ?? string.Empty;
             MaintenanceMode = maintenanceMode;
             Draining = draining;
@@ -108,6 +116,10 @@ namespace NexVerse.Core.ControlPlane
         public int RegionCount { get; }
         public int AgentCount { get; }
         public bool ManagedRegionCommands { get; }
+        public bool CrossRegionObjectMessaging { get; }
+        public bool CrossOwnerObjectMessaging { get; }
+        public int ObjectMessagesPerSecond { get; }
+        public int ObjectMessageMaxAgeSeconds { get; }
         public string MigrationStorageId { get; }
         public bool MaintenanceMode { get; }
         public bool Draining { get; }
@@ -319,6 +331,22 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "managed_region_commands",
                     value => record.ManagedRegionCommands = value);
+                AssignBool(
+                    nexEvent,
+                    "cross_region_object_messaging",
+                    value => record.CrossRegionObjectMessaging = value);
+                AssignBool(
+                    nexEvent,
+                    "cross_owner_object_messaging",
+                    value => record.CrossOwnerObjectMessaging = value);
+                AssignInt(
+                    nexEvent,
+                    "object_messages_per_second",
+                    value => record.ObjectMessagesPerSecond = Math.Max(0, value));
+                AssignInt(
+                    nexEvent,
+                    "object_message_max_age_seconds",
+                    value => record.ObjectMessageMaxAgeSeconds = Math.Max(0, value));
                 AssignString(
                     nexEvent,
                     "migration_storage_id",
@@ -605,6 +633,10 @@ namespace NexVerse.Core.ControlPlane
                     record.RegionCount,
                     record.AgentCount,
                     record.ManagedRegionCommands,
+                    record.CrossRegionObjectMessaging,
+                    record.CrossOwnerObjectMessaging,
+                    record.ObjectMessagesPerSecond,
+                    record.ObjectMessageMaxAgeSeconds,
                     record.MigrationStorageId,
                     record.MaintenanceMode,
                     record.Draining,
@@ -906,6 +938,10 @@ namespace NexVerse.Core.ControlPlane
             public int RegionCount;
             public int AgentCount;
             public bool ManagedRegionCommands;
+            public bool CrossRegionObjectMessaging;
+            public bool CrossOwnerObjectMessaging;
+            public int ObjectMessagesPerSecond;
+            public int ObjectMessageMaxAgeSeconds;
             public string MigrationStorageId = string.Empty;
             public bool MaintenanceMode;
             public bool Draining;

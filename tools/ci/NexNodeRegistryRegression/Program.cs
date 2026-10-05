@@ -43,6 +43,11 @@ internal static class Program
                 ["cpu_seconds"] = "3.500",
                 ["region_count"] = "2",
                 ["agent_count"] = "7",
+                ["managed_region_commands"] = "true",
+                ["cross_region_object_messaging"] = "true",
+                ["cross_owner_object_messaging"] = "false",
+                ["object_messages_per_second"] = "20",
+                ["object_message_max_age_seconds"] = "30",
                 ["luna_texture_diagnostic_count"] = "3",
                 ["luna_texture_occurrence_count"] = "8",
                 ["luna_texture_regions_affected"] = "2",
@@ -61,6 +66,16 @@ internal static class Program
         Require(first.Hostname == "sim-a.internal", "hostname mismatch");
         Require(first.RegionCount == 2, "heartbeat region count mismatch");
         Require(first.AgentCount == 7, "heartbeat agent count mismatch");
+        Require(first.ManagedRegionCommands,
+            "managed-region capability mismatch");
+        Require(first.CrossRegionObjectMessaging,
+            "cross-region object messaging capability mismatch");
+        Require(!first.CrossOwnerObjectMessaging,
+            "cross-owner object messaging capability mismatch");
+        Require(first.ObjectMessagesPerSecond == 20,
+            "object message rate projection mismatch");
+        Require(first.ObjectMessageMaxAgeSeconds == 30,
+            "object message max-age projection mismatch");
         Require(first.LunaTextureDiagnosticCount == 3,
             "LunaTexture diagnostic count mismatch");
         Require(first.LunaTextureOccurrenceCount == 8,
