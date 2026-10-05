@@ -33,19 +33,28 @@ namespace NexVerse.RegionModules.NodeAgent
         Id = "NexVerseNodeAgentModule")]
     public sealed class NexVerseNodeAgentModule :
         ISharedRegionModule,
-        INexVerseEventBusModule
+        INexVerseEventBusModule,
+        ICrossRegionObjectMessageRouter
     {
         private static readonly ILog m_Log =
             LogManager.GetLogger(typeof(NexVerseNodeAgentModule));
 
         private readonly ConcurrentDictionary<UUID, Scene> m_Scenes =
             new ConcurrentDictionary<UUID, Scene>();
+        private readonly ConcurrentDictionary<UUID, ObjectMessageRateState> m_ObjectMessageOutboundRates =
+            new ConcurrentDictionary<UUID, ObjectMessageRateState>();
+        private readonly ConcurrentDictionary<UUID, ObjectMessageRateState> m_ObjectMessageInboundRates =
+            new ConcurrentDictionary<UUID, ObjectMessageRateState>();
 
         private bool m_Enabled;
         private string m_NodeId = string.Empty;
         private string m_SharedKey = string.Empty;
         private string m_InboundPath = "/internal/nexbus/v1/events";
         private int m_HeartbeatSeconds = 30;
+        private bool m_ObjectMessagingEnabled;
+        private bool m_AllowCrossOwnerObjectMessages;
+        private int m_ObjectMessagesPerSecond = 20;
+        private int m_ObjectMessageMaxAgeSeconds = 30;
         private string m_MigrationStorageId = string.Empty;
         private SimulatorNexEventTransport m_Transport;
         private DistributedNexEventBus m_Bus;
@@ -56,11 +65,13 @@ namespace NexVerse.RegionModules.NodeAgent
         private IDisposable m_NodeControlSubscription;
         private IDisposable m_OarControlSubscription;
         private IDisposable m_IarControlSubscription;
+        private IDisposable m_ObjectMessageSubscription;
         private volatile bool m_MaintenanceMode;
         private volatile bool m_Draining;
         private DateTimeOffset m_StartedAt;
 
         public string NodeId => m_NodeId;
+        public bool Enabled => m_Enabled && m_ObjectMessagingEnabled;
         public string Name => "NexVerseNodeAgentModule";
         public Type ReplaceableInterface => null;
 
@@ -98,6 +109,28 @@ namespace NexVerse.RegionModules.NodeAgent
                 "InboundPath",
                 "/internal/nexbus/v1/events").Trim();
             m_HeartbeatSeconds = Math.Max(5, config.GetInt("HeartbeatSeconds", 30));
+            m_ObjectMessagingEnabled =
+                config.GetBoolean(
+                    "CrossRegionObjectMessaging",
+                    false);
+            m_AllowCrossOwnerObjectMessages =
+                config.GetBoolean(
+                    "AllowCrossOwnerObjectMessages",
+                    false);
+            m_ObjectMessagesPerSecond =
+                Math.Clamp(
+                    config.GetInt(
+                        "ObjectMessagesPerSecond",
+                        20),
+                    1,
+                    200);
+            m_ObjectMessageMaxAgeSeconds =
+                Math.Clamp(
+                    config.GetInt(
+                        "ObjectMessageMaxAgeSeconds",
+                        30),
+                    5,
+                    300);
 
             IConfig oarConfig = source.Configs["OpenGenesisLINKOAR"];
             m_MigrationStorageId =
@@ -131,6 +164,7 @@ namespace NexVerse.RegionModules.NodeAgent
 
             m_Scenes[scene.RegionInfo.RegionID] = scene;
             scene.RegisterModuleInterface<INexVerseEventBusModule>(this);
+            scene.RegisterModuleInterface<ICrossRegionObjectMessageRouter>(this);
         }
 
         public void RegionLoaded(Scene scene)
@@ -147,6 +181,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 return;
 
             PublishRegionEvent("region.offline", scene);
+            scene.UnregisterModuleInterface<ICrossRegionObjectMessageRouter>(this);
             scene.UnregisterModuleInterface<INexVerseEventBusModule>(this);
             m_Scenes.TryRemove(scene.RegionInfo.RegionID, out _);
         }
@@ -183,6 +218,13 @@ namespace NexVerse.RegionModules.NodeAgent
             m_NodeControlSubscription = m_Bus.Subscribe("node.control.requested", HandleNodeControlCommand);
             m_OarControlSubscription = m_Bus.Subscribe("archive.oar.requested", HandleOarCommand);
             m_IarControlSubscription = m_Bus.Subscribe("archive.iar.requested", HandleIarCommand);
+            if (m_ObjectMessagingEnabled)
+            {
+                m_ObjectMessageSubscription =
+                    m_Bus.Subscribe(
+                        "object.message.requested",
+                        HandleObjectMessage);
+            }
 
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
@@ -224,6 +266,10 @@ namespace NexVerse.RegionModules.NodeAgent
             m_OarControlSubscription = null;
             m_IarControlSubscription?.Dispose();
             m_IarControlSubscription = null;
+            m_ObjectMessageSubscription?.Dispose();
+            m_ObjectMessageSubscription = null;
+            m_ObjectMessageOutboundRates.Clear();
+            m_ObjectMessageInboundRates.Clear();
             m_HeartbeatTimer?.Dispose();
             m_Bus?.Dispose();
             m_Transport = null;
