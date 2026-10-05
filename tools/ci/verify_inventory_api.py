@@ -22,6 +22,17 @@ for marker in (
     '"/api/v1/inventory/lost-and-found"',
     '"/api/v1/inventory/trash/empty"',
     '"/api/v1/inventory/items/copy"',
+    '"/api/v1/inventory/items"',
+    '"/api/v1/inventory/links"',
+    '"inventory_item_create_admin_required"',
+    '"asset_service_unavailable"',
+    "GetMetadata",
+    "permission_masks_required",
+    "AssetType.Link",
+    "AssetType.LinkFolder",
+    "inventory_link_chain_forbidden",
+    'request?.QueryString?["q"]',
+    'request?.QueryString?["limit"]',
     '"folder_not_in_trash"',
     '"item_not_in_trash"',
     "PurgeFolder",
@@ -36,6 +47,9 @@ for marker in (
     assert marker in api, f"missing inventory API marker: {marker}"
 
 assert 'public const string InventoryRead = "inventory:read"' in security
+assert 'public const string InventoryWrite = "inventory:write"' in security
 assert '"/api/v1/inventory"' in connector
 assert "NexInventoryApi" in connector
-print("Inventory read API contract: OK")
+assert 'LoadOptionalService<IAssetService>(config, "AssetService")' in connector
+assert "new NexInventoryApi(" in connector
+print("Inventory API contract: OK")
