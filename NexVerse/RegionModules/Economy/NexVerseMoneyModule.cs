@@ -505,6 +505,9 @@ namespace NexVerse.RegionModules.Economy
             Guid orderId =
                 Guid.NewGuid();
 
+            string paymentError =
+                string.Empty;
+
             bool paid =
                 salePrice <= 0 ||
                 CommercePaymentInternal(
@@ -517,7 +520,7 @@ namespace NexVerse.RegionModules.Economy
                     "object:" +
                     group.UUID.ToString(),
                     orderId,
-                    out string paymentError);
+                    out paymentError);
 
             if (!paid)
             {
