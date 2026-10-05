@@ -410,15 +410,12 @@ namespace NexVerse.RegionModules.Economy
         }
 
         private void ClientClosed(
-            IClientAPI client)
+            UUID agentId,
+            Scene scene)
         {
-            if (client == null)
-                return;
-
-            client.OnEconomyDataRequest -=
-                EconomyDataRequestHandler;
-            client.OnMoneyBalanceRequest -=
-                SendMoneyBalance;
+            // Client event subscriptions die with the client connection.
+            // Keep this handler only to match the EventManager contract and
+            // avoid retaining per-client state in this module.
         }
 
         private void EconomyDataRequestHandler(
