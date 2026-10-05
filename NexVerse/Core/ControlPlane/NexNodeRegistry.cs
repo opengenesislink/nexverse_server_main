@@ -53,6 +53,7 @@ namespace NexVerse.Core.ControlPlane
             int regionCount,
             int agentCount,
             bool managedRegionCommands,
+            string migrationStorageId,
             bool maintenanceMode,
             bool draining,
             string state,
@@ -72,6 +73,7 @@ namespace NexVerse.Core.ControlPlane
             RegionCount = regionCount;
             AgentCount = agentCount;
             ManagedRegionCommands = managedRegionCommands;
+            MigrationStorageId = migrationStorageId ?? string.Empty;
             MaintenanceMode = maintenanceMode;
             Draining = draining;
             State = state ?? "unknown";
@@ -92,6 +94,7 @@ namespace NexVerse.Core.ControlPlane
         public int RegionCount { get; }
         public int AgentCount { get; }
         public bool ManagedRegionCommands { get; }
+        public string MigrationStorageId { get; }
         public bool MaintenanceMode { get; }
         public bool Draining { get; }
         public string State { get; }
@@ -297,6 +300,10 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "managed_region_commands",
                     value => record.ManagedRegionCommands = value);
+                AssignString(
+                    nexEvent,
+                    "migration_storage_id",
+                    value => record.MigrationStorageId = value);
 
                 if (TryData(
                         nexEvent,
@@ -559,6 +566,7 @@ namespace NexVerse.Core.ControlPlane
                     record.RegionCount,
                     record.AgentCount,
                     record.ManagedRegionCommands,
+                    record.MigrationStorageId,
                     record.MaintenanceMode,
                     record.Draining,
                     state,
@@ -773,6 +781,7 @@ namespace NexVerse.Core.ControlPlane
             public int RegionCount;
             public int AgentCount;
             public bool ManagedRegionCommands;
+            public string MigrationStorageId = string.Empty;
             public bool MaintenanceMode;
             public bool Draining;
             public bool ExplicitOffline;
