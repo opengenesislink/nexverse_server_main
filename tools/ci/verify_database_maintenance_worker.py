@@ -38,6 +38,7 @@ api = require(
     '"database.maintenance"',
     '"mode"',
     '"dry_run"',
+    "NexScopes.AdminAll",
 )
 
 connector = require(
@@ -60,6 +61,7 @@ docs = require(
     "PostgreSQL",
     "SQLite",
     "arbitrary SQL",
+    "admin:*",
 )
 
 roadmap = require(
