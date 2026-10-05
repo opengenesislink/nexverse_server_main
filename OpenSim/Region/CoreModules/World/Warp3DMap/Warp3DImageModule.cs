@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime;
 using System.Text.Json;
@@ -1160,6 +1161,10 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
         private sealed class LunaTextureDiagnosticStoreDocument
         {
+            public LunaTextureDiagnosticStoreDocument()
+            {
+            }
+
             public int Version { get; set; }
             public string RegionID { get; set; }
             public DateTime UpdatedUtc { get; set; }
@@ -1168,6 +1173,10 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
 
         private sealed class LunaTextureDiagnosticStoreRecord
         {
+            public LunaTextureDiagnosticStoreRecord()
+            {
+            }
+
             public string TextureID { get; set; }
             public string Classification { get; set; }
             public string PrimName { get; set; }
