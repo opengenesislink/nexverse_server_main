@@ -203,8 +203,9 @@ namespace NexVerse.RegionModules.Experiences
                 using HttpRequestMessage request =
                     CreateRequest(
                         HttpMethod.Get,
-                        "/api/v1/experiences/" +
-                        experienceId.ToString());
+                        "/api/v1/experiences/script/details?experience_id=" +
+                        Uri.EscapeDataString(
+                            experienceId.ToString()));
 
                 using HttpResponseMessage response =
                     m_Http.Send(request);
