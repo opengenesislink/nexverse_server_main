@@ -4,6 +4,9 @@ from pathlib import Path
 router = Path("OpenSim/Region/Framework/Interfaces/ICrossRegionObjectMessageRouter.cs").read_text(encoding="utf-8")
 lsl = Path("OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs").read_text(encoding="utf-8")
 node = Path("NexVerse/RegionModules/NodeAgent/NexVerseNodeAgentModule.cs").read_text(encoding="utf-8")
+registry = Path("NexVerse/Core/ControlPlane/NexNodeRegistry.cs").read_text(encoding="utf-8")
+node_api = Path("NexVerse/Server/Api/NexNodeApi.cs").read_text(encoding="utf-8")
+world_api = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 roadmap = Path("doc/NexVerse/ROADMAP.md").read_text(encoding="utf-8")
 
 for marker in (
@@ -36,6 +39,27 @@ for marker in (
     "message.Length > 1023",
 ):
     assert marker in node, f"missing NodeAgent object messaging marker: {marker}"
+
+for marker in (
+    "CrossRegionObjectMessaging",
+    "CrossOwnerObjectMessaging",
+    "ObjectMessagesPerSecond",
+    "ObjectMessageMaxAgeSeconds",
+    '"cross_region_object_messaging"',
+    '"cross_owner_object_messaging"',
+    '"object_messages_per_second"',
+    '"object_message_max_age_seconds"',
+):
+    assert marker in registry, f"missing Node registry object messaging projection: {marker}"
+    assert marker in node_api or marker.startswith("Cross"), f"missing Node API object messaging projection: {marker}"
+
+for marker in (
+    '["cross_region_object_messaging"]',
+    '["cross_owner_object_messaging"]',
+    '["object_messages_per_second"]',
+    '["object_message_max_age_seconds"]',
+):
+    assert marker in world_api, f"missing Node OpenAPI object messaging marker: {marker}"
 
 for path in ("bin/OpenSim.ini", "bin/OpenSim.ini.example", "bin/OpenSimDefaults.ini"):
     config = Path(path).read_text(encoding="utf-8")
