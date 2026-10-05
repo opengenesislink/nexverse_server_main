@@ -17,8 +17,13 @@ namespace NexVerse.Server.Api
 
         public void Handle(IOSHttpRequest request,IOSHttpResponse response)
         {
-            if(!Authenticate(request,response))return;
             string path=(request.UriPath??string.Empty).TrimEnd('/');
+            string requiredScope =
+                path.Equals("/api/v1/jobs/database/maintenance",StringComparison.OrdinalIgnoreCase) &&
+                request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)
+                    ? NexScopes.AdminAll
+                    : NexScopes.RegionsManage;
+            if(!Authenticate(request,response,requiredScope))return;
             if(path.Equals("/api/v1/jobs/backup",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueBackup(request,response);return;}
             if(path.Equals("/api/v1/jobs/restore",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueRestore(request,response);return;}
             if(path.Equals("/api/v1/jobs/assets/reindex",StringComparison.OrdinalIgnoreCase) && request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){QueueAssetReindex(response);return;}
@@ -117,9 +122,9 @@ namespace NexVerse.Server.Api
             }
             catch(Exception e){Error(response,HttpStatusCode.BadRequest,"database_maintenance_job_rejected",e.Message);}
         }
-        private bool Authenticate(IOSHttpRequest req,IOSHttpResponse res)
+        private bool Authenticate(IOSHttpRequest req,IOSHttpResponse res,string requiredScope)
         {
-            if(m_Authenticator.TryAuthenticate(req,NexScopes.RegionsManage,out NexPrincipal _,out UserAccount _,out int status,out string error))return true;
+            if(m_Authenticator.TryAuthenticate(req,requiredScope,out NexPrincipal _,out UserAccount _,out int status,out string error))return true;
             res.AddHeader("WWW-Authenticate","Bearer");Error(res,(HttpStatusCode)status,error,"Authentifizierung oder Berechtigung fehlgeschlagen.");return false;
         }
         private static void Json(IOSHttpResponse r,HttpStatusCode s,object p){r.StatusCode=(int)s;r.ContentType="application/json; charset=utf-8";r.RawBuffer=JsonSerializer.SerializeToUtf8Bytes(p,new JsonSerializerOptions{WriteIndented=true});}
