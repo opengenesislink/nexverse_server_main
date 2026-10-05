@@ -34,6 +34,8 @@ namespace NexVerse.Core.Jobs
                 if(name.EndsWith(".accepted")||name.EndsWith(".running"))
                 {
                     if(job.State==OglJobState.Queued)m_Jobs.Start(id,"running");
+                    if(e.Data.TryGetValue("progress",out string runningRaw) && int.TryParse(runningRaw,out int runningProgress))
+                        m_Jobs.Report(id,runningProgress,e.Data.TryGetValue("phase",out string runningPhase)?runningPhase:"running",Message(e));
                     return;
                 }
                 if(name.EndsWith(".completed"))
