@@ -50,14 +50,14 @@ Mit `NexLedgerSqlStore` existiert jetzt zusätzlich ein dauerhafter, providerneu
 
 Die SQL-Buchung läuft in einer seriellen Datenbanktransaktion. Transaktions-ID, Posting-IDs und Kontoreferenzen werden durch Unique-/Primary-Key-Regeln zusätzlich auf Datenbankebene abgesichert. SQLite aktiviert pro Verbindung Foreign Keys. Der CI-Test legt eine reale SQLite-Datei an, migriert Schema v1, bucht NV$, öffnet den Store erneut und prüft Salden, Historie, Idempotenz und abgewiesene Buchungen.
 
-Die Runtime-Treiber MySQL/MariaDB, PostgreSQL und SQLite werden nicht in den Ledger-Kern eingebaut. Der Store erhält eine `Func<DbConnection>`; dadurch bleibt der Kern providerneutral. Vor produktiven Transfers fehlen noch die Runtime-Factory/Config-Anbindung und echte Matrix-Regressionen gegen MySQL/MariaDB und PostgreSQL.
+Die Runtime-Treiber MySQL/MariaDB, PostgreSQL und SQLite werden nicht in den Ledger-Kern eingebaut. Der Store erhält eine `Func<DbConnection>`; dadurch bleibt der Kern providerneutral. `NexLedgerSqlRuntime` löst die vorhandenen OpenSim-`StorageProvider`-Bezeichnungen auf die bereits mitgelieferten ADO.NET-Treiber auf und erzeugt die Verbindung ausschließlich per Reflection. Der SQLite-CI-Test benutzt genau diesen Resolver. Vor produktiven Transfers fehlen noch die Einbindung in die Robust-Konfiguration und echte Matrix-Regressionen gegen MySQL/MariaDB und PostgreSQL.
 
 ## Nächste Schichten
 
 Auf dieser Grundlage folgen:
 
-1. Runtime-Factory und DB-Konfiguration für MySQL/MariaDB, PostgreSQL und SQLite;
-2. Live-Matrix-/Crash-/Rollback-Tests für die Produktionsdatenbanken;
+1. Robust-Konfigurationsanbindung über `[DatabaseService]` mit optionalem `[NexEconomy]`-Override;
+2. Live-Matrix-/Crash-/Rollback-Tests für MySQL/MariaDB und PostgreSQL;
 3. Kontolebenszyklus und Sperren;
 4. Saldo-/Historien-/Transfer-Service;
 5. Audit und Reconciliation;
