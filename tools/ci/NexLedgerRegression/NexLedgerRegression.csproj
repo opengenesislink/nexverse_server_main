@@ -7,7 +7,14 @@
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Mono.Data.Sqlite">
+      <HintPath>../../../bin/Mono.Data.Sqlite.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerModel.cs" Link="NexLedgerModel.cs" />
     <Compile Include="../../../NexVerse/Core/Economy/NexLedgerStore.cs" Link="NexLedgerStore.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerSqlStore.cs" Link="NexLedgerSqlStore.cs" />
   </ItemGroup>
 </Project>
