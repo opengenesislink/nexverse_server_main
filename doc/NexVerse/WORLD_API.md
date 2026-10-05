@@ -632,6 +632,7 @@ The API explorer renders these fields for the selected operation and surfaces th
 OpenGenesisLINK 0.9.3.6 exposes the policy-bound NV$ surface below. The authoritative ledger must be enabled through `[NexEconomy]`; otherwise economy operations return service-unavailable responses.
 
 - `GET /api/v1/economy/balance` — read the authenticated resident balance or, for an authorized service/admin principal, `?account_id=<uuid>`; requires `economy:read`.
+- `GET /api/v1/economy/virtual-account` — create/read the persistent OpenGenesisLINK-only `NVBAN` alias for the authenticated or authorized ledger account; requires `economy:read`. The returned identifier is not an IBAN or real-world bank account.
 - `POST /api/v1/economy/transfers` — transfer positive integer NV$ units; requires `economy:transfer` and a mandatory `Idempotency-Key`.
 - `GET /api/v1/economy/transactions/{transactionId}` — read a transaction; residents may read only transactions involving their own wallet; requires `economy:read`.
 - `POST /api/v1/economy/transactions/{transactionId}/reverse` — create an append-only deterministic reversal; requires `admin:*`.
