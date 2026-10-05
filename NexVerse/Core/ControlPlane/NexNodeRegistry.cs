@@ -812,7 +812,7 @@ namespace NexVerse.Core.ControlPlane
             if (DateTimeOffset.TryParse(
                     raw,
                     CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind,
+                    DateTimeStyles.None,
                     out DateTimeOffset value))
             {
                 assign(value);
