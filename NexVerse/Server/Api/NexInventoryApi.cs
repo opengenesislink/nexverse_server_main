@@ -843,6 +843,15 @@ namespace NexVerse.Server.Api
             InventoryItemBase source = m_Inventory.GetItem(owner, itemID);
             InventoryFolderBase target = m_Inventory.GetFolder(owner, folderID);
             if (!Owned(source, owner) || !Owned(target, owner)) { NotFound(response, "inventory_copy_source_or_target_not_found"); return; }
+            if ((source.CurrentPermissions & (uint)PermissionMask.Copy) == 0)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Forbidden,
+                    "inventory_item_copy_forbidden",
+                    "The inventory item does not grant Copy permission.");
+                return;
+            }
 
             InventoryItemBase copy = (InventoryItemBase)source.Clone();
             copy.ID = UUID.Random();
@@ -881,6 +890,15 @@ namespace NexVerse.Server.Api
                 if (!UUID.TryParse(raw, out UUID id)) { WriteError(response, HttpStatusCode.BadRequest, "invalid_folder_id", "Folder id must be a UUID."); return; }
                 InventoryFolderBase folder = m_Inventory.GetFolder(owner, id);
                 if (!Owned(folder, owner) || folder.ParentID != trash.ID) { WriteError(response, HttpStatusCode.Conflict, "folder_not_in_trash", "Folder is not directly in Trash."); return; }
+                if (WouldCreateFolderCycle(owner, folder.ID, target.ID))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Conflict,
+                        "inventory_folder_cycle",
+                        "Restore target would create or preserve an invalid folder cycle.");
+                    return;
+                }
                 folder.ParentID = target.ID;
                 if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_restore_failed", "Folder could not be restored."); return; }
                 WriteJson(response, new { restored = true, folder = FolderPayload(folder) }, HttpStatusCode.OK);
@@ -932,6 +950,15 @@ namespace NexVerse.Server.Api
                 if (!UUID.TryParse(p.GetString(), out UUID parentID) || parentID == folder.ID) { WriteError(response, HttpStatusCode.BadRequest, "invalid_parent_id", "parent_id must name another folder."); return; }
                 InventoryFolderBase parent = m_Inventory.GetFolder(owner, parentID);
                 if (!Owned(parent, owner)) { NotFound(response, "inventory_parent_not_found"); return; }
+                if (WouldCreateFolderCycle(owner, folder.ID, parentID))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Conflict,
+                        "inventory_folder_cycle",
+                        "Moving the folder to that parent would create or preserve an invalid folder cycle.");
+                    return;
+                }
                 folder.ParentID = parentID;
                 if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_move_failed", "Folder could not be moved."); return; }
                 changed = true;
@@ -949,6 +976,15 @@ namespace NexVerse.Server.Api
             if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be deleted."); return; }
             InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
             if (trash == null || trash.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable or protected."); return; }
+            if (WouldCreateFolderCycle(owner, folder.ID, trash.ID))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Conflict,
+                    "inventory_folder_cycle",
+                    "Trash destination would create or preserve an invalid folder cycle.");
+                return;
+            }
             folder.ParentID = trash.ID;
             if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_trash_failed", "Folder could not be moved to Trash."); return; }
             WriteJson(response, new { trashed = true, folder_id = folder.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
@@ -990,6 +1026,43 @@ namespace NexVerse.Server.Api
             item.Folder = trash.ID;
             if (!m_Inventory.MoveItems(owner, new List<InventoryItemBase> { item })) { WriteError(response, HttpStatusCode.Conflict, "inventory_item_trash_failed", "Item could not be moved to Trash."); return; }
             WriteJson(response, new { trashed = true, item_id = item.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
+        }
+
+        private bool WouldCreateFolderCycle(
+            UUID owner,
+            UUID movingFolderID,
+            UUID targetParentID)
+        {
+            HashSet<UUID> visited =
+                new HashSet<UUID>();
+            UUID current =
+                targetParentID;
+
+            for (int depth = 0;
+                 depth < 4096 &&
+                 current != UUID.Zero;
+                 depth++)
+            {
+                if (current == movingFolderID)
+                    return true;
+
+                if (!visited.Add(current))
+                    return true;
+
+                InventoryFolderBase currentFolder =
+                    m_Inventory.GetFolder(
+                        owner,
+                        current);
+
+                if (!Owned(currentFolder, owner))
+                    return true;
+
+                current =
+                    currentFolder.ParentID;
+            }
+
+            return
+                current != UUID.Zero;
         }
 
         private static bool Owned(InventoryFolderBase value, UUID owner) => value != null && value.Owner == owner;
