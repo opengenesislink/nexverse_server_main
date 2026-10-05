@@ -48,6 +48,10 @@ for marker in (
     "NexLedgerSqlDialect.MySql",
     "NexLedgerSqlDialect.PostgreSql",
     "NexLedgerSqlDialect.Sqlite",
+    "ResolveConnectionType()",
+    "Assembly.Load(",
+    "Assembly.LoadFrom(",
+    "AppContext.BaseDirectory",
     "Activator.CreateInstance(type)",
     "connection.ConnectionString",
     "CreateStore(",
@@ -56,7 +60,6 @@ for marker in (
 
 for marker in (
     "RunSqliteRegression()",
-    "NexLedgerSqlStore(",
     'NexLedgerSqlRuntime.Resolve(',
     '"OpenSim.Data.SQLite.dll"',
     "runtime.CreateStore()",
