@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerModel.cs" Link="NexLedgerModel.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerStore.cs" Link="NexLedgerStore.cs" />
+  </ItemGroup>
+</Project>
