@@ -334,6 +334,23 @@ jobs:
               "Node",
               "NodeListResponse",
               "NodeResponse",
+              "InventoryPermissions",
+              "InventoryFolder",
+              "InventoryItem",
+              "InventoryTreeResponse",
+              "InventoryFolderContentResponse",
+              "InventoryItemResponse",
+              "InventorySearchScan",
+              "InventorySearchResponse",
+              "InventoryItemCreateRequest",
+              "InventoryItemCreateResponse",
+              "InventoryLinkCreateRequest",
+              "InventoryLinkCreateResponse",
+              "InventoryItemCopyRequest",
+              "InventoryItemCopyResponse",
+              "InventoryRestoreRequest",
+              "InventoryFolderRestoreResponse",
+              "InventoryItemRestoreResponse",
               "Estate",
               "EstateListResponse",
               "EstateResponse",
@@ -461,6 +478,40 @@ jobs:
           assert [p["name"] for p in node_get["parameters"]] == ["nodeId"]
           assert node_get["parameters"][0]["in"] == "path" and node_get["parameters"][0]["required"]
           assert schemas["Node"]["properties"]["state"]["enum"] == ["online", "stale", "offline"]
+
+          inventory_search = doc["paths"]["/api/v1/inventory/search"]["get"]
+          assert inventory_search["x-nexverse-scope"] == "inventory:read"
+          assert [p["name"] for p in inventory_search["parameters"]] == ["owner_id", "q", "limit"]
+          inventory_create = doc["paths"]["/api/v1/inventory/items"]["post"]
+          assert inventory_create["x-nexverse-scope"] == "admin:*"
+          assert inventory_create["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCreateRequest"
+          assert inventory_create["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCreateResponse"
+          inventory_links = doc["paths"]["/api/v1/inventory/links"]["post"]
+          assert inventory_links["x-nexverse-scope"] == "inventory:write"
+          assert inventory_links["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryLinkCreateRequest"
+          assert inventory_links["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryLinkCreateResponse"
+          assert schemas["InventorySearchResponse"]["properties"]["scan"]["$ref"] == "#/components/schemas/InventorySearchScan"
+          assert schemas["InventoryItem"]["properties"]["permissions"]["$ref"] == "#/components/schemas/InventoryPermissions"
+          inventory_copy = doc["paths"]["/api/v1/inventory/items/copy"]["post"]
+          assert inventory_copy["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCopyRequest"
+          folder_restore = doc["paths"]["/api/v1/inventory/folders/{folderId}/restore"]["post"]
+          assert folder_restore["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryRestoreRequest"
+          item_restore = doc["paths"]["/api/v1/inventory/items/{itemId}/restore"]["post"]
+          assert item_restore["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemRestoreResponse"
+          for inventory_path in (
+              "/api/v1/inventory/tree",
+              "/api/v1/inventory/folders",
+              "/api/v1/inventory/folders/{folderId}",
+              "/api/v1/inventory/items",
+              "/api/v1/inventory/items/{itemId}",
+              "/api/v1/inventory/items/copy",
+              "/api/v1/inventory/folders/{folderId}/restore",
+              "/api/v1/inventory/items/{itemId}/restore",
+              "/api/v1/inventory/links",
+              "/api/v1/inventory/lost-and-found",
+              "/api/v1/inventory/trash/empty",
+          ):
+              assert inventory_path in doc["paths"], f"Inventory OpenAPI path missing: {inventory_path}"
 
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert doc["x_nexverse_idempotency"]["protected_operations"] == [

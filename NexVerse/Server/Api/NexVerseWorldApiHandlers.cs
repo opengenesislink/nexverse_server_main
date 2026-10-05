@@ -185,6 +185,34 @@ namespace NexVerse.Server.Api
                     ("post", "NexVerse-verwaltete Region starten, stoppen oder neu starten", "regions:manage", "202")),
                 ["/api/v1/region-operations/{operationId}"] = AuthenticatedOperations(
                     ("get", "Status einer asynchronen Regionsoperation lesen", "regions:read", "200")),
+                ["/api/v1/inventory/tree"] = AuthenticatedOperations(
+                    ("get", "Inventarwurzel und Ordnerstruktur lesen", "inventory:read", "200")),
+                ["/api/v1/inventory/search"] = AuthenticatedOperations(
+                    ("get", "Inventarordner und Items begrenzt durchsuchen", "inventory:read", "200")),
+                ["/api/v1/inventory/folders"] = AuthenticatedOperations(
+                    ("post", "Inventarordner erstellen", "inventory:write", "201")),
+                ["/api/v1/inventory/folders/{folderId}"] = AuthenticatedOperations(
+                    ("get", "Inventarordner samt direktem Inhalt lesen", "inventory:read", "200"),
+                    ("patch", "Inventarordner umbenennen oder verschieben", "inventory:write", "200"),
+                    ("delete", "Inventarordner sicher in den Papierkorb verschieben", "inventory:write", "200")),
+                ["/api/v1/inventory/items"] = AuthenticatedOperations(
+                    ("post", "Inventaritem aus vorhandenem Asset erzeugen", "admin:*", "201")),
+                ["/api/v1/inventory/items/{itemId}"] = AuthenticatedOperations(
+                    ("get", "Inventaritem lesen", "inventory:read", "200"),
+                    ("patch", "Inventaritem umbenennen, beschreiben oder verschieben", "inventory:write", "200"),
+                    ("delete", "Inventaritem sicher in den Papierkorb verschieben", "inventory:write", "200")),
+                ["/api/v1/inventory/items/copy"] = AuthenticatedOperations(
+                    ("post", "Eigenes Inventaritem in einen Zielordner kopieren", "inventory:write", "201")),
+                ["/api/v1/inventory/folders/{folderId}/restore"] = AuthenticatedOperations(
+                    ("post", "Ordner direkt aus dem Papierkorb in einen Zielordner wiederherstellen", "inventory:write", "200")),
+                ["/api/v1/inventory/items/{itemId}/restore"] = AuthenticatedOperations(
+                    ("post", "Item direkt aus dem Papierkorb in einen Zielordner wiederherstellen", "inventory:write", "200")),
+                ["/api/v1/inventory/links"] = AuthenticatedOperations(
+                    ("post", "Direkten Item- oder Ordnerlink erzeugen", "inventory:write", "201")),
+                ["/api/v1/inventory/lost-and-found"] = AuthenticatedOperations(
+                    ("get", "Lost-&-Found-Ordner und direkten Inhalt lesen", "inventory:read", "200")),
+                ["/api/v1/inventory/trash/empty"] = AuthenticatedOperations(
+                    ("post", "Papierkorb des ausgewählten Inventars endgültig leeren", "inventory:write", "200")),
                 ["/api/v1/users/me"] = AuthenticatedOperations(
                     ("get", "Authentifiziertes Einwohnerkonto lesen", null, "200")),
                 ["/api/v1/users"] = AuthenticatedOperations(
@@ -416,6 +444,69 @@ namespace NexVerse.Server.Api
                 "200");
             ApplyJsonContract(
                 paths,
+                "/api/v1/inventory/tree",
+                "get",
+                null,
+                "InventoryTreeResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/search",
+                "get",
+                null,
+                "InventorySearchResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/folders/{folderId}",
+                "get",
+                null,
+                "InventoryFolderContentResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/items/{itemId}",
+                "get",
+                null,
+                "InventoryItemResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/items",
+                "post",
+                "InventoryItemCreateRequest",
+                "InventoryItemCreateResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/links",
+                "post",
+                "InventoryLinkCreateRequest",
+                "InventoryLinkCreateResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/items/copy",
+                "post",
+                "InventoryItemCopyRequest",
+                "InventoryItemCopyResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/folders/{folderId}/restore",
+                "post",
+                "InventoryRestoreRequest",
+                "InventoryFolderRestoreResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/items/{itemId}/restore",
+                "post",
+                "InventoryRestoreRequest",
+                "InventoryItemRestoreResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
                 "/api/v1/users/{principalId}/audit",
                 "get",
                 null,
@@ -528,6 +619,116 @@ namespace NexVerse.Server.Api
                     "Idempotency-Key",
                     false,
                     "Optionaler wiederholungssicherer Anfrageschlüssel; maximal 128 Zeichen."));
+
+            object inventoryOwnerParameter =
+                QueryParameter(
+                    "owner_id",
+                    false,
+                    "Optionaler Inventory-Owner als UUID; ein fremder Owner erfordert zusätzlich admin:*.");
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/tree",
+                "get",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/search",
+                "get",
+                inventoryOwnerParameter,
+                QueryParameter(
+                    "q",
+                    false,
+                    "Optionaler, nicht zwischen Groß-/Kleinschreibung unterscheidender Suchbegriff."),
+                IntegerQueryParameter(
+                    "limit",
+                    false,
+                    1,
+                    500,
+                    "Maximale Anzahl Ordner und Items je Ergebnistyp; Standard 100."));
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/folders",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items/copy",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/links",
+                "post",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/lost-and-found",
+                "get",
+                inventoryOwnerParameter);
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/trash/empty",
+                "post",
+                inventoryOwnerParameter);
+
+            object inventoryFolderIdParameter =
+                PathParameter(
+                    "folderId",
+                    "UUID des Inventarordners.");
+            foreach (string method in new[]
+                     {
+                         "get",
+                         "patch",
+                         "delete"
+                     })
+            {
+                AddOperationParameters(
+                    paths,
+                    "/api/v1/inventory/folders/{folderId}",
+                    method,
+                    inventoryFolderIdParameter,
+                    inventoryOwnerParameter);
+            }
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/folders/{folderId}/restore",
+                "post",
+                inventoryFolderIdParameter,
+                inventoryOwnerParameter);
+
+            object inventoryItemIdParameter =
+                PathParameter(
+                    "itemId",
+                    "UUID des Inventaritems.");
+            foreach (string method in new[]
+                     {
+                         "get",
+                         "patch",
+                         "delete"
+                     })
+            {
+                AddOperationParameters(
+                    paths,
+                    "/api/v1/inventory/items/{itemId}",
+                    method,
+                    inventoryItemIdParameter,
+                    inventoryOwnerParameter);
+            }
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items/{itemId}/restore",
+                "post",
+                inventoryItemIdParameter,
+                inventoryOwnerParameter);
 
             object principalIdParameter =
                 PathParameter(
@@ -1859,6 +2060,9 @@ namespace NexVerse.Server.Api
             object apiKeyRef = SchemaRef("ApiKey");
             object auditEventRef = SchemaRef("AuditEvent");
             object estateRef = SchemaRef("Estate");
+            object inventoryFolderRef = SchemaRef("InventoryFolder");
+            object inventoryItemRef = SchemaRef("InventoryItem");
+            object inventoryPermissionsRef = SchemaRef("InventoryPermissions");
 
             return new Dictionary<string, object>
             {
@@ -2142,6 +2346,357 @@ namespace NexVerse.Server.Api
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["node"] = SchemaRef("Node"),
                         ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["InventoryPermissions"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "base_mask",
+                        "current_mask",
+                        "everyone_mask",
+                        "group_mask",
+                        "next_owner_mask"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["base_mask"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["current_mask"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["everyone_mask"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["group_mask"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["next_owner_mask"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L }
+                    }
+                },
+                ["InventoryFolder"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "id",
+                        "owner_id",
+                        "parent_id",
+                        "name",
+                        "type",
+                        "version"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["id"] = new { type = "string", format = "uuid" },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["parent_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["type"] = new { type = "integer" },
+                        ["version"] = new { type = "integer" }
+                    }
+                },
+                ["InventoryItem"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "id",
+                        "owner_id",
+                        "folder_id",
+                        "asset_id",
+                        "name",
+                        "description",
+                        "asset_type",
+                        "inventory_type",
+                        "creator_id",
+                        "creation_date",
+                        "flags",
+                        "permissions"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["id"] = new { type = "string", format = "uuid" },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["folder_id"] = new { type = "string", format = "uuid" },
+                        ["asset_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["description"] = new { type = "string" },
+                        ["asset_type"] = new { type = "integer" },
+                        ["inventory_type"] = new { type = "integer" },
+                        ["creator_id"] = new { type = "string" },
+                        ["creator_data"] = new { type = "string" },
+                        ["creation_date"] = new { type = "integer", format = "int64" },
+                        ["flags"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["permissions"] = inventoryPermissionsRef
+                    }
+                },
+                ["InventoryTreeResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "owner_id",
+                        "root",
+                        "folders",
+                        "folder_count"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["root"] = new
+                        {
+                            oneOf = new object[]
+                            {
+                                inventoryFolderRef,
+                                new { type = "null" }
+                            }
+                        },
+                        ["folders"] = new
+                        {
+                            type = "array",
+                            items = inventoryFolderRef
+                        },
+                        ["folder_count"] = new { type = "integer", minimum = 0 }
+                    }
+                },
+                ["InventoryFolderContentResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "folder",
+                        "folders",
+                        "items"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder"] = inventoryFolderRef,
+                        ["folders"] = new
+                        {
+                            type = "array",
+                            items = inventoryFolderRef
+                        },
+                        ["items"] = new
+                        {
+                            type = "array",
+                            items = inventoryItemRef
+                        }
+                    }
+                },
+                ["InventoryItemResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "item" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item"] = inventoryItemRef
+                    }
+                },
+                ["InventorySearchScan"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "folder_limit",
+                        "item_limit",
+                        "scanned_folders",
+                        "scanned_items",
+                        "truncated"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder_limit"] = new { type = "integer", minimum = 1 },
+                        ["item_limit"] = new { type = "integer", minimum = 1 },
+                        ["scanned_folders"] = new { type = "integer", minimum = 0 },
+                        ["scanned_items"] = new { type = "integer", minimum = 0 },
+                        ["truncated"] = new { type = "boolean" }
+                    }
+                },
+                ["InventorySearchResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "query",
+                        "limit",
+                        "scan",
+                        "folders",
+                        "items",
+                        "folder_count",
+                        "item_count"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["query"] = new { type = "string", maxLength = 255 },
+                        ["limit"] = new { type = "integer", minimum = 1, maximum = 500 },
+                        ["scan"] = SchemaRef("InventorySearchScan"),
+                        ["folders"] = new
+                        {
+                            type = "array",
+                            items = inventoryFolderRef
+                        },
+                        ["items"] = new
+                        {
+                            type = "array",
+                            items = inventoryItemRef
+                        },
+                        ["folder_count"] = new { type = "integer", minimum = 0 },
+                        ["item_count"] = new { type = "integer", minimum = 0 }
+                    }
+                },
+                ["InventoryItemCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "folder_id",
+                        "asset_id",
+                        "name",
+                        "base_permissions",
+                        "current_permissions",
+                        "next_owner_permissions"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder_id"] = new { type = "string", format = "uuid" },
+                        ["asset_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 },
+                        ["description"] = new { type = "string" },
+                        ["inventory_type"] = new { type = "integer" },
+                        ["base_permissions"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["current_permissions"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["next_owner_permissions"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["everyone_permissions"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["group_permissions"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L },
+                        ["flags"] = new { type = "integer", format = "int64", minimum = 0L, maximum = 4294967295L }
+                    }
+                },
+                ["InventoryItemCreateResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "item", "asset" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item"] = inventoryItemRef,
+                        ["asset"] = new
+                        {
+                            type = "object",
+                            required = new[]
+                            {
+                                "id",
+                                "type",
+                                "content_type"
+                            },
+                            properties = new Dictionary<string, object>
+                            {
+                                ["id"] = new { type = "string" },
+                                ["type"] = new { type = "integer" },
+                                ["content_type"] = new { type = "string" }
+                            }
+                        }
+                    }
+                },
+                ["InventoryLinkCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "folder_id",
+                        "target_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder_id"] = new { type = "string", format = "uuid" },
+                        ["target_id"] = new { type = "string", format = "uuid" },
+                        ["target_kind"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "item", "folder" },
+                            @default = "item"
+                        },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 },
+                        ["description"] = new { type = "string" }
+                    }
+                },
+                ["InventoryLinkCreateResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "link",
+                        "target_kind",
+                        "target_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["link"] = inventoryItemRef,
+                        ["target_kind"] = new
+                        {
+                            type = "string",
+                            @enum = new[] { "item", "folder" }
+                        },
+                        ["target_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryItemCopyRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "item_id",
+                        "folder_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item_id"] = new { type = "string", format = "uuid" },
+                        ["folder_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 }
+                    }
+                },
+                ["InventoryItemCopyResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "item",
+                        "copied_from"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item"] = inventoryItemRef,
+                        ["copied_from"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryRestoreRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "folder_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryFolderRestoreResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "restored",
+                        "folder"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["restored"] = new { type = "boolean" },
+                        ["folder"] = inventoryFolderRef
+                    }
+                },
+                ["InventoryItemRestoreResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "restored",
+                        "item"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["restored"] = new { type = "boolean" },
+                        ["item"] = inventoryItemRef
                     }
                 },
                 ["Estate"] = new

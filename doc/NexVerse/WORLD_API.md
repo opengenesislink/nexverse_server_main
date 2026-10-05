@@ -315,6 +315,25 @@ The worker inventories application tables directly from provider metadata, quote
 
 OpenGenesisLINK 0.9.3.5 deliberately does not expose arbitrary SQL, `VACUUM`, `VACUUM FULL`, `OPTIMIZE TABLE`, schema migration, repair or rebuild operations through this API. Those operations can require stronger maintenance-window and backup/rollback guarantees and remain separate operational work.
 
+## Inventory API
+
+The 0.9.3.5 Inventory API uses the authoritative configured `IInventoryService`. Read operations require `inventory:read`; mutations require `inventory:write`. Access to another resident through `owner_id` additionally requires `admin:*`.
+
+Implemented management operations include:
+
+- `GET /api/v1/inventory/tree` and folder/item reads;
+- `GET /api/v1/inventory/search?q=<text>&limit=<1-500>` for bounded case-insensitive search across folder names and item names/descriptions; the server scans at most 2,000 folders and 10,000 item rows per request and reports `scan.truncated` when those safety bounds are reached;
+- folder create/rename/move and safe Trash handling;
+- item rename/description/move, permission-aware copy, restore and safe Trash handling; Copy is refused when the source item lacks the native Copy permission, and folder move/restore operations reject ancestry cycles;
+- `POST /api/v1/inventory/links` for direct item or folder links using the native link asset types;
+- `POST /api/v1/inventory/items` for controlled item creation from an already-existing asset.
+
+Raw asset-backed item creation is deliberately **administrator-only** even when the caller otherwise has `inventory:write`. The API loads the configured `AssetService`, requires the referenced asset metadata to exist, derives the asset type from that authoritative metadata, and requires explicit base/current/next-owner permission masks. This prevents a normal resident from manufacturing a full-permission inventory item merely by knowing an asset UUID. Link creation does not copy the target asset and only accepts targets already owned by the selected inventory owner.
+
+The API never creates inventory links by cloning a linked target recursively: link-to-link chains are rejected. Folder links are inventory items with `AssetType.LinkFolder`; normal item links use `AssetType.Link`.
+
+The OpenAPI 3.1 document publishes typed schemas for inventory folders, items, permission masks, bounded search results, asset-backed item creation and link creation so the API Control Center can render these operations without handwritten client assumptions.
+
 ## Persistent Job Engine: Inventory repair
 
 OpenGenesisLINK 0.9.3.5 provides a conservative structural repair job for one resident inventory.

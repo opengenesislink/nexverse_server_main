@@ -783,16 +783,16 @@ Support:
 - [x] delete folder (safe move to Trash);
 - [x] restore from trash;
 - [x] empty trash;
-- create item;
+- create item — implemented as admin-only creation from an existing validated asset with explicit permission masks;
 - [x] rename item;
 - [x] move item;
 - [x] copy item;
 - [x] delete item (safe move to Trash);
 - [x] sort (name-ordered search result foundation);
-- search;
+- search — implemented as bounded case-insensitive `q` search with `limit` across folder names and item names/descriptions;
 - [x] inspect permissions (item permission masks);
 - [x] update allowed metadata (name/description);
-- links;
+- links — implemented for direct owned item/folder targets using native `AssetType.Link` / `AssetType.LinkFolder` semantics;
 - [x] Lost & Found;
 - [x] asset reference information (asset UUID/type; read-only foundation).
 
@@ -823,11 +823,11 @@ API-driven avatar inventory archives:
 
 - [x] IAR export operation foundation over authoritative `IInventoryArchiverModule`;
 - [x] IAR import operation foundation with read-only archive validation;
-- partial subtree export;
+- partial subtree export — implemented through the authoritative IAR `inventory_path` parameter;
 - [x] native conflict policy exposed as `merge=true/false` (no invented unsupported modes);
 - [x] progress;
-- failure reporting;
-- encrypted backup option.
+- failure reporting — implemented through terminal IAR operation/job state and error metadata;
+- encrypted backup option — implemented as validated authenticated `.oglbackup` AES-GCM storage outside World API passphrase payloads.
 
 ### 9.4 NexVerse Job Engine
 

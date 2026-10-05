@@ -16,13 +16,21 @@ namespace NexVerse.Server.Api
 {
     internal sealed class NexInventoryApi
     {
+        private const int SearchQueryLengthLimit = 255;
+        private const int SearchFolderScanLimit = 2000;
+        private const int SearchItemScanLimit = 10000;
         private static readonly JsonSerializerOptions s_Json = new JsonSerializerOptions { WriteIndented = true };
         private readonly IInventoryService m_Inventory;
+        private readonly IAssetService m_Assets;
         private readonly NexApiAuthenticator m_Authenticator;
 
-        public NexInventoryApi(IInventoryService inventory, NexApiAuthenticator authenticator)
+        public NexInventoryApi(
+            IInventoryService inventory,
+            IAssetService assets,
+            NexApiAuthenticator authenticator)
         {
             m_Inventory = inventory;
+            m_Assets = assets;
             m_Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
         }
 
@@ -70,7 +78,7 @@ namespace NexVerse.Server.Api
             }
             if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
             {
-                HandleRead(response, owner, path);
+                HandleRead(request, response, owner, path);
                 return;
             }
 
@@ -78,6 +86,30 @@ namespace NexVerse.Server.Api
                 path.Equals("/api/v1/inventory/trash/empty", StringComparison.OrdinalIgnoreCase))
             {
                 EmptyTrash(response, owner);
+                return;
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/items", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!principal.HasScope(NexScopes.AdminAll))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Forbidden,
+                        "inventory_item_create_admin_required",
+                        "Creating an inventory item from an existing asset requires admin:*.");
+                    return;
+                }
+
+                CreateItem(request, response, owner);
+                return;
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/links", StringComparison.OrdinalIgnoreCase))
+            {
+                CreateLink(request, response, owner);
                 return;
             }
 
@@ -124,11 +156,15 @@ namespace NexVerse.Server.Api
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
         }
 
-        private void HandleRead(IOSHttpResponse response, UUID owner, string path)
+        private void HandleRead(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            UUID owner,
+            string path)
         {
             if (path.Equals("/api/v1/inventory/search", StringComparison.OrdinalIgnoreCase))
             {
-                Search(response, owner, null);
+                Search(request, response, owner);
                 return;
             }
 
@@ -177,20 +213,622 @@ namespace NexVerse.Server.Api
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
         }
 
-        private void Search(IOSHttpResponse response, UUID owner, string ignored)
+        private void Search(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            UUID owner)
         {
-            // Query/sort are deliberately bounded to the inventory skeleton and
-            // direct folder contents to avoid an unbounded database operation.
-            List<InventoryFolderBase> folders = m_Inventory.GetInventorySkeleton(owner) ?? new List<InventoryFolderBase>();
-            List<InventoryItemBase> items = new List<InventoryItemBase>();
+            string query =
+                (request?.QueryString?["q"] ?? string.Empty)
+                    .Trim();
+
+            if (query.Length > SearchQueryLengthLimit)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "query_too_long",
+                    "q must contain at most " +
+                    SearchQueryLengthLimit +
+                    " characters.");
+                return;
+            }
+
+            int limit = 100;
+            string rawLimit =
+                request?.QueryString?["limit"];
+            if (!string.IsNullOrWhiteSpace(rawLimit) &&
+                (!int.TryParse(rawLimit, out limit) ||
+                 limit < 1 ||
+                 limit > 500))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_limit",
+                    "limit must be between 1 and 500.");
+                return;
+            }
+
+            List<InventoryFolderBase> allFolders =
+                m_Inventory.GetInventorySkeleton(owner) ??
+                new List<InventoryFolderBase>();
+
+            InventoryFolderBase root =
+                m_Inventory.GetRootFolder(owner);
+
+            if (Owned(root, owner) &&
+                !allFolders.Any(folder =>
+                    folder.ID == root.ID))
+            {
+                allFolders.Add(root);
+            }
+
+            int availableFolderCount =
+                allFolders.Count;
+
+            List<InventoryFolderBase> folders =
+                allFolders
+                    .Where(folder =>
+                        Owned(folder, owner))
+                    .GroupBy(folder =>
+                        folder.ID)
+                    .Select(group =>
+                        group.First())
+                    .OrderBy(folder =>
+                        folder.ID.ToString(),
+                        StringComparer.Ordinal)
+                    .Take(SearchFolderScanLimit)
+                    .ToList();
+
+            bool scanTruncated =
+                availableFolderCount >
+                folders.Count;
+
+            List<InventoryItemBase> items =
+                new List<InventoryItemBase>();
+
+            int scannedFolders = 0;
             foreach (InventoryFolderBase folder in folders)
             {
-                List<InventoryItemBase> children = m_Inventory.GetFolderItems(owner, folder.ID);
-                if (children != null) items.AddRange(children);
+                if (items.Count >= SearchItemScanLimit)
+                {
+                    scanTruncated = true;
+                    break;
+                }
+
+                scannedFolders++;
+
+                List<InventoryItemBase> children =
+                    m_Inventory.GetFolderItems(
+                        owner,
+                        folder.ID);
+
+                if (children == null ||
+                    children.Count == 0)
+                {
+                    continue;
+                }
+
+                int remaining =
+                    SearchItemScanLimit -
+                    items.Count;
+
+                if (children.Count > remaining)
+                    scanTruncated = true;
+
+                items.AddRange(
+                    children.Take(remaining));
             }
-            folders.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-            items.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-            WriteJson(response, new { folders = ConvertFolders(folders), items = ConvertItems(items), folder_count = folders.Count, item_count = items.Count }, HttpStatusCode.OK);
+
+            bool Matches(string value)
+            {
+                return
+                    string.IsNullOrWhiteSpace(query) ||
+                    (!string.IsNullOrWhiteSpace(value) &&
+                     value.IndexOf(
+                         query,
+                         StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            InventoryFolderBase[] matchedFolders =
+                folders
+                    .Where(folder =>
+                        Matches(folder.Name))
+                    .OrderBy(folder =>
+                        folder.Name,
+                        StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(folder =>
+                        folder.ID.ToString(),
+                        StringComparer.Ordinal)
+                    .Take(limit)
+                    .ToArray();
+
+            InventoryItemBase[] matchedItems =
+                items
+                    .Where(item =>
+                        Owned(item, owner) &&
+                        (Matches(item.Name) ||
+                         Matches(item.Description)))
+                    .GroupBy(item => item.ID)
+                    .Select(group => group.First())
+                    .OrderBy(item =>
+                        item.Name,
+                        StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(item =>
+                        item.ID.ToString(),
+                        StringComparer.Ordinal)
+                    .Take(limit)
+                    .ToArray();
+
+            WriteJson(
+                response,
+                new
+                {
+                    query,
+                    limit,
+                    scan = new
+                    {
+                        folder_limit =
+                            SearchFolderScanLimit,
+                        item_limit =
+                            SearchItemScanLimit,
+                        scanned_folders =
+                            scannedFolders,
+                        scanned_items =
+                            items.Count,
+                        truncated =
+                            scanTruncated
+                    },
+                    folders =
+                        ConvertFolders(matchedFolders),
+                    items =
+                        ConvertItems(matchedItems),
+                    folder_count =
+                        matchedFolders.Length,
+                    item_count =
+                        matchedItems.Length
+                },
+                HttpStatusCode.OK);
+        }
+
+        private void CreateItem(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            UUID owner)
+        {
+            if (m_Assets == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "asset_service_unavailable",
+                    "AssetService is required for inventory item creation.");
+                return;
+            }
+
+            if (!TryBody(
+                    request,
+                    response,
+                    out JsonElement body) ||
+                !TryUuid(
+                    body,
+                    "folder_id",
+                    out UUID folderID) ||
+                !TryUuid(
+                    body,
+                    "asset_id",
+                    out UUID assetID) ||
+                !TryName(
+                    body,
+                    "name",
+                    out string name))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_item_create_request",
+                    "folder_id, asset_id and a non-empty name are required.");
+                return;
+            }
+
+            InventoryFolderBase folder =
+                m_Inventory.GetFolder(
+                    owner,
+                    folderID);
+
+            if (!Owned(folder, owner))
+            {
+                NotFound(
+                    response,
+                    "inventory_target_folder_not_found");
+                return;
+            }
+
+            AssetMetadata metadata;
+            try
+            {
+                metadata =
+                    m_Assets.GetMetadata(
+                        assetID.ToString());
+            }
+            catch (Exception e)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.ServiceUnavailable,
+                    "asset_lookup_failed",
+                    "Asset metadata lookup failed: " +
+                    e.Message);
+                return;
+            }
+
+            if (metadata == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.NotFound,
+                    "asset_not_found",
+                    "The referenced asset was not found.");
+                return;
+            }
+
+            if (metadata.Type == (sbyte)AssetType.Link ||
+                metadata.Type == (sbyte)AssetType.LinkFolder ||
+                metadata.Type == (sbyte)AssetType.Folder)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_asset_type",
+                    "Use /api/v1/inventory/links for inventory links and folders.");
+                return;
+            }
+
+            int inventoryType =
+                DefaultInventoryTypeForAsset(
+                    metadata.Type);
+
+            if (body.TryGetProperty(
+                    "inventory_type",
+                    out JsonElement invTypeElement))
+            {
+                if (invTypeElement.ValueKind !=
+                        JsonValueKind.Number ||
+                    !invTypeElement.TryGetInt32(
+                        out inventoryType))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "invalid_inventory_type",
+                        "inventory_type must be an integer.");
+                    return;
+                }
+            }
+
+            if (!IsInventoryTypeCompatible(
+                    metadata.Type,
+                    inventoryType))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_inventory_type",
+                    "inventory_type is not compatible with the authoritative asset type.");
+                return;
+            }
+
+            if (!TryPermissionMask(
+                    body,
+                    "base_permissions",
+                    out uint basePermissions) ||
+                !TryPermissionMask(
+                    body,
+                    "current_permissions",
+                    out uint currentPermissions) ||
+                !TryPermissionMask(
+                    body,
+                    "next_owner_permissions",
+                    out uint nextPermissions))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "permission_masks_required",
+                    "base_permissions, current_permissions and next_owner_permissions are required uint values.");
+                return;
+            }
+
+            if (!TryOptionalPermissionMask(
+                    body,
+                    "everyone_permissions",
+                    0,
+                    out uint everyonePermissions) ||
+                !TryOptionalPermissionMask(
+                    body,
+                    "group_permissions",
+                    0,
+                    out uint groupPermissions) ||
+                !TryOptionalPermissionMask(
+                    body,
+                    "flags",
+                    0,
+                    out uint flags))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_optional_mask",
+                    "everyone_permissions, group_permissions and flags must be uint values when supplied.");
+                return;
+            }
+
+            string creatorId =
+                UUID.TryParse(
+                    metadata.CreatorID,
+                    out UUID creator) &&
+                creator != UUID.Zero
+                    ? creator.ToString()
+                    : owner.ToString();
+
+            InventoryItemBase item =
+                new InventoryItemBase(
+                    UUID.Random(),
+                    owner)
+                {
+                    AssetID = assetID,
+                    AssetType = metadata.Type,
+                    InvType = inventoryType,
+                    Folder = folderID,
+                    Name = name,
+                    Description =
+                        body.TryGetProperty(
+                            "description",
+                            out JsonElement description) &&
+                        description.ValueKind ==
+                            JsonValueKind.String
+                            ? description.GetString() ??
+                              string.Empty
+                            : metadata.Description ??
+                              string.Empty,
+                    CreatorId = creatorId,
+                    BasePermissions = basePermissions,
+                    CurrentPermissions =
+                        currentPermissions &
+                        basePermissions,
+                    NextPermissions =
+                        nextPermissions &
+                        basePermissions,
+                    EveryOnePermissions =
+                        everyonePermissions &
+                        basePermissions,
+                    GroupPermissions =
+                        groupPermissions &
+                        basePermissions,
+                    Flags = flags
+                };
+
+            if (!m_Inventory.AddItem(item))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Conflict,
+                    "inventory_item_create_failed",
+                    "Inventory item could not be created.");
+                return;
+            }
+
+            WriteJson(
+                response,
+                new
+                {
+                    item =
+                        ItemPayload(item),
+                    asset = new
+                    {
+                        id =
+                            metadata.ID,
+                        type =
+                            metadata.Type,
+                        content_type =
+                            metadata.ContentType
+                    }
+                },
+                HttpStatusCode.Created);
+        }
+
+        private void CreateLink(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            UUID owner)
+        {
+            if (!TryBody(
+                    request,
+                    response,
+                    out JsonElement body) ||
+                !TryUuid(
+                    body,
+                    "folder_id",
+                    out UUID folderID) ||
+                !TryUuid(
+                    body,
+                    "target_id",
+                    out UUID targetID))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_link_request",
+                    "folder_id and target_id are required.");
+                return;
+            }
+
+            string targetKind =
+                body.TryGetProperty(
+                    "target_kind",
+                    out JsonElement kindElement) &&
+                kindElement.ValueKind ==
+                    JsonValueKind.String
+                    ? (kindElement.GetString() ??
+                       string.Empty)
+                        .Trim()
+                        .ToLowerInvariant()
+                    : "item";
+
+            InventoryFolderBase destination =
+                m_Inventory.GetFolder(
+                    owner,
+                    folderID);
+
+            if (!Owned(destination, owner))
+            {
+                NotFound(
+                    response,
+                    "inventory_target_folder_not_found");
+                return;
+            }
+
+            string name;
+            string description;
+            int invType;
+            uint flags;
+            int linkAssetType;
+
+            if (targetKind == "item")
+            {
+                InventoryItemBase target =
+                    m_Inventory.GetItem(
+                        owner,
+                        targetID);
+
+                if (!Owned(target, owner))
+                {
+                    NotFound(
+                        response,
+                        "inventory_link_target_not_found");
+                    return;
+                }
+
+                if (target.AssetType ==
+                        (int)AssetType.Link ||
+                    target.AssetType ==
+                        (int)AssetType.LinkFolder)
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Conflict,
+                        "inventory_link_chain_forbidden",
+                        "Link targets must be direct inventory items or folders.");
+                    return;
+                }
+
+                name =
+                    OptionalName(
+                        body,
+                        "name",
+                        target.Name);
+                description =
+                    OptionalString(
+                        body,
+                        "description",
+                        target.Description);
+                invType =
+                    target.InvType;
+                flags =
+                    target.Flags;
+                linkAssetType =
+                    (int)AssetType.Link;
+            }
+            else if (targetKind == "folder")
+            {
+                InventoryFolderBase target =
+                    m_Inventory.GetFolder(
+                        owner,
+                        targetID);
+
+                if (!Owned(target, owner))
+                {
+                    NotFound(
+                        response,
+                        "inventory_link_target_not_found");
+                    return;
+                }
+
+                name =
+                    OptionalName(
+                        body,
+                        "name",
+                        target.Name);
+                description =
+                    OptionalString(
+                        body,
+                        "description",
+                        string.Empty);
+                invType =
+                    (int)InventoryType.Unknown;
+                flags = 0;
+                linkAssetType =
+                    (int)AssetType.LinkFolder;
+            }
+            else
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    "invalid_target_kind",
+                    "target_kind must be item or folder.");
+                return;
+            }
+
+            InventoryItemBase link =
+                new InventoryItemBase(
+                    UUID.Random(),
+                    owner)
+                {
+                    AssetID = targetID,
+                    AssetType = linkAssetType,
+                    CreatorId =
+                        owner.ToString(),
+                    InvType = invType,
+                    Description = description,
+                    Folder = folderID,
+                    Flags = flags,
+                    Name = name,
+                    BasePermissions =
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
+                    CurrentPermissions =
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
+                    EveryOnePermissions =
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
+                    GroupPermissions =
+                        (uint)OpenSim.Framework.PermissionMask.Copy,
+                    NextPermissions =
+                        (uint)OpenSim.Framework.PermissionMask.Copy
+                };
+
+            if (!m_Inventory.AddItem(link))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Conflict,
+                    "inventory_link_create_failed",
+                    "Inventory link could not be created.");
+                return;
+            }
+
+            WriteJson(
+                response,
+                new
+                {
+                    link =
+                        ItemPayload(link),
+                    target_kind =
+                        targetKind,
+                    target_id =
+                        targetID.ToString()
+                },
+                HttpStatusCode.Created);
         }
 
         private void CopyItem(IOSHttpRequest request, IOSHttpResponse response, UUID owner)
@@ -205,6 +843,15 @@ namespace NexVerse.Server.Api
             InventoryItemBase source = m_Inventory.GetItem(owner, itemID);
             InventoryFolderBase target = m_Inventory.GetFolder(owner, folderID);
             if (!Owned(source, owner) || !Owned(target, owner)) { NotFound(response, "inventory_copy_source_or_target_not_found"); return; }
+            if ((source.CurrentPermissions & (uint)OpenSim.Framework.PermissionMask.Copy) == 0)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Forbidden,
+                    "inventory_item_copy_forbidden",
+                    "The inventory item does not grant Copy permission.");
+                return;
+            }
 
             InventoryItemBase copy = (InventoryItemBase)source.Clone();
             copy.ID = UUID.Random();
@@ -243,6 +890,15 @@ namespace NexVerse.Server.Api
                 if (!UUID.TryParse(raw, out UUID id)) { WriteError(response, HttpStatusCode.BadRequest, "invalid_folder_id", "Folder id must be a UUID."); return; }
                 InventoryFolderBase folder = m_Inventory.GetFolder(owner, id);
                 if (!Owned(folder, owner) || folder.ParentID != trash.ID) { WriteError(response, HttpStatusCode.Conflict, "folder_not_in_trash", "Folder is not directly in Trash."); return; }
+                if (WouldCreateFolderCycle(owner, folder.ID, target.ID))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Conflict,
+                        "inventory_folder_cycle",
+                        "Restore target would create or preserve an invalid folder cycle.");
+                    return;
+                }
                 folder.ParentID = target.ID;
                 if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_restore_failed", "Folder could not be restored."); return; }
                 WriteJson(response, new { restored = true, folder = FolderPayload(folder) }, HttpStatusCode.OK);
@@ -294,6 +950,15 @@ namespace NexVerse.Server.Api
                 if (!UUID.TryParse(p.GetString(), out UUID parentID) || parentID == folder.ID) { WriteError(response, HttpStatusCode.BadRequest, "invalid_parent_id", "parent_id must name another folder."); return; }
                 InventoryFolderBase parent = m_Inventory.GetFolder(owner, parentID);
                 if (!Owned(parent, owner)) { NotFound(response, "inventory_parent_not_found"); return; }
+                if (WouldCreateFolderCycle(owner, folder.ID, parentID))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Conflict,
+                        "inventory_folder_cycle",
+                        "Moving the folder to that parent would create or preserve an invalid folder cycle.");
+                    return;
+                }
                 folder.ParentID = parentID;
                 if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_move_failed", "Folder could not be moved."); return; }
                 changed = true;
@@ -311,6 +976,15 @@ namespace NexVerse.Server.Api
             if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be deleted."); return; }
             InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
             if (trash == null || trash.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable or protected."); return; }
+            if (WouldCreateFolderCycle(owner, folder.ID, trash.ID))
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Conflict,
+                    "inventory_folder_cycle",
+                    "Trash destination would create or preserve an invalid folder cycle.");
+                return;
+            }
             folder.ParentID = trash.ID;
             if (!m_Inventory.MoveFolder(folder)) { WriteError(response, HttpStatusCode.Conflict, "inventory_folder_trash_failed", "Folder could not be moved to Trash."); return; }
             WriteJson(response, new { trashed = true, folder_id = folder.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
@@ -354,6 +1028,43 @@ namespace NexVerse.Server.Api
             WriteJson(response, new { trashed = true, item_id = item.ID.ToString(), trash_id = trash.ID.ToString() }, HttpStatusCode.OK);
         }
 
+        private bool WouldCreateFolderCycle(
+            UUID owner,
+            UUID movingFolderID,
+            UUID targetParentID)
+        {
+            HashSet<UUID> visited =
+                new HashSet<UUID>();
+            UUID current =
+                targetParentID;
+
+            for (int depth = 0;
+                 depth < 4096 &&
+                 current != UUID.Zero;
+                 depth++)
+            {
+                if (current == movingFolderID)
+                    return true;
+
+                if (!visited.Add(current))
+                    return true;
+
+                InventoryFolderBase currentFolder =
+                    m_Inventory.GetFolder(
+                        owner,
+                        current);
+
+                if (!Owned(currentFolder, owner))
+                    return true;
+
+                current =
+                    currentFolder.ParentID;
+            }
+
+            return
+                current != UUID.Zero;
+        }
+
         private static bool Owned(InventoryFolderBase value, UUID owner) => value != null && value.Owner == owner;
         private static bool Owned(InventoryItemBase value, UUID owner) => value != null && value.Owner == owner;
 
@@ -366,13 +1077,208 @@ namespace NexVerse.Server.Api
         private static bool TryUuid(JsonElement body, string name, out UUID value)
         {
             value = UUID.Zero;
-            return body.TryGetProperty(name, out JsonElement e) && UUID.TryParse(e.GetString(), out value);
+
+            return
+                body.TryGetProperty(
+                    name,
+                    out JsonElement element) &&
+                element.ValueKind ==
+                    JsonValueKind.String &&
+                UUID.TryParse(
+                    element.GetString(),
+                    out value) &&
+                value != UUID.Zero;
         }
 
         private static bool TryName(JsonElement body, string property, out string name)
         {
-            name = body.TryGetProperty(property, out JsonElement e) ? (e.GetString() ?? string.Empty).Trim() : string.Empty;
-            return name.Length > 0 && name.Length <= 255;
+            name = string.Empty;
+
+            if (!body.TryGetProperty(
+                    property,
+                    out JsonElement element) ||
+                element.ValueKind !=
+                    JsonValueKind.String)
+            {
+                return false;
+            }
+
+            name =
+                (element.GetString() ??
+                 string.Empty)
+                    .Trim();
+
+            return
+                name.Length > 0 &&
+                name.Length <= 255;
+        }
+
+        private static bool TryPermissionMask(
+            JsonElement body,
+            string name,
+            out uint value)
+        {
+            value = 0;
+
+            return
+                body.TryGetProperty(
+                    name,
+                    out JsonElement element) &&
+                element.ValueKind ==
+                    JsonValueKind.Number &&
+                element.TryGetUInt32(
+                    out value);
+        }
+
+        private static bool TryOptionalPermissionMask(
+            JsonElement body,
+            string name,
+            uint fallback,
+            out uint value)
+        {
+            value = fallback;
+
+            if (!body.TryGetProperty(
+                    name,
+                    out JsonElement element))
+            {
+                return true;
+            }
+
+            return
+                element.ValueKind ==
+                    JsonValueKind.Number &&
+                element.TryGetUInt32(
+                    out value);
+        }
+
+        private static int DefaultInventoryTypeForAsset(
+            sbyte assetType)
+        {
+            return (AssetType)assetType switch
+            {
+                AssetType.Texture =>
+                    (int)InventoryType.Texture,
+                AssetType.TextureTGA =>
+                    (int)InventoryType.Texture,
+                AssetType.ImageTGA =>
+                    (int)InventoryType.Texture,
+                AssetType.ImageJPEG =>
+                    (int)InventoryType.Texture,
+                AssetType.Sound =>
+                    (int)InventoryType.Sound,
+                AssetType.SoundWAV =>
+                    (int)InventoryType.Sound,
+                AssetType.CallingCard =>
+                    (int)InventoryType.CallingCard,
+                AssetType.Landmark =>
+                    (int)InventoryType.Landmark,
+                AssetType.Clothing =>
+                    (int)InventoryType.Wearable,
+                AssetType.Bodypart =>
+                    (int)InventoryType.Wearable,
+                AssetType.Object =>
+                    (int)InventoryType.Object,
+                AssetType.Notecard =>
+                    (int)InventoryType.Notecard,
+                AssetType.LSLText =>
+                    (int)InventoryType.LSL,
+                AssetType.LSLBytecode =>
+                    (int)InventoryType.LSL,
+                AssetType.Animation =>
+                    (int)InventoryType.Animation,
+                AssetType.Gesture =>
+                    (int)InventoryType.Gesture,
+                AssetType.Simstate =>
+                    (int)InventoryType.Snapshot,
+                AssetType.Mesh =>
+                    (int)InventoryType.Mesh,
+                AssetType.Settings =>
+                    (int)InventoryType.Settings,
+                AssetType.Material =>
+                    (int)InventoryType.Material,
+                _ =>
+                    (int)InventoryType.Unknown
+            };
+        }
+
+        private static bool IsInventoryTypeCompatible(
+            sbyte assetType,
+            int inventoryType)
+        {
+            AssetType type =
+                (AssetType)assetType;
+
+            if (type == AssetType.Object)
+            {
+                return
+                    inventoryType ==
+                        (int)InventoryType.Object ||
+                    inventoryType ==
+                        (int)InventoryType.Attachment;
+            }
+
+            if (type == AssetType.Texture ||
+                type == AssetType.TextureTGA ||
+                type == AssetType.ImageTGA ||
+                type == AssetType.ImageJPEG)
+            {
+                return
+                    inventoryType ==
+                        (int)InventoryType.Texture ||
+                    inventoryType ==
+                        (int)InventoryType.Snapshot;
+            }
+
+            return
+                inventoryType ==
+                DefaultInventoryTypeForAsset(
+                    assetType);
+        }
+
+        private static string OptionalString(
+            JsonElement body,
+            string name,
+            string fallback)
+        {
+            if (body.TryGetProperty(
+                    name,
+                    out JsonElement element) &&
+                element.ValueKind ==
+                    JsonValueKind.String)
+            {
+                return
+                    element.GetString() ??
+                    string.Empty;
+            }
+
+            return
+                fallback ??
+                string.Empty;
+        }
+
+        private static string OptionalName(
+            JsonElement body,
+            string name,
+            string fallback)
+        {
+            string value =
+                OptionalString(
+                    body,
+                    name,
+                    fallback)
+                    .Trim();
+
+            if (value.Length == 0)
+                value =
+                    string.IsNullOrWhiteSpace(fallback)
+                        ? "Link"
+                        : fallback.Trim();
+
+            return
+                value.Length <= 255
+                    ? value
+                    : value.Substring(0, 255);
         }
 
         private static void NotFound(IOSHttpResponse response, string code) =>
