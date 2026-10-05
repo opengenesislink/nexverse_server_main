@@ -1234,14 +1234,37 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
 
             if(UUID.TryParse(target, out UUID TargetID) && TargetID.IsNotZero())
             {
-                IWorldComm wComm = m_ScriptEngine.World.RequestModuleInterface<IWorldComm>();
-                if (wComm != null)
-                {
-                    if (msg.Length > 1023)
-                        msg = msg[..1023];
+                if (msg.Length > 1023)
+                    msg = msg[..1023];
 
-                    wComm.DeliverMessageTo(TargetID, channel, m_host.AbsolutePosition, m_host.Name, m_host.UUID, msg);
+                IWorldComm wComm = m_ScriptEngine.World.RequestModuleInterface<IWorldComm>();
+                bool localTarget =
+                    World.GetScenePresence(TargetID) is not null ||
+                    World.GetSceneObjectPart(TargetID) is not null;
+
+                if (localTarget)
+                {
+                    wComm?.DeliverMessageTo(
+                        TargetID,
+                        channel,
+                        m_host.AbsolutePosition,
+                        m_host.Name,
+                        m_host.UUID,
+                        msg);
+                    return;
                 }
+
+                ICrossRegionObjectMessageRouter router =
+                    m_ScriptEngine.World.RequestModuleInterface<ICrossRegionObjectMessageRouter>();
+                router?.TryRoute(
+                    World.RegionInfo.RegionID,
+                    m_host.UUID,
+                    m_host.OwnerID,
+                    m_host.Name,
+                    m_host.AbsolutePosition,
+                    TargetID,
+                    channel,
+                    msg);
             }
         }
 
