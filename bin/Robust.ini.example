@@ -553,6 +553,10 @@
     AdminMinimumUserLevel = 200
     TokenLifetimeSeconds = 1800
 
+    ; Maximum runtime for one provider-side ANALYZE statement. The Job Engine
+    ; never accepts arbitrary SQL and does not expose VACUUM/OPTIMIZE in 0.9.3.5.
+    DatabaseMaintenanceCommandTimeoutSeconds = 300
+
     ; Per-client fixed-window API limiter. X-Forwarded-For is ignored unless
     ; TrustForwardedFor is explicitly enabled behind a trusted reverse proxy.
     RateLimitEnabled = true

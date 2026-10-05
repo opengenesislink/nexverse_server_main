@@ -262,6 +262,19 @@ namespace NexVerse.Server.Api
                     "data/opengenesislink-assets-index.json");
                 jobRunner.Register(new OglAssetReindexWorker(assetRoot, assetIndexPath));
 
+                IConfig databaseServiceConfig = config.Configs["DatabaseService"];
+                string databaseStorageProvider = databaseServiceConfig == null
+                    ? string.Empty
+                    : databaseServiceConfig.GetString("StorageProvider", string.Empty);
+                string databaseConnectionString = databaseServiceConfig == null
+                    ? string.Empty
+                    : databaseServiceConfig.GetString("ConnectionString", string.Empty);
+                jobRunner.Register(
+                    new OglDatabaseMaintenanceWorker(
+                        databaseStorageProvider,
+                        databaseConnectionString,
+                        apiConfig.GetInt("DatabaseMaintenanceCommandTimeoutSeconds", 300)));
+
                 IConfig userConfig = config.Configs["UserAccountService"];
                 IConfig authConfig = config.Configs["AuthenticationService"];
 

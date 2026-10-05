@@ -838,11 +838,11 @@ Examples:
 - [x] OAR import/export projected into the persistent Job Engine;
 - [x] IAR import/export projected into the persistent Job Engine;
 - inventory repair;
-- region migration;
-- backup;
-- restore;
-- asset reindex;
-- database maintenance.
+- [x] region migration;
+- [x] backup;
+- [x] restore;
+- [x] asset reindex;
+- [x] database maintenance.
 
 Job API should expose:
 
@@ -851,7 +851,7 @@ Job API should expose:
 - [x] completed;
 - [x] failed;
 - [x] cancelled;
-- progress;
+- [x] progress;
 - [x] logs;
 - [x] result metadata.
 
@@ -868,6 +868,9 @@ Foundation notes:
 - [x] native OGL worker contract/runner with cooperative CancellationToken support;
 - [x] native directory backup worker with staging, SHA-256 manifest, atomic activation and cleanup;
 - [x] native restore worker with full manifest verification, path-confinement, staging and non-destructive atomic activation;
+- [x] native asset reindex worker with SHA-256 blob verification and atomic OGL index activation;
+- [x] transactional cross-node region migration worker with shared-storage preflight, OAR hash verification and rollback;
+- [x] native database maintenance worker with provider-aware table discovery, bounded ANALYZE-only execution, dry-run and secret redaction;
 - cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
