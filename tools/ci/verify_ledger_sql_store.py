@@ -2,6 +2,7 @@
 from pathlib import Path
 
 sql = Path("NexVerse/Core/Economy/NexLedgerSqlStore.cs").read_text(encoding="utf-8")
+runtime = Path("NexVerse/Core/Economy/NexLedgerSqlRuntime.cs").read_text(encoding="utf-8")
 regression = Path("tools/ci/NexLedgerRegression/Program.cs").read_text(encoding="utf-8")
 project = Path("tools/ci/NexLedgerRegression/NexLedgerRegression.csproj").read_text(encoding="utf-8")
 
@@ -40,9 +41,25 @@ for forbidden in (
     assert forbidden not in sql, f"provider coupling or mutable journal operation found: {forbidden}"
 
 for marker in (
+    "public sealed class NexLedgerSqlRuntime",
+    '"MySql.Data.MySqlClient.MySqlConnection, MySql.Data"',
+    '"Npgsql.NpgsqlConnection, Npgsql"',
+    '"Mono.Data.Sqlite.SqliteConnection, Mono.Data.Sqlite"',
+    "NexLedgerSqlDialect.MySql",
+    "NexLedgerSqlDialect.PostgreSql",
+    "NexLedgerSqlDialect.Sqlite",
+    "Activator.CreateInstance(type)",
+    "connection.ConnectionString",
+    "CreateStore(",
+):
+    assert marker in runtime, f"missing ledger runtime provider marker: {marker}"
+
+for marker in (
     "RunSqliteRegression()",
     "NexLedgerSqlStore(",
-    "NexLedgerSqlDialect.Sqlite",
+    'NexLedgerSqlRuntime.Resolve(',
+    '"OpenSim.Data.SQLite.dll"',
+    "runtime.CreateStore()",
     "balance did not survive store reopen",
     "SQL identical retry was not idempotent",
     "SQL ledger schema version mismatch",
@@ -51,5 +68,6 @@ for marker in (
 
 assert "Mono.Data.Sqlite.dll" in project
 assert "NexLedgerSqlStore.cs" in project
+assert "NexLedgerSqlRuntime.cs" in project
 
 print("NV$ durable SQL ledger contract: OK")
