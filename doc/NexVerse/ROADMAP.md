@@ -863,7 +863,9 @@ Foundation notes:
 - [x] NexBus correlation bridge can project existing asynchronous operations into jobs;
 - [x] `/api/v1/jobs` list/detail API with compatibility reads from existing OAR/IAR operation URLs;
 - [x] removed duplicate Robust-side OAR/IAR in-memory operation registries; persistent Job Engine is authoritative;
-- cancellation is a lifecycle capability only; workers must explicitly support safe cancellation before an API may promise active cancellation.
+- [x] OAR/IAR publish phase-based progress into the Job Engine (`archiver_running` -> `completed`);
+- [x] archive worker cancellation contract refuses unsafe cancellation after the legacy archiver has started;
+- cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
 
