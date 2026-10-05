@@ -6,6 +6,7 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 
 namespace NexVerse.Core.Economy
