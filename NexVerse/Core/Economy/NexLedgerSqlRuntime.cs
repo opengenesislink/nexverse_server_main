@@ -2,6 +2,8 @@
 
 using System;
 using System.Data.Common;
+using System.IO;
+using System.Reflection;
 
 namespace NexVerse.Core.Economy
 {
@@ -102,17 +104,7 @@ namespace NexVerse.Core.Economy
         public DbConnection CreateConnection()
         {
             Type type =
-                Type.GetType(
-                    ConnectionTypeName,
-                    false);
-
-            if (type == null)
-            {
-                throw new InvalidOperationException(
-                    "Ledger database provider could not be loaded: " +
-                    ProviderName +
-                    ".");
-            }
+                ResolveConnectionType();
 
             if (!(Activator.CreateInstance(type) is
                 DbConnection connection))
@@ -127,6 +119,118 @@ namespace NexVerse.Core.Economy
                 ConnectionString;
 
             return connection;
+        }
+
+        private Type ResolveConnectionType()
+        {
+            Type direct =
+                Type.GetType(
+                    ConnectionTypeName,
+                    false);
+
+            if (direct != null)
+                return direct;
+
+            int separator =
+                ConnectionTypeName.IndexOf(',');
+
+            if (separator <= 0 ||
+                separator >=
+                    ConnectionTypeName.Length - 1)
+            {
+                throw new InvalidOperationException(
+                    "Invalid ledger database connection type: " +
+                    ProviderName +
+                    ".");
+            }
+
+            string typeName =
+                ConnectionTypeName
+                    .Substring(
+                        0,
+                        separator)
+                    .Trim();
+            string assemblyName =
+                ConnectionTypeName
+                    .Substring(
+                        separator + 1)
+                    .Trim();
+
+            foreach (Assembly loaded in
+                     AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (!string.Equals(
+                        loaded.GetName().Name,
+                        assemblyName,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                Type loadedType =
+                    loaded.GetType(
+                        typeName,
+                        false);
+
+                if (loadedType != null)
+                    return loadedType;
+            }
+
+            try
+            {
+                Assembly referenced =
+                    Assembly.Load(
+                        new AssemblyName(
+                            assemblyName));
+
+                Type referencedType =
+                    referenced.GetType(
+                        typeName,
+                        false);
+
+                if (referencedType != null)
+                    return referencedType;
+            }
+            catch
+            {
+            }
+
+            string providerPath =
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    assemblyName +
+                    ".dll");
+
+            if (File.Exists(providerPath))
+            {
+                try
+                {
+                    Assembly local =
+                        Assembly.LoadFrom(
+                            providerPath);
+
+                    Type localType =
+                        local.GetType(
+                            typeName,
+                            false);
+
+                    if (localType != null)
+                        return localType;
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException(
+                        "Ledger database provider could not be loaded: " +
+                        ProviderName +
+                        ".",
+                        e);
+                }
+            }
+
+            throw new InvalidOperationException(
+                "Ledger database provider could not be loaded: " +
+                ProviderName +
+                ".");
         }
 
         public NexLedgerSqlStore CreateStore(
