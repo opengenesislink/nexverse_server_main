@@ -56,6 +56,20 @@ Die Runtime-Treiber MySQL/MariaDB, PostgreSQL und SQLite werden nicht in den Led
 
 Vor produktiven Transfers fehlen weiterhin echte Matrix-/Crash-/Rollback-Regressionen gegen MySQL/MariaDB und PostgreSQL sowie die fachlichen Konto-/Transferregeln.
 
+## Kontolebenszyklus und Policy
+
+Kontostatus wird bewusst außerhalb des unveränderlichen Buchungsjournals geführt. Schema v2 ergänzt `ogl_ledger_account_state` und die append-only Historie `ogl_ledger_account_events`.
+
+Status:
+
+- `Active`: normale Transfers erlaubt;
+- `Locked`: normale Transfers gesperrt, administrative Korrektur/Reversal bleibt möglich;
+- `Closed`: terminal; Wiedereröffnung ist nicht erlaubt und Schließung erfordert Saldo 0.
+
+`NexEconomyService` ist die verbindliche Policy-Grenze für produktive Geldbewegungen. Der Service verhindert Überziehungen von Credit-normalen Wallets, erzwingt aktive Transferkonten, verlangt bei administrativen Korrekturen ein System-Gegenkonto und erzeugt Reversals ausschließlich als neue, deterministisch idempotente Gegenbuchungen. Vorhandene Journalzeilen werden niemals geändert oder gelöscht.
+
+Die Live-CI-Matrix startet MariaDB und PostgreSQL und prüft neben normalen Commits sowohl explizites Rollback als auch den Verlust einer offenen Verbindung ohne Commit. In beiden Fällen darf kein unvollständiger Transaktionskopf bestehen bleiben.
+
 ## Nächste Schichten
 
 Auf dieser Grundlage folgen:
