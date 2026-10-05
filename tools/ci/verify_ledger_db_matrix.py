@@ -44,6 +44,7 @@ for marker in (
     "NexLedgerSqlStore.cs",
     "NexLedgerSqlRuntime.cs",
     "NexLedgerAccountState.cs",
+    "NexVirtualBankAccount.cs",
 ):
     assert marker in project, f"missing matrix project provider/runtime marker: {marker}"
 
