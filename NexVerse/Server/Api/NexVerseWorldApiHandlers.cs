@@ -203,6 +203,10 @@ namespace NexVerse.Server.Api
                     ("delete", "Inventaritem sicher in den Papierkorb verschieben", "inventory:write", "200")),
                 ["/api/v1/inventory/items/copy"] = AuthenticatedOperations(
                     ("post", "Eigenes Inventaritem in einen Zielordner kopieren", "inventory:write", "201")),
+                ["/api/v1/inventory/folders/{folderId}/restore"] = AuthenticatedOperations(
+                    ("post", "Ordner direkt aus dem Papierkorb in einen Zielordner wiederherstellen", "inventory:write", "200")),
+                ["/api/v1/inventory/items/{itemId}/restore"] = AuthenticatedOperations(
+                    ("post", "Item direkt aus dem Papierkorb in einen Zielordner wiederherstellen", "inventory:write", "200")),
                 ["/api/v1/inventory/links"] = AuthenticatedOperations(
                     ("post", "Direkten Item- oder Ordnerlink erzeugen", "inventory:write", "201")),
                 ["/api/v1/inventory/lost-and-found"] = AuthenticatedOperations(
@@ -482,6 +486,27 @@ namespace NexVerse.Server.Api
                 "201");
             ApplyJsonContract(
                 paths,
+                "/api/v1/inventory/items/copy",
+                "post",
+                "InventoryItemCopyRequest",
+                "InventoryItemCopyResponse",
+                "201");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/folders/{folderId}/restore",
+                "post",
+                "InventoryRestoreRequest",
+                "InventoryFolderRestoreResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/inventory/items/{itemId}/restore",
+                "post",
+                "InventoryRestoreRequest",
+                "InventoryItemRestoreResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
                 "/api/v1/users/{principalId}/audit",
                 "get",
                 null,
@@ -672,6 +697,13 @@ namespace NexVerse.Server.Api
                     inventoryOwnerParameter);
             }
 
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/folders/{folderId}/restore",
+                "post",
+                inventoryFolderIdParameter,
+                inventoryOwnerParameter);
+
             object inventoryItemIdParameter =
                 PathParameter(
                     "itemId",
@@ -690,6 +722,13 @@ namespace NexVerse.Server.Api
                     inventoryItemIdParameter,
                     inventoryOwnerParameter);
             }
+
+            AddOperationParameters(
+                paths,
+                "/api/v1/inventory/items/{itemId}/restore",
+                "post",
+                inventoryItemIdParameter,
+                inventoryOwnerParameter);
 
             object principalIdParameter =
                 PathParameter(
@@ -2592,6 +2631,72 @@ namespace NexVerse.Server.Api
                             @enum = new[] { "item", "folder" }
                         },
                         ["target_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryItemCopyRequest"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "item_id",
+                        "folder_id"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item_id"] = new { type = "string", format = "uuid" },
+                        ["folder_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 }
+                    }
+                },
+                ["InventoryItemCopyResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "item",
+                        "copied_from"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["item"] = inventoryItemRef,
+                        ["copied_from"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryRestoreRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "folder_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["folder_id"] = new { type = "string", format = "uuid" }
+                    }
+                },
+                ["InventoryFolderRestoreResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "restored",
+                        "folder"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["restored"] = new { type = "boolean" },
+                        ["folder"] = inventoryFolderRef
+                    }
+                },
+                ["InventoryItemRestoreResponse"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "restored",
+                        "item"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["restored"] = new { type = "boolean" },
+                        ["item"] = inventoryItemRef
                     }
                 },
                 ["Estate"] = new
