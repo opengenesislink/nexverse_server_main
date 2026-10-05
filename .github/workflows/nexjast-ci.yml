@@ -346,6 +346,11 @@ jobs:
               "InventoryItemCreateResponse",
               "InventoryLinkCreateRequest",
               "InventoryLinkCreateResponse",
+              "InventoryItemCopyRequest",
+              "InventoryItemCopyResponse",
+              "InventoryRestoreRequest",
+              "InventoryFolderRestoreResponse",
+              "InventoryItemRestoreResponse",
               "Estate",
               "EstateListResponse",
               "EstateResponse",
@@ -487,6 +492,12 @@ jobs:
           assert inventory_links["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryLinkCreateResponse"
           assert schemas["InventorySearchResponse"]["properties"]["scan"]["$ref"] == "#/components/schemas/InventorySearchScan"
           assert schemas["InventoryItem"]["properties"]["permissions"]["$ref"] == "#/components/schemas/InventoryPermissions"
+          inventory_copy = doc["paths"]["/api/v1/inventory/items/copy"]["post"]
+          assert inventory_copy["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCopyRequest"
+          folder_restore = doc["paths"]["/api/v1/inventory/folders/{folderId}/restore"]["post"]
+          assert folder_restore["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryRestoreRequest"
+          item_restore = doc["paths"]["/api/v1/inventory/items/{itemId}/restore"]["post"]
+          assert item_restore["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemRestoreResponse"
           for inventory_path in (
               "/api/v1/inventory/tree",
               "/api/v1/inventory/folders",
@@ -494,6 +505,8 @@ jobs:
               "/api/v1/inventory/items",
               "/api/v1/inventory/items/{itemId}",
               "/api/v1/inventory/items/copy",
+              "/api/v1/inventory/folders/{folderId}/restore",
+              "/api/v1/inventory/items/{itemId}/restore",
               "/api/v1/inventory/links",
               "/api/v1/inventory/lost-and-found",
               "/api/v1/inventory/trash/empty",
