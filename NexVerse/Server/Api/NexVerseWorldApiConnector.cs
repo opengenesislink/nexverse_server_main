@@ -305,6 +305,7 @@ namespace NexVerse.Server.Api
                     throw new InvalidOperationException("Unable to load NexVerse World API authentication service.");
 
                 IInventoryService inventory = LoadOptionalService<IInventoryService>(config, "InventoryService");
+                IAssetService assets = LoadOptionalService<IAssetService>(config, "AssetService");
                 jobRunner.Register(new OglInventoryRepairWorker(inventory));
 
                 IGridUserService gridUsers = LoadOptionalService<IGridUserService>(config, "GridUserService");
@@ -395,7 +396,11 @@ namespace NexVerse.Server.Api
                     adminMinimumLevel,
                     new PersistentNexSecurityStore(apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json")));
 
-                NexInventoryApi inventoryApi = new NexInventoryApi(inventory, authenticator);
+                NexInventoryApi inventoryApi =
+                    new NexInventoryApi(
+                        inventory,
+                        assets,
+                        authenticator);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/inventory",
