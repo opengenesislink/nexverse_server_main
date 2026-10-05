@@ -789,6 +789,18 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_List llGetExperienceDetails(LSL_Key experienceId)
+        {
+            return m_LSL_Functions.llGetExperienceDetails(experienceId);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Integer llAgentInExperience(LSL_Key agentId)
+        {
+            return m_LSL_Functions.llAgentInExperience(agentId);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LSL_Float llGetObjectMass(string id)
         {
             return m_LSL_Functions.llGetObjectMass(id);
@@ -1662,6 +1674,12 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         public void llRequestPermissions(string agent, int perm)
         {
             m_LSL_Functions.llRequestPermissions(agent, perm);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void llRequestExperiencePermissions(LSL_Key agentId, LSL_String reason)
+        {
+            m_LSL_Functions.llRequestExperiencePermissions(agentId, reason);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2801,6 +2819,30 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         public LSL_List llLinksetDataFindKeys(LSL_String pattern, LSL_Integer start, LSL_Integer count)
         {
             return m_LSL_Functions.llLinksetDataFindKeys(pattern, start, count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llCreateKeyValue(LSL_String key, LSL_String value)
+        {
+            return m_LSL_Functions.llCreateKeyValue(key, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llReadKeyValue(LSL_String key)
+        {
+            return m_LSL_Functions.llReadKeyValue(key);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llUpdateKeyValue(LSL_String key, LSL_String value)
+        {
+            return m_LSL_Functions.llUpdateKeyValue(key, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_Key llDeleteKeyValue(LSL_String key)
+        {
+            return m_LSL_Functions.llDeleteKeyValue(key);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
