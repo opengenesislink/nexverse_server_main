@@ -837,7 +837,7 @@ Examples:
 
 - [x] OAR import/export projected into the persistent Job Engine;
 - [x] IAR import/export projected into the persistent Job Engine;
-- inventory repair;
+- [x] inventory repair;
 - [x] region migration;
 - [x] backup;
 - [x] restore;
@@ -871,6 +871,7 @@ Foundation notes:
 - [x] native asset reindex worker with SHA-256 blob verification and atomic OGL index activation;
 - [x] transactional cross-node region migration worker with shared-storage preflight, OAR hash verification and rollback;
 - [x] native database maintenance worker with provider-aware table discovery, bounded ANALYZE-only execution, dry-run and secret redaction;
+- [x] native inventory repair worker with dry-run default, bounded structural repair, root reattachment and no delete/direct-database path;
 - cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
 
 ### 9.5 NexBus
@@ -1650,7 +1651,7 @@ addon verify <addon>
 Architecture requirements:
 
 - catalog/provider abstraction so development can begin before the public catalog is live;
-- planned official catalog origin: `opengenesislink.de`;
+- official catalog origin: `addons.opengenesislink.de`;
 - signed addon manifests and package integrity verification;
 - addon ID, semantic version, OpenGenesisLINK compatibility range, architecture/runtime requirements and dependencies;
 - dependency resolution with cycle/conflict detection;
