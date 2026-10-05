@@ -43,7 +43,8 @@ for marker in (
 ):
     assert marker in store, f"missing ledger store marker: {marker}"
 
-assert "- [ ] Durable transactional SQL store" in roadmap
+assert "### 10.1 Double-entry ledger" in roadmap
+assert "Immutable account/posting/transaction domain model" in roadmap
 assert "InMemoryNexLedgerStore" in docs
 assert "nicht" in docs and "produktiv" in docs
 print("NV$ double-entry ledger foundation contract: OK")
