@@ -28,7 +28,7 @@ namespace NexVerse.Server.Api
             if(path.StartsWith(prefix,StringComparison.OrdinalIgnoreCase)){if(!request.HttpMethod.Equals("GET",StringComparison.OrdinalIgnoreCase)){Error(response,HttpStatusCode.MethodNotAllowed,"method_not_allowed","GET ist erforderlich.");return;} string id=path.Substring(prefix.Length); var job=m_JobsStore(id); if(job==null){Error(response,HttpStatusCode.NotFound,"operation_not_found","OAR-Vorgang wurde nicht gefunden.");return;} Json(response,HttpStatusCode.OK,job);return;}
             Error(response,HttpStatusCode.NotFound,"not_found","Unbekannter OAR-Endpunkt.");
         }
-        private NexVerse.Core.Jobs.OglJobSnapshot m_JobsStore(string id)=>JobStoreAccessor.Get(m_Jobs,id);
+        private OglJobSnapshot m_JobsStore(string id)=>m_Jobs.Get(id);
         private void Start(IOSHttpRequest request,IOSHttpResponse response,string action)
         {
             if(!request.HttpMethod.Equals("POST",StringComparison.OrdinalIgnoreCase)){Error(response,HttpStatusCode.MethodNotAllowed,"method_not_allowed","POST ist erforderlich.");return;}
@@ -44,12 +44,4 @@ namespace NexVerse.Server.Api
         private static string Str(JsonElement r,string n)=>r.TryGetProperty(n,out JsonElement v)&&v.ValueKind==JsonValueKind.String?v.GetString()?.Trim()??"":""; private static void Json(IOSHttpResponse r,HttpStatusCode s,object p){r.StatusCode=(int)s;r.ContentType="application/json; charset=utf-8";r.RawBuffer=JsonSerializer.SerializeToUtf8Bytes(p,new JsonSerializerOptions{WriteIndented=true});} private static void Error(IOSHttpResponse r,HttpStatusCode s,string e,string m)=>Json(r,s,new{error=e,message=m});
     }
 
-    internal static class JobStoreAccessor
-    {
-        public static OglJobSnapshot Get(OglJobEventBridge bridge,string id)
-        {
-            var field=typeof(OglJobEventBridge).GetField("m_Jobs",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);
-            return (field?.GetValue(bridge) as IOglJobStore)?.Get(id);
-        }
-    }
 }
