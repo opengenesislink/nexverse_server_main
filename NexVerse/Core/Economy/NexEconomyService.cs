@@ -78,6 +78,21 @@ namespace NexVerse.Core.Economy
             return existing;
         }
 
+        public NexLedgerAccount GetAccount(Guid accountId) =>
+            m_Ledger.GetAccount(accountId);
+
+        public NexLedgerTransaction GetTransaction(Guid transactionId) =>
+            m_Ledger.GetTransaction(transactionId);
+
+        public IReadOnlyList<NexLedgerPosting> ListPostings(
+            Guid accountId,
+            int offset = 0,
+            int limit = 100) =>
+            m_Ledger.ListPostings(
+                accountId,
+                offset,
+                limit);
+
         public long GetBalance(Guid accountId) =>
             m_Ledger.GetBalance(accountId);
 
@@ -159,21 +174,54 @@ namespace NexVerse.Core.Economy
                 from,
                 amountMinor);
 
+            string normalizedReference =
+                RequireReference(reference);
+            Guid effectiveTransactionId =
+                transactionId ??
+                Guid.NewGuid();
+
+            NexLedgerTransaction existing =
+                m_Ledger.GetTransaction(
+                    effectiveTransactionId);
+
+            if (existing != null)
+            {
+                if (!MatchesTransfer(
+                        existing,
+                        from.AccountId,
+                        to.AccountId,
+                        amountMinor,
+                        normalizedReference,
+                        correlationId))
+                {
+                    throw new NexLedgerConflictException(
+                        "Transaction ID already exists with different transfer content.");
+                }
+
+                return new NexLedgerAppendResult(
+                    NexLedgerAppendStatus.Duplicate,
+                    existing);
+            }
+
             NexLedgerTransaction transaction =
                 new NexLedgerTransaction(
-                    transactionId ?? Guid.NewGuid(),
+                    effectiveTransactionId,
                     "transfer",
-                    RequireReference(reference),
+                    normalizedReference,
                     new[]
                     {
                         new NexLedgerPosting(
-                            Guid.NewGuid(),
+                            DeterministicGuid(
+                                "transfer-debit:" +
+                                effectiveTransactionId.ToString("D")),
                             from.AccountId,
                             NexLedgerSide.Debit,
                             amountMinor,
                             "NV$ transfer debit"),
                         new NexLedgerPosting(
-                            Guid.NewGuid(),
+                            DeterministicGuid(
+                                "transfer-credit:" +
+                                effectiveTransactionId.ToString("D")),
                             to.AccountId,
                             NexLedgerSide.Credit,
                             amountMinor,
@@ -181,7 +229,32 @@ namespace NexVerse.Core.Economy
                     },
                     correlationId);
 
-            return m_Ledger.Post(transaction);
+            try
+            {
+                return m_Ledger.Post(transaction);
+            }
+            catch (NexLedgerConflictException)
+            {
+                existing =
+                    m_Ledger.GetTransaction(
+                        effectiveTransactionId);
+
+                if (existing != null &&
+                    MatchesTransfer(
+                        existing,
+                        from.AccountId,
+                        to.AccountId,
+                        amountMinor,
+                        normalizedReference,
+                        correlationId))
+                {
+                    return new NexLedgerAppendResult(
+                        NexLedgerAppendStatus.Duplicate,
+                        existing);
+                }
+
+                throw;
+            }
         }
 
         public NexLedgerAppendResult AdministrativeAdjustment(
@@ -546,6 +619,46 @@ namespace NexVerse.Core.Economy
             {
                 throw new ArgumentOutOfRangeException(nameof(reason));
             }
+        }
+
+        private static bool MatchesTransfer(
+            NexLedgerTransaction transaction,
+            Guid fromAccountId,
+            Guid toAccountId,
+            long amountMinor,
+            string reference,
+            string correlationId)
+        {
+            if (transaction == null ||
+                !string.Equals(
+                    transaction.Kind,
+                    "transfer",
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    transaction.Reference,
+                    reference,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    transaction.CorrelationId,
+                    (correlationId ?? string.Empty).Trim(),
+                    StringComparison.Ordinal) ||
+                transaction.Postings.Count != 2)
+            {
+                return false;
+            }
+
+            NexLedgerPosting debit =
+                transaction.Postings[0];
+            NexLedgerPosting credit =
+                transaction.Postings[1];
+
+            return
+                debit.AccountId == fromAccountId &&
+                debit.Side == NexLedgerSide.Debit &&
+                debit.AmountMinor == amountMinor &&
+                credit.AccountId == toAccountId &&
+                credit.Side == NexLedgerSide.Credit &&
+                credit.AmountMinor == amountMinor;
         }
 
         private static string BoundedMemo(
