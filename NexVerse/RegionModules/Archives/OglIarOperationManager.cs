@@ -12,7 +12,7 @@ using OpenSim.Services.Interfaces;
 namespace NexVerse.RegionModules.Archives
 {
     public enum OglIarOperationKind { Export, Import }
-    public enum OglIarOperationState { Queued, Running, Completed, Failed }
+    public enum OglIarOperationState { Queued, Running, Completed, Failed, Cancelled }
 
     public sealed class OglIarOperation
     {
@@ -28,6 +28,8 @@ namespace NexVerse.RegionModules.Archives
         public int ItemCount { get; internal set; }
         public int FilteredCount { get; internal set; }
         public string Error { get; internal set; } = string.Empty;
+        public int ProgressPercent { get; internal set; }
+        public string ProgressPhase { get; internal set; } = "queued";
         public OglIarInspection Inspection { get; internal set; }
     }
 
@@ -36,6 +38,7 @@ namespace NexVerse.RegionModules.Archives
         OglIarOperation StartExport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, Dictionary<string, object> options = null);
         OglIarOperation StartImport(UUID requestId, UserAccount user, string inventoryPath, string archiveFileName, bool merge, bool dryRun);
         bool TryGet(UUID requestId, out OglIarOperation operation);
+        bool TryCancel(UUID requestId, out string reason);
         string CreateEncryptedBackup(string archiveFileName, string backupFileName, string passphrase);
         OglIarInspection RestoreEncryptedBackup(string backupFileName, string archiveFileName, string passphrase);
         event Action<OglIarOperation> OperationChanged;
@@ -121,6 +124,28 @@ namespace NexVerse.RegionModules.Archives
         }
 
         public bool TryGet(UUID requestId, out OglIarOperation operation) => m_Operations.TryGetValue(requestId, out operation);
+
+        public bool TryCancel(UUID requestId, out string reason)
+        {
+            reason = string.Empty;
+            if (!m_Operations.TryGetValue(requestId, out OglIarOperation operation))
+            {
+                reason = "operation_not_found";
+                return false;
+            }
+            if (operation.State != OglIarOperationState.Queued)
+            {
+                reason = operation.State == OglIarOperationState.Running
+                    ? "operation_already_running_not_safely_cancellable"
+                    : "operation_already_terminal";
+                return false;
+            }
+            operation.State = OglIarOperationState.Cancelled;
+            operation.ProgressPhase = "cancelled";
+            operation.FinishedAt = DateTimeOffset.UtcNow;
+            OperationChanged?.Invoke(operation);
+            return true;
+        }
 
         public string CreateEncryptedBackup(string archiveFileName, string backupFileName, string passphrase)
         {
