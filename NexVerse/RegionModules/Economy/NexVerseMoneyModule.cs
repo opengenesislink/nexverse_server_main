@@ -407,6 +407,142 @@ namespace NexVerse.RegionModules.Economy
                 EconomyDataRequestHandler;
             client.OnMoneyBalanceRequest +=
                 SendMoneyBalance;
+            client.OnObjectBuy +=
+                ObjectBuy;
+        }
+
+
+        private void ObjectBuy(
+            IClientAPI remoteClient,
+            UUID agentID,
+            UUID sessionID,
+            UUID groupID,
+            UUID categoryID,
+            uint localID,
+            byte saleType,
+            int salePrice)
+        {
+            if (remoteClient == null ||
+                remoteClient.AgentId != agentID ||
+                remoteClient.SessionId != sessionID ||
+                remoteClient.Scene is not Scene scene)
+            {
+                return;
+            }
+
+            SceneObjectPart part =
+                scene.GetSceneObjectPart(
+                    localID);
+
+            if (part == null ||
+                part.ParentGroup == null ||
+                part.ParentGroup.IsDeleted)
+            {
+                remoteClient.SendAgentAlertMessage(
+                    "Unable to buy now. The object was not found.",
+                    false);
+                return;
+            }
+
+            SceneObjectGroup group =
+                part.ParentGroup;
+            SceneObjectPart root =
+                group.RootPart;
+
+            if (root.ObjectSaleType == (byte)SaleType.Not ||
+                root.ObjectSaleType != saleType ||
+                root.SalePrice != salePrice)
+            {
+                remoteClient.SendAgentAlertMessage(
+                    "Object sale data changed. Please refresh the object properties and try again.",
+                    false);
+                return;
+            }
+
+            IBuySellModule buySell =
+                scene.RequestModuleInterface<IBuySellModule>();
+
+            if (buySell == null)
+            {
+                remoteClient.SendAgentAlertMessage(
+                    "Object buying is unavailable in this region.",
+                    false);
+                return;
+            }
+
+            UUID seller =
+                group.OwnerID;
+
+            if (seller.IsZero() ||
+                seller == agentID)
+            {
+                remoteClient.SendAgentAlertMessage(
+                    "This object cannot be purchased from its current owner.",
+                    false);
+                return;
+            }
+
+            bool paid =
+                salePrice <= 0 ||
+                MoveMoneyInternal(
+                    agentID,
+                    seller,
+                    salePrice,
+                    "Object purchase: " +
+                    root.Name,
+                    "object-buy-" +
+                    Guid.NewGuid().ToString("N"),
+                    out string paymentError);
+
+            if (!paid)
+            {
+                remoteClient.SendAgentAlertMessage(
+                    string.IsNullOrWhiteSpace(paymentError)
+                        ? "NV$ object purchase payment failed."
+                        : paymentError,
+                    false);
+                return;
+            }
+
+            bool delivered =
+                buySell.BuyObject(
+                    remoteClient,
+                    categoryID,
+                    localID,
+                    saleType,
+                    salePrice);
+
+            if (!delivered)
+            {
+                if (salePrice > 0)
+                {
+                    MoveMoneyInternal(
+                        seller,
+                        agentID,
+                        salePrice,
+                        "Object purchase rollback: " +
+                        root.Name,
+                        "object-buy-rollback-" +
+                        Guid.NewGuid().ToString("N"),
+                        out _);
+                }
+
+                remoteClient.SendAgentAlertMessage(
+                    "Object delivery failed. Any completed NV$ payment was rolled back.",
+                    false);
+                return;
+            }
+
+            SendBalanceRefresh(agentID);
+            SendBalanceRefresh(seller);
+
+            remoteClient.SendAgentAlertMessage(
+                salePrice > 0
+                    ? "Object purchased for " +
+                      salePrice +
+                      " NV$."
+                    : "Object purchased.",
+                false);
         }
 
         private void ClientClosed(
@@ -484,10 +620,20 @@ namespace NexVerse.RegionModules.Economy
                 return;
             }
 
+            UUID paymentReceiver =
+                e.receiver;
+            bool objectPayment =
+                TryResolveLocalObjectOwner(
+                    e.receiver,
+                    out UUID objectOwner);
+
+            if (objectPayment)
+                paymentReceiver = objectOwner;
+
             bool success =
                 MoveMoneyInternal(
                     e.sender,
-                    e.receiver,
+                    paymentReceiver,
                     e.amount,
                     e.description,
                     "viewer-event-" +
@@ -512,10 +658,9 @@ namespace NexVerse.RegionModules.Economy
             SendBalanceRefresh(
                 e.sender);
             SendBalanceRefresh(
-                e.receiver);
+                paymentReceiver);
 
-            if (IsLocalObject(
-                    e.receiver))
+            if (objectPayment)
             {
                 try
                 {
@@ -747,6 +892,39 @@ namespace NexVerse.RegionModules.Economy
                 false,
                 0,
                 string.Empty);
+        }
+
+
+        private bool TryResolveLocalObjectOwner(
+            UUID objectId,
+            out UUID ownerId)
+        {
+            ownerId =
+                UUID.Zero;
+
+            lock (m_Sync)
+            {
+                foreach (Scene scene in
+                         m_Scenes.Values)
+                {
+                    SceneObjectPart part =
+                        scene.GetSceneObjectPart(
+                            objectId);
+
+                    if (part?.ParentGroup == null ||
+                        part.ParentGroup.IsDeleted)
+                    {
+                        continue;
+                    }
+
+                    ownerId =
+                        part.ParentGroup.OwnerID;
+
+                    return !ownerId.IsZero();
+                }
+            }
+
+            return false;
         }
 
         private bool IsLocalObject(
