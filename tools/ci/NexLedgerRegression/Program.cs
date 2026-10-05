@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.IO;
 using NexVerse.Core.Economy;
 
 internal static class Program
@@ -68,6 +70,261 @@ internal static class Program
         }
 
         return postings.ToArray();
+    }
+
+    private static void RunSqliteRegression()
+    {
+        string databasePath =
+            Path.Combine(
+                Path.GetTempPath(),
+                "ogl-ledger-" +
+                Guid.NewGuid().ToString("N") +
+                ".db");
+
+        NexLedgerSqlRuntime runtime =
+            NexLedgerSqlRuntime.Resolve(
+                "OpenSim.Data.SQLite.dll",
+                "URI=file:" +
+                databasePath +
+                ",version=3");
+
+        Func<DbConnection> connectionFactory =
+            runtime.CreateConnection;
+
+        Guid systemId =
+            Guid.Parse("B0000000-0000-0000-0000-000000000001");
+        Guid residentId =
+            Guid.Parse("B0000000-0000-0000-0000-000000000002");
+        Guid merchantId =
+            Guid.Parse("B0000000-0000-0000-0000-000000000003");
+
+        DateTimeOffset occurredAt =
+            new DateTimeOffset(
+                2026, 10, 5, 21, 0, 0,
+                TimeSpan.Zero);
+
+        NexLedgerTransaction issuance =
+            new NexLedgerTransaction(
+                Guid.Parse("B1000000-0000-0000-0000-000000000001"),
+                "issuance",
+                "SQL-ISS-0001",
+                new[]
+                {
+                    new NexLedgerPosting(
+                        Guid.Parse("B1100000-0000-0000-0000-000000000001"),
+                        systemId,
+                        NexLedgerSide.Debit,
+                        250,
+                        "Issue NV$"),
+                    new NexLedgerPosting(
+                        Guid.Parse("B1100000-0000-0000-0000-000000000002"),
+                        residentId,
+                        NexLedgerSide.Credit,
+                        250,
+                        "Resident credit")
+                },
+                "sqlite-regression",
+                new Dictionary<string, string>
+                {
+                    ["source"] = "ci"
+                },
+                occurredAt);
+
+        NexLedgerTransaction payment =
+            new NexLedgerTransaction(
+                Guid.Parse("B2000000-0000-0000-0000-000000000001"),
+                "transfer",
+                "SQL-PAY-0001",
+                new[]
+                {
+                    new NexLedgerPosting(
+                        Guid.Parse("B2100000-0000-0000-0000-000000000001"),
+                        residentId,
+                        NexLedgerSide.Debit,
+                        75,
+                        "Resident payment"),
+                    new NexLedgerPosting(
+                        Guid.Parse("B2100000-0000-0000-0000-000000000002"),
+                        merchantId,
+                        NexLedgerSide.Credit,
+                        75,
+                        "Merchant receipt")
+                },
+                "sqlite-regression",
+                null,
+                occurredAt.AddMinutes(1));
+
+        try
+        {
+            Require(
+                runtime.ProviderName == "sqlite" &&
+                runtime.Dialect == NexLedgerSqlDialect.Sqlite,
+                "SQL runtime provider resolution mismatch");
+
+            NexLedgerSqlStore store =
+                runtime.CreateStore();
+
+            NexDoubleEntryLedger ledger =
+                new NexDoubleEntryLedger(
+                    store);
+
+            Require(
+                ledger.TryCreateAccount(
+                    new NexLedgerAccount(
+                        systemId,
+                        NexLedgerAccountClass.System,
+                        NexLedgerSide.Debit,
+                        "system:sql-issuance",
+                        "SQL NV$ Issuance")),
+                "SQL system account was not created");
+
+            Require(
+                ledger.TryCreateAccount(
+                    new NexLedgerAccount(
+                        residentId,
+                        NexLedgerAccountClass.Resident,
+                        NexLedgerSide.Credit,
+                        "resident:sql-demo",
+                        "SQL Demo Resident")),
+                "SQL resident account was not created");
+
+            Require(
+                ledger.TryCreateAccount(
+                    new NexLedgerAccount(
+                        merchantId,
+                        NexLedgerAccountClass.Business,
+                        NexLedgerSide.Credit,
+                        "business:sql-demo",
+                        "SQL Demo Merchant")),
+                "SQL merchant account was not created");
+
+            Require(
+                ledger.Post(issuance).Created,
+                "SQL issuance was not created");
+
+            Require(
+                ledger.Post(payment).Created,
+                "SQL transfer was not created");
+
+            Require(
+                ledger.GetBalance(systemId) == 250,
+                "SQL system balance mismatch");
+            Require(
+                ledger.GetBalance(residentId) == 175,
+                "SQL resident balance mismatch");
+            Require(
+                ledger.GetBalance(merchantId) == 75,
+                "SQL merchant balance mismatch");
+
+            NexLedgerSqlStore reopened =
+                runtime.CreateStore();
+
+            NexDoubleEntryLedger reopenedLedger =
+                new NexDoubleEntryLedger(
+                    reopened);
+
+            Require(
+                reopenedLedger.GetBalance(residentId) == 175,
+                "SQL balance did not survive store reopen");
+
+            NexLedgerTransaction loaded =
+                reopenedLedger.GetTransaction(
+                    issuance.TransactionId);
+
+            Require(
+                loaded != null &&
+                loaded.Reference == issuance.Reference &&
+                loaded.Postings.Count == 2 &&
+                loaded.Metadata["source"] == "ci",
+                "SQL transaction reconstruction mismatch");
+
+            Require(
+                reopenedLedger.Post(issuance).Status ==
+                    NexLedgerAppendStatus.Duplicate,
+                "SQL identical retry was not idempotent");
+
+            Require(
+                reopenedLedger.ListPostings(
+                    residentId,
+                    0,
+                    10).Count == 2,
+                "SQL resident posting history mismatch");
+
+            Require(
+                !reopenedLedger.TryCreateAccount(
+                    new NexLedgerAccount(
+                        residentId,
+                        NexLedgerAccountClass.Resident,
+                        NexLedgerSide.Credit,
+                        "resident:sql-other",
+                        "Duplicate SQL ID")),
+                "SQL duplicate account ID was accepted");
+
+            RequireThrows<NexLedgerConflictException>(
+                () => reopenedLedger.TryCreateAccount(
+                    new NexLedgerAccount(
+                        Guid.NewGuid(),
+                        NexLedgerAccountClass.Resident,
+                        NexLedgerSide.Credit,
+                        "resident:sql-demo",
+                        "Duplicate SQL reference")),
+                "SQL duplicate account reference was accepted");
+
+            NexLedgerTransaction invalid =
+                new NexLedgerTransaction(
+                    Guid.Parse("B3000000-0000-0000-0000-000000000001"),
+                    "transfer",
+                    "SQL-BAD-ACCOUNT",
+                    new[]
+                    {
+                        new NexLedgerPosting(
+                            Guid.Parse("B3100000-0000-0000-0000-000000000001"),
+                            residentId,
+                            NexLedgerSide.Debit,
+                            1),
+                        new NexLedgerPosting(
+                            Guid.Parse("B3100000-0000-0000-0000-000000000002"),
+                            Guid.Parse("B3000000-0000-0000-0000-000000000099"),
+                            NexLedgerSide.Credit,
+                            1)
+                    });
+
+            RequireThrows<NexLedgerValidationException>(
+                () => reopenedLedger.Post(invalid),
+                "SQL transaction with unknown account was accepted");
+
+            Require(
+                reopenedLedger.GetBalance(residentId) == 175,
+                "rejected SQL transaction changed resident balance");
+
+            using DbConnection schemaConnection =
+                connectionFactory();
+            schemaConnection.Open();
+
+            using DbCommand schemaCommand =
+                schemaConnection.CreateCommand();
+            schemaCommand.CommandText =
+                "SELECT MAX(version) FROM ogl_ledger_schema";
+
+            Require(
+                Convert.ToInt32(
+                    schemaCommand.ExecuteScalar()) ==
+                    NexLedgerSqlStore.CurrentSchemaVersion,
+                "SQL ledger schema version mismatch");
+        }
+        finally
+        {
+            foreach (string suffix in
+                     new[] { string.Empty, "-journal", "-wal", "-shm" })
+            {
+                string path =
+                    databasePath +
+                    suffix;
+
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+        }
     }
 
     private static int Main()
@@ -391,6 +648,8 @@ internal static class Program
             "NVD internal currency code contract mismatch");
         Require(NexLedgerCurrency.MinorUnits == 0,
             "NV$ must initially use integer units");
+
+        RunSqliteRegression();
 
         Console.WriteLine("OpenGenesisLINK NV$ double-entry ledger regression: OK");
         return 0;

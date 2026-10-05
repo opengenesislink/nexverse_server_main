@@ -929,9 +929,12 @@ Build the economy around immutable double-entry accounting.
 - [x] Storage abstraction `INexLedgerStore` keeps the domain independent from MySQL/MariaDB/PostgreSQL/SQLite.
 - [x] Deterministic in-memory reference store and CI regression cover atomic failure behavior and balance invariants.
 - [x] Ledger account classes and journal payload sizes are explicitly bounded and validated before storage.
-- [ ] Durable transactional SQL store with migrations for supported production database backends.
+- [x] Provider-neutral `NexLedgerSqlStore` persists accounts, immutable transactions and postings through ADO.NET with schema versioning and serializable append transactions.
+- [x] SQLite file-backed regression verifies schema migration, reopen persistence, balances, history, idempotency and rejected-booking atomicity.
+- [x] `NexLedgerSqlRuntime` resolves existing MySQL/MariaDB, PostgreSQL and SQLite storage-provider names to the shipped ADO.NET drivers via reflection.
+- [ ] Robust `[DatabaseService]` / `[NexEconomy]` configuration binding and live MySQL/MariaDB + PostgreSQL matrix regression.
 - [ ] Account lifecycle/locking and append-only administrative adjustment/reversal policies.
-- [ ] Production service/API and Viewer `IMoneyModule` adapter; no production money flow is enabled before durable storage exists.
+- [ ] Production service/API and Viewer `IMoneyModule` adapter; no production money flow is enabled before provider wiring and DB matrix validation exist.
 
 Account classes:
 
