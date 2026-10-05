@@ -2012,6 +2012,41 @@ namespace NexVerse.Server.Api
                         ["last_seen"] = new { type = "string", format = "date-time" }
                     }
                 },
+                ["LunaTextureDiagnosticsSummary"] = new
+                {
+                    type = "object",
+                    required = new[]
+                    {
+                        "diagnostic_count",
+                        "occurrence_count",
+                        "regions_affected",
+                        "last_seen",
+                        "classifications"
+                    },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["source"] = new { type = "string" },
+                        ["node_count"] = new { type = "integer", minimum = 0 },
+                        ["diagnostic_count"] = new { type = "integer", minimum = 0 },
+                        ["occurrence_count"] = new { type = "integer", format = "int64", minimum = 0 },
+                        ["regions_affected"] = new { type = "integer", minimum = 0 },
+                        ["last_seen"] = new
+                        {
+                            type = new[] { "string", "null" },
+                            format = "date-time"
+                        },
+                        ["classifications"] = new
+                        {
+                            type = "object",
+                            additionalProperties = new
+                            {
+                                type = "integer",
+                                format = "int64",
+                                minimum = 0
+                            }
+                        }
+                    }
+                },
                 ["Node"] = new
                 {
                     type = "object",
@@ -2028,6 +2063,7 @@ namespace NexVerse.Server.Api
                         "region_count",
                         "agent_count",
                         "managed_region_commands",
+                        "luna_texture",
                         "last_seen",
                         "last_event_at",
                         "regions"
@@ -2049,6 +2085,7 @@ namespace NexVerse.Server.Api
                         ["region_count"] = new { type = "integer", minimum = 0 },
                         ["agent_count"] = new { type = "integer", minimum = 0 },
                         ["managed_region_commands"] = new { type = "boolean" },
+                        ["luna_texture"] = SchemaRef("LunaTextureDiagnosticsSummary"),
                         ["last_seen"] = new { type = "string", format = "date-time" },
                         ["last_event_at"] = new { type = "string", format = "date-time" },
                         ["regions"] = new
@@ -2067,6 +2104,7 @@ namespace NexVerse.Server.Api
                         "transport_enabled",
                         "stale_after_seconds",
                         "count",
+                        "luna_texture",
                         "nodes",
                         "correlation_id"
                     },
@@ -2076,6 +2114,7 @@ namespace NexVerse.Server.Api
                         ["transport_enabled"] = new { type = "boolean" },
                         ["stale_after_seconds"] = new { type = "integer", minimum = 10 },
                         ["count"] = new { type = "integer", minimum = 0 },
+                        ["luna_texture"] = SchemaRef("LunaTextureDiagnosticsSummary"),
                         ["nodes"] = new
                         {
                             type = "array",
