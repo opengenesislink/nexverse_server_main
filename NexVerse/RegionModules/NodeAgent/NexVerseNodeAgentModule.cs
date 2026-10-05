@@ -37,6 +37,7 @@ namespace NexVerse.RegionModules.NodeAgent
         ICrossRegionObjectMessageRouter
     {
         private const int DebugChannel = 0x7fffffff;
+        private const int ObjectMessageRateEntryLimit = 8192;
         private static readonly ILog m_Log =
             LogManager.GetLogger(typeof(NexVerseNodeAgentModule));
 
@@ -394,7 +395,11 @@ namespace NexVerse.RegionModules.NodeAgent
         {
             if (!Enabled ||
                 nexEvent == null ||
-                nexEvent.Data == null)
+                nexEvent.Data == null ||
+                !string.Equals(
+                    nexEvent.Source,
+                    "nexverse.simulator",
+                    StringComparison.Ordinal))
             {
                 return;
             }
@@ -539,6 +544,18 @@ namespace NexVerse.RegionModules.NodeAgent
         {
             long currentSecond =
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            if (!rates.ContainsKey(sourceObjectId) &&
+                rates.Count >= ObjectMessageRateEntryLimit)
+            {
+                PruneObjectMessageRateStates(
+                    rates,
+                    currentSecond);
+
+                if (rates.Count >= ObjectMessageRateEntryLimit)
+                    return false;
+            }
+
             ObjectMessageRateState state =
                 rates.GetOrAdd(
                     sourceObjectId,
@@ -566,7 +583,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 state.Count++;
             }
 
-            if (rates.Count > 4096)
+            if (rates.Count > ObjectMessageRateEntryLimit / 2)
                 PruneObjectMessageRateStates(
                     rates,
                     currentSecond);
