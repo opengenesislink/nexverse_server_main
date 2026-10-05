@@ -30,6 +30,11 @@ namespace NexVerse.Core.Security
         public const string EstatesManage = "estates:manage";
         public const string EconomyRead = "economy:read";
         public const string EconomyTransfer = "economy:transfer";
+        public const string GroupsRead = "groups:read";
+        public const string GroupsManage = "groups:manage";
+        public const string ExperiencesRead = "experiences:read";
+        public const string ExperiencesManage = "experiences:manage";
+        public const string ExperiencesScript = "experiences:script";
     }
 
     public sealed class NexPrincipal
