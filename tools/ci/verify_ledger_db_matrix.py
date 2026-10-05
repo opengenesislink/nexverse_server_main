@@ -27,7 +27,10 @@ for marker in (
     "reopened.Post(issuance).Status",
     "NexLedgerAppendStatus.Duplicate",
     "VerifyProviderRollback(",
+    "VerifyProviderImplicitRollback(",
     "transaction.Rollback()",
+    "connection.Dispose()",
+    "connection loss left an uncommitted transaction behind",
     "rollback left a transaction header behind",
     "rejected transaction changed balance",
     "CurrentSchemaVersion",
@@ -40,6 +43,7 @@ for marker in (
     "../../../bin/",
     "NexLedgerSqlStore.cs",
     "NexLedgerSqlRuntime.cs",
+    "NexLedgerAccountState.cs",
 ):
     assert marker in project, f"missing matrix project provider/runtime marker: {marker}"
 
