@@ -196,7 +196,7 @@ namespace NexVerse.Server.Api
                     ("patch", "Inventarordner umbenennen oder verschieben", "inventory:write", "200"),
                     ("delete", "Inventarordner sicher in den Papierkorb verschieben", "inventory:write", "200")),
                 ["/api/v1/inventory/items"] = AuthenticatedOperations(
-                    ("post", "Inventaritem aus vorhandenem Asset erzeugen", "inventory:write + admin:*", "201")),
+                    ("post", "Inventaritem aus vorhandenem Asset erzeugen", "admin:*", "201")),
                 ["/api/v1/inventory/items/{itemId}"] = AuthenticatedOperations(
                     ("get", "Inventaritem lesen", "inventory:read", "200"),
                     ("patch", "Inventaritem umbenennen, beschreiben oder verschieben", "inventory:write", "200"),
