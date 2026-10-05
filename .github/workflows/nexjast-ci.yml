@@ -209,6 +209,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_ledger_runtime_config.py
 
+      - name: Verify NV dollar live database matrix contract
+        shell: bash
+        run: python3 tools/ci/verify_ledger_db_matrix.py
+
       - name: Verify NV dollar double-entry ledger
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexLedgerRegression/NexLedgerRegression.csproj
@@ -749,3 +753,60 @@ jobs:
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1
           fi
+
+
+  ledger-db-matrix:
+    name: NV dollar live database matrix
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ledgerroot
+          MARIADB_DATABASE: ogl_ledger_ci
+          MARIADB_USER: ledger
+          MARIADB_PASSWORD: ledgerpass
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=24
+
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ogl_ledger_ci
+          POSTGRES_USER: ledger
+          POSTGRES_PASSWORD: ledgerpass
+        ports:
+          - 35432:5432
+        options: >-
+          --health-cmd="pg_isready -U ledger -d ogl_ledger_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=24
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Verify bundled database providers
+        shell: bash
+        run: |
+          test -f bin/MySql.Data.dll
+          test -f bin/Npgsql.dll
+
+      - name: Run live NV dollar ledger matrix
+        shell: bash
+        env:
+          NEX_LEDGER_MARIADB: "Data Source=127.0.0.1;Port=33306;Database=ogl_ledger_ci;User ID=ledger;Password=ledgerpass;Old Guids=true;SslMode=None;"
+          NEX_LEDGER_POSTGRESQL: "Host=127.0.0.1;Port=35432;Database=ogl_ledger_ci;Username=ledger;Password=ledgerpass;SSL Mode=Disable;"
+        run: dotnet run --configuration Release --project tools/ci/NexLedgerSqlMatrixRegression/NexLedgerSqlMatrixRegression.csproj
