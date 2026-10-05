@@ -658,3 +658,43 @@ RequestTimeoutMilliseconds = 3000
 ```
 
 The API key should contain only the scopes required by the simulator, normally `economy:read` and `economy:transfer`. The region process never receives the SQL connection string and never opens the ledger database. `IMoneyModule` balance and transfer calls are translated into the World API contract.
+
+
+## NV$ Banking API — Roadmap 10.3
+
+The banking surface is hosted below `/api/v1/banking` and remains a policy adapter over `NexEconomyService`; it has no SQL or raw journal-append access.
+
+- `GET /api/v1/banking/transactions` — bounded account transaction history.
+- `GET /api/v1/banking/statements` — date-bounded statement with opening/closing balances and ledger transactions.
+- `GET /api/v1/banking/reconciliation` — recompute and compare the immutable-posting balance.
+- `POST /api/v1/banking/transfers` — idempotent transfer to `to_account_id` or OpenGenesisLINK-only `to_nvban`; transfer policy/limits/fees are applied centrally.
+- `GET|POST /api/v1/banking/payment-requests` and `POST .../{id}/pay|cancel` — persistent payment-request lifecycle.
+- `GET|PUT /api/v1/banking/accounts/{accountId}/policy` — transfer limits and optional fee wallet; writes require `admin:*`.
+- `POST /api/v1/banking/escrow/{escrowId}/fund|release` — controlled escrow movement.
+
+Generic scheduled recurring payments remain intentionally deferred by the original roadmap. Land leases provide the first persisted due-date/recurring-payment use case without introducing a background scheduler into the ledger.
+
+## NexCommerce API — Roadmap 10.6
+
+`/api/v1/commerce/orders` is the common order/transaction layer for vendor payments, object sales, marketplace purchases, land purchases, event tickets and rentals. Every completed order references its immutable ledger payment transaction. A merchant refund creates a ledger reversal and moves the order into `refunded`; historical payment journal rows are never edited or deleted.
+
+Trusted simulator/service principals can create commerce orders with `economy:transfer`. Resident bearer tokens are restricted to their own buyer wallet. Refunds require a trusted service principal or administrator.
+
+## Land Commerce API — Roadmap 10.5
+
+The catalog/workflow API is hosted at `/api/v1/land-commerce`:
+
+- `GET|POST /listings` — search or administratively create sale/rental listings.
+- `POST /listings/{id}/deactivate` — retire a listing.
+- `POST /listings/{id}/purchase` — settle a sale through NexCommerce.
+- `POST /listings/{id}/lease` — create a fixed-term rental and settle its first rent period.
+- `GET /leases` — account lease history.
+- `POST /leases/{id}/pay` — settle a due recurring rent period.
+
+The API catalog does not replace the simulator's parcel authority. Native parcel-for-sale flags, authorized buyer checks, abandon/deed/transfer behavior and estate/parcel permissions remain authoritative. The simulator land-buy path now refuses to call `UpdateLandSold` until the active money module confirms successful NV$ settlement.
+
+## Firestorm / Viewer commerce — Roadmap 10.4
+
+`NexVerseMoneyModule` remains the database-isolated `IMoneyModule` adapter. Resident payments use the World API; local object payments resolve the object owner and are recorded as NexCommerce vendor orders while preserving `OnObjectPaid`. Viewer object purchases validate current sale type/price, settle an `ObjectSale` order and then call the authoritative `IBuySellModule`; failed delivery triggers a compensating NexCommerce refund. SaleType Contents therefore uses the native contents-delivery implementation after settlement.
+
+Local groups are provisioned on demand as central NV$ `Group` wallets through the trusted `POST /api/v1/economy/accounts/ensure` service endpoint. Native parcel purchases route their payment through NexCommerce before ownership is changed.
