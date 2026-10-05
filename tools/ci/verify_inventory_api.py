@@ -32,6 +32,9 @@ for marker in (
     "AssetType.Link",
     "AssetType.LinkFolder",
     "inventory_link_chain_forbidden",
+    "inventory_item_copy_forbidden",
+    "inventory_folder_cycle",
+    "WouldCreateFolderCycle",
     'request?.QueryString?["q"]',
     'request?.QueryString?["limit"]',
     "SearchFolderScanLimit = 2000",
@@ -73,6 +76,11 @@ for schema in (
     "InventoryItemCreateResponse",
     "InventoryLinkCreateRequest",
     "InventoryLinkCreateResponse",
+    "InventoryItemCopyRequest",
+    "InventoryItemCopyResponse",
+    "InventoryRestoreRequest",
+    "InventoryFolderRestoreResponse",
+    "InventoryItemRestoreResponse",
 ):
     assert f'["{schema}"]' in world_api, f"missing Inventory schema: {schema}"
 
@@ -84,6 +92,8 @@ for marker in (
     '["/api/v1/inventory/items"]',
     '["/api/v1/inventory/items/{itemId}"]',
     '["/api/v1/inventory/items/copy"]',
+    '["/api/v1/inventory/folders/{folderId}/restore"]',
+    '["/api/v1/inventory/items/{itemId}/restore"]',
     '["/api/v1/inventory/links"]',
     '["/api/v1/inventory/lost-and-found"]',
     '["/api/v1/inventory/trash/empty"]',
