@@ -101,6 +101,10 @@ namespace NexVerse.Server.Api
                         .OpenAsync(cancellationToken)
                         .ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception e)
                 {
                     throw ProviderFailure(
@@ -204,6 +208,10 @@ namespace NexVerse.Server.Api
                                 m_CommandTimeoutSeconds,
                                 cancellationToken)
                             .ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
                     }
                     catch (Exception e)
                     {
