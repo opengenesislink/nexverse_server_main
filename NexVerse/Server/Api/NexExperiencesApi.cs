@@ -159,6 +159,47 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (path == "/api/v1/experiences/script/details")
+            {
+                if (!RequireMethod(method, "GET", response))
+                    return;
+                if (!Authenticate(request, response, NexScopes.ExperiencesScript, out _, out _))
+                    return;
+
+                try
+                {
+                    Guid experience =
+                        QueryOptionalGuid(request, "experience_id");
+
+                    if (experience == Guid.Empty)
+                    {
+                        Guid script =
+                            QueryGuid(request, "script_id");
+                        experience =
+                            m_Store.ResolveScript(script);
+                    }
+
+                    NexExperience details =
+                        experience == Guid.Empty
+                            ? null
+                            : m_Store.Get(experience);
+
+                    if (details == null)
+                        throw new KeyNotFoundException("Experience was not found.");
+
+                    WriteJson(response, new
+                    {
+                        experience = Payload(details),
+                        correlation_id = Correlation(response)
+                    });
+                }
+                catch (Exception e)
+                {
+                    WriteFailure(response, e);
+                }
+                return;
+            }
+
             if (path == "/api/v1/experiences/script/permission")
             {
                 if (!RequireMethod(method, "GET", response))
