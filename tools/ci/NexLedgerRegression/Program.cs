@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
-using Mono.Data.Sqlite;
 using NexVerse.Core.Economy;
 
 internal static class Program
@@ -82,11 +81,15 @@ internal static class Program
                 Guid.NewGuid().ToString("N") +
                 ".db");
 
-        Func<DbConnection> connectionFactory =
-            () => new SqliteConnection(
+        NexLedgerSqlRuntime runtime =
+            NexLedgerSqlRuntime.Resolve(
+                "OpenSim.Data.SQLite.dll",
                 "URI=file:" +
                 databasePath +
                 ",version=3");
+
+        Func<DbConnection> connectionFactory =
+            runtime.CreateConnection;
 
         Guid systemId =
             Guid.Parse("B0000000-0000-0000-0000-000000000001");
@@ -153,10 +156,13 @@ internal static class Program
 
         try
         {
+            Require(
+                runtime.ProviderName == "sqlite" &&
+                runtime.Dialect == NexLedgerSqlDialect.Sqlite,
+                "SQL runtime provider resolution mismatch");
+
             NexLedgerSqlStore store =
-                new NexLedgerSqlStore(
-                    connectionFactory,
-                    NexLedgerSqlDialect.Sqlite);
+                runtime.CreateStore();
 
             NexDoubleEntryLedger ledger =
                 new NexDoubleEntryLedger(
@@ -211,9 +217,7 @@ internal static class Program
                 "SQL merchant balance mismatch");
 
             NexLedgerSqlStore reopened =
-                new NexLedgerSqlStore(
-                    connectionFactory,
-                    NexLedgerSqlDialect.Sqlite);
+                runtime.CreateStore();
 
             NexDoubleEntryLedger reopenedLedger =
                 new NexDoubleEntryLedger(
