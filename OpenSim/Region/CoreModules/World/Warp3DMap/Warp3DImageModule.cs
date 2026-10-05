@@ -955,14 +955,14 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             if (scene == null || string.IsNullOrWhiteSpace(m_lunaTextureDiagnosticStore))
                 return string.Empty;
 
-            string root = Path.IsPathRooted(m_lunaTextureDiagnosticStore)
+            string root = System.IO.Path.IsPathRooted(m_lunaTextureDiagnosticStore)
                 ? m_lunaTextureDiagnosticStore
-                : Path.Combine(AppContext.BaseDirectory, m_lunaTextureDiagnosticStore);
+                : System.IO.Path.Combine(AppContext.BaseDirectory, m_lunaTextureDiagnosticStore);
 
-            root = Path.GetFullPath(root);
+            root = System.IO.Path.GetFullPath(root);
             Directory.CreateDirectory(root);
 
-            return Path.Combine(
+            return System.IO.Path.Combine(
                 root,
                 scene.RegionInfo.RegionID.ToString() + ".json");
         }
@@ -1088,7 +1088,7 @@ namespace OpenSim.Region.CoreModules.World.Warp3DMap
             try
             {
                 string directory =
-                    Path.GetDirectoryName(m_lunaTextureDiagnosticStorePath);
+                    System.IO.Path.GetDirectoryName(m_lunaTextureDiagnosticStorePath);
                 if (!string.IsNullOrWhiteSpace(directory))
                     Directory.CreateDirectory(directory);
 
