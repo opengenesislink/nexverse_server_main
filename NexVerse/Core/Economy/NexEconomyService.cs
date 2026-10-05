@@ -920,6 +920,13 @@ namespace NexVerse.Core.Economy
                     active));
         }
 
+        public NexLandLease GetLandLease(
+            Guid leaseId)
+        {
+            RequireWorkflows();
+            return m_Workflows.GetLandLease(leaseId);
+        }
+
         public IReadOnlyList<NexLandLease> ListLandLeases(
             Guid accountId,
             int offset = 0,
