@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using NexVerse.Core.Messaging;
 
 namespace NexVerse.Core.ControlPlane
@@ -56,6 +57,11 @@ namespace NexVerse.Core.ControlPlane
             string migrationStorageId,
             bool maintenanceMode,
             bool draining,
+            int lunaTextureDiagnosticCount,
+            long lunaTextureOccurrenceCount,
+            int lunaTextureRegionsAffected,
+            DateTimeOffset? lunaTextureLastSeen,
+            IReadOnlyDictionary<string, long> lunaTextureClassifications,
             string state,
             DateTimeOffset lastSeen,
             DateTimeOffset lastEventAt,
@@ -76,6 +82,14 @@ namespace NexVerse.Core.ControlPlane
             MigrationStorageId = migrationStorageId ?? string.Empty;
             MaintenanceMode = maintenanceMode;
             Draining = draining;
+            LunaTextureDiagnosticCount = Math.Max(0, lunaTextureDiagnosticCount);
+            LunaTextureOccurrenceCount = Math.Max(0, lunaTextureOccurrenceCount);
+            LunaTextureRegionsAffected = Math.Max(0, lunaTextureRegionsAffected);
+            LunaTextureLastSeen = lunaTextureLastSeen;
+            LunaTextureClassifications =
+                lunaTextureClassifications ??
+                new Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
             State = state ?? "unknown";
             LastSeen = lastSeen;
             LastEventAt = lastEventAt;
@@ -97,6 +111,11 @@ namespace NexVerse.Core.ControlPlane
         public string MigrationStorageId { get; }
         public bool MaintenanceMode { get; }
         public bool Draining { get; }
+        public int LunaTextureDiagnosticCount { get; }
+        public long LunaTextureOccurrenceCount { get; }
+        public int LunaTextureRegionsAffected { get; }
+        public DateTimeOffset? LunaTextureLastSeen { get; }
+        public IReadOnlyDictionary<string, long> LunaTextureClassifications { get; }
         public string State { get; }
         public DateTimeOffset LastSeen { get; }
         public DateTimeOffset LastEventAt { get; }
@@ -304,6 +323,26 @@ namespace NexVerse.Core.ControlPlane
                     nexEvent,
                     "migration_storage_id",
                     value => record.MigrationStorageId = value);
+                AssignInt(
+                    nexEvent,
+                    "luna_texture_diagnostic_count",
+                    value => record.LunaTextureDiagnosticCount = Math.Max(0, value));
+                AssignLong(
+                    nexEvent,
+                    "luna_texture_occurrence_count",
+                    value => record.LunaTextureOccurrenceCount = Math.Max(0, value));
+                AssignInt(
+                    nexEvent,
+                    "luna_texture_regions_affected",
+                    value => record.LunaTextureRegionsAffected = Math.Max(0, value));
+                AssignNullableDateTimeOffset(
+                    nexEvent,
+                    "luna_texture_last_seen_utc",
+                    value => record.LunaTextureLastSeen = value);
+                AssignLongDictionary(
+                    nexEvent,
+                    "luna_texture_classifications_json",
+                    value => record.LunaTextureClassifications = value);
 
                 if (TryData(
                         nexEvent,
@@ -569,6 +608,13 @@ namespace NexVerse.Core.ControlPlane
                     record.MigrationStorageId,
                     record.MaintenanceMode,
                     record.Draining,
+                    record.LunaTextureDiagnosticCount,
+                    record.LunaTextureOccurrenceCount,
+                    record.LunaTextureRegionsAffected,
+                    record.LunaTextureLastSeen,
+                    new Dictionary<string, long>(
+                        record.LunaTextureClassifications,
+                        StringComparer.OrdinalIgnoreCase),
                     state,
                     record.LastSeen,
                     record.LastEventAt,
@@ -743,6 +789,85 @@ namespace NexVerse.Core.ControlPlane
             }
         }
 
+        private static void AssignNullableDateTimeOffset(
+            NexEvent nexEvent,
+            string key,
+            Action<DateTimeOffset?> assign)
+        {
+            if (!TryData(
+                    nexEvent,
+                    key,
+                    out string raw,
+                    allowEmpty: true))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                assign(null);
+                return;
+            }
+
+            if (DateTimeOffset.TryParse(
+                    raw,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTimeOffset value))
+            {
+                assign(value);
+            }
+        }
+
+        private static void AssignLongDictionary(
+            NexEvent nexEvent,
+            string key,
+            Action<Dictionary<string, long>> assign)
+        {
+            if (!TryData(
+                    nexEvent,
+                    key,
+                    out string raw,
+                    allowEmpty: true))
+            {
+                return;
+            }
+
+            Dictionary<string, long> parsed =
+                new Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                try
+                {
+                    Dictionary<string, long> values =
+                        JsonSerializer.Deserialize<Dictionary<string, long>>(raw);
+
+                    if (values != null)
+                    {
+                        foreach (KeyValuePair<string, long> item in values)
+                        {
+                            string name =
+                                item.Key?.Trim().ToLowerInvariant();
+
+                            if (string.IsNullOrWhiteSpace(name))
+                                continue;
+
+                            parsed[name] =
+                                Math.Max(0, item.Value);
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    return;
+                }
+            }
+
+            assign(parsed);
+        }
+
         public void Dispose()
         {
             if (System.Threading.Interlocked.Exchange(
@@ -784,6 +909,13 @@ namespace NexVerse.Core.ControlPlane
             public string MigrationStorageId = string.Empty;
             public bool MaintenanceMode;
             public bool Draining;
+            public int LunaTextureDiagnosticCount;
+            public long LunaTextureOccurrenceCount;
+            public int LunaTextureRegionsAffected;
+            public DateTimeOffset? LunaTextureLastSeen;
+            public Dictionary<string, long> LunaTextureClassifications =
+                new Dictionary<string, long>(
+                    StringComparer.OrdinalIgnoreCase);
             public bool ExplicitOffline;
             public DateTimeOffset LastSeen;
             public DateTimeOffset LastEventAt;
