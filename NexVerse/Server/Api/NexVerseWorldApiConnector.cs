@@ -6,6 +6,7 @@ using log4net;
 using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
+using NexVerse.Core.Economy;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
@@ -395,6 +396,22 @@ namespace NexVerse.Server.Api
                     distributedNexBusEnabled,
                     adminMinimumLevel,
                     new PersistentNexSecurityStore(apiConfig.GetString("SecurityStorePath", "data/nexverse-security.json")));
+
+                NexEconomyApi economyApi =
+                    new NexEconomyApi(
+                        authenticator,
+                        userAccounts,
+                        auditSink,
+                        () =>
+                            NexEconomyConnector.Current?.Enabled == true
+                                ? NexEconomyConnector.Current.Economy
+                                : null);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/economy",
+                        apiGate.Wrap(economyApi.Handle),
+                        "OpenGenesisLINK NV$ Economy API"),
+                    true);
 
                 NexInventoryApi inventoryApi =
                     new NexInventoryApi(
