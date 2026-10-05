@@ -113,6 +113,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_job_api_integration.py
 
+      - name: Verify archive job progress
+        shell: bash
+        run: python3 tools/ci/verify_archive_job_progress.py
+
       - name: Verify account lifecycle policy
         shell: bash
         run: python3 tools/ci/verify_account_lifecycle.py
