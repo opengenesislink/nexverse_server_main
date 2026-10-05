@@ -294,6 +294,11 @@ namespace OpenSim.Data.MySQL
             return m_Invites.Delete("InviteID", inviteID.ToString());
         }
 
+        public bool DeleteInvites(UUID groupID)
+        {
+            return m_Invites.Delete("GroupID", groupID.ToString());
+        }
+
         public void DeleteOldInvites()
         {
             m_Invites.DeleteOld();
