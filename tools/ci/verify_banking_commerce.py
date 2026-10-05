@@ -190,13 +190,16 @@ assert land.index("money.MoveMoney(") < land.index("land.UpdateLandSold("),     
 
 for marker in (
     "banking transfer/fee balances mismatch",
+    "banking transfer retry was not idempotent",
     "payment request settlement mismatch",
     "statement balances/history mismatch",
     "reconciliation failed",
     "escrow balances mismatch",
     "commerce refund mismatch",
     "land purchase mismatch",
+    "land purchase retry was not idempotent",
     "land lease initial settlement mismatch",
+    "land lease retry was not idempotent",
 ):
     assert marker in regression, f"missing banking/commerce regression marker: {marker}"
 
