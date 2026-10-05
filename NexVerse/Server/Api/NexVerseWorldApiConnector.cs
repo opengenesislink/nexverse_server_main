@@ -7,6 +7,7 @@ using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Economy;
+using NexVerse.Core.Experiences;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
@@ -440,6 +441,33 @@ namespace NexVerse.Server.Api
                         "/api/v1/land-commerce",
                         apiGate.Wrap(bankingCommerceApi.HandleLandCommerce),
                         "OpenGenesisLINK Land Commerce API"),
+                    true);
+
+                IConfig experiencesConfig =
+                    config.Configs["NexExperiences"];
+
+                string experienceStorePath =
+                    experiencesConfig?.GetString(
+                        "StorePath",
+                        "data/nexverse-experiences.json") ??
+                    "data/nexverse-experiences.json";
+
+                NexExperienceStore experienceStore =
+                    new NexExperienceStore(
+                        experienceStorePath);
+
+                NexExperiencesApi experiencesApi =
+                    new NexExperiencesApi(
+                        authenticator,
+                        userAccounts,
+                        auditSink,
+                        experienceStore);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/experiences",
+                        apiGate.Wrap(experiencesApi.Handle),
+                        "OpenGenesisLINK NexExperiences API"),
                     true);
 
                 NexInventoryApi inventoryApi =
