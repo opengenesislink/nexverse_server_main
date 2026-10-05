@@ -11,7 +11,7 @@ using OpenSim.Region.Framework.Scenes;
 namespace NexVerse.RegionModules.Archives
 {
     public enum OglOarOperationKind { Export, Import }
-    public enum OglOarOperationState { Queued, Running, Completed, Failed }
+    public enum OglOarOperationState { Queued, Running, Completed, Failed, Cancelled }
 
     public sealed class OglOarOperation
     {
@@ -25,6 +25,8 @@ namespace NexVerse.RegionModules.Archives
         public DateTimeOffset? StartedAt { get; internal set; }
         public DateTimeOffset? FinishedAt { get; internal set; }
         public string Error { get; internal set; } = string.Empty;
+        public int ProgressPercent { get; internal set; }
+        public string ProgressPhase { get; internal set; } = "queued";
         public OglOarInspection Inspection { get; internal set; }
     }
 
@@ -36,6 +38,7 @@ namespace NexVerse.RegionModules.Archives
         OglOarOperation StartImport(Guid requestId, string archiveFileName, bool dryRun, Dictionary<string, object> options = null);
         event Action<OglOarOperation> OperationChanged;
         bool TryGet(Guid requestId, out OglOarOperation operation);
+        bool TryCancel(Guid requestId, out string reason);
     }
 
     /// <summary>
@@ -73,6 +76,9 @@ namespace NexVerse.RegionModules.Archives
             Directory.CreateDirectory(m_Storage.RootDirectory);
             OglOarOperation operation = Create(requestId, OglOarOperationKind.Export, path);
             operation.State = OglOarOperationState.Running;
+            operation.ProgressPercent = 10;
+            operation.ProgressPhase = "archiver_running";
+            OperationChanged?.Invoke(operation);
             operation.StartedAt = DateTimeOffset.UtcNow;
 
             try
@@ -108,6 +114,8 @@ namespace NexVerse.RegionModules.Archives
             if (dryRun)
             {
                 operation.State = OglOarOperationState.Completed;
+                operation.ProgressPercent = 100;
+                operation.ProgressPhase = "completed";
                 operation.StartedAt = operation.CreatedAt;
                 operation.FinishedAt = DateTimeOffset.UtcNow;
                 OperationChanged?.Invoke(operation);
@@ -115,6 +123,9 @@ namespace NexVerse.RegionModules.Archives
             }
 
             operation.State = OglOarOperationState.Running;
+            operation.ProgressPercent = 10;
+            operation.ProgressPhase = "archiver_running";
+            OperationChanged?.Invoke(operation);
             operation.StartedAt = DateTimeOffset.UtcNow;
             try
             {
@@ -130,6 +141,28 @@ namespace NexVerse.RegionModules.Archives
 
         public bool TryGet(Guid requestId, out OglOarOperation operation) =>
             m_Operations.TryGetValue(requestId, out operation);
+
+        public bool TryCancel(Guid requestId, out string reason)
+        {
+            reason = string.Empty;
+            if (!m_Operations.TryGetValue(requestId, out OglOarOperation operation))
+            {
+                reason = "operation_not_found";
+                return false;
+            }
+            if (operation.State != OglOarOperationState.Queued)
+            {
+                reason = operation.State == OglOarOperationState.Running
+                    ? "operation_already_running_not_safely_cancellable"
+                    : "operation_already_terminal";
+                return false;
+            }
+            operation.State = OglOarOperationState.Cancelled;
+            operation.ProgressPhase = "cancelled";
+            operation.FinishedAt = DateTimeOffset.UtcNow;
+            OperationChanged?.Invoke(operation);
+            return true;
+        }
 
         private OglOarOperation Create(Guid requestId, OglOarOperationKind kind, string path)
         {
@@ -168,6 +201,8 @@ namespace NexVerse.RegionModules.Archives
             }
 
             operation.State = OglOarOperationState.Completed;
+                operation.ProgressPercent = 100;
+                operation.ProgressPhase = "completed";
             operation.FinishedAt = DateTimeOffset.UtcNow;
             OperationChanged?.Invoke(operation);
         }
@@ -185,6 +220,8 @@ namespace NexVerse.RegionModules.Archives
             }
 
             operation.State = OglOarOperationState.Completed;
+                operation.ProgressPercent = 100;
+                operation.ProgressPhase = "completed";
             operation.FinishedAt = DateTimeOffset.UtcNow;
             OperationChanged?.Invoke(operation);
         }
