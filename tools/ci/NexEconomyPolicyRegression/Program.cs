@@ -105,6 +105,28 @@ internal static class Program
         Require(
             transfer.Created,
             label + ": initial transfer not created");
+
+        Require(
+            economy.Transfer(
+                residentId,
+                merchantId,
+                250,
+                "POLICY-PAYMENT",
+                "policy-regression",
+                transferId).Status ==
+                NexLedgerAppendStatus.Duplicate,
+            label + ": identical transfer retry was not idempotent");
+
+        RequireThrows<NexLedgerConflictException>(
+            () => economy.Transfer(
+                residentId,
+                merchantId,
+                249,
+                "POLICY-PAYMENT",
+                "policy-regression",
+                transferId),
+            label + ": transaction ID reuse with different amount was accepted");
+
         Require(
             economy.GetBalance(residentId) == 750 &&
             economy.GetBalance(merchantId) == 250,
