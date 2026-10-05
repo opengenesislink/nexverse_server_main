@@ -334,6 +334,18 @@ jobs:
               "Node",
               "NodeListResponse",
               "NodeResponse",
+              "InventoryPermissions",
+              "InventoryFolder",
+              "InventoryItem",
+              "InventoryTreeResponse",
+              "InventoryFolderContentResponse",
+              "InventoryItemResponse",
+              "InventorySearchScan",
+              "InventorySearchResponse",
+              "InventoryItemCreateRequest",
+              "InventoryItemCreateResponse",
+              "InventoryLinkCreateRequest",
+              "InventoryLinkCreateResponse",
               "Estate",
               "EstateListResponse",
               "EstateResponse",
@@ -466,9 +478,15 @@ jobs:
           assert inventory_search["x-nexverse-scope"] == "inventory:read"
           assert [p["name"] for p in inventory_search["parameters"]] == ["owner_id", "q", "limit"]
           inventory_create = doc["paths"]["/api/v1/inventory/items"]["post"]
-          assert "admin:*" in inventory_create["x-nexverse-scope"]
+          assert inventory_create["x-nexverse-scope"] == "admin:*"
+          assert inventory_create["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCreateRequest"
+          assert inventory_create["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryItemCreateResponse"
           inventory_links = doc["paths"]["/api/v1/inventory/links"]["post"]
           assert inventory_links["x-nexverse-scope"] == "inventory:write"
+          assert inventory_links["requestBody"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryLinkCreateRequest"
+          assert inventory_links["responses"]["201"]["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/InventoryLinkCreateResponse"
+          assert schemas["InventorySearchResponse"]["properties"]["scan"]["$ref"] == "#/components/schemas/InventorySearchScan"
+          assert schemas["InventoryItem"]["properties"]["permissions"]["$ref"] == "#/components/schemas/InventoryPermissions"
           for inventory_path in (
               "/api/v1/inventory/tree",
               "/api/v1/inventory/folders",
