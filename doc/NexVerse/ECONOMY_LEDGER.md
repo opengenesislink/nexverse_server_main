@@ -93,3 +93,14 @@ OpenGenesisLINK verwendet fuer virtuelle Kontokennungen das eigene Schema `NVBAN
 Die Kennung wird deterministisch aus der unveraenderlichen Ledger-Konto-UUID abgeleitet und anschliessend dauerhaft 1:1 in `ogl_ledger_virtual_accounts` gespeichert. Ledger-Schema v3 erzwingt Eindeutigkeit sowohl fuer die Konto-UUID als auch fuer die virtuelle Kennung. Die Kennung ist ein Alias fuer ein bestehendes NV$-Wallet; sie erzeugt kein zweites Saldo- oder Buchungssystem.
 
 `NexEconomyService.EnsureVirtualBankAccount()` bleibt die Policy-Grenze. World API und spaetere Banking-Funktionen greifen nicht direkt auf die SQL-Tabelle zu. `GET /api/v1/economy/virtual-account` liefert die eigene bzw. autorisiert ausgewaehlte NVBAN-Kennung mit `economy:read` und enthaelt einen ausdruecklichen Hinweis, dass es sich nicht um ein reales Bankkonto oder eine IBAN handelt.
+
+
+## Banking, NexCommerce und Landhandel (Roadmap 10.3–10.6)
+
+Ledger-Schema v4 ergaenzt ausschliesslich Workflow-Zustaende neben dem unveraenderlichen Journal: Transfer-Policies, Zahlungsanforderungen, Commerce-Auftraege, Landangebote und Mietvertraege. Die Tabellen `ogl_ledger_transactions` und `ogl_ledger_postings` bleiben append-only.
+
+`BankingTransfer` erzwingt Kontostatus, Deckung, optionales Transaktionslimit, Tageslimit und eine optionale feste Gebuehr. Statements und Reconciliation werden aus den unveraenderlichen Buchungen abgeleitet. Refunds erzeugen Gegenbuchungen; es gibt weiterhin keinen produktiven Pfad, der historische Journalzeilen editiert.
+
+NexCommerce vereinheitlicht Vendor-Zahlungen, Objektverkaeufe, Marketplace, Landkauf, Eventtickets, Mieten und Merchant-Refunds ueber persistente Orders, die auf ihre Ledger-Transaktionen zeigen. Der Viewer und Simulator behalten keine eigene Geld-Datenbank.
+
+Der Landhandel trennt Katalog und Weltzustand: Listings/Leases sind OpenGenesisLINK-Workflowdaten; die eigentlichen Parcel-Rechte bleiben im nativen LandManagementModule. Beim Viewer-Landkauf wird der Eigentumswechsel erst nach erfolgreichem NV$-Settlement ausgefuehrt.
