@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <UseCommonOutputDirectory>True</UseCommonOutputDirectory>
+    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>../../../bin/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Data.Sqlite">
+      <HintPath>../../../bin/Mono.Data.Sqlite.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerModel.cs" Link="NexLedgerModel.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerAccountState.cs" Link="NexLedgerAccountState.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerStore.cs" Link="NexLedgerStore.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerSqlStore.cs" Link="NexLedgerSqlStore.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexLedgerSqlRuntime.cs" Link="NexLedgerSqlRuntime.cs" />
+    <Compile Include="../../../NexVerse/Core/Economy/NexEconomyService.cs" Link="NexEconomyService.cs" />
+  </ItemGroup>
+</Project>
