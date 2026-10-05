@@ -892,6 +892,13 @@ namespace NexVerse.Core.Economy
             DateTimeOffset now =
                 DateTimeOffset.UtcNow;
 
+            if (now >= lease.EndsAt ||
+                lease.NextDueAt >= lease.EndsAt)
+            {
+                throw new NexLedgerPolicyException(
+                    "No further rent payment is due for this lease.");
+            }
+
             if (now < lease.NextDueAt)
                 throw new NexLedgerPolicyException("Land rent is not due yet.");
 
@@ -911,7 +918,7 @@ namespace NexVerse.Core.Economy
                     lease.PeriodDays);
 
             bool active =
-                next <= lease.EndsAt;
+                now < lease.EndsAt;
 
             return m_Workflows.UpdateLandLease(
                 lease.Advance(
