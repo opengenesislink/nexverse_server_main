@@ -90,6 +90,35 @@ namespace NexVerse.Server.Api
 
             if (string.Equals(
                     path,
+                    "/api/v1/economy/virtual-account",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (!method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                {
+                    MethodNotAllowed(response, "GET");
+                    return;
+                }
+
+                if (!Authenticate(
+                        request,
+                        response,
+                        NexScopes.EconomyRead,
+                        out NexPrincipal principal,
+                        out UserAccount account))
+                {
+                    return;
+                }
+
+                HandleVirtualAccount(
+                    request,
+                    response,
+                    principal,
+                    account);
+                return;
+            }
+
+            if (string.Equals(
+                    path,
                     "/api/v1/economy/transfers",
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -328,6 +357,70 @@ namespace NexVerse.Server.Api
                                 state),
                         currency = CurrencyPayload(),
                         correlation_id = Correlation(response)
+                    });
+            }
+            catch (Exception e)
+            {
+                WriteEconomyFailure(
+                    response,
+                    e);
+            }
+        }
+
+        private void HandleVirtualAccount(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            NexPrincipal principal,
+            UserAccount authenticatedAccount)
+        {
+            NexEconomyService economy =
+                RequireEconomy(response);
+
+            if (economy == null)
+                return;
+
+            if (!TryResolveReadAccount(
+                    request,
+                    response,
+                    principal,
+                    authenticatedAccount,
+                    out Guid accountId))
+            {
+                return;
+            }
+
+            try
+            {
+                NexLedgerAccount account =
+                    EnsureAccountIfResident(
+                        economy,
+                        accountId);
+
+                if (account == null)
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.NotFound,
+                        "economy_account_not_found",
+                        "The NV$ account was not found.");
+                    return;
+                }
+
+                NexVirtualBankAccount virtualAccount =
+                    economy.EnsureVirtualBankAccount(
+                        account.AccountId);
+
+                WriteJson(
+                    response,
+                    new
+                    {
+                        virtual_account =
+                            VirtualAccountPayload(
+                                virtualAccount),
+                        currency =
+                            CurrencyPayload(),
+                        correlation_id =
+                            Correlation(response)
                     });
             }
             catch (Exception e)
@@ -862,7 +955,7 @@ namespace NexVerse.Server.Api
                         response,
                         HttpStatusCode.Forbidden,
                         "economy_account_forbidden",
-                        "Resident tokens may read only their own NV$ balance.");
+                        "Resident tokens may read only their own NV$ account data.");
                     return false;
                 }
 
@@ -887,7 +980,7 @@ namespace NexVerse.Server.Api
                     response,
                     HttpStatusCode.BadRequest,
                     "account_id_required",
-                    "Service/API-key balance reads require account_id.");
+                    "Service/API-key account reads require account_id.");
                 return false;
             }
 
@@ -949,6 +1042,24 @@ namespace NexVerse.Server.Api
                         .ToLowerInvariant(),
                 state_version =
                     state.Version,
+                created_at =
+                    account.CreatedAt
+            };
+
+        private static object VirtualAccountPayload(
+            NexVirtualBankAccount account) =>
+            new
+            {
+                account_id =
+                    account.AccountId.ToString("D"),
+                identifier =
+                    account.Identifier,
+                scheme =
+                    NexVirtualBankAccount.Scheme,
+                scope =
+                    "opengenesislink_virtual_only",
+                disclaimer =
+                    "OpenGenesisLINK-only virtual identifier; not a real-world bank account or IBAN.",
                 created_at =
                     account.CreatedAt
             };

@@ -17,6 +17,7 @@ namespace NexVerse.Core.Economy
     {
         private readonly NexDoubleEntryLedger m_Ledger;
         private readonly INexLedgerAccountStateStore m_States;
+        private readonly INexVirtualBankAccountStore m_VirtualAccounts;
 
         public NexEconomyService(
             NexDoubleEntryLedger ledger,
@@ -28,6 +29,8 @@ namespace NexVerse.Core.Economy
             m_States =
                 states ??
                 throw new ArgumentNullException(nameof(states));
+            m_VirtualAccounts =
+                states as INexVirtualBankAccountStore;
         }
 
         public NexLedgerAccount EnsureResidentAccount(
@@ -76,6 +79,44 @@ namespace NexVerse.Core.Economy
                 throw new NexLedgerConflictException("Resident ledger account could not be created.");
 
             return existing;
+        }
+
+        public NexVirtualBankAccount EnsureVirtualBankAccount(Guid accountId)
+        {
+            NexLedgerAccount account =
+                RequireWalletAccount(accountId, "virtual bank");
+
+            if (m_VirtualAccounts == null)
+                throw new InvalidOperationException(
+                    "Virtual NVBAN account storage is not available.");
+
+            NexVirtualBankAccount existing =
+                m_VirtualAccounts.GetVirtualBankAccount(account.AccountId);
+
+            if (existing != null)
+                return existing;
+
+            return m_VirtualAccounts.GetOrCreateVirtualBankAccount(
+                account.AccountId,
+                NexVirtualBankAccount.CreateIdentifier(account.AccountId),
+                DateTimeOffset.UtcNow);
+        }
+
+        public NexVirtualBankAccount GetVirtualBankAccount(Guid accountId)
+        {
+            if (m_VirtualAccounts == null)
+                return null;
+
+            return m_VirtualAccounts.GetVirtualBankAccount(accountId);
+        }
+
+        public NexVirtualBankAccount ResolveVirtualBankAccount(string identifier)
+        {
+            if (m_VirtualAccounts == null)
+                throw new InvalidOperationException(
+                    "Virtual NVBAN account storage is not available.");
+
+            return m_VirtualAccounts.GetVirtualBankAccountByIdentifier(identifier);
         }
 
         public NexLedgerAccount GetAccount(Guid accountId) =>

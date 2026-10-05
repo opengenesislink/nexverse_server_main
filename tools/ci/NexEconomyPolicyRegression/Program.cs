@@ -69,6 +69,33 @@ internal static class Program
             resident.AccountClass == NexLedgerAccountClass.Resident,
             label + ": resident account mapping mismatch");
 
+        NexVirtualBankAccount residentVirtual =
+            economy.EnsureVirtualBankAccount(residentId);
+
+        Require(
+            NexVirtualBankAccount.IsValidIdentifier(residentVirtual.Identifier) &&
+            residentVirtual.Identifier.StartsWith(
+                NexVirtualBankAccount.Prefix,
+                StringComparison.Ordinal) &&
+            residentVirtual.AccountId == residentId,
+            label + ": resident NVBAN mapping mismatch");
+
+        Require(
+            economy.EnsureVirtualBankAccount(residentId).Identifier ==
+                residentVirtual.Identifier,
+            label + ": resident NVBAN assignment is not idempotent");
+
+        Require(
+            economy.ResolveVirtualBankAccount(
+                residentVirtual.Identifier)?.AccountId ==
+                residentId,
+            label + ": resident NVBAN reverse lookup mismatch");
+
+        RequireThrows<ArgumentException>(
+            () => economy.ResolveVirtualBankAccount(
+                "DE00-THIS-IS-NOT-AN-NVBAN"),
+            label + ": real-world-like bank identifier was accepted as NVBAN");
+
         Require(
             ledger.TryCreateAccount(
                 new NexLedgerAccount(
@@ -78,6 +105,14 @@ internal static class Program
                     "business:" + label + ":" + merchantId.ToString("N"),
                     label + " merchant")),
             label + ": merchant account not created");
+
+        NexVirtualBankAccount merchantVirtual =
+            economy.EnsureVirtualBankAccount(merchantId);
+
+        Require(
+            NexVirtualBankAccount.IsValidIdentifier(merchantVirtual.Identifier) &&
+            merchantVirtual.Identifier != residentVirtual.Identifier,
+            label + ": merchant NVBAN assignment mismatch");
 
         economy.AdministrativeAdjustment(
             residentId,
@@ -332,6 +367,16 @@ internal static class Program
                     events.ExecuteScalar()) >= 3,
                 "sqlite: lifecycle events were not persisted");
 
+            using DbCommand virtualAccounts =
+                connection.CreateCommand();
+            virtualAccounts.CommandText =
+                "SELECT COUNT(*) FROM ogl_ledger_virtual_accounts";
+
+            Require(
+                Convert.ToInt64(
+                    virtualAccounts.ExecuteScalar()) >= 2,
+                "sqlite: NVBAN mappings were not persisted");
+
             NexLedgerSqlStore reopened =
                 runtime.CreateStore();
 
@@ -376,7 +421,7 @@ internal static class Program
         RunSqlitePersistence();
 
         Console.WriteLine(
-            "OpenGenesisLINK NV$ account lifecycle and policy regression: OK");
+            "OpenGenesisLINK NV$ lifecycle, NVBAN and policy regression: OK");
 
         return 0;
     }

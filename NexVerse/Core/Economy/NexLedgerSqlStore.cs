@@ -26,9 +26,10 @@ namespace NexVerse.Core.Economy
     /// </summary>
     public sealed class NexLedgerSqlStore :
         INexLedgerStore,
-        INexLedgerAccountStateStore
+        INexLedgerAccountStateStore,
+        INexVirtualBankAccountStore
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         private const string SchemaTable = "ogl_ledger_schema";
         private const string AccountsTable = "ogl_ledger_accounts";
@@ -36,6 +37,7 @@ namespace NexVerse.Core.Economy
         private const string PostingsTable = "ogl_ledger_postings";
         private const string AccountStateTable = "ogl_ledger_account_state";
         private const string AccountEventsTable = "ogl_ledger_account_events";
+        private const string VirtualAccountsTable = "ogl_ledger_virtual_accounts";
 
         private readonly Func<DbConnection> m_ConnectionFactory;
         private readonly NexLedgerSqlDialect m_Dialect;
@@ -88,7 +90,13 @@ namespace NexVerse.Core.Economy
             }
 
             if (version < 2)
+            {
                 ApplySchemaVersion2(connection);
+                version = GetSchemaVersion(connection);
+            }
+
+            if (version < 3)
+                ApplySchemaVersion3(connection);
         }
 
         public bool TryCreateAccount(
@@ -205,6 +213,154 @@ namespace NexVerse.Core.Economy
                 connection,
                 null,
                 accountId);
+        }
+
+        public NexVirtualBankAccount GetVirtualBankAccount(Guid accountId)
+        {
+            if (accountId == Guid.Empty)
+                return null;
+
+            using DbConnection connection = OpenConnection();
+            return GetVirtualBankAccount(connection, null, accountId);
+        }
+
+        public NexVirtualBankAccount GetVirtualBankAccountByIdentifier(string identifier)
+        {
+            string normalized =
+                NexVirtualBankAccount.NormalizeIdentifier(identifier);
+
+            using DbConnection connection = OpenConnection();
+            return GetVirtualBankAccountByIdentifier(
+                connection,
+                null,
+                normalized);
+        }
+
+        public NexVirtualBankAccount GetOrCreateVirtualBankAccount(
+            Guid accountId,
+            string identifier,
+            DateTimeOffset createdAt)
+        {
+            string normalized =
+                NexVirtualBankAccount.NormalizeIdentifier(identifier);
+
+            using DbConnection connection = OpenConnection();
+            using DbTransaction transaction =
+                connection.BeginTransaction(IsolationLevel.Serializable);
+
+            if (GetAccount(connection, transaction, accountId) == null)
+            {
+                transaction.Rollback();
+                throw new NexLedgerValidationException(
+                    $"Unknown ledger account {accountId}.");
+            }
+
+            NexVirtualBankAccount existing =
+                GetVirtualBankAccount(connection, transaction, accountId);
+
+            if (existing != null)
+            {
+                transaction.Rollback();
+
+                if (!string.Equals(
+                        existing.Identifier,
+                        normalized,
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "Ledger account already has a different NVBAN identifier.");
+                }
+
+                return existing;
+            }
+
+            NexVirtualBankAccount collision =
+                GetVirtualBankAccountByIdentifier(
+                    connection,
+                    transaction,
+                    normalized);
+
+            if (collision != null)
+            {
+                transaction.Rollback();
+
+                if (collision.AccountId != accountId)
+                    throw new NexLedgerConflictException(
+                        "NVBAN identifier is already assigned to another ledger account.");
+
+                return collision;
+            }
+
+            NexVirtualBankAccount created =
+                new NexVirtualBankAccount(
+                    accountId,
+                    normalized,
+                    createdAt);
+
+            try
+            {
+                using DbCommand command =
+                    CreateCommand(
+                        connection,
+                        transaction,
+                        $@"INSERT INTO {VirtualAccountsTable}
+                            (account_id, virtual_identifier, scheme, created_at_utc_ticks)
+                           VALUES
+                            (@account_id, @virtual_identifier, @scheme, @created_at_utc_ticks)");
+
+                AddParameter(command, "@account_id", accountId.ToString("D"));
+                AddParameter(command, "@virtual_identifier", created.Identifier);
+                AddParameter(command, "@scheme", NexVirtualBankAccount.Scheme);
+                AddParameter(
+                    command,
+                    "@created_at_utc_ticks",
+                    created.CreatedAt.UtcDateTime.Ticks);
+
+                command.ExecuteNonQuery();
+                transaction.Commit();
+                return created;
+            }
+            catch (DbException)
+            {
+                SafeRollback(transaction);
+
+                using DbConnection verification = OpenConnection();
+
+                NexVirtualBankAccount verified =
+                    GetVirtualBankAccount(
+                        verification,
+                        null,
+                        accountId);
+
+                if (verified != null)
+                {
+                    if (!string.Equals(
+                            verified.Identifier,
+                            normalized,
+                            StringComparison.Ordinal))
+                    {
+                        throw new NexLedgerConflictException(
+                            "Ledger account already has a different NVBAN identifier.");
+                    }
+
+                    return verified;
+                }
+
+                NexVirtualBankAccount assigned =
+                    GetVirtualBankAccountByIdentifier(
+                        verification,
+                        null,
+                        normalized);
+
+                if (assigned != null &&
+                    assigned.AccountId != accountId)
+                {
+                    throw new NexLedgerConflictException(
+                        "NVBAN identifier is already assigned to another ledger account.");
+                }
+
+                throw;
+            }
         }
 
         public NexLedgerAccountState GetAccountState(
@@ -726,6 +882,83 @@ namespace NexVerse.Core.Economy
             return result;
         }
 
+        private NexVirtualBankAccount GetVirtualBankAccount(
+            DbConnection connection,
+            DbTransaction transaction,
+            Guid accountId)
+        {
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    transaction,
+                    $@"SELECT account_id, virtual_identifier, scheme, created_at_utc_ticks
+                       FROM {VirtualAccountsTable}
+                       WHERE account_id = @account_id");
+
+            AddParameter(command, "@account_id", accountId.ToString("D"));
+
+            using DbDataReader reader = command.ExecuteReader();
+
+            return reader.Read()
+                ? ReadVirtualBankAccount(reader)
+                : null;
+        }
+
+        private NexVirtualBankAccount GetVirtualBankAccountByIdentifier(
+            DbConnection connection,
+            DbTransaction transaction,
+            string identifier)
+        {
+            using DbCommand command =
+                CreateCommand(
+                    connection,
+                    transaction,
+                    $@"SELECT account_id, virtual_identifier, scheme, created_at_utc_ticks
+                       FROM {VirtualAccountsTable}
+                       WHERE virtual_identifier = @virtual_identifier");
+
+            AddParameter(command, "@virtual_identifier", identifier);
+
+            using DbDataReader reader = command.ExecuteReader();
+
+            return reader.Read()
+                ? ReadVirtualBankAccount(reader)
+                : null;
+        }
+
+        private static NexVirtualBankAccount ReadVirtualBankAccount(
+            DbDataReader reader)
+        {
+            string scheme =
+                Convert.ToString(
+                    reader["scheme"],
+                    CultureInfo.InvariantCulture);
+
+            if (!string.Equals(
+                    scheme,
+                    NexVirtualBankAccount.Scheme,
+                    StringComparison.Ordinal))
+            {
+                throw new NexLedgerValidationException(
+                    "Unsupported virtual bank account scheme in ledger storage.");
+            }
+
+            return new NexVirtualBankAccount(
+                Guid.Parse(
+                    Convert.ToString(
+                        reader["account_id"],
+                        CultureInfo.InvariantCulture)),
+                Convert.ToString(
+                    reader["virtual_identifier"],
+                    CultureInfo.InvariantCulture),
+                new DateTimeOffset(
+                    new DateTime(
+                        Convert.ToInt64(
+                            reader["created_at_utc_ticks"],
+                            CultureInfo.InvariantCulture),
+                        DateTimeKind.Utc)));
+        }
+
         private void ApplySchemaVersion1(
             DbConnection connection)
         {
@@ -860,6 +1093,48 @@ namespace NexVerse.Core.Economy
             catch (DbException)
             {
                 if (GetSchemaVersion(connection) < 2)
+                    throw;
+            }
+        }
+
+        private void ApplySchemaVersion3(
+            DbConnection connection)
+        {
+            ExecuteNonQuery(
+                connection,
+                null,
+                $@"CREATE TABLE IF NOT EXISTS {VirtualAccountsTable} (
+                    account_id VARCHAR(36) NOT NULL PRIMARY KEY,
+                    virtual_identifier VARCHAR(64) NOT NULL,
+                    scheme VARCHAR(16) NOT NULL,
+                    created_at_utc_ticks BIGINT NOT NULL,
+                    UNIQUE (virtual_identifier),
+                    FOREIGN KEY (account_id)
+                        REFERENCES {AccountsTable}(account_id)
+                )");
+
+            try
+            {
+                using DbCommand versionCommand =
+                    CreateCommand(
+                        connection,
+                        null,
+                        $@"INSERT INTO {SchemaTable}
+                            (version, applied_at_utc_ticks)
+                           VALUES
+                            (@version, @applied_at_utc_ticks)");
+
+                AddParameter(versionCommand, "@version", 3);
+                AddParameter(
+                    versionCommand,
+                    "@applied_at_utc_ticks",
+                    DateTimeOffset.UtcNow.UtcDateTime.Ticks);
+
+                versionCommand.ExecuteNonQuery();
+            }
+            catch (DbException)
+            {
+                if (GetSchemaVersion(connection) < 3)
                     throw;
             }
         }

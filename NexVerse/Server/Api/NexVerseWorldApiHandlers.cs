@@ -178,6 +178,8 @@ namespace NexVerse.Server.Api
                     ("put", "Region einem Estate zuordnen oder dorthin verschieben", "estates:manage", "200")),
                 ["/api/v1/economy/balance"] = AuthenticatedOperations(
                     ("get", "NV$-Saldo des eigenen oder autorisierten Kontos lesen", "economy:read", "200")),
+                ["/api/v1/economy/virtual-account"] = AuthenticatedOperations(
+                    ("get", "OpenGenesisLINK-interne NVBAN-Kennung des eigenen oder autorisierten Kontos lesen", "economy:read", "200")),
                 ["/api/v1/economy/transfers"] = AuthenticatedOperations(
                     ("post", "Wiederholungssicheren NV$-Transfer ausführen", "economy:transfer", "201")),
                 ["/api/v1/economy/transactions/{transactionId}"] = AuthenticatedOperations(
@@ -339,6 +341,13 @@ namespace NexVerse.Server.Api
                 "get",
                 null,
                 "EconomyBalanceResponse",
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/economy/virtual-account",
+                "get",
+                null,
+                "EconomyVirtualAccountResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -2187,6 +2196,30 @@ namespace NexVerse.Server.Api
                         {
                             type = new[] { "integer", "null" }
                         }
+                    }
+                },
+                ["EconomyVirtualAccountResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "virtual_account", "currency", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["virtual_account"] = new
+                        {
+                            type = "object",
+                            required = new[] { "account_id", "identifier", "scheme", "scope", "disclaimer", "created_at" },
+                            properties = new Dictionary<string, object>
+                            {
+                                ["account_id"] = new { type = "string", format = "uuid" },
+                                ["identifier"] = new { type = "string", pattern = "^NVBAN-[2-9A-HJ-NP-Z]{4}(?:-[2-9A-HJ-NP-Z]{4}){4}$" },
+                                ["scheme"] = new { type = "string", @enum = new[] { "NVBAN" } },
+                                ["scope"] = new { type = "string", @enum = new[] { "opengenesislink_virtual_only" } },
+                                ["disclaimer"] = new { type = "string" },
+                                ["created_at"] = new { type = "string", format = "date-time" }
+                            }
+                        },
+                        ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["EconomyTransferRequest"] = new

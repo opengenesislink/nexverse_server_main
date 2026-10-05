@@ -84,3 +84,12 @@ Damit ist Roadmap 10.1 als Ledger-/Policy-/Adapter-Grundlage abgeschlossen. Die 
 2. 10.3 erweiterte Bankfunktionen, Statements, Requests, Limits, Gebühren und Reconciliation;
 3. 10.4 vollständige Viewer-Commerce-Flows;
 4. 10.5+ Land-, Objekt-, Marketplace- und weitere Wirtschaftsabläufe.
+
+
+## Virtuelle NVBAN-Konten (Roadmap 10.2)
+
+OpenGenesisLINK verwendet fuer virtuelle Kontokennungen das eigene Schema `NVBAN`. Eine Kennung sieht beispielsweise wie `NVBAN-ABCD-EFGH-JKLM-NPQR-STUV` aus. Der Praefix ist absichtlich kein ISO-Laendercode und die Kennung ist keine IBAN. Sie darf weder gegenueber Nutzern noch gegenueber externen Systemen als reales Bankkonto dargestellt werden.
+
+Die Kennung wird deterministisch aus der unveraenderlichen Ledger-Konto-UUID abgeleitet und anschliessend dauerhaft 1:1 in `ogl_ledger_virtual_accounts` gespeichert. Ledger-Schema v3 erzwingt Eindeutigkeit sowohl fuer die Konto-UUID als auch fuer die virtuelle Kennung. Die Kennung ist ein Alias fuer ein bestehendes NV$-Wallet; sie erzeugt kein zweites Saldo- oder Buchungssystem.
+
+`NexEconomyService.EnsureVirtualBankAccount()` bleibt die Policy-Grenze. World API und spaetere Banking-Funktionen greifen nicht direkt auf die SQL-Tabelle zu. `GET /api/v1/economy/virtual-account` liefert die eigene bzw. autorisiert ausgewaehlte NVBAN-Kennung mit `economy:read` und enthaelt einen ausdruecklichen Hinweis, dass es sich nicht um ein reales Bankkonto oder eine IBAN handelt.

@@ -10,7 +10,8 @@ for marker in (
     "public sealed class NexLedgerSqlStore",
     "INexLedgerStore",
     "INexLedgerAccountStateStore",
-    "public const int CurrentSchemaVersion = 2",
+    "INexVirtualBankAccountStore",
+    "public const int CurrentSchemaVersion = 3",
     "Func<DbConnection>",
     "IsolationLevel.Serializable",
     "ogl_ledger_accounts",
@@ -18,7 +19,9 @@ for marker in (
     "ogl_ledger_postings",
     "ogl_ledger_account_state",
     "ogl_ledger_account_events",
+    "ogl_ledger_virtual_accounts",
     "ApplySchemaVersion2(",
+    "ApplySchemaVersion3(",
     "UNIQUE (account_id, state_version)",
     "UNIQUE (transaction_id, sequence_no)",
     "UNIQUE (account_id, posting_id)",
@@ -80,5 +83,6 @@ for marker in (
 assert "Mono.Data.Sqlite.dll" in project
 assert "NexLedgerSqlStore.cs" in project
 assert "NexLedgerSqlRuntime.cs" in project
+assert "NexVirtualBankAccount.cs" in project
 
 print("NV$ durable SQL ledger contract: OK")
