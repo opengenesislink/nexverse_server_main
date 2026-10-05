@@ -53,7 +53,19 @@ for marker in (
     '"object_message_max_age_seconds"',
 ):
     assert marker in registry, f"missing Node registry object messaging projection: {marker}"
-    assert marker in node_api or marker.startswith("Cross"), f"missing Node API object messaging projection: {marker}"
+
+for marker in (
+    "node.CrossRegionObjectMessaging",
+    "node.CrossOwnerObjectMessaging",
+    "node.ObjectMessagesPerSecond",
+    "node.ObjectMessageMaxAgeSeconds",
+    "cross_region_object_messaging =",
+    "cross_owner_object_messaging =",
+    "object_messages_per_second =",
+    "object_message_max_age_seconds =",
+    "accepting_remote_object_messages =",
+):
+    assert marker in node_api, f"missing Node API object messaging projection: {marker}"
 
 for marker in (
     '["cross_region_object_messaging"]',
