@@ -2,6 +2,7 @@
 from pathlib import Path
 
 model = Path("NexVerse/Core/Economy/NexLedgerAccountState.cs").read_text(encoding="utf-8")
+virtual = Path("NexVerse/Core/Economy/NexVirtualBankAccount.cs").read_text(encoding="utf-8")
 service = Path("NexVerse/Core/Economy/NexEconomyService.cs").read_text(encoding="utf-8")
 memory = Path("NexVerse/Core/Economy/NexLedgerStore.cs").read_text(encoding="utf-8")
 sql = Path("NexVerse/Core/Economy/NexLedgerSqlStore.cs").read_text(encoding="utf-8")
@@ -18,11 +19,22 @@ for marker in (
     assert marker in model, f"missing account lifecycle marker: {marker}"
 
 for marker in (
+    'public const string Scheme = "NVBAN"',
+    'public const string Prefix = "NVBAN-"',
+    "CreateIdentifier(",
+    "IsValidIdentifier(",
+    "INexVirtualBankAccountStore",
+):
+    assert marker in virtual, f"missing virtual account marker: {marker}"
+
+for marker in (
     "public sealed class NexEconomyService",
     "EnsureResidentAccount(",
     "AdministrativeAdjustment(",
     "Reverse(",
     "SetAccountStatus(",
+    "EnsureVirtualBankAccount(",
+    "ResolveVirtualBankAccount(",
     "Insufficient NV$ balance",
     "Closed ledger accounts cannot be reopened",
     "A ledger account can be closed only with zero balance",
@@ -35,14 +47,19 @@ for marker in (
     "INexLedgerAccountStateStore",
     "m_AccountStates",
     "m_AccountStateEvents",
+    "m_VirtualBankAccountsByAccount",
+    "GetOrCreateVirtualBankAccount(",
 ):
     assert marker in memory, f"missing in-memory lifecycle marker: {marker}"
 
 for marker in (
-    "CurrentSchemaVersion = 2",
+    "CurrentSchemaVersion = 3",
     "ogl_ledger_account_state",
     "ogl_ledger_account_events",
     "ApplySchemaVersion2(",
+    "ApplySchemaVersion3(",
+    "ogl_ledger_virtual_accounts",
+    "GetOrCreateVirtualBankAccount(",
     "SetAccountStatus(",
     "ListAccountStateEvents(",
     "UNIQUE (account_id, state_version)",
@@ -65,7 +82,9 @@ for marker in (
     "merchant retired",
     "long-reason adjustment roundtrip mismatch",
     "schema version mismatch",
+    "resident NVBAN mapping mismatch",
+    "NVBAN mappings were not persisted",
 ):
     assert marker in regression, f"missing policy regression marker: {marker}"
 
-print("NV$ account lifecycle and policy contract: OK")
+print("NV$ account lifecycle, NVBAN and policy contract: OK")
