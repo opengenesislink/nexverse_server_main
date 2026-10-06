@@ -225,6 +225,14 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_banking_commerce.py
 
+      - name: Verify Chapter 11 NexGroups and NexExperiences
+        shell: bash
+        run: python3 tools/ci/verify_nexgroups_experiences.py
+
+      - name: Regression-test NexExperiences persistence and K/V
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/NexExperiencesRegression/NexExperiencesRegression.csproj
+
       - name: Verify NV dollar live database matrix contract
         shell: bash
         run: python3 tools/ci/verify_ledger_db_matrix.py
