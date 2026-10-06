@@ -10,6 +10,8 @@ robust = Path("bin/Robust.ini.example").read_text(encoding="utf-8")
 robust_hg = Path("bin/Robust.HG.ini.example").read_text(encoding="utf-8")
 opensim_config = Path("bin/OpenSim.ini.example").read_text(encoding="utf-8")
 viewer = Path("NexVerse/RegionModules/Discovery/NexDiscoveryViewerModule.cs").read_text(encoding="utf-8")
+web = Path("NexVerse/Server/Api/NexDiscoveryWebPage.cs").read_text(encoding="utf-8")
+robust_hg_deploy = Path("bin/Robust.HG.ini").read_text(encoding="utf-8")
 openapi = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 regression = Path("tools/ci/NexDiscoveryRegression/Program.cs").read_text(encoding="utf-8")
 
@@ -157,8 +159,7 @@ for marker in (
 ):
     assert marker in connector, f"missing discovery web registration marker: {marker}"
 
-robust_hg = read("bin/Robust.HG.ini")
-login_section = robust_hg.split("\n[LoginService]\n", 1)[1].split("\n[", 1)[0]
+login_section = robust_hg_deploy.split("\n[LoginService]\n", 1)[1].split("\n[", 1)[0]
 assert 'SearchURL = "https://world.stadt-nexverse.de/search?q=[QUERY]&type=[TYPE]&maturity=[MATURITY]"' in login_section
 assert 'DestinationGuide = "https://world.stadt-nexverse.de/destinations"' in login_section
 
