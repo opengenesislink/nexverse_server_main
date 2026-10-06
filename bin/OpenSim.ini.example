@@ -977,28 +977,45 @@
 [NexDiscoveryViewer]
     ; Optional viewer-facing capabilities for OpenGenesisLINK-aware viewers.
     ; Standard Firestorm/SL-compatible search remains untouched.
-    Enabled = false
-    WorldApiBaseUrl = "http://127.0.0.1:8002"
+    Enabled = true
+    LegacyFirestormCompatibility = true
+    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
     RequestTimeoutMilliseconds = 3000
 
 [NexExperiencesViewer]
     ; Central OpenGenesisLINK Experience adapter.
     ; Experience permissions and K/V state remain authoritative in Robust.
     Enabled = false
-    WorldApiBaseUrl = "http://127.0.0.1:8002"
+    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
 
     ; Service API key scoped to experiences:script.
     ; Keep the real value outside version control.
     ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
     RequestTimeoutMilliseconds = 3000
 
+[NexDiscoveryViewer]
+    ; Native capabilities for OpenGenesisLINK-aware viewers plus a
+    ; Firestorm/SL legacy directory bridge backed by the same NexDiscovery authority.
+    Enabled = true
+    LegacyFirestormCompatibility = true
+    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
+    RequestTimeoutMilliseconds = 3000
+
+[NexExperiencesViewer]
+    ; Native Experience adapter. Enable after NEXVERSE_EXPERIENCES_API_KEY
+    ; with experiences:script has been installed on the simulator host.
+    Enabled = false
+    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
+    ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
+    RequestTimeoutMilliseconds = 3000
+
 [NexEconomyViewer]
     ; Central OpenGenesisLINK NV$ Viewer/IMoneyModule adapter.
     ; The simulator never opens the ledger database directly.
-    Enabled = false
+    Enabled = true
 
     ; Base URL of the Robust World API that hosts [NexEconomy].
-    WorldApiBaseUrl = "http://127.0.0.1:8002"
+    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
 
     ; Service API key with economy:read and economy:transfer.
     ; Keep the real value outside version control.
@@ -1166,7 +1183,7 @@
 [Groups]
     ;# {Enabled} {} {Enable groups?} {true false} false
     ;; Enables the groups module
-    ; Enabled = false
+    Enabled = true
 
     ;# {LevelGroupCreate} {Enabled:true} {User level for creating groups} {} 0
     ;; Minimum user level required to create groups
@@ -1177,7 +1194,7 @@
     ;; http://code.google.com/p/flotsam/
     ; Module = Default
     ;; or... use Groups Module V2, which works for standalones and robust grids
-    ; Module = "Groups Module V2"
+    Module = "Groups Module V2"
 
     ;# {StorageProvider} {Module:Groups Module V2} {The DLL that provides the storage for V2} {OpenSim.Data.MySQL.dll}
     ; StorageProvider = OpenSim.Data.MySQL.dll
@@ -1189,11 +1206,11 @@
     ;; -- for V2 Groups, grided sim, non-HG use "Groups Remote Service Connector"
     ;; -- for V2 Groups, HG, both standalone and grided sim, use "Groups HG Service Connector"
     ;; Note that the quotes "" around the words are important!
-    ; ServicesConnectorModule = XmlRpcGroupsServicesConnector
+    ServicesConnectorModule = "Groups HG Service Connector"
 
     ;# {LocalService} {ServicesConnectorModule:Groups HG Service Connector} {Is the group service in this process or elsewhere?} {local remote} local
     ;; Used for V2 in HG only. If standalone, set this to local; if grided sim, set this to remote
-    ; LocalService = local
+    LocalService = remote
 
     ;# {SecretKey} {ServicesConnectorModule:Groups Remote Service Connector} {Secret key between sim and remote group service} {} ""
     ;; Used for V2 in Remote only.
@@ -1204,7 +1221,7 @@
     ;; e.g. http://yourxmlrpcserver.com/xmlrpc.php for Flotsam XmlRpc
     ;; or ${Const|PrivURL}:${Const|PrivatePort} for robust, V2
     ;; Leave it commented for standalones, V2
-    ; GroupsServerURI = ""
+    GroupsServerURI = "${Const|PrivURL}:${Const|PrivatePort}"
 
     ;# {HomeURI} {ServicesConnectorModule:Groups HG Service Connector} {What's the home address of this world?} {}
     ;; http://mygridserver.com:9000 or http://mygridserver.com:8002
@@ -1212,22 +1229,22 @@
     ; HomeURI = ""
 
     ;# {MessagingEnabled} {Module:GroupsModule Module:Groups Module V2} {Is groups messaging enabled?} {true false} true
-    ; MessagingEnabled = true
+    MessagingEnabled = true
 
     ;# {MessagingModule} {MessagingEnabled:true} {Module to use for groups messaging} {GroupsMessagingModule "Groups Messaging Module V2"} GroupsMessagingModule
     ; MessagingModule = GroupsMessagingModule
     ; or use "Groups Messaging Module V2" for Groups V2
-    ; MessagingModule = "Groups Messaging Module V2"
+    MessagingModule = "Groups Messaging Module V2"
 
     ;# {NoticesEnabled} {Module:GroupsModule Module:Groups Module V2} {Enable group notices?} {true false} true
     ;; Enable Group Notices
-    ; NoticesEnabled = true
+    NoticesEnabled = true
 
     ;# {MessageOnlineUsersOnly} {Module:GroupsModule Module} {Message online users only?} {true false} false
     ; Experimental option to only message online users rather than all users
     ; Should make large groups with few online members messaging faster, as the expense of more calls to presence service
     ; Applies Flotsam Group only. V2 has this always on, no other option
-    ; MessageOnlineUsersOnly = false
+    MessageOnlineUsersOnly = true
 
     ;; This makes the Groups module very chatty on the console.
     ; DebugEnabled = false
