@@ -16,6 +16,7 @@ using OpenSim.Framework;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Groups;
 using OpenSim.Services.Interfaces;
+using GridRegion = OpenSim.Services.Interfaces.GridRegion;
 
 namespace NexVerse.Server.Api
 {
