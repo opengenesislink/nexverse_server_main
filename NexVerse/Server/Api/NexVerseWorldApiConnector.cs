@@ -444,26 +444,32 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK Land Commerce API"),
                     true);
 
-                GroupsService nexGroupsService =
-                    new GroupsService(
-                        config);
+                IConfig nexGroupsConfig =
+                    config.Configs["NexGroups"];
 
-                NexGroupsApi nexGroupsApi =
-                    new NexGroupsApi(
-                        authenticator,
-                        auditSink,
-                        nexGroupsService,
-                        () =>
-                            NexEconomyConnector.Current?.Enabled == true
-                                ? NexEconomyConnector.Current.Economy
-                                : null);
+                if (nexGroupsConfig?.GetBoolean("Enabled", false) == true)
+                {
+                    GroupsService nexGroupsService =
+                        new GroupsService(
+                            config);
 
-                server.AddSimpleStreamHandler(
-                    new SimpleStreamHandler(
-                        "/api/v1/groups",
-                        apiGate.Wrap(nexGroupsApi.Handle),
-                        "OpenGenesisLINK NexGroups API"),
-                    true);
+                    NexGroupsApi nexGroupsApi =
+                        new NexGroupsApi(
+                            authenticator,
+                            auditSink,
+                            nexGroupsService,
+                            () =>
+                                NexEconomyConnector.Current?.Enabled == true
+                                    ? NexEconomyConnector.Current.Economy
+                                    : null);
+
+                    server.AddSimpleStreamHandler(
+                        new SimpleStreamHandler(
+                            "/api/v1/groups",
+                            apiGate.Wrap(nexGroupsApi.Handle),
+                            "OpenGenesisLINK NexGroups API"),
+                        true);
+                }
 
                 IConfig experiencesConfig =
                     config.Configs["NexExperiences"];
