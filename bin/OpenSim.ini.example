@@ -950,9 +950,9 @@
     ;DATA_SRV_MISearch = "http://metaverseink.com/cgi-bin/register.py"
 
 [Economy]
-    ; the economy module in use
-    ; To use other modules you need to override this setting
-    ; economymodule = BetaGridLikeMoneyModule
+    ; OpenGenesisLINK authoritative viewer economy adapter.
+    ; Explicit selection disables the legacy SampleMoneyModule.
+    economymodule = NexVerseMoneyModule
 
     ; the url of the economy service.
     ; this must match the grid economy setting (also known as helperURI or CurrencyServer, etc)
@@ -1027,6 +1027,10 @@
     UploadCharge = 0
     GroupCreationCharge = 0
     RequestTimeoutMilliseconds = 3000
+
+    ; Optional secure web portal opened/recommended by the legacy Firestorm
+    ; buy-currency helper. No currency is minted by unauthenticated XML-RPC.
+    CurrencyPurchasePortalUrl = ""
 
 [YEngine]
     ;; implements non preemptive microthreading, so fixing problems like llSleep or long events handlers
