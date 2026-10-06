@@ -1964,6 +1964,7 @@
       <Reference name="log4net"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
+      <Reference name="OpenMetaverse.StructuredData"/>
       <Reference name="XMLRPC"/>
       <Reference name="OpenSim"/>
       <Reference name="OpenSim.Framework"/>
