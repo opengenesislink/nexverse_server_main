@@ -1,6 +1,6 @@
 # OpenGenesisLINK
 
-**OpenGenesisLINK v0.9.3.5 Dev** is an independent virtual-world server platform developed by the OpenGenesisLINK project.
+**OpenGenesisLINK v0.9.3.7 Dev** is an independent virtual-world server platform developed by the OpenGenesisLINK project.
 
 This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Release** source package. It is intentionally maintained as its own repository rather than as a GitHub fork. The long-term objective is an independent OpenGenesisLINK development line whose architecture, services, protocols, modules, tooling and branding may diverge substantially from OpenSimulator.
 
@@ -21,7 +21,7 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The active development version is **OpenGenesisLINK v0.9.3.5 Dev**.
+The active development version is **OpenGenesisLINK v0.9.3.7 Dev**.
 
 OpenGenesisLINK continues the existing 0.9.3.x development line. OpenSimulator 0.9.3.0 remains the historical source baseline; upstream OpenSimulator version numbers do not automatically become OpenGenesisLINK version numbers.
 
