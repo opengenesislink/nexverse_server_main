@@ -87,6 +87,22 @@ for config in (robust, robust_hg):
     assert 'TeleportBaseUri = ""' in config
 
 for marker in (
+    "NexDiscoveryViewerModule",
+    '"NexSearch"',
+    '"NexPlaces"',
+    '"NexLandPortal"',
+    '"NexDestinationGuide"',
+    "/api/v1/search",
+    "/api/v1/places",
+    "/api/v1/land-portal",
+    "/api/v1/destinations",
+):
+    assert marker in viewer, f"missing viewer discovery capability marker: {marker}"
+
+assert "[NexDiscoveryViewer]" in opensim_config
+assert 'WorldApiBaseUrl = "http://127.0.0.1:8002"' in opensim_config
+
+for marker in (
     "submitted destination leaked into public results",
     "destination moderation failed",
     "destination popularity tracking failed",
