@@ -414,10 +414,10 @@ jobs:
         shell: bash
         run: |
           grep -F 'public const string ProductName = "OpenGenesisLINK";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string VersionNumber = "0.9.3.7";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string AssemblyVersionNumber = "0.9.3.7";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string AssemblyVersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string MilestoneVersion = "0.9.3.7";' NexVerse/Core/NexVersePlatform.cs
+          grep -F 'public const string MilestoneVersion = "0.9.3.8";' NexVerse/Core/NexVersePlatform.cs
           grep -F 'Development checkpoint status: completed 3 October 2026' doc/NexVerse/CHECKPOINT_0.9.3.2.md
           grep -F '36/36 explicit checklist items completed' doc/NexVerse/CHECKPOINT_0.9.3.2.md
 
@@ -467,7 +467,7 @@ jobs:
           grep -F '"status": "ok"' /tmp/nexverse-health.json
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/version > /tmp/nexverse-version.json
-          grep -F '"server_version": "OpenGenesisLINK 0.9.3.7 Dev"' /tmp/nexverse-version.json
+          grep -F '"server_version": "OpenGenesisLINK 0.9.3.8 Dev"' /tmp/nexverse-version.json
           grep -F '"api_version": "v1"' /tmp/nexverse-version.json
           grep -F '"language": "de-DE"' /tmp/nexverse-version.json
 
@@ -678,6 +678,28 @@ jobs:
           ):
               assert inventory_path in doc["paths"], f"Inventory OpenAPI path missing: {inventory_path}"
 
+          for discovery_path in (
+              "/api/v1/search",
+              "/api/v1/places",
+              "/api/v1/places/{placeId}",
+              "/api/v1/events",
+              "/api/v1/classifieds",
+              "/api/v1/land-portal",
+              "/api/v1/land-portal/owned",
+              "/api/v1/destinations",
+              "/api/v1/destinations/categories",
+              "/api/v1/destinations/{destinationId}",
+              "/api/v1/destinations/{destinationId}/visit",
+              "/api/v1/destinations/{destinationId}/moderation",
+          ):
+              assert discovery_path in doc["paths"], f"Discovery OpenAPI path missing: {discovery_path}"
+
+          assert doc["paths"]["/api/v1/search"]["get"]["security"] == []
+          assert doc["paths"]["/api/v1/places"]["get"]["security"] == []
+          assert doc["paths"]["/api/v1/places"]["post"]["x-nexverse-scope"] == "discovery:manage"
+          assert doc["paths"]["/api/v1/destinations"]["post"]["x-nexverse-scope"] == "discovery:submit"
+          assert doc["paths"]["/api/v1/destinations/{destinationId}/moderation"]["post"]["x-nexverse-scope"] == "discovery:manage"
+
           assert doc["components"]["securitySchemes"]["apiKeyAuth"]["name"] == "X-NexVerse-Api-Key"
           assert doc["x_nexverse_idempotency"]["protected_operations"] == [
               "POST /api/v1/users",
@@ -688,14 +710,16 @@ jobs:
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
-          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.7"
+          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.8"
           assert doc["x_nexverse_version_history"][0]["status"] == "development"
-          assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.6"
+          assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.7"
           assert doc["x_nexverse_version_history"][1]["status"] == "completed"
-          assert doc["x_nexverse_version_history"][2]["server_line"] == "0.9.3.5"
+          assert doc["x_nexverse_version_history"][2]["server_line"] == "0.9.3.6"
           assert doc["x_nexverse_version_history"][2]["status"] == "completed"
-          assert doc["x_nexverse_version_history"][3]["server_line"] == "0.9.3.4"
-          assert doc["x_nexverse_version_history"][3]["status"] == "release"
+          assert doc["x_nexverse_version_history"][3]["server_line"] == "0.9.3.5"
+          assert doc["x_nexverse_version_history"][3]["status"] == "completed"
+          assert doc["x_nexverse_version_history"][4]["server_line"] == "0.9.3.4"
+          assert doc["x_nexverse_version_history"][4]["status"] == "release"
           assert doc["x_nexverse_changelog"]
           assert doc["x_nexverse_changelog"][0]["version"] == "0.9.3.3"
           assert "0.9.3.1 Dev" not in json.dumps(doc, ensure_ascii=False)
@@ -716,7 +740,7 @@ jobs:
           assert "/api/v1/estates/{estateId}/regions/{regionId}" in estate_change["endpoints"]
 
           roadmap = doc["x_nexverse_roadmap"]
-          assert roadmap["current_milestone"] == "0.9.3.7"
+          assert roadmap["current_milestone"] == "0.9.3.8"
           assert roadmap["current_codename"] == ""
           milestones = {item["version"]: item for item in roadmap["milestones"]}
           assert milestones["0.9.3.1"]["status"] == "released"
@@ -728,6 +752,7 @@ jobs:
           assert milestones["0.9.3.5"]["checklist"] == {"completed": 83, "total": 83, "open": 0}
           assert milestones["0.9.3.6"]["status"] == "completed"
           assert milestones["0.9.3.7"]["status"] == "completed"
+          assert milestones["0.9.3.8"]["status"] == "completed"
 
           from pathlib import Path
           roadmap_text = Path("../doc/NexVerse/ROADMAP.md").read_text(encoding="utf-8")
