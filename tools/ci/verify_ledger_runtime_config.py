@@ -42,7 +42,10 @@ for path in (
     assert 'NexEconomyConnector = "NexEconomy@' in text, f"missing connector registration: {path}"
     assert "[NexEconomy]" in text, f"missing NexEconomy section: {path}"
     section = text.split("[NexEconomy]", 1)[1].split("\n[", 1)[0]
-    assert "Enabled = false" in section, f"NexEconomy must default disabled: {path}"
+    expected_enabled = path in ("bin/Robust.HG.ini.example", "bin/Robust.HG.ini")
+    assert ("Enabled = true" in section) == expected_enabled, (
+        f"NexEconomy HG deployment activation mismatch: {path}"
+    )
     assert 'StorageProvider = ""' in section, f"NexEconomy must inherit provider by default: {path}"
     assert 'ConnectionString = ""' in section, f"NexEconomy must inherit connection by default: {path}"
     assert "InitializeSchema = true" in section, f"NexEconomy schema bootstrap setting missing: {path}"
