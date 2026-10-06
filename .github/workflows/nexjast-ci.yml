@@ -73,6 +73,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/HypergridUriRegression/HypergridUriRegression.csproj
 
+      - name: Verify HG deployment endpoints
+        shell: bash
+        run: python3 tools/ci/verify_hg_deployment_endpoints.py
+
       - name: Verify simulator runtime profile
         shell: bash
         run: python3 tools/ci/verify_simulator_runtime_profile.py
