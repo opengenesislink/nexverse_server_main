@@ -669,15 +669,23 @@ namespace NexVerse.Core.Experiences
         private static string ValidateKey(string key)
         {
             string normalized = (key ?? string.Empty).Trim();
-            if (normalized.Length == 0 || normalized.Length > MaxKeyLength)
+
+            if (normalized.Length == 0 ||
+                System.Text.Encoding.UTF8.GetByteCount(normalized) > MaxKeyLength)
+            {
                 throw new ArgumentOutOfRangeException(nameof(key));
+            }
+
             return normalized;
         }
 
         private static void ValidateValue(string value)
         {
-            if ((value ?? string.Empty).Length > MaxValueLength)
+            if (System.Text.Encoding.UTF8.GetByteCount(value ?? string.Empty) >
+                MaxValueLength)
+            {
                 throw new ArgumentOutOfRangeException(nameof(value));
+            }
         }
 
         private void AddLog(Guid experienceId, string actor, string action, string detail)
