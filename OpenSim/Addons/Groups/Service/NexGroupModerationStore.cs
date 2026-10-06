@@ -11,7 +11,7 @@ namespace OpenSim.Groups
 {
     public sealed class NexGroupBanRecord
     {
-        public UUID GroupID { get; set; } = UUID.Zero;
+        public string GroupID { get; set; } = string.Empty;
         public string AgentID { get; set; } = string.Empty;
         public string ActorID { get; set; } = string.Empty;
         public string Reason { get; set; } = string.Empty;
@@ -52,7 +52,10 @@ namespace OpenSim.Groups
             lock (m_Sync)
             {
                 return m_State.Bans.Any(x =>
-                    x.GroupID == groupId &&
+                    string.Equals(
+                        x.GroupID,
+                        groupId.ToString(),
+                        StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(
                         x.AgentID,
                         agentId,
@@ -87,7 +90,10 @@ namespace OpenSim.Groups
             {
                 NexGroupBanRecord existing =
                     m_State.Bans.FirstOrDefault(x =>
-                        x.GroupID == groupId &&
+                        string.Equals(
+                            x.GroupID,
+                            groupId.ToString(),
+                            StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(
                             x.AgentID,
                             parsedAgent.ToString(),
@@ -99,7 +105,7 @@ namespace OpenSim.Groups
                 NexGroupBanRecord record =
                     new NexGroupBanRecord
                     {
-                        GroupID = groupId,
+                        GroupID = groupId.ToString(),
                         AgentID = parsedAgent.ToString(),
                         ActorID = actorId ?? string.Empty,
                         Reason = (reason ?? string.Empty).Trim(),
@@ -118,7 +124,10 @@ namespace OpenSim.Groups
             {
                 int removed =
                     m_State.Bans.RemoveAll(x =>
-                        x.GroupID == groupId &&
+                        string.Equals(
+                        x.GroupID,
+                        groupId.ToString(),
+                        StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(
                             x.AgentID,
                             agentId,
@@ -135,7 +144,11 @@ namespace OpenSim.Groups
         {
             lock (m_Sync)
             {
-                if (m_State.Bans.RemoveAll(x => x.GroupID == groupId) > 0)
+                if (m_State.Bans.RemoveAll(x =>
+                    string.Equals(
+                        x.GroupID,
+                        groupId.ToString(),
+                        StringComparison.OrdinalIgnoreCase)) > 0)
                     Save();
             }
         }
