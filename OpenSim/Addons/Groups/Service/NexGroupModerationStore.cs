@@ -68,7 +68,11 @@ namespace OpenSim.Groups
             lock (m_Sync)
             {
                 return m_State.Bans
-                    .Where(x => x.GroupID == groupId)
+                    .Where(x =>
+                        string.Equals(
+                            x.GroupID,
+                            groupId.ToString(),
+                            StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(x => x.CreatedAt)
                     .Select(Clone)
                     .ToArray();
