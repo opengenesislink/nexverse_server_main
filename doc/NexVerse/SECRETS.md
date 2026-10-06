@@ -19,6 +19,13 @@ For the current grid configuration:
 - `NEXVERSE_ROBUST_CERT_PASSWORD` — password for the Robust TLS certificate container when that certificate is enabled.
 - `NEXVERSE_NATIVE_TOKEN_SIGNING_KEY` — HMAC signing key for NexVerse native access tokens; generate at least 32 random bytes (for example `openssl rand -hex 64`).
 
+Simulator service variables are also declared in `bin/config-include/GridCommon.ini` so Nini can resolve every `${Environment|...}` expression during startup:
+
+- `NEXVERSE_ECONOMY_API_KEY` — required only when `[NexEconomyViewer] Enabled = true`; use a restricted machine key with `economy:read` and `economy:transfer`.
+- `NEXVERSE_EXPERIENCES_API_KEY` — required only when `[NexExperiencesViewer] Enabled = true`; use a restricted machine key with `experiences:script`.
+
+The declarations themselves stay empty in the tracked INI. When the corresponding module is disabled, the empty declaration is sufficient for configuration expansion. When the module is enabled, provide the real value through a protected runtime secret source.
+
 ## Recommended production setup
 
 Create the directory and file once:

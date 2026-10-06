@@ -61,6 +61,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_no_plaintext_runtime_secrets.py
 
+      - name: Verify runtime environment expansion declarations
+        shell: bash
+        run: python3 tools/ci/verify_environment_expansions.py
+
       - name: Verify OSSL policy coverage
         shell: bash
         run: python3 tools/ci/verify_ossl_policy.py
