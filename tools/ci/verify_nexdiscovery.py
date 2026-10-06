@@ -109,15 +109,26 @@ for marker in (
     '"NexPlaces"',
     '"NexLandPortal"',
     '"NexDestinationGuide"',
+    "LegacyFirestormCompatibility",
+    "OnDirPlacesQuery",
+    "OnDirLandQuery",
+    "OnDirClassifiedQuery",
+    "SendDirPlacesReply",
+    "SendDirLandReply",
+    "SendDirClassifiedReply",
     "/api/v1/search",
     "/api/v1/places",
+    "/api/v1/classifieds",
     "/api/v1/land-portal",
     "/api/v1/destinations",
 ):
     assert marker in viewer, f"missing viewer discovery capability marker: {marker}"
 
 assert "[NexDiscoveryViewer]" in opensim_config
-assert 'WorldApiBaseUrl = "http://127.0.0.1:8002"' in opensim_config
+viewer_config = opensim_config.split("[NexDiscoveryViewer]", 1)[1].split("\n[", 1)[0]
+assert "Enabled = true" in viewer_config
+assert "LegacyFirestormCompatibility = true" in viewer_config
+assert 'WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"' in viewer_config
 
 for marker in (
     "submitted destination leaked into public results",

@@ -262,7 +262,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
 
         bool m_disable_underground_movement = true;
 
-        private string m_lsl_shard = "OpenSim";
+        private string m_lsl_shard = global::OpenSim.VersionInfo.ProductName;
         private string m_lsl_user_agent = string.Empty;
 
         private int m_linksetDataLimit = 32 * 1024;
@@ -6039,7 +6039,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                         return "";
 
                 case "region_product_sku":
-                    return "OpenSim";
+                    return global::OpenSim.VersionInfo.ProductName;
 
                 case "region_start_time":
                     return World.UnixStartTime.ToString();
@@ -6049,7 +6049,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                     return time.ToString();
 
                 case "sim_channel":
-                    return "OpenSim";
+                    return global::OpenSim.VersionInfo.ProductName;
 
                 case "sim_version":
                     return World.GetSimulatorVersion();
@@ -12821,7 +12821,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                             };
                             break;
                         case ScriptBaseClass.DATA_SIM_RELEASE:
-                            lreply = "OpenSim";
+                            lreply = global::OpenSim.VersionInfo.ProductName;
                             break;
                         default:
                             ScriptSleep(m_sleepMsOnRequestSimulatorData);
@@ -12874,7 +12874,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                                 };
                                 break;
                             case ScriptBaseClass.DATA_SIM_RELEASE:
-                                reply = "OpenSim";
+                                reply = global::OpenSim.VersionInfo.ProductName;
                                 break;
                             default:
                                 break;

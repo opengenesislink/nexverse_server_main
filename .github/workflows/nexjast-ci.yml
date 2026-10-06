@@ -421,6 +421,8 @@ jobs:
           grep -F 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const string AssemblyVersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
+          grep -F 'return global::OpenSim.VersionInfo.ProductName;' OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs
+          grep -F 'private string m_lsl_shard = global::OpenSim.VersionInfo.ProductName;' OpenSim/Region/CoreModules/Scripting/LSLHttp/UrlModule.cs
           grep -F 'public const string MilestoneVersion = "0.9.3.8";' NexVerse/Core/NexVersePlatform.cs
           grep -F 'Development checkpoint status: completed 3 October 2026' doc/NexVerse/CHECKPOINT_0.9.3.2.md
           grep -F '36/36 explicit checklist items completed' doc/NexVerse/CHECKPOINT_0.9.3.2.md

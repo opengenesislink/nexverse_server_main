@@ -96,7 +96,7 @@ namespace OpenSim.Region.CoreModules.Scripting.LSLHttp
         protected IHttpServer m_HttpServer = null;
         protected IHttpServer m_HttpsServer = null;
 
-        private string m_lsl_shard = "OpenSim";
+        private string m_lsl_shard = global::OpenSim.VersionInfo.ProductName;
         private string m_lsl_user_agent = string.Empty;
 
         public string ExternalHostNameForLSL { get; protected set; }
