@@ -542,10 +542,10 @@
     MapTileURL = "${Const|BaseURL}:${Const|PublicPort}/";
 
     ; Url to search service
-    ; SearchURL = "${Const|BaseURL}:${Const|PublicPort}/";
+    SearchURL = "https://world.stadt-nexverse.de/search?q=[QUERY]&type=[TYPE]&maturity=[MATURITY]"
 
     ; For V3 destination guide
-    ; DestinationGuide = "${Const|BaseURL}/guide"
+    DestinationGuide = "https://world.stadt-nexverse.de/destinations"
 
     ; For V3 avatar picker (( work in progress ))
     ; AvatarPicker = "${Const|BaseURL}/avatars"
