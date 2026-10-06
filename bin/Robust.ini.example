@@ -232,6 +232,16 @@
     ; This file is server-owned and must be writable by the Robust process.
     StorePath = "data/nexverse-experiences.json"
 
+[NexDiscovery]
+    ; Native OpenGenesisLINK discovery authority for Places, Events,
+    ; Classifieds and Destination Guide curation.
+    StorePath = "data/opengenesislink-discovery.json"
+
+    ; Optional hop/teleport base used when a Place does not provide an
+    ; explicit TeleportUri, for example:
+    ; TeleportBaseUri = "hop://login.mynexverse.de"
+    TeleportBaseUri = ""
+
 [NexEconomy]
     ; Native OpenGenesisLINK NV$ double-entry ledger bootstrap.
     ; Disabled until the durable database backend has been validated for this installation.

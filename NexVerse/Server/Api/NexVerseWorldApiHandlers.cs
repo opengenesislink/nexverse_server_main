@@ -190,6 +190,41 @@ namespace NexVerse.Server.Api
                     ("post", "NV$-Konto sperren, freigeben oder schließen", "admin:*", "200")),
                 ["/api/v1/economy/accounts/ensure"] = AuthenticatedOperations(
                     ("post", "Vertrauenswürdiges Gruppen-, Business-, Estate- oder Objekt-Wallet provisionieren", "economy:transfer (service/admin)", "200")),
+                ["/api/v1/search"] = GetOperation(
+                    "NexSearch über Personen, Gruppen, Regionen, Parcels, Places, Events, Land, Classifieds, Experiences und Destinations"),
+                ["/api/v1/places"] = MergeOperations(
+                    GetOperation("Veröffentlichte Places durchsuchen"),
+                    AuthenticatedOperations(
+                        ("post", "Place anlegen oder aktualisieren", "discovery:manage", "201"))),
+                ["/api/v1/places/{placeId}"] = MergeOperations(
+                    GetOperation("Veröffentlichtes Place-Profil lesen"),
+                    AuthenticatedOperations(
+                        ("put", "Place aktualisieren", "discovery:manage", "200"),
+                        ("delete", "Place und abhängige Discovery-Einträge löschen", "discovery:manage", "200"))),
+                ["/api/v1/events"] = MergeOperations(
+                    GetOperation("Veröffentlichte Discovery-Events durchsuchen"),
+                    AuthenticatedOperations(
+                        ("post", "Discovery-Event anlegen oder aktualisieren", "discovery:manage", "201"))),
+                ["/api/v1/classifieds"] = MergeOperations(
+                    GetOperation("Veröffentlichte Classifieds durchsuchen"),
+                    AuthenticatedOperations(
+                        ("post", "Classified anlegen oder aktualisieren", "discovery:manage", "201"))),
+                ["/api/v1/land-portal"] = GetOperation(
+                    "Aktive NV$-Landangebote als Landportal durchsuchen"),
+                ["/api/v1/land-portal/owned"] = AuthenticatedOperations(
+                    ("get", "Eigene oder autorisierte Landangebote lesen", "discovery:read", "200")),
+                ["/api/v1/destinations"] = MergeOperations(
+                    GetOperation("Freigegebene Destination-Guide-Einträge durchsuchen"),
+                    AuthenticatedOperations(
+                        ("post", "Destination zur Moderation einreichen", "discovery:submit", "201"))),
+                ["/api/v1/destinations/categories"] = GetOperation(
+                    "Destination-Guide-Kategorien und Unterkategorien lesen"),
+                ["/api/v1/destinations/{destinationId}"] = GetOperation(
+                    "Freigegebene Destination mit Place- und Event-Bezug lesen"),
+                ["/api/v1/destinations/{destinationId}/visit"] = PublicOperations(
+                    ("post", "Destination-Aufruf für Popularitätsranking registrieren", "200")),
+                ["/api/v1/destinations/{destinationId}/moderation"] = AuthenticatedOperations(
+                    ("post", "Destination freigeben oder ablehnen", "discovery:manage", "200")),
                 ["/api/v1/groups"] = AuthenticatedOperations(
                     ("get", "NexGroups durchsuchen", "groups:read", "200"),
                     ("post", "NexGroup erstellen", "groups:manage", "201")),
@@ -487,6 +522,23 @@ namespace NexVerse.Server.Api
                 "EconomyAccountStateResponse",
                 "200");
             ApplyJsonContract(paths, "/api/v1/economy/accounts/ensure", "post", "EconomyWalletEnsureRequest", "EconomyBalanceResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/search", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/places", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/places", "post", "DiscoveryPlaceRequest", "DiscoveryObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/places/{placeId}", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/places/{placeId}", "put", "DiscoveryPlaceRequest", "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/events", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/events", "post", "DiscoveryMutationRequest", "DiscoveryObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/classifieds", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/classifieds", "post", "DiscoveryMutationRequest", "DiscoveryObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/land-portal", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/land-portal/owned", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/destinations", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/destinations", "post", "DiscoveryDestinationRequest", "DiscoveryObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/destinations/categories", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/destinations/{destinationId}", "get", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/destinations/{destinationId}/visit", "post", null, "DiscoveryObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/destinations/{destinationId}/moderation", "post", "DiscoveryModerationRequest", "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/groups", "get", null, "Chapter11ObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/groups", "post", "NexGroupCreateRequest", "Chapter11ObjectResponse", "201");
             ApplyJsonContract(paths, "/api/v1/groups/{groupId}", "get", null, "Chapter11ObjectResponse", "200");
@@ -1210,9 +1262,24 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.7",
+                        server_line = "0.9.3.8",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
+                        published = "2026-10-06",
+                        compatibility = "OpenGenesisLINK v0.9.3.8 Dev — NexSearch, Places, Land Portal und Destination Guide",
+                        highlights = new[]
+                        {
+                            "NexSearch aggregiert People, Groups, Regions, Parcels, Places, Events, Land, Classifieds, Experiences und Destinations",
+                            "Places und Destination Guide mit persistenter Moderation, Kategorien, Collections, Events, Popularitaet und Teleport-Links",
+                            "Land Portal projiziert die autoritative NV$-Land-Commerce-Datenbasis; optionale Viewer-CAPS ergaenzen Firestorm ohne Legacy-Suche zu ersetzen"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.7",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "completed",
                         published = "2026-10-06",
                         compatibility = "OpenGenesisLINK v0.9.3.7 Dev — NexGroups, NexExperiences und Experience LSL",
                         highlights = new[]
@@ -1627,7 +1694,7 @@ namespace NexVerse.Server.Api
                         },
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "completed", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel abgeschlossen.", evidence = new[] { "Doppelte Buchfuehrung und persistente Konten", "NVBAN/Banking/Commerce/Landhandel", "Live-MariaDB/PostgreSQL- und Runtime-CI gruen" } },
                         new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "completed", checklist = (object)null, summary = "NexGroups-Paritaetsschicht, native NexExperiences und Experience-LSL abgeschlossen.", evidence = new[] { "NexGroups Management/Moderation/API plus NV$-Gruppenkonto", "Native Experience-Permissions, Policies, Script-Bindings und persistentes K/V", "Release-Build, Hypergrid, LLLogin, World API und Chapter-11-CI gruen" } },
-                        new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "planned", checklist = (object)null, summary = "Suche, Orte, Landportal und Dienste zur Zielentdeckung.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "completed", checklist = (object)null, summary = "NexSearch, Places, Land Portal und Destination Guide einschließlich optionaler Viewer-CAPS abgeschlossen.", evidence = new[] { "NexSearch aggregiert autoritative People-, Groups-, Grid-, Experience- und NV$-Landdaten", "Persistente Places, Events, Classifieds und moderierte Destinationen", "NexSearch/NexPlaces/NexLandPortal/NexDestinationGuide Viewer-CAPS sowie CI-Persistenz- und Moderationsregression" } },
                         new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC-/Janus-Sprachplattform als Ersatz für entfernte Legacy-Sprachsysteme.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.11", codename = "", title = "LSL-Parität I — Kernkonformität", status = "planned", checklist = (object)null, summary = "Maschinenlesbare LSL-Matrix, Konformitätstests und Härtung der Script-Sandbox.", evidence = Array.Empty<string>() },
@@ -1913,6 +1980,60 @@ namespace NexVerse.Server.Api
             {
                 ["post"] = operation
             };
+        }
+
+        private static object PublicOperations(
+            params (string method, string summary, string successCode)[] operations)
+        {
+            Dictionary<string, object> result =
+                new Dictionary<string, object>();
+
+            foreach ((string method, string summary, string successCode) operationSpec in operations)
+            {
+                result[operationSpec.method] =
+                    new Dictionary<string, object>
+                    {
+                        ["summary"] = operationSpec.summary,
+                        ["security"] = Array.Empty<object>(),
+                        ["responses"] = new Dictionary<string, object>
+                        {
+                            [operationSpec.successCode] = new { description = "Erfolgreiche Antwort" },
+                            ["400"] = JsonResponse("Ungültige Anfrage", "Error"),
+                            ["404"] = JsonResponse("Ressource nicht gefunden", "Error"),
+                            ["429"] = JsonResponse("Rate-Limit überschritten", "Error")
+                        },
+                        ["x-nexverse-audience"] = new[] { "citizen", "admin", "service" },
+                        ["x-nexverse-purpose"] = operationSpec.summary,
+                        ["x-nexverse-ai-instruction"] =
+                            "Öffentliche Discovery-Operation. Keine zusätzlichen Rechte aus der Lesbarkeit oder Aufrufbarkeit ableiten.",
+                        ["x-nexverse-security-constraints"] =
+                            new[]
+                            {
+                                "Keine Zugangsdaten senden, sofern die Operation sie nicht ausdrücklich erfordert.",
+                                "Rate-Limits und Korrelations-IDs beachten."
+                            }
+                    };
+            }
+
+            return result;
+        }
+
+        private static object MergeOperations(
+            params object[] operationGroups)
+        {
+            Dictionary<string, object> result =
+                new Dictionary<string, object>();
+
+            foreach (object group in operationGroups)
+            {
+                if (group is Dictionary<string, object> operations)
+                {
+                    foreach (KeyValuePair<string, object> pair in operations)
+                        result[pair.Key] = pair.Value;
+                }
+            }
+
+            return result;
         }
 
         private static object AuthenticatedOperations(
@@ -2409,6 +2530,66 @@ namespace NexVerse.Server.Api
                         },
                         ["currency"] = new { type = "object" },
                         ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["DiscoveryObjectResponse"] = new
+                {
+                    type = "object"
+                },
+                ["DiscoveryMutationRequest"] = new
+                {
+                    type = "object",
+                    additionalProperties = true
+                },
+                ["DiscoveryPlaceRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "region_id", "name" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["place_id"] = new { type = "string", format = "uuid" },
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["region_name"] = new { type = "string", maxLength = 255 },
+                        ["parcel_id"] = new { type = "string", format = "uuid" },
+                        ["parcel_local_id"] = new { type = "integer", minimum = 0 },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 },
+                        ["description"] = new { type = "string", maxLength = 8192 },
+                        ["maturity"] = new { type = "string", @enum = new[] { "general", "moderate", "adult" } },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["teleport_uri"] = new { type = "string", maxLength = 2048 },
+                        ["traffic"] = new { type = "number", minimum = 0 },
+                        ["land_use"] = new { type = "string", @enum = new[] { "other", "residential", "commercial", "mixed" } },
+                        ["region_type"] = new { type = "string", maxLength = 128 },
+                        ["featured"] = new { type = "boolean" },
+                        ["state"] = new { type = "string", @enum = new[] { "draft", "submitted", "approved", "rejected" } }
+                    }
+                },
+                ["DiscoveryDestinationRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "place_id", "name" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["destination_id"] = new { type = "string", format = "uuid" },
+                        ["place_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 },
+                        ["description"] = new { type = "string", maxLength = 8192 },
+                        ["category"] = new { type = "string", maxLength = 128 },
+                        ["subcategory"] = new { type = "string", maxLength = 128 },
+                        ["collection"] = new { type = "string", maxLength = 128 },
+                        ["maturity"] = new { type = "string", @enum = new[] { "general", "moderate", "adult" } },
+                        ["featured"] = new { type = "boolean" },
+                        ["editor_pick"] = new { type = "boolean" }
+                    }
+                },
+                ["DiscoveryModerationRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "state" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["state"] = new { type = "string", @enum = new[] { "approved", "rejected" } },
+                        ["note"] = new { type = "string", maxLength = 2048 }
                     }
                 },
                 ["Chapter11ObjectResponse"] = new

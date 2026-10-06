@@ -35,6 +35,9 @@ namespace NexVerse.Core.Security
         public const string ExperiencesRead = "experiences:read";
         public const string ExperiencesManage = "experiences:manage";
         public const string ExperiencesScript = "experiences:script";
+        public const string DiscoveryRead = "discovery:read";
+        public const string DiscoverySubmit = "discovery:submit";
+        public const string DiscoveryManage = "discovery:manage";
     }
 
     public sealed class NexPrincipal

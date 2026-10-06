@@ -974,6 +974,13 @@
     ;; Money Unit fee to create groups.  Default is 0.
     ; PriceGroupCreate = 0
 
+[NexDiscoveryViewer]
+    ; Optional viewer-facing capabilities for OpenGenesisLINK-aware viewers.
+    ; Standard Firestorm/SL-compatible search remains untouched.
+    Enabled = false
+    WorldApiBaseUrl = "http://127.0.0.1:8002"
+    RequestTimeoutMilliseconds = 3000
+
 [NexExperiencesViewer]
     ; Central OpenGenesisLINK Experience adapter.
     ; Experience permissions and K/V state remain authoritative in Robust.
