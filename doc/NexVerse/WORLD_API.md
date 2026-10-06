@@ -721,3 +721,65 @@ Script routes provide Experience resolution/details, resident permission checks,
 The shared LSL API/YEngine now exposes the Experience permission and persistent-storage surface: `llRequestExperiencePermissions`, `experience_permissions`, `experience_permissions_denied`, `llGetExperienceDetails`, `llAgentInExperience`, CRUD K/V calls, K/V size/count/key enumeration and `llGetExperienceErrorMessage`.
 
 Experience permission decisions and K/V data are grid-authoritative through Robust. YEngine reserves event IDs 26 and 27 for the two Experience permission events.
+
+
+## NexDiscovery — Roadmap 12 / OpenGenesisLINK 0.9.3.8
+
+OpenGenesisLINK 0.9.3.8 introduces a shared discovery layer for web clients and compatible viewers. Existing Firestorm/Second-Life-compatible search behavior is deliberately preserved; NexDiscovery is an additional native service rather than a destructive replacement.
+
+### NexSearch
+
+`GET /api/v1/search` performs bounded cross-domain discovery. Supported result domains are:
+
+- `people`
+- `groups`
+- `regions`
+- `parcels`
+- `places`
+- `events`
+- `land_for_sale`
+- `land_for_rent`
+- `classifieds`
+- `experiences`
+- `destinations`
+
+NexSearch does not create duplicate authorities. People come from UserAccountService, groups from the configured Groups/NexGroups authority, regions from GridService, Experiences from NexExperiences, and sale/rental listings from the NV$ land-commerce workflow. Places, Discovery Events, Classifieds and Destination Guide curation are persisted in the NexDiscovery store.
+
+Public search supports query, type and maturity filtering. Result counts are bounded server-side.
+
+### Places
+
+`GET /api/v1/places` and `GET /api/v1/places/{placeId}` expose published Place data including region/parcel identity, description, maturity, images, owner, coordinates, teleport URI, parcel details, traffic, tags, linked events, related destinations, land-use metadata, region type and featured state.
+
+Managed Place mutations use `discovery:manage`. Removing a Place also removes its dependent Destination, Event and Classified discovery records so stale portal entries are not retained.
+
+When a Place does not define an explicit teleport URI, Robust may build one from `[NexDiscovery] TeleportBaseUri`, region name and local coordinates.
+
+### Land Portal
+
+`GET /api/v1/land-portal` projects the existing NV$ land-commerce listings into a discovery-oriented marketplace view. Filters include sale/rental type, query, price range, minimum area, maturity, land use, region type and featured state.
+
+The Land Portal does not maintain a second land-sale database. Price, seller, listing activity and rental period remain authoritative in `NexEconomyService`; NexDiscovery only enriches those listings with Place metadata such as maturity, residential/commercial classification, region type, map position and teleport link.
+
+`GET /api/v1/land-portal/owned` requires `discovery:read` and returns listings for the authenticated or otherwise authorized owner account.
+
+### Destination Guide
+
+`GET /api/v1/destinations` exposes approved Destination Guide entries. Supported views include featured/editor picks, recently added, popular/hot ordering, categories, subcategories, curated collections, maturity filtering and linked events.
+
+`GET /api/v1/destinations/categories` projects the public category/subcategory tree.
+
+Authenticated submissions use `discovery:submit`. Moderation uses `discovery:manage` through `POST /api/v1/destinations/{destinationId}/moderation` with `approved` or `rejected` state. Submitted entries are never returned by the public guide until explicitly approved.
+
+`POST /api/v1/destinations/{destinationId}/visit` records an approved destination visit for popularity ordering. It does not grant any additional grid permission.
+
+### Viewer capabilities
+
+When `[NexDiscoveryViewer] Enabled = true` is configured on a simulator, OpenGenesisLINK advertises four optional capabilities to compatible viewers:
+
+- `NexSearch`
+- `NexPlaces`
+- `NexLandPortal`
+- `NexDestinationGuide`
+
+These capabilities proxy only public GET discovery operations to the central World API. They do not expose management scopes, API keys or database access to the simulator/viewer. Standard viewer search remains untouched.
