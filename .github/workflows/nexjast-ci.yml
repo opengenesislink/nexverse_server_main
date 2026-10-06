@@ -680,10 +680,14 @@ jobs:
           assert "/api/v1/docs" in doc["paths"]
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
-          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.5"
+          assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.7"
           assert doc["x_nexverse_version_history"][0]["status"] == "development"
-          assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.4"
-          assert doc["x_nexverse_version_history"][1]["status"] == "release"
+          assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.6"
+          assert doc["x_nexverse_version_history"][1]["status"] == "completed"
+          assert doc["x_nexverse_version_history"][2]["server_line"] == "0.9.3.5"
+          assert doc["x_nexverse_version_history"][2]["status"] == "completed"
+          assert doc["x_nexverse_version_history"][3]["server_line"] == "0.9.3.4"
+          assert doc["x_nexverse_version_history"][3]["status"] == "release"
           assert doc["x_nexverse_changelog"]
           assert doc["x_nexverse_changelog"][0]["version"] == "0.9.3.3"
           assert "0.9.3.1 Dev" not in json.dumps(doc, ensure_ascii=False)
@@ -704,7 +708,7 @@ jobs:
           assert "/api/v1/estates/{estateId}/regions/{regionId}" in estate_change["endpoints"]
 
           roadmap = doc["x_nexverse_roadmap"]
-          assert roadmap["current_milestone"] == "0.9.3.5"
+          assert roadmap["current_milestone"] == "0.9.3.7"
           assert roadmap["current_codename"] == ""
           milestones = {item["version"]: item for item in roadmap["milestones"]}
           assert milestones["0.9.3.1"]["status"] == "released"
@@ -712,9 +716,10 @@ jobs:
           assert milestones["0.9.3.2"]["checklist"] == {"completed": 36, "total": 36, "open": 0}
           assert milestones["0.9.3.3"]["status"] == "completed"
           assert milestones["0.9.3.4"]["status"] == "released"
-          assert milestones["0.9.3.5"]["status"] == "active"
+          assert milestones["0.9.3.5"]["status"] == "completed"
           assert milestones["0.9.3.5"]["checklist"] == {"completed": 83, "total": 83, "open": 0}
-          assert milestones["0.9.3.6"]["status"] == "planned"
+          assert milestones["0.9.3.6"]["status"] == "completed"
+          assert milestones["0.9.3.7"]["status"] == "completed"
 
           from pathlib import Path
           roadmap_text = Path("../doc/NexVerse/ROADMAP.md").read_text(encoding="utf-8")
