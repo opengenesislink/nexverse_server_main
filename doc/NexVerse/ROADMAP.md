@@ -1097,74 +1097,75 @@ Support Firestorm-visible flows including:
 
 ## 12. Search, Places, Land and Destination Guide
 
-Create NexVerse-native discovery services used by both web and viewer.
+**Status: implemented on the 0.9.3.8 development line.** OpenGenesisLINK now exposes one discovery layer for web clients and optional viewer capabilities while preserving the existing Firestorm-compatible search stack.
 
 ### 12.1 NexSearch
 
-Index and search:
-
-- people;
-- groups;
-- regions;
-- parcels;
-- places;
-- events;
-- land for sale;
-- land for rent;
-- classifieds;
-- experiences;
-- destinations.
+- [x] people via the authoritative UserAccount service;
+- [x] groups via the existing Groups V2/NexGroups authority when enabled;
+- [x] regions via the authoritative Grid service;
+- [x] parcels projected from published Places;
+- [x] Places from the persistent NexDiscovery store;
+- [x] Events from the persistent NexDiscovery store;
+- [x] land for sale from the existing NV$ land-commerce authority;
+- [x] land for rent from the existing NV$ land-commerce authority;
+- [x] Classifieds from the persistent NexDiscovery store;
+- [x] Experiences from the native NexExperiences authority;
+- [x] Destinations from the moderated Destination Guide;
+- [x] type, maturity and bounded-result filtering;
+- [x] public `GET /api/v1/search` endpoint.
 
 ### 12.2 Places
 
-Create web place pages containing:
-
-- region/place name;
-- description;
-- maturity;
-- images;
-- owner;
-- coordinates;
-- teleport link;
-- parcel details;
-- traffic;
-- tags;
-- events;
-- related destinations.
+- [x] region/place name;
+- [x] description;
+- [x] maturity;
+- [x] image list;
+- [x] owner;
+- [x] coordinates;
+- [x] explicit or generated teleport link;
+- [x] parcel UUID/local ID and parcel details;
+- [x] traffic;
+- [x] tags;
+- [x] linked events;
+- [x] related destinations;
+- [x] land-use and region-type metadata;
+- [x] featured state;
+- [x] persistent managed CRUD plus public read surface.
 
 ### 12.3 Land portal
 
-Provide web/API views similar in purpose to modern virtual-world land marketplaces:
-
-- owned land;
-- land for sale;
-- rentals;
-- residential;
-- commercial;
-- featured listings;
-- price;
-- area;
-- maturity;
-- region type;
-- map location.
+- [x] authenticated owned-land view;
+- [x] active land-for-sale view;
+- [x] active rental view;
+- [x] residential/commercial/mixed metadata through Place enrichment;
+- [x] featured listings;
+- [x] NV$ price;
+- [x] area;
+- [x] maturity;
+- [x] region type;
+- [x] map coordinates;
+- [x] teleport link;
+- [x] reuses `NexEconomyService.SearchLandListings`; no duplicate commerce ledger or listing authority.
 
 ### 12.4 Destination Guide
 
-The StadtPortal manages destination content that is also visible in compatible viewers.
-
-Features:
-
-- categories;
-- subcategories;
-- featured destinations;
-- editor picks;
-- recently added;
-- popular/hot;
-- events;
-- maturity filtering;
-- curated collections;
-- teleport links;
-- submission and moderation workflow.
+- [x] categories;
+- [x] subcategories;
+- [x] featured destinations;
+- [x] editor picks;
+- [x] recently added sorting;
+- [x] popular/hot sorting;
+- [x] linked events;
+- [x] maturity filtering;
+- [x] curated collections;
+- [x] teleport links through the linked Place;
+- [x] submission workflow;
+- [x] approve/reject moderation workflow;
+- [x] popularity/visit counter;
+- [x] public category and destination APIs;
+- [x] optional viewer CAPS: `NexSearch`, `NexPlaces`, `NexLandPortal`, `NexDestinationGuide`;
+- [x] standard Firestorm/SL-compatible search behavior remains untouched.
 
 ---
 
