@@ -8,9 +8,9 @@ namespace NexVerse.Core
     public static class NexVersePlatform
     {
         public const string ProductName = "OpenGenesisLINK";
-        public const string MilestoneVersion = "0.9.3.7";
+        public const string MilestoneVersion = "0.9.3.8";
         public const string MilestoneCodename = "";
-        public const string MilestoneTitle = "NexGroups und NexExperiences";
+        public const string MilestoneTitle = "NexSearch, Places, Land und Destination Guide";
         public const string UiLanguage = "de-DE";
         public const string ApiVersion = "v1";
         public const string ProtocolVersion = "1";
@@ -27,6 +27,7 @@ namespace NexVerse.Core
                 ["voice"] = "planned",
                 ["economy"] = "native-nv-dollar",
                 ["lsl"] = "experience-tools-integrated",
+                ["discovery"] = "native-v1",
                 ["firestorm"] = "baseline-validation-pending"
             };
         }
