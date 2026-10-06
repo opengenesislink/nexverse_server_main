@@ -24,11 +24,7 @@ namespace NexVerse.Server.Api
             if (!RequireGet(request, response))
                 return;
 
-            WriteHtml(
-                response,
-                Page(
-                    "NexVerse Suche",
-                    SearchBody()));
+            WriteHtml(response, Page("NexVerse Suche", SearchBody()));
         }
 
         public void Destinations(IOSHttpRequest request, IOSHttpResponse response)
@@ -36,19 +32,14 @@ namespace NexVerse.Server.Api
             if (!RequireGet(request, response))
                 return;
 
-            WriteHtml(
-                response,
-                Page(
-                    "NexVerse Destination Guide",
-                    DestinationBody()));
+            WriteHtml(response, Page("NexVerse Destination Guide", DestinationBody()));
         }
 
         private string SearchBody()
         {
-            string api =
-                Js(m_PublicBaseUrl + "/api/v1/search");
+            string api = Js(m_PublicBaseUrl + "/api/v1/search");
 
-            return $@"
+            return $$"""
 <main class='shell'>
   <header>
     <div>
@@ -80,7 +71,7 @@ namespace NexVerse.Server.Api
 </main>
 
 <script>
-const API = '{api}';
+const API = '{{api}}';
 const params = new URLSearchParams(location.search);
 const q = document.getElementById('query');
 const type = document.getElementById('type');
@@ -91,19 +82,21 @@ q.value = params.get('q') || params.get('query') || '';
 let incomingType = (params.get('type') || '').toLowerCase();
 if (incomingType && [...type.options].some(o => o.value === incomingType)) type.value = incomingType;
 
-function esc(v) {{
-  return String(v ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
-}}
+function esc(v) {
+  const d = document.createElement('div');
+  d.textContent = String(v ?? '');
+  return d.innerHTML;
+}
 
-function maturity() {{
+function maturity() {
   const m = (params.get('maturity') || '').toLowerCase();
   if (m === '13' || m === 'g') return 'general';
   if (m === '21' || m === 'gm') return 'moderate';
   if (m === '42' || m === 'gma') return '';
   return '';
-}}
+}
 
-async function runSearch() {{
+async function runSearch() {
   const query = q.value.trim();
   const selected = type.value;
   const u = new URL(API);
@@ -116,52 +109,52 @@ async function runSearch() {{
   status.textContent = 'Suche laeuft ...';
   results.replaceChildren();
 
-  try {{
-    const r = await fetch(u.toString(), {{credentials:'omit'}});
+  try {
+    const r = await fetch(u.toString(), {credentials:'omit'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     const hits = data.results || [];
     status.textContent = hits.length + ' Treffer';
 
-    if (!hits.length) {{
-      results.innerHTML = "<div class='empty'>Keine Treffer gefunden.</div>";
+    if (!hits.length) {
+      results.innerHTML = '<div class=empty>Keine Treffer gefunden.</div>';
       return;
-    }}
+    }
 
-    for (const hit of hits) {{
+    for (const hit of hits) {
       const card = document.createElement('article');
       card.className = 'card';
       const teleport = hit.teleport_uri
-        ? "<a class='action' href='" + esc(hit.teleport_uri) + "'>Teleport</a>"
-        : "";
+        ? '<a class=action href=' + esc(hit.teleport_uri) + '>Teleport</a>'
+        : '';
       card.innerHTML =
-        "<div class='tag'>" + esc(hit.type || 'result') + "</div>" +
-        "<h2>" + esc(hit.name || hit.username || hit.id || 'Eintrag') + "</h2>" +
-        "<p>" + esc(hit.description || hit.region_name || hit.username || '') + "</p>" +
+        '<div class=tag>' + esc(hit.type || 'result') + '</div>' +
+        '<h2>' + esc(hit.name || hit.username || hit.id || 'Eintrag') + '</h2>' +
+        '<p>' + esc(hit.description || hit.region_name || hit.username || '') + '</p>' +
         teleport;
       results.appendChild(card);
-    }}
-  }} catch (e) {{
+    }
+  } catch (e) {
     status.textContent = 'Suche derzeit nicht verfuegbar.';
-    results.innerHTML = "<div class='empty'>NexSearch konnte nicht geladen werden.</div>";
-  }}
-}}
+    results.innerHTML = '<div class=empty>NexSearch konnte nicht geladen werden.</div>';
+  }
+}
 
-document.getElementById('searchForm').addEventListener('submit', e => {{
+document.getElementById('searchForm').addEventListener('submit', e => {
   e.preventDefault();
   runSearch();
-}});
+});
 
 if (q.value) runSearch();
-</script>";
+</script>
+""";
         }
 
         private string DestinationBody()
         {
-            string api =
-                Js(m_PublicBaseUrl + "/api/v1/destinations");
+            string api = Js(m_PublicBaseUrl + "/api/v1/destinations");
 
-            return $@"
+            return $$"""
 <main class='shell'>
   <header>
     <div>
@@ -186,17 +179,19 @@ if (q.value) runSearch();
 </main>
 
 <script>
-const API = '{api}';
+const API = '{{api}}';
 const q = document.getElementById('query');
 const sort = document.getElementById('sort');
 const status = document.getElementById('status');
 const results = document.getElementById('results');
 
-function esc(v) {{
-  return String(v ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[c]);
-}}
+function esc(v) {
+  const d = document.createElement('div');
+  d.textContent = String(v ?? '');
+  return d.innerHTML;
+}
 
-async function load() {{
+async function load() {
   const u = new URL(API);
   if (q.value.trim()) u.searchParams.set('q', q.value.trim());
   u.searchParams.set('sort', sort.value);
@@ -205,51 +200,55 @@ async function load() {{
   status.textContent = 'Destinationen werden geladen ...';
   results.replaceChildren();
 
-  try {{
-    const r = await fetch(u.toString(), {{credentials:'omit'}});
+  try {
+    const r = await fetch(u.toString(), {credentials:'omit'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     const items = data.destinations || [];
     status.textContent = items.length + ' Destinationen';
 
-    if (!items.length) {{
-      results.innerHTML = "<div class='empty'>Noch keine freigegebenen Destinationen vorhanden.</div>";
+    if (!items.length) {
+      results.innerHTML = '<div class=empty>Noch keine freigegebenen Destinationen vorhanden.</div>';
       return;
-    }}
+    }
 
-    for (const item of items) {{
+    for (const item of items) {
       const card = document.createElement('article');
       card.className = 'card';
       const teleport = item.teleport_uri
-        ? "<a class='action' href='" + esc(item.teleport_uri) + "'>Teleport</a>"
-        : "";
+        ? '<a class=action href=' + esc(item.teleport_uri) + '>Teleport</a>'
+        : '';
       card.innerHTML =
-        "<div class='tag'>" + esc(item.category || 'Destination') + "</div>" +
-        "<h2>" + esc(item.title || item.name || 'Destination') + "</h2>" +
-        "<p>" + esc(item.description || item.region_name || '') + "</p>" +
+        '<div class=tag>' + esc(item.category || 'Destination') + '</div>' +
+        '<h2>' + esc(item.name || 'Destination') + '</h2>' +
+        '<p>' + esc(item.description || '') + '</p>' +
         teleport;
       results.appendChild(card);
-    }}
-  }} catch (e) {{
+    }
+  } catch (e) {
     status.textContent = 'Destination Guide derzeit nicht verfuegbar.';
-    results.innerHTML = "<div class='empty'>NexDestinationGuide konnte nicht geladen werden.</div>";
-  }}
-}}
+    results.innerHTML = '<div class=empty>NexDestinationGuide konnte nicht geladen werden.</div>';
+  }
+}
 
 document.getElementById('reload').addEventListener('click', load);
-q.addEventListener('keydown', e => {{ if (e.key === 'Enter') load(); }});
+q.addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
 load();
-</script>";
+</script>
+""";
         }
 
         private static string Page(string title, string body)
         {
-            return @"<!doctype html>
+            return """
+<!doctype html>
 <html lang='de'>
 <head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>" + Html(title) + @"</title>
+<title>
+""" + Html(title) + """
+</title>
 <style>
 :root{color-scheme:dark;background:#080b12;color:#eef3ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#182033 0,#080b12 52%);min-height:100vh}
@@ -264,8 +263,11 @@ button,.action{cursor:pointer;background:#315efb;border-color:#315efb;color:whit
 @media(max-width:680px){.searchbar{grid-template-columns:1fr}.shell{padding:24px 15px}}
 </style>
 </head>
-<body>" + body + @"</body>
-</html>";
+<body>
+""" + body + """
+</body>
+</html>
+""";
         }
 
         private static bool RequireGet(
@@ -308,7 +310,7 @@ button,.action{cursor:pointer;background:#315efb;border-color:#315efb;color:whit
                 .Replace("&", "&amp;")
                 .Replace("<", "&lt;")
                 .Replace(">", "&gt;")
-                .Replace(""", "&quot;")
+                .Replace("\"", "&quot;")
                 .Replace("'", "&#39;");
 
         private static string Js(string value) =>
