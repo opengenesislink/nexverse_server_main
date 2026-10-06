@@ -8,6 +8,9 @@ security = Path("NexVerse/Core/Security/NexSecurity.cs").read_text(encoding="utf
 roadmap = Path("doc/NexVerse/ROADMAP.md").read_text(encoding="utf-8")
 robust = Path("bin/Robust.ini.example").read_text(encoding="utf-8")
 robust_hg = Path("bin/Robust.HG.ini.example").read_text(encoding="utf-8")
+opensim_config = Path("bin/OpenSim.ini.example").read_text(encoding="utf-8")
+viewer = Path("NexVerse/RegionModules/Discovery/NexDiscoveryViewerModule.cs").read_text(encoding="utf-8")
+openapi = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 regression = Path("tools/ci/NexDiscoveryRegression/Program.cs").read_text(encoding="utf-8")
 
 for marker in (
@@ -73,6 +76,20 @@ for marker in (
     "new NexDiscoveryApi(",
 ):
     assert marker in connector, f"missing NexDiscovery connector marker: {marker}"
+
+for marker in (
+    '["/api/v1/search"]',
+    '["/api/v1/places"]',
+    '["/api/v1/land-portal"]',
+    '["/api/v1/destinations"]',
+    '["/api/v1/destinations/{destinationId}/moderation"]',
+    '"DiscoveryPlaceRequest"',
+    '"DiscoveryDestinationRequest"',
+    '"DiscoveryModerationRequest"',
+    "PublicOperations(",
+    "MergeOperations(",
+):
+    assert marker in openapi, f"missing NexDiscovery OpenAPI marker: {marker}"
 
 for marker in (
     'DiscoveryRead = "discovery:read"',
