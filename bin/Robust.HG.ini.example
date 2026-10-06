@@ -530,7 +530,7 @@
     ;; end hypergrid
 
     ; Ask co-operative viewers to use a different currency name
-    ;Currency = ""
+    Currency = "NV$"
 
     ;; Set minimum fee to publish classified
     ; ClassifiedFee = 0
