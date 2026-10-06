@@ -1262,9 +1262,24 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.7",
+                        server_line = "0.9.3.8",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
+                        published = "2026-10-06",
+                        compatibility = "OpenGenesisLINK v0.9.3.8 Dev — NexSearch, Places, Land Portal und Destination Guide",
+                        highlights = new[]
+                        {
+                            "NexSearch aggregiert People, Groups, Regions, Parcels, Places, Events, Land, Classifieds, Experiences und Destinations",
+                            "Places und Destination Guide mit persistenter Moderation, Kategorien, Collections, Events, Popularitaet und Teleport-Links",
+                            "Land Portal projiziert die autoritative NV$-Land-Commerce-Datenbasis; optionale Viewer-CAPS ergaenzen Firestorm ohne Legacy-Suche zu ersetzen"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.7",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "completed",
                         published = "2026-10-06",
                         compatibility = "OpenGenesisLINK v0.9.3.7 Dev — NexGroups, NexExperiences und Experience LSL",
                         highlights = new[]
@@ -1679,7 +1694,7 @@ namespace NexVerse.Server.Api
                         },
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "completed", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel abgeschlossen.", evidence = new[] { "Doppelte Buchfuehrung und persistente Konten", "NVBAN/Banking/Commerce/Landhandel", "Live-MariaDB/PostgreSQL- und Runtime-CI gruen" } },
                         new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "completed", checklist = (object)null, summary = "NexGroups-Paritaetsschicht, native NexExperiences und Experience-LSL abgeschlossen.", evidence = new[] { "NexGroups Management/Moderation/API plus NV$-Gruppenkonto", "Native Experience-Permissions, Policies, Script-Bindings und persistentes K/V", "Release-Build, Hypergrid, LLLogin, World API und Chapter-11-CI gruen" } },
-                        new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "planned", checklist = (object)null, summary = "Suche, Orte, Landportal und Dienste zur Zielentdeckung.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "completed", checklist = (object)null, summary = "NexSearch, Places, Land Portal und Destination Guide einschließlich optionaler Viewer-CAPS abgeschlossen.", evidence = new[] { "NexSearch aggregiert autoritative People-, Groups-, Grid-, Experience- und NV$-Landdaten", "Persistente Places, Events, Classifieds und moderierte Destinationen", "NexSearch/NexPlaces/NexLandPortal/NexDestinationGuide Viewer-CAPS sowie CI-Persistenz- und Moderationsregression" } },
                         new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC-/Janus-Sprachplattform als Ersatz für entfernte Legacy-Sprachsysteme.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.11", codename = "", title = "LSL-Parität I — Kernkonformität", status = "planned", checklist = (object)null, summary = "Maschinenlesbare LSL-Matrix, Konformitätstests und Härtung der Script-Sandbox.", evidence = Array.Empty<string>() },
