@@ -15,11 +15,11 @@ assert 'BaseHostname = "hg.stadt-nexverse.de"' in robust_hg
 assert 'PublicPort = "80"' in robust_hg
 assert 'UserProfilesServiceConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:UserProfilesConnector"' in robust_hg
 
-profile_section = robust_hg.split("[UserProfilesService]", 1)[1].split("\n[", 1)[0]
+profile_section = robust_hg.split("\n[UserProfilesService]\n", 1)[1].split("\n[", 1)[0]
 assert "Enabled = true" in profile_section
 assert 'LocalServiceModule = "OpenSim.Services.UserProfilesService.dll:UserProfilesService"' in profile_section
 
-discovery_section = robust_hg.split("[NexDiscovery]", 1)[1].split("\n[", 1)[0]
+discovery_section = robust_hg.split("\n[NexDiscovery]\n", 1)[1].split("\n[", 1)[0]
 assert 'TeleportBaseUri = "hop://${Const|BaseHostname}"' in discovery_section
 assert "login.mynexverse.de" not in discovery_section
 
