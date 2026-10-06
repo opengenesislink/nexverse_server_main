@@ -1,8 +1,8 @@
 # OpenGenesisLINK versioning
 
 Current stable release: **NexVerse 0.9.3.4**  
-Active development line: **OpenGenesisLINK v0.9.3.5 Dev**  
-Active milestone: **Inventory, OAR/IAR, Job Engine and NexBus**  
+Active development line: **OpenGenesisLINK v0.9.3.7 Dev**  
+Active milestone: **NexGroups and NexExperiences — Chapter 11 completed**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
 Completed milestone codename: **NEXJAST**
 
@@ -28,7 +28,9 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `NexVerse 0.9.3.2 Dev` — **World API v1** development checkpoint, completed 3 October 2026 with 36/36 explicit roadmap criteria satisfied; no separate stable 0.9.3.2 release was produced.
 - `NexVerse 0.9.3.3 Dev` — completed identity/profile/social development checkpoint within the 0.9.3.4 release train.
 - `NexVerse 0.9.3.4` — completed stable release for Simulator, Region and Estate Control Plane.
-- `OpenGenesisLINK v0.9.3.5 Dev` — active development line for Inventory, OAR/IAR, persistent Job Engine and NexBus.
+- `OpenGenesisLINK v0.9.3.5 Dev` — completed development line for Inventory, OAR/IAR, persistent Job Engine and NexBus.
+- `OpenGenesisLINK v0.9.3.6 Dev` — completed development line for NV$ economy, banking, commerce and land flows.
+- `OpenGenesisLINK v0.9.3.7 Dev` — current development line; NexGroups parity layer and native NexExperiences/Experience LSL are implemented and validated on `main`.
 - `OpenGenesisLINK v0.9.3.5 RC1+` — future release-candidate phase after the 0.9.3.5 definition of done is satisfied.
 - `OpenGenesisLINK v0.9.3.5` — next stable release after validation of the active milestone.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
