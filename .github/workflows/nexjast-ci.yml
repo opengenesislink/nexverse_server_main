@@ -406,10 +406,10 @@ jobs:
         shell: bash
         run: |
           grep -F 'public const string ProductName = "OpenGenesisLINK";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string VersionNumber = "0.9.3.5";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string AssemblyVersionNumber = "0.9.3.5";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string VersionNumber = "0.9.3.7";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const string AssemblyVersionNumber = "0.9.3.7";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string MilestoneVersion = "0.9.3.5";' NexVerse/Core/NexVersePlatform.cs
+          grep -F 'public const string MilestoneVersion = "0.9.3.7";' NexVerse/Core/NexVersePlatform.cs
           grep -F 'Development checkpoint status: completed 3 October 2026' doc/NexVerse/CHECKPOINT_0.9.3.2.md
           grep -F '36/36 explicit checklist items completed' doc/NexVerse/CHECKPOINT_0.9.3.2.md
 
