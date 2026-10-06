@@ -265,6 +265,12 @@
     StorageProvider = "OpenSim.Data.MySQL.dll"
     ConnectionString = "Data Source=localhost;Database=opensim;User ID=opensim;Password=*****;Old Guids=true;SslMode=None;"
 
+[NexGroups]
+    ; OpenGenesisLINK NexGroups management/parity facade.
+    ; Keep disabled until the Groups V2 storage/service is configured and
+    ; parity validation has been completed for this deployment.
+    Enabled = false
+
 [NexExperiences]
     ; Native OpenGenesisLINK Experience authority used by World API and LSL adapters.
     ; This file is server-owned and must be writable by the Robust process.
