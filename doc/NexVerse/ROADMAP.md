@@ -1032,50 +1032,64 @@ Support Firestorm-visible flows including:
 
 ### 11.1 NexGroups
 
-Replace the historical group stack only after parity is reached.
+**Status: parity layer completed on the 0.9.3.7 roadmap line.** The proven Groups V2 Viewer/HG transport remains active deliberately; OpenGenesisLINK does not remove it until a later cut-over gate proves protocol parity.
 
-Target scope:
-
-- create/delete group;
-- profile;
-- members;
-- roles;
-- role powers;
-- owner;
-- invitations;
-- bans;
-- notices;
-- group chat;
-- group land;
-- group accounting;
-- group search;
-- group voice;
-- group permissions;
-- group-owned objects;
-- HG behavior where supported.
+- [x] create/delete group; deletion is founder-authorized and cleans members, roles, notices, invites and moderation state;
+- [x] group profile;
+- [x] members and membership lifecycle;
+- [x] roles and role powers;
+- [x] owner/founder semantics;
+- [x] invitations;
+- [x] persistent bans, enforced centrally before membership can be added;
+- [x] notices;
+- [x] group chat through the preserved GroupsMessagingModule;
+- [x] group land semantics through native parcel GroupID + group powers;
+- [x] group accounting through a central NV$ Group wallet and NVBAN;
+- [x] group search;
+- [x] group voice policy/channel identity; media transport itself remains part of Roadmap 13 NexVoice;
+- [x] group permissions;
+- [x] group-owned object semantics through native object GroupID/ownership rules;
+- [x] Hypergrid group connector behavior remains preserved where supported;
+- [x] authenticated NexGroups World API and audit events for management mutations.
 
 ### 11.2 Experiences
 
-Implement Experiences as a native NexVerse service.
+**Status: native service completed.**
 
-Core model:
-
-- owner;
-- group;
-- admins;
-- contributors;
-- allowed residents;
-- blocked residents;
-- estate policy;
-- parcel policy;
-- permissions;
-- persistent key/value storage;
-- logs;
-- audit events.
+- [x] owner;
+- [x] optional group association;
+- [x] admins;
+- [x] contributors;
+- [x] allowed residents;
+- [x] blocked residents;
+- [x] estate allow/block policy;
+- [x] parcel allow/block policy;
+- [x] persistent permission decisions;
+- [x] persistent script-to-Experience binding;
+- [x] persistent key/value storage with 128 MiB quota, 1011-byte key and 4095-byte value limits;
+- [x] persistent Experience logs;
+- [x] audit events for management mutations;
+- [x] database-isolated simulator adapter using the authenticated World API.
 
 ### 11.3 Experience LSL
 
-Implement and verify relevant Experience LSL functions/events, including permission flows and persistent storage behavior.
+**Status: implemented and guarded by CI.**
+
+- [x] `llRequestExperiencePermissions`;
+- [x] `experience_permissions`;
+- [x] `experience_permissions_denied`;
+- [x] `llGetExperienceDetails`;
+- [x] `llAgentInExperience`;
+- [x] `llCreateKeyValue`;
+- [x] `llReadKeyValue`;
+- [x] `llUpdateKeyValue` with checked/original-value retry semantics;
+- [x] `llDeleteKeyValue`;
+- [x] `llDataSizeKeyValue`;
+- [x] `llKeyCountKeyValue`;
+- [x] `llKeysKeyValue`;
+- [x] `llGetExperienceErrorMessage`;
+- [x] YEngine event IDs and Experience error constants;
+- [x] persistent K/V regression/reopen coverage.
 
 ---
 
