@@ -98,7 +98,7 @@ function esc(v) {{
 function maturity() {{
   const m = (params.get('maturity') || '').toLowerCase();
   if (m === '13' || m === 'g') return 'general';
-  if (m === '21' || m === 'gm') return 'mature';
+  if (m === '21' || m === 'gm') return 'moderate';
   if (m === '42' || m === 'gma') return '';
   return '';
 }}
