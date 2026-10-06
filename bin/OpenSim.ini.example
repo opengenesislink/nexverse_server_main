@@ -974,6 +974,17 @@
     ;; Money Unit fee to create groups.  Default is 0.
     ; PriceGroupCreate = 0
 
+[NexExperiencesViewer]
+    ; Central OpenGenesisLINK Experience adapter.
+    ; Experience permissions and K/V state remain authoritative in Robust.
+    Enabled = false
+    WorldApiBaseUrl = "http://127.0.0.1:8002"
+
+    ; Service API key scoped to experiences:script.
+    ; Keep the real value outside version control.
+    ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
+    RequestTimeoutMilliseconds = 3000
+
 [NexEconomyViewer]
     ; Central OpenGenesisLINK NV$ Viewer/IMoneyModule adapter.
     ; The simulator never opens the ledger database directly.
