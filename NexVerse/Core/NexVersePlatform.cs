@@ -8,9 +8,9 @@ namespace NexVerse.Core
     public static class NexVersePlatform
     {
         public const string ProductName = "OpenGenesisLINK";
-        public const string MilestoneVersion = "0.9.3.5";
+        public const string MilestoneVersion = "0.9.3.7";
         public const string MilestoneCodename = "";
-        public const string MilestoneTitle = "Inventory, OAR/IAR, Job Engine und NexBus";
+        public const string MilestoneTitle = "NexGroups und NexExperiences";
         public const string UiLanguage = "de-DE";
         public const string ApiVersion = "v1";
         public const string ProtocolVersion = "1";
@@ -25,8 +25,8 @@ namespace NexVerse.Core
                 ["nexbus"] = NexBusSchemaVersion,
                 ["hypergrid"] = "HG1.5",
                 ["voice"] = "planned",
-                ["economy"] = "planned",
-                ["lsl"] = "baseline-audit-pending",
+                ["economy"] = "native-nv-dollar",
+                ["lsl"] = "experience-tools-integrated",
                 ["firestorm"] = "baseline-validation-pending"
             };
         }
