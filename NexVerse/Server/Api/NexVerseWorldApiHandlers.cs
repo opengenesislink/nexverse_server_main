@@ -1612,7 +1612,7 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.5",
                             codename = "",
                             title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
-                            status = "active",
+                            status = "completed",
                             checklist = new { completed = 83, total = 83, open = 0 },
                             summary = "Alle 83 expliziten 0.9.3.5-Checklist-Punkte sind umgesetzt. Inventar-API-Grundlage, OAR/IAR, persistente Auftragssteuerung, native Betriebs-Worker, LunaTexture-Persistenz sowie die abgesicherte Cross-Region-Objektkommunikation ueber NexBus sind integriert.",
                             evidence = new[]
