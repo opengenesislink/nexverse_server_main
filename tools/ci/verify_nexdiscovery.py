@@ -140,3 +140,28 @@ for marker in (
     assert marker in regression, f"missing discovery regression marker: {marker}"
 
 print("OpenGenesisLINK Roadmap 12 NexDiscovery contract: OK")
+
+
+for marker in (
+    "NexVerse Suche",
+    "NexVerse Destination Guide",
+    "/api/v1/search",
+    "/api/v1/destinations",
+):
+    assert marker in web, f"missing Firestorm discovery web marker: {marker}"
+
+for marker in (
+    '"/search"',
+    '"/destinations"',
+    "NexDiscoveryWebPage",
+):
+    assert marker in connector, f"missing discovery web registration marker: {marker}"
+
+robust_hg = read("bin/Robust.HG.ini")
+login_section = robust_hg.split("\n[LoginService]\n", 1)[1].split("\n[", 1)[0]
+assert 'SearchURL = "https://world.stadt-nexverse.de/search?q=[QUERY]&type=[TYPE]&maturity=[MATURITY]"' in login_section
+assert 'DestinationGuide = "https://world.stadt-nexverse.de/destinations"' in login_section
+
+sim_features = opensim_config.split("[SimulatorFeatures]", 1)[1].split("\n[", 1)[0]
+assert 'SearchServerURI = "https://world.stadt-nexverse.de/search?q=[QUERY]&type=[TYPE]&maturity=[MATURITY]"' in sim_features
+assert 'DestinationGuideURI = "https://world.stadt-nexverse.de/destinations"' in sim_features
