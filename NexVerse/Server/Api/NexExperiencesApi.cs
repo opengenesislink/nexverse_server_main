@@ -280,7 +280,7 @@ namespace NexVerse.Server.Api
 
                     string operation = BodyString(body, "operation").ToLowerInvariant();
                     string key = BodyString(body, "key");
-                    string value = BodyString(body, "value");
+                    string value = BodyRawString(body, "value");
                     bool success = true;
                     string code = string.Empty;
                     object result = string.Empty;
@@ -319,7 +319,7 @@ namespace NexVerse.Server.Api
                                 key,
                                 value,
                                 BodyBool(body, "check_original", false),
-                                BodyString(body, "original_value"),
+                                BodyRawString(body, "original_value"),
                                 out bool retryMismatch);
                             if (success)
                                 result = value;
@@ -787,6 +787,17 @@ namespace NexVerse.Server.Api
             if (!body.TryGetProperty(name, out JsonElement e) || e.ValueKind != JsonValueKind.String)
                 return string.Empty;
             return (e.GetString() ?? string.Empty).Trim();
+        }
+
+        private static string BodyRawString(JsonElement body, string name)
+        {
+            if (!body.TryGetProperty(name, out JsonElement e) ||
+                e.ValueKind != JsonValueKind.String)
+            {
+                return string.Empty;
+            }
+
+            return e.GetString() ?? string.Empty;
         }
 
         private static Guid BodyGuid(JsonElement body, string name)
