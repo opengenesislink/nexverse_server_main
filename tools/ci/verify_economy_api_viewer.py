@@ -93,9 +93,9 @@ for marker in (
 
 assert "[NexEconomyViewer]" in opensim
 viewer_config = opensim.split("[NexEconomyViewer]", 1)[1].split("\n[", 1)[0]
-assert "Enabled = false" in viewer_config
+assert "Enabled = true" in viewer_config
 assert 'ApiKey = "${Environment|NEXVERSE_ECONOMY_API_KEY}"' in viewer_config
-assert "WorldApiBaseUrl" in viewer_config
+assert 'WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"' in viewer_config
 assert "ConnectionString" not in viewer_config
 
 print("NV$ World API and Viewer adapter contract: OK")
