@@ -1210,9 +1210,39 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
-                        server_line = "0.9.3.5",
+                        server_line = "0.9.3.7",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "development",
+                        published = "2026-10-06",
+                        compatibility = "OpenGenesisLINK v0.9.3.7 Dev — NexGroups, NexExperiences und Experience LSL",
+                        highlights = new[]
+                        {
+                            "NexGroups-Paritaetsschicht mit Gruppenverwaltung, Rollen, Einladungen, Notices, Bans und NV$-Gruppenkonten",
+                            "Native NexExperiences mit zentralen Permissions, Estate-/Parcel-Policy, Script-Bindings und persistentem K/V",
+                            "Experience-LSL-Funktionen und Events inklusive CI-Regression und Viewer/HG-kompatiblem Cutover"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.6",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "completed",
+                        published = "2026-10-05",
+                        compatibility = "OpenGenesisLINK v0.9.3.6 Dev — NV$-Wirtschaft, Banking, Commerce und Land",
+                        highlights = new[]
+                        {
+                            "Doppelte Buchfuehrung und persistente NV$-Konten",
+                            "Banking, NVBAN, Viewer-Economy, Commerce und Landhandel",
+                            "MariaDB-/PostgreSQL-Live-Matrix und Runtime-Smokes"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.5",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "completed",
                         published = "2026-10-04",
                         compatibility = "OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus",
                         highlights = new[]
@@ -1582,7 +1612,7 @@ namespace NexVerse.Server.Api
                             version = "0.9.3.5",
                             codename = "",
                             title = "Inventar, OAR/IAR, Auftragssteuerung und NexBus",
-                            status = "active",
+                            status = "completed",
                             checklist = new { completed = 83, total = 83, open = 0 },
                             summary = "Alle 83 expliziten 0.9.3.5-Checklist-Punkte sind umgesetzt. Inventar-API-Grundlage, OAR/IAR, persistente Auftragssteuerung, native Betriebs-Worker, LunaTexture-Persistenz sowie die abgesicherte Cross-Region-Objektkommunikation ueber NexBus sind integriert.",
                             evidence = new[]
@@ -1595,8 +1625,8 @@ namespace NexVerse.Server.Api
                                 "llRegionSayTo kann fuer nichtlokale Objekt-UUIDs optional ueber den authentifizierten NexBus geroutet werden; Same-Owner-, Rate- und Altersgrenzen sind standardmaessig aktiv"
                             }
                         },
-                        new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "planned", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "planned", checklist = (object)null, summary = "Native Gruppen- und Experience-Dienste einschließlich Viewer-/LSL-Integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "completed", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel abgeschlossen.", evidence = new[] { "Doppelte Buchfuehrung und persistente Konten", "NVBAN/Banking/Commerce/Landhandel", "Live-MariaDB/PostgreSQL- und Runtime-CI gruen" } },
+                        new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "completed", checklist = (object)null, summary = "NexGroups-Paritaetsschicht, native NexExperiences und Experience-LSL abgeschlossen.", evidence = new[] { "NexGroups Management/Moderation/API plus NV$-Gruppenkonto", "Native Experience-Permissions, Policies, Script-Bindings und persistentes K/V", "Release-Build, Hypergrid, LLLogin, World API und Chapter-11-CI gruen" } },
                         new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "planned", checklist = (object)null, summary = "Suche, Orte, Landportal und Dienste zur Zielentdeckung.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.9", codename = "", title = "NexVoice", status = "planned", checklist = (object)null, summary = "WebRTC-/Janus-Sprachplattform als Ersatz für entfernte Legacy-Sprachsysteme.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },

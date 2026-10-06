@@ -3,8 +3,8 @@
 > Status: Active development roadmap  
 > Current stable release: **NexVerse 0.9.3.4**  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
-> Active development line: **OpenGenesisLINK v0.9.3.5 Dev**  
-> Active milestone: **Inventory, OAR/IAR, Job Engine and NexBus**  
+> Active development line: **OpenGenesisLINK v0.9.3.7 Dev**  
+> Active milestone: **0.9.3.7 — NexGroups and NexExperiences completed**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
