@@ -812,13 +812,13 @@
     ;; Optional. If given this serves the same purpose as the grid wide
     ;; [LoginServices] SearchURL setting and will override that where
     ;; supported by viewers.
-    ;SearchServerURI = "http://127.0.0.1:9000/"
+    SearchServerURI = "https://world.stadt-nexverse.de/search?q=[QUERY]&type=[TYPE]&maturity=[MATURITY]"
 
     ;# {DestinationGuideURI} {} {URL of the destination guide} {}
     ;; Optional. If given this serves the same purpose as the grid wide
     ;; [LoginServices] DestinationGuide setting and will override that where
     ;; supported by viewers.
-    ;DestinationGuideURI = "http://127.0.0.1:9000/guide"
+    DestinationGuideURI = "https://world.stadt-nexverse.de/destinations"
 
 [Chat]
     ;# {whisper_distance} {} {Distance at which a whisper is heard, in meters?} {} 10
