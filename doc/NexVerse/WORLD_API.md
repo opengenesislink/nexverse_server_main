@@ -698,3 +698,26 @@ The API catalog does not replace the simulator's parcel authority. Native parcel
 `NexVerseMoneyModule` remains the database-isolated `IMoneyModule` adapter. Resident payments use the World API; local object payments resolve the object owner and are recorded as NexCommerce vendor orders while preserving `OnObjectPaid`. Viewer object purchases validate current sale type/price, settle an `ObjectSale` order and then call the authoritative `IBuySellModule`; failed delivery triggers a compensating NexCommerce refund. SaleType Contents therefore uses the native contents-delivery implementation after settlement.
 
 Local groups are provisioned on demand as central NV$ `Group` wallets through the trusted `POST /api/v1/economy/accounts/ensure` service endpoint. Native parcel purchases route their payment through NexCommerce before ownership is changed.
+
+
+## NexGroups API — Roadmap 11.1
+
+`/api/v1/groups` is the OpenGenesisLINK management/parity surface in front of the existing Groups V2 transport. The Viewer/HG connector stack is intentionally preserved until a later cut-over gate; the new API does not fork group identity or membership state.
+
+Supported operations cover group search/create/profile/delete, members, roles and powers, role membership, invitations, notices, persistent bans, central NV$ group accounting and capability metadata. Group creation provisions a central NV$ `Group` wallet/NVBAN when the economy is enabled. Bans are persisted in `NexModerationStorePath` and are enforced inside `GroupsService.AddAgentToGroup`, so Viewer/API joins cannot bypass moderation.
+
+Group chat continues through `GroupsMessagingModule`. Native parcel GroupID/group powers remain authoritative for group land, and native object ownership/GroupID remains authoritative for group-owned objects. The HG Groups connector remains present. NexGroups exposes stable voice policy/channel identity; actual WebRTC media transport belongs to Roadmap 13 NexVoice.
+
+## NexExperiences API — Roadmap 11.2
+
+`/api/v1/experiences` is the native OpenGenesisLINK Experience authority. It persists owner, optional group, admins, contributors, resident allow/block state, estate/parcel policy, script bindings, key/value data and logs.
+
+Management/read calls use `experiences:manage` and `experiences:read`. Simulator/LSL calls use the separate `experiences:script` scope through `/api/v1/experiences/script/*`, keeping script adapters outside management authority. The simulator never opens the Experience store directly.
+
+Script routes provide Experience resolution/details, resident permission checks, parcel/estate policy checks and asynchronous K/V operations. K/V behavior includes checked updates, missing-key update-as-create semantics, key enumeration/count and used/quota reporting.
+
+## Experience LSL — Roadmap 11.3
+
+The shared LSL API/YEngine now exposes the Experience permission and persistent-storage surface: `llRequestExperiencePermissions`, `experience_permissions`, `experience_permissions_denied`, `llGetExperienceDetails`, `llAgentInExperience`, CRUD K/V calls, K/V size/count/key enumeration and `llGetExperienceErrorMessage`.
+
+Experience permission decisions and K/V data are grid-authoritative through Robust. YEngine reserves event IDs 26 and 27 for the two Experience permission events.
