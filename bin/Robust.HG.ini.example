@@ -286,7 +286,7 @@
 
     ; Optional hop/teleport base used when a Place does not provide an
     ; explicit TeleportUri, for example:
-    ; TeleportBaseUri = "hop://login.mynexverse.de"
+    ; TeleportBaseUri = "hop://hg.stadt-nexverse.de"
     TeleportBaseUri = ""
 
 [NexEconomy]
