@@ -577,6 +577,22 @@ namespace NexVerse.Server.Api
                         "OpenGenesisLINK Destination Guide API"),
                     true);
 
+                NexDiscoveryWebPage discoveryWeb =
+                    new NexDiscoveryWebPage(
+                        publicBaseUrl);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/search",
+                        apiGate.Wrap(discoveryWeb.Search),
+                        "OpenGenesisLINK Firestorm Web Search"));
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/destinations",
+                        apiGate.Wrap(discoveryWeb.Destinations),
+                        "OpenGenesisLINK Firestorm Destination Guide"));
+
                 NexInventoryApi inventoryApi =
                     new NexInventoryApi(
                         inventory,

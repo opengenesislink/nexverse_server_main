@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -9,8 +11,12 @@ using System.Text.Json;
 using log4net;
 using Mono.Addins;
 using Nini.Config;
+using Nwc.XmlRpc;
 using OpenMetaverse;
+using OpenMetaverse.StructuredData;
 using OpenSim.Framework;
+using OpenSim.Framework.Servers;
+using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
@@ -34,6 +40,10 @@ namespace NexVerse.RegionModules.Economy
 
         private HttpClient m_Http;
         private bool m_Enabled;
+        private bool m_LegacyHelperRegistered;
+        private string m_LocalEconomyUrl = string.Empty;
+        private string m_CurrencyPurchasePortalUrl = string.Empty;
+        private Dictionary<string, XmlRpcMethod> m_LegacyRpcHandlers;
         private string m_WorldApiBaseUrl =
             string.Empty;
         private string m_ApiKey =
@@ -85,6 +95,12 @@ namespace NexVerse.RegionModules.Economy
             m_ApiKey =
                 economy.GetString(
                         "ApiKey",
+                        string.Empty)
+                    .Trim();
+
+            m_CurrencyPurchasePortalUrl =
+                economy.GetString(
+                        "CurrencyPurchasePortalUrl",
                         string.Empty)
                     .Trim();
 
@@ -216,6 +232,33 @@ namespace NexVerse.RegionModules.Economy
         public void RegionLoaded(
             Scene scene)
         {
+            if (!m_Enabled ||
+                scene == null)
+            {
+                return;
+            }
+
+            EnsureLegacyEconomyHelper(
+                scene);
+
+            ISimulatorFeaturesModule features =
+                scene.RequestModuleInterface<ISimulatorFeaturesModule>();
+
+            if (features == null ||
+                string.IsNullOrWhiteSpace(m_LocalEconomyUrl))
+            {
+                return;
+            }
+
+            if (!features.TryGetOpenSimExtraFeature(
+                    "currency-base-uri",
+                    out OSD _))
+            {
+                features.AddOpenSimExtraFeature(
+                    "currency-base-uri",
+                    Util.AppendEndSlash(
+                        m_LocalEconomyUrl));
+            }
         }
 
         public void Close()
@@ -415,6 +458,232 @@ namespace NexVerse.RegionModules.Economy
                     out reason);
 
             return success;
+        }
+
+        private void EnsureLegacyEconomyHelper(
+            Scene scene)
+        {
+            lock (m_Sync)
+            {
+                if (m_LegacyHelperRegistered)
+                    return;
+
+                string serverUri =
+                    scene.RegionInfo?.ServerURI ??
+                    string.Empty;
+
+                if (string.IsNullOrWhiteSpace(serverUri))
+                {
+                    m_Log.Warn(
+                        "[NEX-ECONOMY-VIEWER]: Firestorm currency helper could not be registered because the simulator ServerURI is empty.");
+                    return;
+                }
+
+                m_LocalEconomyUrl =
+                    Util.AppendEndSlash(
+                        serverUri.Trim());
+
+                m_LegacyRpcHandlers =
+                    new Dictionary<string, XmlRpcMethod>(
+                        StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["getCurrencyQuote"] =
+                            LegacyGetCurrencyQuote,
+                        ["buyCurrency"] =
+                            LegacyBuyCurrency,
+                        ["preflightBuyLandPrep"] =
+                            LegacyPreflightBuyLand,
+                        ["buyLandPrep"] =
+                            LegacyBuyLandPrep
+                    };
+
+                MainServer.Instance.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/currency.php",
+                        ProcessLegacyEconomyRpc));
+
+                MainServer.Instance.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/landtool.php",
+                        ProcessLegacyEconomyRpc));
+
+                m_LegacyHelperRegistered =
+                    true;
+
+                m_Log.InfoFormat(
+                    "[NEX-ECONOMY-VIEWER]: Firestorm economy compatibility helper enabled at {0}currency.php.",
+                    m_LocalEconomyUrl);
+            }
+        }
+
+        private void ProcessLegacyEconomyRpc(
+            IOSHttpRequest request,
+            IOSHttpResponse response)
+        {
+            MainServer.Instance.HandleXmlRpcRequests(
+                (OSHttpRequest)request,
+                (OSHttpResponse)response,
+                m_LegacyRpcHandlers);
+        }
+
+        private XmlRpcResponse LegacyGetCurrencyQuote(
+            XmlRpcRequest request,
+            IPEndPoint remoteClient)
+        {
+            int requested =
+                LegacyRequestedCurrency(
+                    request);
+
+            Hashtable currency =
+                new Hashtable
+                {
+                    ["estimatedCost"] = 0,
+                    ["estimatedLocalCost"] =
+                        "NV$ purchase is handled by the secure NexVerse portal",
+                    ["currencyBuy"] =
+                        requested
+                };
+
+            Hashtable result =
+                new Hashtable
+                {
+                    ["success"] = true,
+                    ["currency"] = currency,
+                    ["confirm"] =
+                        UUID.Random().ToString()
+                };
+
+            return
+                new XmlRpcResponse
+                {
+                    Value = result
+                };
+        }
+
+        private XmlRpcResponse LegacyBuyCurrency(
+            XmlRpcRequest request,
+            IPEndPoint remoteClient)
+        {
+            Hashtable result =
+                new Hashtable
+                {
+                    ["success"] = false,
+                    ["errorMessage"] =
+                        "NV$ cannot be minted through the unauthenticated legacy Firestorm helper. Use the secure NexVerse purchase portal."
+                };
+
+            if (!string.IsNullOrWhiteSpace(
+                    m_CurrencyPurchasePortalUrl))
+            {
+                result["errorURI"] =
+                    m_CurrencyPurchasePortalUrl;
+            }
+
+            return
+                new XmlRpcResponse
+                {
+                    Value = result
+                };
+        }
+
+        private XmlRpcResponse LegacyPreflightBuyLand(
+            XmlRpcRequest request,
+            IPEndPoint remoteClient)
+        {
+            Hashtable levels =
+                new Hashtable();
+            ArrayList entries =
+                new ArrayList();
+            Hashtable level =
+                new Hashtable
+                {
+                    ["id"] =
+                        UUID.Zero.ToString(),
+                    ["description"] =
+                        "OpenGenesisLINK resident"
+                };
+
+            entries.Add(
+                level);
+            levels["upgrade"] =
+                false;
+            levels["action"] =
+                string.Empty;
+            levels["levels"] =
+                entries;
+
+            Hashtable currency =
+                new Hashtable
+                {
+                    ["estimatedCost"] = 0
+                };
+
+            Hashtable landUse =
+                new Hashtable
+                {
+                    ["upgrade"] = false,
+                    ["action"] = string.Empty
+                };
+
+            Hashtable result =
+                new Hashtable
+                {
+                    ["success"] = true,
+                    ["currency"] = currency,
+                    ["membership"] = levels,
+                    ["landuse"] = landUse,
+                    ["confirm"] =
+                        UUID.Random().ToString()
+                };
+
+            return
+                new XmlRpcResponse
+                {
+                    Value = result
+                };
+        }
+
+        private XmlRpcResponse LegacyBuyLandPrep(
+            XmlRpcRequest request,
+            IPEndPoint remoteClient)
+        {
+            return
+                new XmlRpcResponse
+                {
+                    Value =
+                        new Hashtable
+                        {
+                            ["success"] = true
+                        }
+                };
+        }
+
+        private static int LegacyRequestedCurrency(
+            XmlRpcRequest request)
+        {
+            try
+            {
+                if (request?.Params == null ||
+                    request.Params.Count == 0 ||
+                    request.Params[0] is not Hashtable data)
+                {
+                    return 0;
+                }
+
+                object value =
+                    data["currencyBuy"];
+
+                return value == null
+                    ? 0
+                    : Math.Max(
+                        0,
+                        Convert.ToInt32(
+                            value));
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private void OnNewClient(

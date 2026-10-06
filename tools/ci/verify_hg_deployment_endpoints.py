@@ -13,6 +13,8 @@ for name, text in (("bin/OpenSim.ini", opensim), ("bin/OpenSim.ini.example", ope
 
 assert 'BaseHostname = "hg.stadt-nexverse.de"' in robust_hg
 assert 'PublicPort = "80"' in robust_hg
+login_section = robust_hg.split("\n[LoginService]\n", 1)[1].split("\n[", 1)[0]
+assert 'Currency = "NV$"' in login_section, "Firestorm login currency must be NV$"
 assert 'UserProfilesServiceConnector = "${Const|PublicPort}/OpenSim.Server.Handlers.dll:UserProfilesConnector"' in robust_hg
 
 profile_section = robust_hg.split("\n[UserProfilesService]\n", 1)[1].split("\n[", 1)[0]

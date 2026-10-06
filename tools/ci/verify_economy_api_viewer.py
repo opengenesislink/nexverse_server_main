@@ -55,6 +55,13 @@ for marker in (
     "OnEconomyDataRequest",
     "OnMoneyBalanceRequest",
     "OnMoneyTransfer",
+    "currency-base-uri",
+    "getCurrencyQuote",
+    "buyCurrency",
+    "preflightBuyLandPrep",
+    "buyLandPrep",
+    '"/currency.php"',
+    '"/landtool.php"',
     '"/api/v1/economy/balance?account_id="',
     '"/api/v1/economy/transfers"',
     '"X-NexVerse-Api-Key"',
@@ -91,11 +98,16 @@ for marker in (
 ):
     assert marker in openapi, f"missing OpenAPI economy contract marker: {marker}"
 
+assert "[Economy]" in opensim
+economy_config = opensim.split("[Economy]", 1)[1].split("\n[", 1)[0]
+assert "economymodule = NexVerseMoneyModule" in economy_config
+
 assert "[NexEconomyViewer]" in opensim
 viewer_config = opensim.split("[NexEconomyViewer]", 1)[1].split("\n[", 1)[0]
 assert "Enabled = true" in viewer_config
 assert 'ApiKey = "${Environment|NEXVERSE_ECONOMY_API_KEY}"' in viewer_config
 assert 'WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"' in viewer_config
 assert "ConnectionString" not in viewer_config
+assert "CurrencyPurchasePortalUrl" in viewer_config
 
 print("NV$ World API and Viewer adapter contract: OK")
