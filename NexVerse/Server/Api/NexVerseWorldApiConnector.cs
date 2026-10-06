@@ -7,6 +7,7 @@ using Nini.Config;
 using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Economy;
+using NexVerse.Core.Experiences;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
@@ -16,6 +17,7 @@ using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
 using OpenSim.Services.Interfaces;
+using OpenSim.Groups;
 using OpenSim.Services.Friends;
 using OpenSim.Services.EstateService;
 
@@ -440,6 +442,60 @@ namespace NexVerse.Server.Api
                         "/api/v1/land-commerce",
                         apiGate.Wrap(bankingCommerceApi.HandleLandCommerce),
                         "OpenGenesisLINK Land Commerce API"),
+                    true);
+
+                IConfig nexGroupsConfig =
+                    config.Configs["NexGroups"];
+
+                if (nexGroupsConfig?.GetBoolean("Enabled", false) == true)
+                {
+                    GroupsService nexGroupsService =
+                        new GroupsService(
+                            config);
+
+                    NexGroupsApi nexGroupsApi =
+                        new NexGroupsApi(
+                            authenticator,
+                            auditSink,
+                            nexGroupsService,
+                            () =>
+                                NexEconomyConnector.Current?.Enabled == true
+                                    ? NexEconomyConnector.Current.Economy
+                                    : null);
+
+                    server.AddSimpleStreamHandler(
+                        new SimpleStreamHandler(
+                            "/api/v1/groups",
+                            apiGate.Wrap(nexGroupsApi.Handle),
+                            "OpenGenesisLINK NexGroups API"),
+                        true);
+                }
+
+                IConfig experiencesConfig =
+                    config.Configs["NexExperiences"];
+
+                string experienceStorePath =
+                    experiencesConfig?.GetString(
+                        "StorePath",
+                        "data/nexverse-experiences.json") ??
+                    "data/nexverse-experiences.json";
+
+                NexExperienceStore experienceStore =
+                    new NexExperienceStore(
+                        experienceStorePath);
+
+                NexExperiencesApi experiencesApi =
+                    new NexExperiencesApi(
+                        authenticator,
+                        userAccounts,
+                        auditSink,
+                        experienceStore);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/experiences",
+                        apiGate.Wrap(experiencesApi.Handle),
+                        "OpenGenesisLINK NexExperiences API"),
                     true);
 
                 NexInventoryApi inventoryApi =

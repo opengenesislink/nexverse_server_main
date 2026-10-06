@@ -104,10 +104,27 @@ namespace OpenSim.Groups
         #region Daily Cleanup
 
         private Timer m_CleanupTimer;
+        private readonly NexGroupModerationStore m_NexModeration;
 
         public GroupsService(IConfigSource config, string configName)
             : base(config, configName)
         {
+            IConfig groups =
+                config?.Configs[
+                    string.IsNullOrWhiteSpace(configName)
+                        ? "Groups"
+                        : configName] ??
+                config?.Configs["Groups"];
+
+            string moderationPath =
+                groups?.GetString(
+                    "NexModerationStorePath",
+                    "data/nexgroups-moderation.json") ??
+                "data/nexgroups-moderation.json";
+
+            m_NexModeration =
+                new NexGroupModerationStore(
+                    moderationPath);
         }
 
         public GroupsService(IConfigSource config)
@@ -426,6 +443,12 @@ namespace OpenSim.Groups
         public bool AddAgentToGroup(string RequestingAgentID, string AgentID, UUID GroupID, UUID RoleID, string token, out string reason)
         {
             reason = string.Empty;
+
+            if (m_NexModeration.IsBanned(GroupID, AgentID))
+            {
+                reason = "The resident is banned from this group.";
+                return false;
+            }
 
             _AddAgentToGroup(RequestingAgentID, AgentID, GroupID, RoleID, token);
 
@@ -1053,6 +1076,180 @@ namespace OpenSim.Groups
         }
 
         #endregion
+
+        public IReadOnlyList<NexGroupBanRecord> GetGroupBans(
+            string requestingAgentId,
+            UUID groupId)
+        {
+            if (!HasPower(
+                    requestingAgentId,
+                    groupId,
+                    GroupPowers.GroupBanAccess) &&
+                !IsOwner(
+                    requestingAgentId,
+                    groupId))
+            {
+                return Array.Empty<NexGroupBanRecord>();
+            }
+
+            return m_NexModeration.List(groupId);
+        }
+
+        public bool AddGroupBan(
+            string requestingAgentId,
+            UUID groupId,
+            string agentId,
+            string reason,
+            out string error)
+        {
+            error = string.Empty;
+
+            if (!HasPower(
+                    requestingAgentId,
+                    groupId,
+                    GroupPowers.GroupBanAccess) &&
+                !IsOwner(
+                    requestingAgentId,
+                    groupId))
+            {
+                error = "Group ban permission is required.";
+                return false;
+            }
+
+            GroupData group =
+                m_Database.RetrieveGroup(groupId);
+
+            if (group == null)
+            {
+                error = "Group was not found.";
+                return false;
+            }
+
+            if (string.Equals(
+                    group.Data["FounderID"],
+                    agentId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                error = "The group founder cannot be banned.";
+                return false;
+            }
+
+            m_NexModeration.Add(
+                groupId,
+                agentId,
+                requestingAgentId,
+                reason);
+
+            if (m_Database.RetrieveMember(groupId, agentId) != null)
+                _RemoveAgentFromGroup(
+                    requestingAgentId,
+                    agentId,
+                    groupId);
+
+            return true;
+        }
+
+        public bool RemoveGroupBan(
+            string requestingAgentId,
+            UUID groupId,
+            string agentId,
+            out string error)
+        {
+            error = string.Empty;
+
+            if (!HasPower(
+                    requestingAgentId,
+                    groupId,
+                    GroupPowers.GroupBanAccess) &&
+                !IsOwner(
+                    requestingAgentId,
+                    groupId))
+            {
+                error = "Group ban permission is required.";
+                return false;
+            }
+
+            return m_NexModeration.Remove(
+                groupId,
+                agentId);
+        }
+
+        public bool DeleteGroup(
+            string requestingAgentId,
+            UUID groupId,
+            out string reason)
+        {
+            reason = string.Empty;
+
+            GroupData group =
+                m_Database.RetrieveGroup(groupId);
+
+            if (group == null)
+            {
+                reason = "Group was not found.";
+                return false;
+            }
+
+            if (!group.Data.TryGetValue(
+                    "FounderID",
+                    out string founderId) ||
+                !string.Equals(
+                    founderId,
+                    requestingAgentId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                reason = "Only the group founder can delete the group.";
+                return false;
+            }
+
+            MembershipData[] members =
+                m_Database.RetrieveMembers(groupId) ??
+                Array.Empty<MembershipData>();
+
+            foreach (MembershipData member in members)
+            {
+                m_Database.DeleteMemberAllRoles(
+                    groupId,
+                    member.PrincipalID);
+                m_Database.DeleteMember(
+                    groupId,
+                    member.PrincipalID);
+
+                PrincipalData principal =
+                    m_Database.RetrievePrincipal(
+                        member.PrincipalID);
+
+                if (principal != null &&
+                    principal.ActiveGroupID == groupId)
+                {
+                    principal.ActiveGroupID =
+                        UUID.Zero;
+                    m_Database.StorePrincipal(principal);
+                }
+            }
+
+            RoleData[] roles =
+                m_Database.RetrieveRoles(groupId) ??
+                Array.Empty<RoleData>();
+
+            foreach (RoleData role in roles)
+                m_Database.DeleteRole(
+                    groupId,
+                    role.RoleID);
+
+            NoticeData[] notices =
+                m_Database.RetrieveNotices(groupId) ??
+                Array.Empty<NoticeData>();
+
+            foreach (NoticeData notice in notices)
+                m_Database.DeleteNotice(
+                    notice.NoticeID);
+
+            m_Database.DeleteInvites(groupId);
+            m_NexModeration.RemoveGroup(groupId);
+
+            return m_Database.DeleteGroup(groupId);
+        }
 
         #region permissions
         private bool HasPower(string agentID, UUID groupID, GroupPowers power)

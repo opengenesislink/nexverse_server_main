@@ -190,6 +190,71 @@ namespace NexVerse.Server.Api
                     ("post", "NV$-Konto sperren, freigeben oder schließen", "admin:*", "200")),
                 ["/api/v1/economy/accounts/ensure"] = AuthenticatedOperations(
                     ("post", "Vertrauenswürdiges Gruppen-, Business-, Estate- oder Objekt-Wallet provisionieren", "economy:transfer (service/admin)", "200")),
+                ["/api/v1/groups"] = AuthenticatedOperations(
+                    ("get", "NexGroups durchsuchen", "groups:read", "200"),
+                    ("post", "NexGroup erstellen", "groups:manage", "201")),
+                ["/api/v1/groups/{groupId}"] = AuthenticatedOperations(
+                    ("get", "NexGroup-Profil lesen", "groups:read", "200"),
+                    ("put", "NexGroup-Profil ändern", "groups:manage", "200"),
+                    ("delete", "NexGroup als Founder löschen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/members"] = AuthenticatedOperations(
+                    ("get", "Gruppenmitglieder lesen", "groups:read", "200")),
+                ["/api/v1/groups/{groupId}/members/{agentId}"] = AuthenticatedOperations(
+                    ("post", "Resident zur Gruppe hinzufügen", "groups:manage", "200"),
+                    ("delete", "Resident aus Gruppe entfernen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/roles"] = AuthenticatedOperations(
+                    ("get", "Rollen, Powers und Rollenmitglieder lesen", "groups:read", "200"),
+                    ("post", "Gruppenrolle erstellen", "groups:manage", "201")),
+                ["/api/v1/groups/{groupId}/roles/{roleId}"] = AuthenticatedOperations(
+                    ("put", "Gruppenrolle ändern", "groups:manage", "200"),
+                    ("delete", "Gruppenrolle löschen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/roles/{roleId}/members/{agentId}"] = AuthenticatedOperations(
+                    ("post", "Resident einer Rolle zuordnen", "groups:manage", "200"),
+                    ("delete", "Resident aus Rolle entfernen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/invites"] = AuthenticatedOperations(
+                    ("post", "Gruppeneinladung erstellen", "groups:manage", "201")),
+                ["/api/v1/groups/{groupId}/invites/{inviteId}"] = AuthenticatedOperations(
+                    ("get", "Gruppeneinladung lesen", "groups:read", "200"),
+                    ("delete", "Gruppeneinladung löschen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/notices"] = AuthenticatedOperations(
+                    ("get", "Group Notices lesen", "groups:read", "200"),
+                    ("post", "Group Notice veröffentlichen", "groups:manage", "201")),
+                ["/api/v1/groups/{groupId}/bans"] = AuthenticatedOperations(
+                    ("get", "Gruppensperren lesen", "groups:read", "200")),
+                ["/api/v1/groups/{groupId}/bans/{agentId}"] = AuthenticatedOperations(
+                    ("post", "Resident aus Gruppe sperren", "groups:manage", "200"),
+                    ("delete", "Gruppensperre entfernen", "groups:manage", "200")),
+                ["/api/v1/groups/{groupId}/accounting"] = AuthenticatedOperations(
+                    ("get", "NV$-Gruppenkonto und NVBAN lesen", "groups:read", "200")),
+                ["/api/v1/groups/{groupId}/capabilities"] = AuthenticatedOperations(
+                    ("get", "Chat-, Voice-, Land-, Objekt- und HG-Kompatibilität lesen", "groups:read", "200")),
+                ["/api/v1/experiences"] = AuthenticatedOperations(
+                    ("get", "Experiences durchsuchen", "experiences:read", "200"),
+                    ("post", "Experience erstellen", "experiences:manage", "201")),
+                ["/api/v1/experiences/{experienceId}"] = AuthenticatedOperations(
+                    ("get", "Experience lesen", "experiences:read", "200"),
+                    ("put", "Experience ändern", "experiences:manage", "200"),
+                    ("delete", "Experience löschen", "experiences:manage", "200")),
+                ["/api/v1/experiences/{experienceId}/logs"] = AuthenticatedOperations(
+                    ("get", "Experience-Logs lesen", "experiences:read", "200")),
+                ["/api/v1/experiences/{experienceId}/roles/{role}/{residentId}"] = AuthenticatedOperations(
+                    ("put", "Experience-Admin/Contributor ändern", "experiences:manage", "200")),
+                ["/api/v1/experiences/{experienceId}/residents/{residentId}"] = AuthenticatedOperations(
+                    ("put", "Experience Allow/Block ändern", "experiences:manage", "200")),
+                ["/api/v1/experiences/{experienceId}/policies/{kind}/{locationId}"] = AuthenticatedOperations(
+                    ("put", "Estate-/Parcel-Policy ändern", "experiences:manage", "200")),
+                ["/api/v1/experiences/{experienceId}/scripts/{scriptId}/bind"] = AuthenticatedOperations(
+                    ("post", "Script an Experience binden", "experiences:manage", "200")),
+                ["/api/v1/experiences/script/resolve"] = AuthenticatedOperations(
+                    ("get", "Script-Experience-Bindung auflösen", "experiences:script", "200")),
+                ["/api/v1/experiences/script/details"] = AuthenticatedOperations(
+                    ("get", "Experience-Details für LSL lesen", "experiences:script", "200")),
+                ["/api/v1/experiences/script/permission"] = AuthenticatedOperations(
+                    ("get", "Persistente Experience-Permission prüfen", "experiences:script", "200")),
+                ["/api/v1/experiences/script/location"] = AuthenticatedOperations(
+                    ("get", "Estate-/Parcel-Policy für Script prüfen", "experiences:script", "200")),
+                ["/api/v1/experiences/script/kv"] = AuthenticatedOperations(
+                    ("post", "Experience K/V-Operation für LSL ausführen", "experiences:script", "200")),
                 ["/api/v1/banking/transactions"] = AuthenticatedOperations(
                     ("get", "NV$-Transaktionshistorie des eigenen oder autorisierten Kontos lesen", "economy:read", "200")),
                 ["/api/v1/banking/statements"] = AuthenticatedOperations(
@@ -422,6 +487,32 @@ namespace NexVerse.Server.Api
                 "EconomyAccountStateResponse",
                 "200");
             ApplyJsonContract(paths, "/api/v1/economy/accounts/ensure", "post", "EconomyWalletEnsureRequest", "EconomyBalanceResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups", "post", "NexGroupCreateRequest", "Chapter11ObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}", "put", "Chapter11MutationRequest", "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}", "delete", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/members", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/members/{agentId}", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/roles", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/roles", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/invites", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/notices", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/notices", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/bans", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/bans/{agentId}", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/accounting", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/groups/{groupId}/capabilities", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences", "post", "NexExperienceCreateRequest", "Chapter11ObjectResponse", "201");
+            ApplyJsonContract(paths, "/api/v1/experiences/{experienceId}", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/{experienceId}", "put", "Chapter11MutationRequest", "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/{experienceId}/logs", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/script/resolve", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/script/details", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/script/permission", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/script/location", "get", null, "Chapter11ObjectResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/experiences/script/kv", "post", "Chapter11MutationRequest", "Chapter11ObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/banking/transactions", "get", null, "BankingTransactionsResponse", "200");
             ApplyJsonContract(paths, "/api/v1/banking/statements", "get", null, "BankingStatementResponse", "200");
             ApplyJsonContract(paths, "/api/v1/banking/reconciliation", "get", null, "BankingReconciliationResponse", "200");
@@ -2288,6 +2379,45 @@ namespace NexVerse.Server.Api
                         },
                         ["currency"] = new { type = "object" },
                         ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["Chapter11ObjectResponse"] = new
+                {
+                    type = "object"
+                },
+                ["Chapter11MutationRequest"] = new
+                {
+                    type = "object",
+                    additionalProperties = true
+                },
+                ["NexGroupCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "name" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["name"] = new { type = "string", minLength = 1, maxLength = 255 },
+                        ["charter"] = new { type = "string" },
+                        ["show_in_list"] = new { type = "boolean" },
+                        ["insignia_id"] = new { type = "string", format = "uuid" },
+                        ["membership_fee"] = new { type = "integer", minimum = 0 },
+                        ["open_enrollment"] = new { type = "boolean" },
+                        ["allow_publish"] = new { type = "boolean" },
+                        ["mature_publish"] = new { type = "boolean" }
+                    }
+                },
+                ["NexExperienceCreateRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "name" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["experience_id"] = new { type = "string", format = "uuid" },
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["group_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string", minLength = 3, maxLength = 64 },
+                        ["description"] = new { type = "string" },
+                        ["maturity"] = new { type = "string", @enum = new[] { "general", "moderate", "adult" } }
                     }
                 },
                 ["EconomyWalletEnsureRequest"] = new

@@ -126,6 +126,7 @@ namespace OpenSim.Data
         InvitationData RetrieveInvitation(UUID inviteID);
         InvitationData RetrieveInvitation(UUID groupID, string principalID);
         bool DeleteInvite(UUID inviteID);
+        bool DeleteInvites(UUID groupID);
         void DeleteOldInvites();
 
         // notices table

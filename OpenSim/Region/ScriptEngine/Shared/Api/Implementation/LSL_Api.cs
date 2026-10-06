@@ -3997,6 +3997,95 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             return m_ScriptEngine.GetStartParameter(m_item.ItemID);
         }
 
+        public void llRequestExperiencePermissions(
+            LSL_Key agentId,
+            LSL_String reason)
+        {
+            if (!UUID.TryParse(
+                    agentId,
+                    out UUID residentId) ||
+                residentId.IsZero())
+            {
+                PostExperiencePermissionDenied(
+                    UUID.Zero,
+                    ScriptBaseClass.XP_ERROR_INVALID_PARAMETERS);
+                return;
+            }
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            if (module == null)
+            {
+                PostExperiencePermissionDenied(
+                    residentId,
+                    ScriptBaseClass.XP_ERROR_EXPERIENCES_DISABLED);
+                return;
+            }
+
+            ILandObject land =
+                World.LandChannel.GetLandObject(
+                    m_host.AbsolutePosition);
+
+            UUID parcelId =
+                land?.LandData?.GlobalID ??
+                UUID.Zero;
+
+            bool allowed =
+                module.HasExperiencePermission(
+                    m_item.ItemID,
+                    residentId,
+                    parcelId,
+                    out UUID experienceId,
+                    out string denialReason);
+
+            if (allowed)
+            {
+                m_ScriptEngine.PostScriptEvent(
+                    m_item.ItemID,
+                    new EventParams(
+                        "experience_permissions",
+                        new object[]
+                        {
+                            new LSL_Key(
+                                residentId.ToString())
+                        },
+                        Array.Empty<DetectParams>()));
+                return;
+            }
+
+            int error =
+                experienceId.IsZero()
+                    ? ScriptBaseClass.XP_ERROR_NO_EXPERIENCE
+                    : denialReason != null &&
+                      denialReason.IndexOf(
+                          "parcel",
+                          StringComparison.OrdinalIgnoreCase) >= 0
+                        ? ScriptBaseClass.XP_ERROR_NOT_PERMITTED_LAND
+                        : ScriptBaseClass.XP_ERROR_NOT_PERMITTED;
+
+            PostExperiencePermissionDenied(
+                residentId,
+                error);
+        }
+
+        private void PostExperiencePermissionDenied(
+            UUID residentId,
+            int error)
+        {
+            m_ScriptEngine.PostScriptEvent(
+                m_item.ItemID,
+                new EventParams(
+                    "experience_permissions_denied",
+                    new object[]
+                    {
+                        new LSL_Key(
+                            residentId.ToString()),
+                        new LSL_Integer(error)
+                    },
+                    Array.Empty<DetectParams>()));
+        }
+
         public void llRequestPermissions(string agent, int perm)
         {
             if (!UUID.TryParse(agent, out UUID agentID) || agentID.IsZero())
@@ -14366,6 +14455,79 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             return src;
         }
 
+        public LSL_List llGetExperienceDetails(
+            LSL_Key experienceId)
+        {
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            if (module == null)
+                return new LSL_List();
+
+            UUID id;
+
+            if (!UUID.TryParse(
+                    experienceId,
+                    out id) ||
+                id.IsZero())
+            {
+                id =
+                    module.ResolveExperience(
+                        m_item.ItemID);
+            }
+
+            if (id.IsZero() ||
+                !module.TryGetExperienceDetails(
+                    id,
+                    out string name,
+                    out UUID ownerId,
+                    out UUID groupId,
+                    out int maturity,
+                    out bool enabled))
+            {
+                return new LSL_List();
+            }
+
+            string stateMessage =
+                enabled
+                    ? "Experience is enabled"
+                    : "Experience is disabled";
+
+            return new LSL_List(
+                new object[]
+                {
+                    new LSL_String(name),
+                    new LSL_Key(ownerId.ToString()),
+                    new LSL_Key(id.ToString()),
+                    new LSL_Integer(enabled ? 1 : 0),
+                    new LSL_String(stateMessage),
+                    new LSL_Key(groupId.ToString())
+                });
+        }
+
+        public LSL_Integer llAgentInExperience(
+            LSL_Key agentId)
+        {
+            if (!UUID.TryParse(
+                    agentId,
+                    out UUID residentId) ||
+                residentId.IsZero())
+            {
+                return 0;
+            }
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            return
+                module != null &&
+                module.AgentInExperience(
+                    m_item.ItemID,
+                    residentId)
+                    ? 1
+                    : 0;
+        }
+
         public LSL_List llGetObjectDetails(LSL_Key id, LSL_List args)
         {
             LSL_List ret = new();
@@ -18799,6 +18961,357 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                 return new LSL_List();
 
             return new LSL_List(m_host.ParentGroup.LinksetData.ListKeysByPatttern(pattern.m_string, start, count));
+        }
+
+        public LSL_Key llCreateKeyValue(
+            LSL_String key,
+            LSL_String value)
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.CreateKeyValue(
+                    m_item.ItemID,
+                    key,
+                    value,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1," + (string)value
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llReadKeyValue(
+            LSL_String key)
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            string value = string.Empty;
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.ReadKeyValue(
+                    m_item.ItemID,
+                    key,
+                    out value,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1," + value
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llUpdateKeyValue(
+            LSL_String key,
+            LSL_String value,
+            LSL_Integer checkedFlag,
+            LSL_String originalValue)
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            bool retryMismatch = false;
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.UpdateKeyValue(
+                    m_item.ItemID,
+                    key,
+                    value,
+                    checkedFlag != 0,
+                    originalValue,
+                    out retryMismatch,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1," + (string)value
+                    : "0," +
+                      (retryMismatch
+                          ? ScriptBaseClass.XP_ERROR_RETRY_UPDATE
+                          : ExperienceErrorCode(
+                              error,
+                              ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION)));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llDeleteKeyValue(
+            LSL_String key)
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.DeleteKeyValue(
+                    m_item.ItemID,
+                    key,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1"
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llDataSizeKeyValue()
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            long usedBytes = 0;
+            long quotaBytes = 0;
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.GetKeyValueStats(
+                    m_item.ItemID,
+                    out usedBytes,
+                    out quotaBytes,
+                    out _,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1," +
+                      usedBytes.ToString(
+                          CultureInfo.InvariantCulture) +
+                      "," +
+                      quotaBytes.ToString(
+                          CultureInfo.InvariantCulture)
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llKeyCountKeyValue()
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            int keyCount = 0;
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.GetKeyValueStats(
+                    m_item.ItemID,
+                    out _,
+                    out _,
+                    out keyCount,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1," +
+                      keyCount.ToString(
+                          CultureInfo.InvariantCulture)
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_Key llKeysKeyValue(
+            LSL_Integer start,
+            LSL_Integer count)
+        {
+            UUID requestId =
+                UUID.Random();
+
+            IExperienceModule module =
+                World.RequestModuleInterface<IExperienceModule>();
+
+            string[] keys = Array.Empty<string>();
+            string error = string.Empty;
+
+            bool success =
+                module != null &&
+                module.ListKeyValueKeys(
+                    m_item.ItemID,
+                    start,
+                    count,
+                    out keys,
+                    out error);
+
+            PostExperienceDataserver(
+                requestId,
+                success
+                    ? "1" +
+                      (keys.Length > 0
+                          ? "," + string.Join(",", keys)
+                          : string.Empty)
+                    : "0," + ExperienceErrorCode(
+                        error,
+                        ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND));
+
+            return new LSL_Key(
+                requestId.ToString());
+        }
+
+        public LSL_String llGetExperienceErrorMessage(
+            LSL_Integer error)
+        {
+            switch ((int)error)
+            {
+                case ScriptBaseClass.XP_ERROR_NONE:
+                    return "no error";
+                case ScriptBaseClass.XP_ERROR_THROTTLED:
+                    return "exceeded throttle";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCES_DISABLED:
+                    return "experiences are disabled";
+                case ScriptBaseClass.XP_ERROR_INVALID_PARAMETERS:
+                    return "invalid parameters";
+                case ScriptBaseClass.XP_ERROR_NOT_PERMITTED:
+                    return "operation not permitted";
+                case ScriptBaseClass.XP_ERROR_NO_EXPERIENCE:
+                    return "script not associated with an experience";
+                case ScriptBaseClass.XP_ERROR_NOT_FOUND:
+                    return "not found";
+                case ScriptBaseClass.XP_ERROR_INVALID_EXPERIENCE:
+                    return "invalid experience";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCE_DISABLED:
+                    return "experience is disabled";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCE_SUSPENDED:
+                    return "experience is suspended";
+                case ScriptBaseClass.XP_ERROR_UNKNOWN_ERROR:
+                    return "unknown error";
+                case ScriptBaseClass.XP_ERROR_QUOTA_EXCEEDED:
+                    return "experience data quota exceeded";
+                case ScriptBaseClass.XP_ERROR_STORE_DISABLED:
+                    return "key-value store is disabled";
+                case ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION:
+                    return "key-value store communication failed";
+                case ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND:
+                    return "key doesn't exist";
+                case ScriptBaseClass.XP_ERROR_RETRY_UPDATE:
+                    return "retry update";
+                case ScriptBaseClass.XP_ERROR_MATURITY_EXCEEDED:
+                    return "experience content rating too high";
+                case ScriptBaseClass.XP_ERROR_NOT_PERMITTED_LAND:
+                    return "not allowed to run on this land";
+                case ScriptBaseClass.XP_ERROR_REQUEST_PERM_TIMEOUT:
+                    return "experience permissions request timed out";
+                default:
+                    return "unknown error";
+            }
+        }
+
+        private void PostExperienceDataserver(
+            UUID requestId,
+            string payload)
+        {
+            m_ScriptEngine.PostScriptEvent(
+                m_item.ItemID,
+                new EventParams(
+                    "dataserver",
+                    new object[]
+                    {
+                        new LSL_Key(
+                            requestId.ToString()),
+                        new LSL_String(
+                            payload ?? string.Empty)
+                    },
+                    Array.Empty<DetectParams>()));
+        }
+
+        private static int ExperienceErrorCode(
+            string error,
+            int fallback)
+        {
+            string text =
+                error ??
+                string.Empty;
+
+            if (text.IndexOf(
+                    "bound",
+                    StringComparison.OrdinalIgnoreCase) >= 0 ||
+                text.IndexOf(
+                    "experience",
+                    StringComparison.OrdinalIgnoreCase) >= 0 &&
+                text.IndexOf(
+                    "not",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return ScriptBaseClass.XP_ERROR_NO_EXPERIENCE;
+            }
+
+            if (text.IndexOf(
+                    "quota",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return ScriptBaseClass.XP_ERROR_QUOTA_EXCEEDED;
+            }
+
+            if (text.IndexOf(
+                    "parameter",
+                    StringComparison.OrdinalIgnoreCase) >= 0 ||
+                text.IndexOf(
+                    "length",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return ScriptBaseClass.XP_ERROR_INVALID_PARAMETERS;
+            }
+
+            return fallback;
         }
 
         public LSL_Integer llIsFriend(LSL_Key agent_id)

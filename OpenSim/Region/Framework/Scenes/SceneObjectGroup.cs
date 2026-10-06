@@ -127,8 +127,8 @@ namespace OpenSim.Region.Framework.Scenes
         remote_data = 1UL << 23,
         at_rot_target = 1UL << 24,
         transaction_result = 1UL << 25,
-        //
-        //
+        experience_permissions = 1UL << 26,
+        experience_permissions_denied = 1UL << 27,
         run_time_permissions = 1UL << 28,
         touch_end = 1UL << 29,
         state_entry = 1UL << 30,

@@ -70,6 +70,8 @@ namespace OpenSim.Region.ScriptEngine.Yengine
         remote_data = 23,
         at_rot_target = 24,
         transaction_result = 25,
+        experience_permissions = 26,
+        experience_permissions_denied = 27,
         run_time_permissions = 28,
         touch_end = 29,
         state_entry = 30,

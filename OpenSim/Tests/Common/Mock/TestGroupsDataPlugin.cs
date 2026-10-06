@@ -304,6 +304,11 @@ namespace OpenSim.Tests.Common.Mock
             return false;
         }
 
+        public bool DeleteInvites(UUID groupID)
+        {
+            return false;
+        }
+
         public void DeleteOldInvites()
         {
         }

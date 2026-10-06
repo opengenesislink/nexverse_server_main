@@ -89,6 +89,27 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         public const int PERMISSION_OVERRIDE_ANIMATIONS = 0x8000;
         public const int PERMISSION_RETURN_OBJECTS = 0x10000;
 
+        // Experience Tools errors
+        public const int XP_ERROR_NONE = 0;
+        public const int XP_ERROR_THROTTLED = 1;
+        public const int XP_ERROR_EXPERIENCES_DISABLED = 2;
+        public const int XP_ERROR_INVALID_PARAMETERS = 3;
+        public const int XP_ERROR_NOT_PERMITTED = 4;
+        public const int XP_ERROR_NO_EXPERIENCE = 5;
+        public const int XP_ERROR_NOT_FOUND = 6;
+        public const int XP_ERROR_INVALID_EXPERIENCE = 7;
+        public const int XP_ERROR_EXPERIENCE_DISABLED = 8;
+        public const int XP_ERROR_EXPERIENCE_SUSPENDED = 9;
+        public const int XP_ERROR_UNKNOWN_ERROR = 10;
+        public const int XP_ERROR_QUOTA_EXCEEDED = 11;
+        public const int XP_ERROR_STORE_DISABLED = 12;
+        public const int XP_ERROR_STORAGE_EXCEPTION = 13;
+        public const int XP_ERROR_KEY_NOT_FOUND = 14;
+        public const int XP_ERROR_RETRY_UPDATE = 15;
+        public const int XP_ERROR_MATURITY_EXCEEDED = 16;
+        public const int XP_ERROR_NOT_PERMITTED_LAND = 17;
+        public const int XP_ERROR_REQUEST_PERM_TIMEOUT = 18;
+
         public const int AGENT_FLYING = 0x1;
         //ApiDesc The agent has attachments
         public const int AGENT_ATTACHMENTS = 0x2;
