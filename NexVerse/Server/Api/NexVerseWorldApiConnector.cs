@@ -8,6 +8,7 @@ using NexVerse.Core.Audit;
 using NexVerse.Core.ControlPlane;
 using NexVerse.Core.Economy;
 using NexVerse.Core.Experiences;
+using NexVerse.Core.Discovery;
 using NexVerse.Core.Messaging;
 using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
@@ -447,9 +448,11 @@ namespace NexVerse.Server.Api
                 IConfig nexGroupsConfig =
                     config.Configs["NexGroups"];
 
+                GroupsService nexGroupsService = null;
+
                 if (nexGroupsConfig?.GetBoolean("Enabled", false) == true)
                 {
-                    GroupsService nexGroupsService =
+                    nexGroupsService =
                         new GroupsService(
                             config);
 
@@ -496,6 +499,82 @@ namespace NexVerse.Server.Api
                         "/api/v1/experiences",
                         apiGate.Wrap(experiencesApi.Handle),
                         "OpenGenesisLINK NexExperiences API"),
+                    true);
+
+                IConfig discoveryConfig =
+                    config.Configs["NexDiscovery"];
+
+                string discoveryStorePath =
+                    discoveryConfig?.GetString(
+                        "StorePath",
+                        "data/opengenesislink-discovery.json") ??
+                    "data/opengenesislink-discovery.json";
+
+                string teleportBaseUri =
+                    discoveryConfig?.GetString(
+                        "TeleportBaseUri",
+                        string.Empty) ??
+                    string.Empty;
+
+                NexDiscoveryStore discoveryStore =
+                    new NexDiscoveryStore(
+                        discoveryStorePath);
+
+                NexDiscoveryApi discoveryApi =
+                    new NexDiscoveryApi(
+                        authenticator,
+                        userAccounts,
+                        grid,
+                        nexGroupsService,
+                        experienceStore,
+                        discoveryStore,
+                        () =>
+                            NexEconomyConnector.Current?.Enabled == true
+                                ? NexEconomyConnector.Current.Economy
+                                : null,
+                        auditSink,
+                        teleportBaseUri);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/search",
+                        apiGate.Wrap(discoveryApi.HandleSearch),
+                        "OpenGenesisLINK NexSearch API"),
+                    true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/places",
+                        apiGate.Wrap(discoveryApi.HandlePlaces),
+                        "OpenGenesisLINK Places API"),
+                    true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/events",
+                        apiGate.Wrap(discoveryApi.HandleContent),
+                        "OpenGenesisLINK Discovery Events API"),
+                    true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/classifieds",
+                        apiGate.Wrap(discoveryApi.HandleContent),
+                        "OpenGenesisLINK Classifieds API"),
+                    true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/land-portal",
+                        apiGate.Wrap(discoveryApi.HandleLandPortal),
+                        "OpenGenesisLINK Land Portal API"),
+                    true);
+
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/destinations",
+                        apiGate.Wrap(discoveryApi.HandleDestinations),
+                        "OpenGenesisLINK Destination Guide API"),
                     true);
 
                 NexInventoryApi inventoryApi =
