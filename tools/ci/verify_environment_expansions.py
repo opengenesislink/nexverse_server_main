@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[2]
-REF = re.compile(r"\$\{Environment\|([^}]+)\}")
+REF = re.compile(r"\$\{Environment\|([A-Z][A-Z0-9_]*)\}")
 SECTION = re.compile(r"^\s*\[([^]]+)\]\s*$")
 ASSIGN = re.compile(r"^\s*([A-Z0-9_]+)\s*=")
 
