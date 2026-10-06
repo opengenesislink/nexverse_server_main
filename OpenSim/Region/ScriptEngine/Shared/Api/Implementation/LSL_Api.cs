@@ -18973,13 +18973,15 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.CreateKeyValue(
                     m_item.ItemID,
                     key,
                     value,
-                    out string error);
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19002,13 +19004,16 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            string value = string.Empty;
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.ReadKeyValue(
                     m_item.ItemID,
                     key,
-                    out string value,
-                    out string error);
+                    out value,
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19034,6 +19039,9 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            bool retryMismatch = false;
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.UpdateKeyValue(
@@ -19042,8 +19050,8 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                     value,
                     checkedFlag != 0,
                     originalValue,
-                    out bool retryMismatch,
-                    out string error);
+                    out retryMismatch,
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19069,12 +19077,14 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.DeleteKeyValue(
                     m_item.ItemID,
                     key,
-                    out string error);
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19096,14 +19106,18 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            long usedBytes = 0;
+            long quotaBytes = 0;
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.GetKeyValueStats(
                     m_item.ItemID,
-                    out long usedBytes,
-                    out long quotaBytes,
+                    out usedBytes,
+                    out quotaBytes,
                     out _,
-                    out string error);
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19130,14 +19144,17 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            int keyCount = 0;
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.GetKeyValueStats(
                     m_item.ItemID,
                     out _,
                     out _,
-                    out int keyCount,
-                    out string error);
+                    out keyCount,
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19163,14 +19180,17 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             IExperienceModule module =
                 World.RequestModuleInterface<IExperienceModule>();
 
+            string[] keys = Array.Empty<string>();
+            string error = string.Empty;
+
             bool success =
                 module != null &&
                 module.ListKeyValueKeys(
                     m_item.ItemID,
                     start,
                     count,
-                    out string[] keys,
-                    out string error);
+                    out keys,
+                    out error);
 
             PostExperienceDataserver(
                 requestId,
@@ -19188,30 +19208,52 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
         }
 
         public LSL_String llGetExperienceErrorMessage(
-            LSL_Integer error) =>
-            error switch
+            LSL_Integer error)
+        {
+            switch ((int)error)
             {
-                ScriptBaseClass.XP_ERROR_NONE => "no error",
-                ScriptBaseClass.XP_ERROR_THROTTLED => "exceeded throttle",
-                ScriptBaseClass.XP_ERROR_EXPERIENCES_DISABLED => "experiences are disabled",
-                ScriptBaseClass.XP_ERROR_INVALID_PARAMETERS => "invalid parameters",
-                ScriptBaseClass.XP_ERROR_NOT_PERMITTED => "operation not permitted",
-                ScriptBaseClass.XP_ERROR_NO_EXPERIENCE => "script not associated with an experience",
-                ScriptBaseClass.XP_ERROR_NOT_FOUND => "not found",
-                ScriptBaseClass.XP_ERROR_INVALID_EXPERIENCE => "invalid experience",
-                ScriptBaseClass.XP_ERROR_EXPERIENCE_DISABLED => "experience is disabled",
-                ScriptBaseClass.XP_ERROR_EXPERIENCE_SUSPENDED => "experience is suspended",
-                ScriptBaseClass.XP_ERROR_UNKNOWN_ERROR => "unknown error",
-                ScriptBaseClass.XP_ERROR_QUOTA_EXCEEDED => "experience data quota exceeded",
-                ScriptBaseClass.XP_ERROR_STORE_DISABLED => "key-value store is disabled",
-                ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION => "key-value store communication failed",
-                ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND => "key doesn't exist",
-                ScriptBaseClass.XP_ERROR_RETRY_UPDATE => "retry update",
-                ScriptBaseClass.XP_ERROR_MATURITY_EXCEEDED => "experience content rating too high",
-                ScriptBaseClass.XP_ERROR_NOT_PERMITTED_LAND => "not allowed to run on this land",
-                ScriptBaseClass.XP_ERROR_REQUEST_PERM_TIMEOUT => "experience permissions request timed out",
-                _ => "unknown error"
-            };
+                case ScriptBaseClass.XP_ERROR_NONE:
+                    return "no error";
+                case ScriptBaseClass.XP_ERROR_THROTTLED:
+                    return "exceeded throttle";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCES_DISABLED:
+                    return "experiences are disabled";
+                case ScriptBaseClass.XP_ERROR_INVALID_PARAMETERS:
+                    return "invalid parameters";
+                case ScriptBaseClass.XP_ERROR_NOT_PERMITTED:
+                    return "operation not permitted";
+                case ScriptBaseClass.XP_ERROR_NO_EXPERIENCE:
+                    return "script not associated with an experience";
+                case ScriptBaseClass.XP_ERROR_NOT_FOUND:
+                    return "not found";
+                case ScriptBaseClass.XP_ERROR_INVALID_EXPERIENCE:
+                    return "invalid experience";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCE_DISABLED:
+                    return "experience is disabled";
+                case ScriptBaseClass.XP_ERROR_EXPERIENCE_SUSPENDED:
+                    return "experience is suspended";
+                case ScriptBaseClass.XP_ERROR_UNKNOWN_ERROR:
+                    return "unknown error";
+                case ScriptBaseClass.XP_ERROR_QUOTA_EXCEEDED:
+                    return "experience data quota exceeded";
+                case ScriptBaseClass.XP_ERROR_STORE_DISABLED:
+                    return "key-value store is disabled";
+                case ScriptBaseClass.XP_ERROR_STORAGE_EXCEPTION:
+                    return "key-value store communication failed";
+                case ScriptBaseClass.XP_ERROR_KEY_NOT_FOUND:
+                    return "key doesn't exist";
+                case ScriptBaseClass.XP_ERROR_RETRY_UPDATE:
+                    return "retry update";
+                case ScriptBaseClass.XP_ERROR_MATURITY_EXCEEDED:
+                    return "experience content rating too high";
+                case ScriptBaseClass.XP_ERROR_NOT_PERMITTED_LAND:
+                    return "not allowed to run on this land";
+                case ScriptBaseClass.XP_ERROR_REQUEST_PERM_TIMEOUT:
+                    return "experience permissions request timed out";
+                default:
+                    return "unknown error";
+            }
+        }
 
         private void PostExperienceDataserver(
             UUID requestId,
