@@ -272,9 +272,7 @@
 
 [NexGroups]
     ; OpenGenesisLINK NexGroups management/parity facade.
-    ; Keep disabled until the Groups V2 storage/service is configured and
-    ; parity validation has been completed for this deployment.
-    Enabled = false
+    Enabled = true
 
 [NexExperiences]
     ; Native OpenGenesisLINK Experience authority used by World API and LSL adapters.
