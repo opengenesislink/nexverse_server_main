@@ -56,9 +56,9 @@ namespace NexVerse.Server.Api
                     try
                     {
                         string query = request?.QueryString?["q"] ?? string.Empty;
-                        string requester = Requester(principal, request);
+                        string searchRequester = Requester(principal, request);
                         List<DirGroupsReplyData> groups =
-                            m_Groups.FindGroups(requester, query);
+                            m_Groups.FindGroups(searchRequester, query);
 
                         WriteJson(response, new
                         {
@@ -88,7 +88,7 @@ namespace NexVerse.Server.Api
                     try
                     {
                         UUID founder = Actor(principal, account, body);
-                        UUID groupId =
+                        UUID createdGroupId =
                             m_Groups.CreateGroup(
                                 founder.ToString(),
                                 BodyString(body, "name"),
@@ -102,18 +102,18 @@ namespace NexVerse.Server.Api
                                 founder,
                                 out string reason);
 
-                        if (groupId.IsZero())
+                        if (createdGroupId.IsZero())
                             throw new InvalidOperationException(
                                 string.IsNullOrWhiteSpace(reason)
                                     ? "Group creation failed."
                                     : reason);
 
                         ExtendedGroupRecord group =
-                            m_Groups.GetGroupRecord(founder.ToString(), groupId);
+                            m_Groups.GetGroupRecord(founder.ToString(), createdGroupId);
 
                         EnsureGroupWallet(group);
 
-                        Audit(principal, "group.created", groupId, response);
+                        Audit(principal, "group.created", createdGroupId, response);
 
                         WriteJson(response, new
                         {
@@ -400,14 +400,14 @@ namespace NexVerse.Server.Api
                     try
                     {
                         UUID actor = Actor(authPrincipal, authAccount, body);
-                        UUID roleId = BodyOptionalUuid(body, "role_id");
-                        if (roleId.IsZero())
-                            roleId = UUID.Random();
+                        UUID newRoleId = BodyOptionalUuid(body, "role_id");
+                        if (newRoleId.IsZero())
+                            newRoleId = UUID.Random();
 
                         if (!m_Groups.AddGroupRole(
                                 actor.ToString(),
                                 groupId,
-                                roleId,
+                                newRoleId,
                                 BodyString(body, "name"),
                                 BodyString(body, "description"),
                                 BodyString(body, "title"),
@@ -423,7 +423,7 @@ namespace NexVerse.Server.Api
                         Audit(authPrincipal, "group.role.created", groupId, response);
                         WriteJson(response, new
                         {
-                            role_id = roleId.ToString(),
+                            role_id = newRoleId.ToString(),
                             correlation_id = Correlation(response)
                         }, HttpStatusCode.Created);
                     }
@@ -555,11 +555,11 @@ namespace NexVerse.Server.Api
                     try
                     {
                         UUID actor = Actor(authPrincipal, authAccount, body);
-                        UUID inviteId = UUID.Random();
+                        UUID createdInviteId = UUID.Random();
                         bool ok =
                             m_Groups.AddAgentToGroupInvite(
                                 actor.ToString(),
-                                inviteId,
+                                createdInviteId,
                                 groupId,
                                 BodyOptionalUuid(body, "role_id"),
                                 BodyUuid(body, "agent_id").ToString());
@@ -570,7 +570,7 @@ namespace NexVerse.Server.Api
                         Audit(authPrincipal, "group.invite.created", groupId, response);
                         WriteJson(response, new
                         {
-                            invite_id = inviteId.ToString(),
+                            invite_id = createdInviteId.ToString(),
                             correlation_id = Correlation(response)
                         }, HttpStatusCode.Created);
                     }
