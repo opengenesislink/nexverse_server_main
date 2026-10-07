@@ -86,26 +86,18 @@ If a secret has ever been committed, removing it from the current tree is not su
 
 ## Production activation: Experiences and NexBus
 
-The active HG configuration enables `[NexBus] Enabled = true`,
-`[NexVerseNodeAgent] Enabled = true` and `[NexExperiencesViewer] Enabled = true`.
-All three must have secrets and peer endpoints **before** their respective processes start.
+Die aktiven HG-Profile setzen `[NexBus] Enabled = true`, `[NexVerseNodeAgent] Enabled = true` und `[NexExperiencesViewer] Enabled = true`. **Vor dem Neustart müssen daher alle Secrets und Peers eingerichtet sein.** Ein fehlender Experiences-Key verhindert den Simulatorstart; ein ungültiger NexBus-Schlüssel deaktiviert NodeAgent.
 
-1. On the Robust/simulator host, in the repository root, run
-   `python3 tools/admin/activate_experiences_nexbus.py prepare-nexbus --peer-url http://127.0.0.1:80/internal/nexbus/v1/events --peers http://127.0.0.1:9000/internal/nexbus/v1/events`
-   **only if both processes are on this host** and those are their real HTTP listener ports.
-   Replace these examples with verified HTTPS or trusted private endpoints. For multiple
-   simulator nodes, specify each simulator's inbound URL in `--peers`, separated by commas.
-2. Fetch/build the latest server version containing the `experiences:script` machine-scope fix,
-   then restart Robust after the common NexBus key has been prepared.
-3. Run `python3 tools/admin/activate_experiences_nexbus.py register-experiences`
-   and authenticate using the local NexVerse administrator's `Vorname.Nachname` and password.
-   The resulting dedicated machine API key is written to the protected env file, never stdout.
-4. Run `python3 tools/admin/activate_experiences_nexbus.py check` and restart the simulator.
-   For remote simulator nodes, provision the **same** HMAC key and the dedicated Experience
-   key on their protected hosts before enabling or restarting the modules.
+1. Aktualisiere und baue zuerst Robust inklusive des `experiences:script`-Maschinenschlüssels aus PR #104. Robust erst mit vorhandenem NexBus-SharedKey neu starten.
+2. Öffne `https://world.stadt-nexverse.de/api/v1/docs` und wähle **Admin-Anmeldung**. Die separate Anmeldung `POST /api/v1/auth/admin/session` akzeptiert ausschließlich lokale Benutzer mit `UserLevel >= 200` und `admin:*`. Das normale Einwohner-Login bleibt getrennt.
+3. Nach der Anmeldung unter **Schlüssel & Einrichtung** auswählen: **Experiences** und **NexBus**. **Economy** nur markieren, wenn kein gültiger Economy-Key vorhanden ist.
+4. Gib verifizierte NexBus-URLs ein: `NEXVERSE_NEXBUS_PEER_URL` für Simulator → Robust, `NEXVERSE_NEXBUS_PEERS` für Robust → Simulator(en), kommagetrennt. Jede URL muss `/internal/nexbus/v1/events` verwenden. Nur HTTPS oder HTTP über localhost/Loopback wird akzeptiert. Firewall, Proxy und Erreichbarkeit separat prüfen.
+5. Mit **Ausgewählte Schlüssel erstellen** registriert die World API einmalig die gewünschten Maschinen-Schlüssel. Der NexBus-HMAC-Key wird sicher im Browser erzeugt und niemals an den World-API-Schlüssel-Endpunkt geschickt. Anschließend den ausgegebenen `NAME=WERT`-Block kopieren und **nur die betreffenden Zeilen** in `/etc/nexverse/nexverse.env` ergänzen bzw. ersetzen. Vorhandene Datenbank-, Mail- und Economy-Secrets erhalten.
+6. Der NexBus-SharedKey muss auf Robust und allen Simulatoren **identisch** sein. Experiences-/Economy-API-Keys gehören nur auf die Simulator-Hosts, die sie benötigen. `chmod 600 /etc/nexverse/nexverse.env` sowie restriktive Verzeichnisrechte setzen.
+7. Robust und danach die Simulatoren neu starten. Heartbeats mit `GET /api/v1/nodes` kontrollieren und beide signierten NexBus-Richtungen sowie die Experiences-Skript-API testen.
 
-The CLI uses `/etc/nexverse/nexverse.env` unless `NEXVERSE_ENV_FILE` is set.
-Secrets in live process environments take precedence. It never changes existing economy keys.
-An outgoing NexBus heartbeat can only prove the simulator-to-Robust direction; test
-Robust-to-simulator delivery separately, including the inbound URLs in `NEXVERSE_NEXBUS_PEERS`.
-Do not expose `/internal/nexbus/v1/events` publicly without authenticated HMAC **and** TLS/firewall controls.
+Die Admin-Sitzung bleibt nur im Speicher des geöffneten Browsers. Die Browseroberfläche schreibt keine Dateien auf den Server, speichert keine Schlüssel in localStorage/Cookies und zeigt registrierte API-Secrets **nur unmittelbar nach ihrer Ausstellung**. Ein verloren gegangener API-Key muss erneut erstellt und der alte Schlüssel über die autorisierte API-Verwaltung deaktiviert werden. Ein Abmelden löscht angezeigte Secrets aus der Oberfläche.
+
+**Wichtig:** Der standardmäßige Secret-Pfad lautet `/etc/nexverse/nexverse.env`, nicht `/etc/nexverse/nexverse.ini`. Die letztere Datei kann nur über ein entsprechend gesetztes `NEXVERSE_ENV_FILE` verwendet werden, weiterhin im Format `NAME=WERT` (keine INI-Sektionen). Bereits im Prozess gesetzte Umgebungsvariablen haben Vorrang.
+
+NexBus-HMAC schützt die Authentizität, **nicht** die Vertraulichkeit des Netzwerkverkehrs. Den Endpoint über private Netze/TLS schützen; `ManagedRegionCommands=false` beibehalten, bis die Remote-Befehlsausführung explizit und sicher eingerichtet ist.
