@@ -1183,6 +1183,12 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 
 # Milestone 0.9.3.9
 
+### 13.0 Runtime-/ThreadPool-Modernisierung
+
+- [ ] den geerbten Mono-Kompatibilitaetscheck fuer `MONO_THREADS_PER_CPU` unter der .NET-8-Laufzeit entfernen bzw. runtime-neutral ersetzen; die irrefuehrende INFO-Meldung `Environment variable MONO_THREADS_PER_CPU is unset` darf unter dem regulaeren OpenGenesisLINK-.NET-8-Profil nicht mehr erscheinen;
+- [ ] die geerbte ThreadPool-Tuning-Logik und Kommentare aus .NET-2/3/4-/Mono-Zeiten gegen das aktuelle .NET-8-Verhalten pruefen, nur nach Messung anpassen und mit Startup-/Lasttests absichern;
+- [ ] die dabei beruehrten `[OPENSIM MAIN]`-Meldungen auf OpenGenesisLINK/OGL-Branding und deutsche Konsolentexte migrieren.
+
 ## 13. NexVoice
 
 Build an independent WebRTC voice platform designed for NexVerse and optional external-grid use.
