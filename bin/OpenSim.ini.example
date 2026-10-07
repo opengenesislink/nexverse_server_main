@@ -1013,25 +1013,6 @@
     ; PriceGroupCreate = 0
 
 [NexDiscoveryViewer]
-    ; Optional viewer-facing capabilities for OpenGenesisLINK-aware viewers.
-    ; Standard Firestorm/SL-compatible search remains untouched.
-    Enabled = true
-    LegacyFirestormCompatibility = true
-    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
-    RequestTimeoutMilliseconds = 3000
-
-[NexExperiencesViewer]
-    ; Central OpenGenesisLINK Experience adapter.
-    ; Experience permissions and K/V state remain authoritative in Robust.
-    Enabled = false
-    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
-
-    ; Service API key scoped to experiences:script.
-    ; Keep the real value outside version control.
-    ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
-    RequestTimeoutMilliseconds = 3000
-
-[NexDiscoveryViewer]
     ; Native capabilities for OpenGenesisLINK-aware viewers plus a
     ; Firestorm/SL legacy directory bridge backed by the same NexDiscovery authority.
     Enabled = true
