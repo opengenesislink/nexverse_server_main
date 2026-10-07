@@ -42,6 +42,18 @@ for needle in (
 ):
     assert needle in module, f"asset bootstrap module missing {needle}"
 
+caps_update = require(
+    "OpenSim/Region/ClientStack/Linden/Caps/BunchOfCaps/UpdateItemAsset.cs",
+    "updateAgentInventoryItem: true"
+)
+for needle in (
+    "UUID callbackObjectID",
+    "updateAgentInventoryItem",
+    "? UUID.Zero",
+    "Agent-Inventar-Asset",
+):
+    assert needle in caps_update, f"Firestorm UpdateScriptAgent compatibility missing {needle}"
+
 for path in ("bin/OpenSim.ini", "bin/OpenSim.ini.example"):
     text = require(path, "[FirestormBridge]")
     assert "Enabled = true" in text.split("[FirestormBridge]", 1)[1].split("[", 1)[0], (
