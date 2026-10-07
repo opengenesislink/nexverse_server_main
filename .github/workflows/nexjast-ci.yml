@@ -265,6 +265,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
 
+      - name: Verify attachment logout script-state safety
+        shell: bash
+        run: python3 tools/ci/verify_attachment_scriptstate_logout.py
+
       - name: Verify offline IM email notification
         shell: bash
         run: python3 tools/ci/verify_offline_im_email.py

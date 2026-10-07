@@ -1752,24 +1752,40 @@ namespace OpenSim.Region.Framework.Scenes
         {
             Dictionary<UUID, string> ret = new Dictionary<UUID, string>();
 
-            if (m_part.ParentGroup.Scene == null) // Group not in a scene
+            SceneObjectPart part = m_part;
+            TaskInventoryDictionary items = m_items;
+            if (disposed || part is null || items is null)
                 return ret;
 
-            IScriptModule[] scriptEngines = m_part.ParentGroup.Scene.RequestModuleInterfaces<IScriptModule>();
-            if (scriptEngines.Length == 0) // No engine at all
+            SceneObjectGroup group = part.ParentGroup;
+            Scene scene = group?.Scene;
+            if (scene is null) // Group already detached/disposed or not in a scene
                 return ret;
 
-            m_items.LockItemsForRead(true);
-            if (m_scripts == null || m_scripts.Count == 0)
+            IScriptModule[] scriptEngines =
+                scene.RequestModuleInterfaces<IScriptModule>();
+            if (scriptEngines is null || scriptEngines.Length == 0)
+                return ret;
+
+            items.LockItemsForRead(true);
+            List<TaskInventoryItem> scripts;
+            try
             {
-                m_items.LockItemsForRead(false);
-                return ret;
+                if (m_scripts == null || m_scripts.Count == 0)
+                    return ret;
+
+                scripts = new List<TaskInventoryItem>(m_scripts.Values);
             }
-            List<TaskInventoryItem> scripts = new List<TaskInventoryItem>(m_scripts.Values);
-            m_items.LockItemsForRead(false);
+            finally
+            {
+                items.LockItemsForRead(false);
+            }
 
             foreach (TaskInventoryItem item in scripts)
             {
+                if (item is null)
+                    continue;
+
                 foreach (IScriptModule e in scriptEngines)
                 {
                     if (e != null)
