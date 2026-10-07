@@ -204,9 +204,14 @@ namespace NexVerse.Server.Api
 
             NexVerseWorldApiHandlers handlers = new NexVerseWorldApiHandlers(publicBaseUrl, eventBus, publicAuditSink);
             NexApiDocsPage docsPage = new NexApiDocsPage();
+            NexChatGptInstructionDownloads chatGptInstructions =
+                new NexChatGptInstructionDownloads(publicBaseUrl);
 
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1", apiGate.Wrap(handlers.Root), "NexVerse World API"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/docs", apiGate.Wrap(docsPage.Handle), "NexVerse World API Explorer"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/chatgpt-instructions.md", apiGate.Wrap(chatGptInstructions.HandleAll), "NexVerse ChatGPT API Instructions"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/chatgpt-buergerportal.md", apiGate.Wrap(chatGptInstructions.HandleCitizen), "NexVerse ChatGPT Citizen Portal Instructions"));
+            server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/chatgpt-admin.md", apiGate.Wrap(chatGptInstructions.HandleAdmin), "NexVerse ChatGPT Admin Instructions"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/health", apiGate.Wrap(handlers.Health), "NexVerse World API Health"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", apiGate.Wrap(handlers.Version), "NexVerse World API Version"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", apiGate.Wrap(handlers.Capabilities), "NexVerse World API Capabilities"));
