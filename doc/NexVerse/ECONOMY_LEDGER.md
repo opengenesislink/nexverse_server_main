@@ -78,6 +78,20 @@ Der Simulator verwendet `NexVerseMoneyModule` als `IMoneyModule`-Adapter. Das Mo
 
 Damit ist Roadmap 10.1 als Ledger-/Policy-/Adapter-Grundlage abgeschlossen. Die folgenden Roadmap-Blöcke ergänzen darauf aufbauend virtuelle Kontonummern, Bankfunktionen, Commerce, Land- und Objektzahlungen.
 
+## Robust-Konsolentest
+
+Der autoritative Robust-Prozess stellt fuer Administratoren zwei lokale Diagnosebefehle bereit. Es wird bewusst kein oeffentlicher Geldschoepfungs-Endpunkt angeboten.
+
+`nv give "<Avatarname|UUID>" <Betrag> [Grund]` erzeugt eine administrative Double-Entry-Gutschrift ueber `NexEconomyService.AdministrativeAdjustment()`. Das feste System-Gegenkonto wird ueber die Policy-Schicht angelegt; die Buchung bleibt mit Actor, Grund, Transaktions-ID und unveraenderlichen Postings nachvollziehbar. Nach Erfolg zeigt die Konsole den neuen Kontostand und versucht zusaetzlich, dem Avatar eine System-IM von `NexVerse Bank` zuzustellen.
+
+Beispiele:
+
+`nv give "Sleimer Akina" 100 Testgutschrift`
+
+`nv balance "Sleimer Akina"`
+
+Die Funktion ist nur fuer Administration und Tests vorgesehen. Normale Nutzerzahlungen laufen weiterhin ueber die authentifizierten Economy-/Commerce-Pfade.
+
 ## Nächste Schichten
 
 1. 10.2 virtuelle NexVerse-Kontonummern/IBAN-ähnliche Kennungen;
