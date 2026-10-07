@@ -195,8 +195,8 @@ namespace NexVerse.Server.Api
                 !replyingAccount.Active ||
                 replyingAccount.PrincipalID.IsZero())
             {
-                m_Log.WarnFormat(
-                    "[NEX-IM-MAIL-RELAY]: Rejected reply from email that is not an active local NexVerse account: {0}.",
+                m_Log.InfoFormat(
+                    "[NEX-IM-MAIL-RELAY]: Ignored catch-all mail from non-NexVerse sender: {0}.",
                     senderEmail);
                 return RelayDisposition.Consumed;
             }
