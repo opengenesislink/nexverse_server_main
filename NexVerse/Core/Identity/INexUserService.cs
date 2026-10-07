@@ -41,6 +41,8 @@ namespace NexVerse.Core.Identity
         public string AccountState { get; }
         public string AccountStateReason { get; }
         public int AccountStateChanged { get; }
+        public IReadOnlyList<string> Roles { get; }
+        public IReadOnlyList<string> ExplicitScopes { get; }
         public int Created { get; }
 
         public NexUserRecord(
@@ -61,6 +63,8 @@ namespace NexVerse.Core.Identity
             string accountState,
             string accountStateReason,
             int accountStateChanged,
+            IReadOnlyList<string> roles,
+            IReadOnlyList<string> explicitScopes,
             int created)
         {
             PrincipalId = principalId ?? string.Empty;
@@ -80,6 +84,8 @@ namespace NexVerse.Core.Identity
             AccountState = accountState ?? NexAccountStates.Active;
             AccountStateReason = accountStateReason ?? string.Empty;
             AccountStateChanged = accountStateChanged;
+            Roles = roles ?? new string[0];
+            ExplicitScopes = explicitScopes ?? new string[0];
             Created = created;
         }
     }
@@ -191,6 +197,12 @@ namespace NexVerse.Core.Identity
 
         bool VerifyPassword(string principalId, string password);
         bool SetUserLevel(string principalId, int userLevel);
+        NexUserRecord SetAuthorization(
+            string principalId,
+            IEnumerable<string> roles,
+            IEnumerable<string> scopes,
+            bool allowPrivilegedGrant,
+            out string error);
         bool SetPassword(string principalId, string password);
         NexUserRecord SetAccountState(string principalId, string state, string reason);
     }
