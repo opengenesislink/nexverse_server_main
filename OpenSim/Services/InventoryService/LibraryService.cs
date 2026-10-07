@@ -88,7 +88,7 @@ namespace OpenSim.Services.InventoryService
             }
 
             string pLibrariesLocation = Path.Combine("inventory", "Libraries.xml");
-            string pLibName = "OpenSim Library";
+            string pLibName = "Bibiothek";
 
             IConfig libConfig = config.Configs["LibraryService"];
             if (libConfig != null)
