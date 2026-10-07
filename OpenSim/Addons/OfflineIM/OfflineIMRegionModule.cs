@@ -58,6 +58,8 @@ namespace OpenSim.OfflineIM
         private bool m_EmailEnabled;
         private string m_EmailRelayDomain = "im.stadt-nexverse.de";
         private string m_EmailSubjectTemplate = "Offline-IM Nachricht von {SENDER}";
+        private string m_EmailRelaySigningKey = string.Empty;
+        private int m_EmailReplyLifetimeDays = 5;
         private string m_EmailSmtpHost = "127.0.0.1";
         private int m_EmailSmtpPort = 25;
         private bool m_EmailUseStartTls;
@@ -99,6 +101,8 @@ namespace OpenSim.OfflineIM
                 m_EmailEnabled = emailConfig.GetBoolean("Enabled", false);
                 m_EmailRelayDomain = emailConfig.GetString("RelayDomain", m_EmailRelayDomain).Trim().Trim('.');
                 m_EmailSubjectTemplate = emailConfig.GetString("SubjectTemplate", m_EmailSubjectTemplate);
+                m_EmailRelaySigningKey = emailConfig.GetString("RelaySigningKey", string.Empty);
+                m_EmailReplyLifetimeDays = Math.Max(1, Math.Min(30, emailConfig.GetInt("ReplyLifetimeDays", 5)));
                 m_EmailSmtpHost = emailConfig.GetString("SMTPHost", m_EmailSmtpHost).Trim();
                 m_EmailSmtpPort = emailConfig.GetInt("SMTPPort", m_EmailSmtpPort);
                 m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", false);
@@ -128,6 +132,11 @@ namespace OpenSim.OfflineIM
                 if (m_EmailEnabled && !string.IsNullOrEmpty(m_EmailSmtpUsername) && string.IsNullOrEmpty(m_EmailSmtpPassword))
                 {
                     m_log.Warn("[OfflineIM.V2.EMAIL]: SMTPUsername is configured but SMTPPassword is empty. Delivery may fail.");
+                }
+
+                if (m_EmailEnabled && !OfflineImMailRelayToken.IsSigningKeyStrongEnough(m_EmailRelaySigningKey))
+                {
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: RelaySigningKey is missing or shorter than 32 bytes. Secure email replies are disabled until NEXVERSE_IM_RELAY_SIGNING_KEY is configured.");
                 }
             }
 
@@ -429,24 +438,45 @@ namespace OpenSim.OfflineIM
                 (m_EmailSubjectTemplate ?? "Offline-IM Nachricht von {SENDER}")
                     .Replace("{SENDER}", senderName, StringComparison.Ordinal));
 
-            string body = BuildOfflineImEmailBody(recipient, senderName, im);
+            bool replyEnabled = OfflineImMailRelayToken.IsSigningKeyStrongEnough(m_EmailRelaySigningKey);
+            string plainBody = BuildOfflineImEmailBody(recipient, senderName, im, replyEnabled, m_EmailReplyLifetimeDays);
+            string htmlBody = BuildOfflineImEmailHtml(recipient, senderName, im, replyEnabled, m_EmailReplyLifetimeDays);
 
             try
             {
-                string relayEmail = new UUID(im.fromAgentID).ToString() + "@" + m_EmailRelayDomain;
+                UUID senderID = new UUID(im.fromAgentID);
+                string relayEmail = senderID.ToString() + "@" + m_EmailRelayDomain;
                 MailboxAddress relayAddress = new MailboxAddress(senderName, relayEmail);
 
                 MimeMessage message = new MimeMessage();
                 message.From.Add(relayAddress);
-                message.ReplyTo.Add(relayAddress);
+
+                if (replyEnabled)
+                {
+                    string replyLocalPart = OfflineImMailRelayToken.Create(
+                        senderID,
+                        recipientAddress.Address,
+                        DateTimeOffset.UtcNow.AddDays(m_EmailReplyLifetimeDays),
+                        m_EmailRelaySigningKey);
+
+                    message.ReplyTo.Add(
+                        new MailboxAddress(
+                            senderName + " via NexVerse",
+                            replyLocalPart + "@" + m_EmailRelayDomain));
+                }
+
                 message.To.Add(new MailboxAddress(recipient.Name, recipientAddress.Address));
                 message.Subject = subject;
-                message.Headers["X-NexVerse-IM-From-Agent"] = new UUID(im.fromAgentID).ToString();
+                message.Headers["X-NexVerse-IM-From-Agent"] = senderID.ToString();
                 message.Headers["X-NexVerse-IM-To-Agent"] = recipientID.ToString();
-                message.Body = new TextPart("plain")
+                message.Headers["X-NexVerse-IM-Reply-Enabled"] = replyEnabled ? "true" : "false";
+
+                BodyBuilder bodyBuilder = new BodyBuilder
                 {
-                    Text = body
+                    TextBody = plainBody,
+                    HtmlBody = htmlBody
                 };
+                message.Body = bodyBuilder.ToMessageBody();
 
                 using SmtpClient client = new SmtpClient();
 
@@ -479,9 +509,16 @@ namespace OpenSim.OfflineIM
             }
         }
 
-        private static string BuildOfflineImEmailBody(UserAccount recipient, string senderName, GridInstantMessage im)
+        private static string BuildOfflineImEmailBody(
+            UserAccount recipient,
+            string senderName,
+            GridInstantMessage im,
+            bool replyEnabled,
+            int replyLifetimeDays)
         {
             StringBuilder body = new StringBuilder();
+            body.AppendLine("NexVerse - Offline-IM");
+            body.AppendLine();
             body.AppendLine("Hallo " + (string.IsNullOrWhiteSpace(recipient.FirstName) ? "NexVerse Resident" : recipient.FirstName) + ",");
             body.AppendLine();
             body.AppendLine("du hast in NexVerse eine Nachricht erhalten, waehrend du offline warst.");
@@ -498,10 +535,62 @@ namespace OpenSim.OfflineIM
             body.AppendLine("Nachricht:");
             body.AppendLine(im.message ?? string.Empty);
             body.AppendLine();
-            body.AppendLine("Diese Nachricht wurde automatisch von Stadt NexVerse versendet.");
-            body.AppendLine("Bitte antworte nicht auf diese E-Mail.");
 
+            if (replyEnabled)
+                body.AppendLine("Du kannst innerhalb von " + replyLifetimeDays + " Tagen direkt auf diese E-Mail antworten. Deine Antwort wird als Inworld-IM an " + senderName + " zugestellt.");
+            else
+                body.AppendLine("Die direkte E-Mail-Antwortfunktion ist derzeit nicht aktiviert.");
+
+            body.AppendLine();
+            body.AppendLine("Stadt NexVerse - ...Beyond the Reality");
             return body.ToString();
+        }
+
+        private static string BuildOfflineImEmailHtml(
+            UserAccount recipient,
+            string senderName,
+            GridInstantMessage im,
+            bool replyEnabled,
+            int replyLifetimeDays)
+        {
+            string firstName = System.Net.WebUtility.HtmlEncode(
+                string.IsNullOrWhiteSpace(recipient.FirstName) ? "NexVerse Resident" : recipient.FirstName);
+            string safeSender = System.Net.WebUtility.HtmlEncode(senderName);
+            string safeMessage = System.Net.WebUtility.HtmlEncode(im.message ?? string.Empty)
+                .Replace("\r\n", "<br>")
+                .Replace("\n", "<br>")
+                .Replace("\r", "<br>");
+
+            string sentAt = string.Empty;
+            if (im.timestamp > 0)
+            {
+                DateTimeOffset time = DateTimeOffset.FromUnixTimeSeconds(im.timestamp);
+                sentAt = System.Net.WebUtility.HtmlEncode(time.UtcDateTime.ToString("dd.MM.yyyy HH:mm:ss") + " UTC");
+            }
+
+            string replyText = replyEnabled
+                ? "Du kannst innerhalb von <strong>" + replyLifetimeDays + " Tagen</strong> direkt auf diese E-Mail antworten. Deine Antwort wird als Inworld-IM an <strong>" + safeSender + "</strong> zugestellt."
+                : "Die direkte E-Mail-Antwortfunktion ist derzeit nicht aktiviert.";
+
+            return "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>" +
+                   "<body style=\"margin:0;padding:0;background:#0b1020;font-family:Arial,Helvetica,sans-serif;color:#e9eefb;\">" +
+                   "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#0b1020;padding:28px 12px;\"><tr><td align=\"center\">" +
+                   "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:680px;background:#11182d;border:1px solid #2a3558;border-radius:18px;overflow:hidden;\">" +
+                   "<tr><td style=\"padding:28px 32px;background:linear-gradient(135deg,#172443,#2a1d58);\">" +
+                   "<div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#9eb2e5;\">Stadt NexVerse</div>" +
+                   "<div style=\"font-size:28px;font-weight:700;margin-top:6px;color:#ffffff;\">Offline-IM Nachricht</div>" +
+                   "<div style=\"font-size:14px;margin-top:6px;color:#b8c5e6;\">...Beyond the Reality</div></td></tr>" +
+                   "<tr><td style=\"padding:32px;\">" +
+                   "<p style=\"margin:0 0 18px;font-size:16px;line-height:1.6;\">Hallo <strong>" + firstName + "</strong>,<br>du hast eine Nachricht erhalten, waehrend du offline warst.</p>" +
+                   "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin:0 0 22px;background:#0d1428;border:1px solid #263354;border-radius:12px;\">" +
+                   "<tr><td style=\"padding:16px 18px;font-size:14px;color:#94a7d3;width:110px;\">Absender</td><td style=\"padding:16px 18px;font-size:15px;color:#ffffff;font-weight:700;\">" + safeSender + "</td></tr>" +
+                   (string.IsNullOrEmpty(sentAt) ? string.Empty : "<tr><td style=\"padding:0 18px 16px;font-size:14px;color:#94a7d3;\">Zeit</td><td style=\"padding:0 18px 16px;font-size:14px;color:#d5def4;\">" + sentAt + "</td></tr>") +
+                   "</table>" +
+                   "<div style=\"font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#8fa7df;margin-bottom:8px;\">Nachricht</div>" +
+                   "<div style=\"padding:20px;background:#f4f7ff;color:#151b2d;border-radius:12px;font-size:16px;line-height:1.65;word-break:break-word;\">" + safeMessage + "</div>" +
+                   "<div style=\"margin-top:22px;padding:16px 18px;background:#17213d;border-left:4px solid #7c8cff;border-radius:8px;font-size:14px;line-height:1.6;color:#d9e2fb;\">" + replyText + "</div>" +
+                   "<p style=\"margin:26px 0 0;font-size:12px;line-height:1.6;color:#8293bd;\">Diese Nachricht wurde automatisch vom NexVerse IM-Relay erzeugt. Verwende fuer Antworten die Antwortfunktion deines E-Mail-Programms; die technische Relay-Adresse ist nur fuer diese Unterhaltung bestimmt.</p>" +
+                   "</td></tr></table></td></tr></table></body></html>";
         }
 
         private static bool IsValidRelayDomain(string value)
