@@ -749,7 +749,7 @@ namespace OpenSim.Services.LLLoginService
                     return;
                 }
 
-                uint all = (uint)PermissionMask.All;
+                uint all = (uint)OpenSim.Framework.PermissionMask.All;
                 InventoryItemBase bridgeItem =
                     new(UUID.Random(), principalID)
                     {
@@ -764,8 +764,8 @@ namespace OpenSim.Services.LLLoginService
                         BasePermissions = all,
                         CurrentPermissions = all,
                         NextPermissions = all,
-                        EveryOnePermissions = (uint)PermissionMask.None,
-                        GroupPermissions = (uint)PermissionMask.None,
+                        EveryOnePermissions = (uint)OpenSim.Framework.PermissionMask.None,
+                        GroupPermissions = (uint)OpenSim.Framework.PermissionMask.None,
                         Flags = 0
                     };
 
