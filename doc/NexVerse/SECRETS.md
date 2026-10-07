@@ -88,7 +88,7 @@ If a secret has ever been committed, removing it from the current tree is not su
 
 Die aktiven HG-Profile setzen `[NexBus] Enabled = true`, `[NexVerseNodeAgent] Enabled = true` und `[NexExperiencesViewer] Enabled = true`. **Vor dem Neustart müssen daher alle Secrets und Peers eingerichtet sein.** Ein fehlender Experiences-Key verhindert den Simulatorstart; ein ungültiger NexBus-Schlüssel deaktiviert NodeAgent.
 
-1. Aktualisiere und baue zuerst Robust inklusive des `experiences:script`-Maschinenschlüssels aus PR #104. Robust erst mit vorhandenem NexBus-SharedKey neu starten.
+1. Aktualisiere und baue zuerst Robust inklusive des `experiences:script`-Maschinenschlüssels aus PR #104. Du kannst Robust anschließend **ohne NexBus-SharedKey** starten: Der Transport fällt für die Ersteinrichtung vorübergehend auf den lokalen EventBus zurück, damit die World-API-Oberfläche erreichbar ist. Nach der Secret-Hinterlegung Robust nochmals neu starten, um den verteilten Transport tatsächlich zu aktivieren.
 2. Öffne `https://world.stadt-nexverse.de/api/v1/docs` und wähle **Admin-Anmeldung**. Die separate Anmeldung `POST /api/v1/auth/admin/session` akzeptiert ausschließlich lokale Benutzer mit `UserLevel >= 200` und `admin:*`. Das normale Einwohner-Login bleibt getrennt.
 3. Nach der Anmeldung unter **Schlüssel & Einrichtung** auswählen: **Experiences** und **NexBus**. **Economy** nur markieren, wenn kein gültiger Economy-Key vorhanden ist.
 4. Gib verifizierte NexBus-URLs ein: `NEXVERSE_NEXBUS_PEER_URL` für Simulator → Robust, `NEXVERSE_NEXBUS_PEERS` für Robust → Simulator(en), kommagetrennt. Jede URL muss `/internal/nexbus/v1/events` verwenden. Nur HTTPS oder HTTP über localhost/Loopback wird akzeptiert. Firewall, Proxy und Erreichbarkeit separat prüfen.
