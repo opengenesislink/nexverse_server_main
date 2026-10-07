@@ -65,8 +65,12 @@ namespace NexVerse.RegionModules.Economy
         public string Name =>
             "NexVerseMoneyModule";
 
+        // This module is selected explicitly through [Economy] economymodule.
+        // Do not defer it through the generic replaceable-module slot: the
+        // legacy SampleMoneyModule uses the same IMoneyModule key and can
+        // otherwise overwrite this shared module before AddRegion() runs.
         public Type ReplaceableInterface =>
-            typeof(IMoneyModule);
+            null;
 
         public int UploadCharge =>
             m_UploadCharge;
@@ -77,6 +81,46 @@ namespace NexVerse.RegionModules.Economy
         public void Initialise(
             IConfigSource config)
         {
+            string selectedModule =
+                (config?.Configs["Startup"]?
+                    .GetString("economymodule", string.Empty) ??
+                 string.Empty)
+                    .Trim();
+
+            if (string.IsNullOrWhiteSpace(selectedModule))
+            {
+                IConfig economySelection =
+                    config?.Configs["Economy"];
+
+                selectedModule =
+                    (economySelection?
+                        .GetString("economymodule", string.Empty) ??
+                     string.Empty)
+                        .Trim();
+
+                if (string.IsNullOrWhiteSpace(selectedModule))
+                {
+                    selectedModule =
+                        (economySelection?
+                            .GetString("EconomyModule", string.Empty) ??
+                         string.Empty)
+                            .Trim();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedModule) &&
+                !string.Equals(
+                    selectedModule,
+                    Name,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                m_Enabled = false;
+                m_Log.InfoFormat(
+                    "[NEX-ECONOMY-VIEWER]: Modul bleibt deaktiviert, weil [Economy] economymodule auf {0} gesetzt ist.",
+                    selectedModule);
+                return;
+            }
+
             IConfig economy =
                 config?.Configs["NexEconomyViewer"];
 
@@ -214,6 +258,10 @@ namespace NexVerse.RegionModules.Economy
                 MoneyTransferAction;
             scene.EventManager.OnClientClosed +=
                 ClientClosed;
+
+            m_Log.InfoFormat(
+                "[NEX-ECONOMY-VIEWER]: Als IMoneyModule fuer Region {0} registriert; MoneyBalanceRequest ist aktiv.",
+                scene.RegionInfo.RegionName);
         }
 
         public void RemoveRegion(
@@ -1000,8 +1048,8 @@ namespace NexVerse.RegionModules.Economy
                 0,
                 string.Empty);
 
-            m_Log.DebugFormat(
-                "[NEX-ECONOMY-VIEWER]: Kontostand {0} NV$ an Firestorm-Client {1} gesendet.",
+            m_Log.InfoFormat(
+                "[NEX-ECONOMY-VIEWER]: MoneyBalanceReply mit {0} NV$ an Firestorm-Client {1} gesendet.",
                 balance,
                 agentID);
         }
