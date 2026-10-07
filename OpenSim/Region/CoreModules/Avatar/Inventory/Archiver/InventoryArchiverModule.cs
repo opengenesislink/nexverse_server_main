@@ -107,9 +107,16 @@ namespace OpenSim.Region.CoreModules.Avatar.Inventory.Archiver
 
         public void AddRegion(Scene scene)
         {
+            if (scene == null)
+                return;
+
+            // This is a shared region module, but consumers resolve the
+            // archiver through each Scene's module registry. Register the
+            // shared instance on every scene, not only on the first region.
+            scene.RegisterModuleInterface<IInventoryArchiverModule>(this);
+
             if (m_scenes.Count == 0)
             {
-                scene.RegisterModuleInterface<IInventoryArchiverModule>(this);
                 OnInventoryArchiveSaved += SaveInvConsoleCommandCompleted;
                 OnInventoryArchiveLoaded += LoadInvConsoleCommandCompleted;
 
@@ -153,6 +160,23 @@ namespace OpenSim.Region.CoreModules.Avatar.Inventory.Archiver
 
         public void RemoveRegion(Scene scene)
         {
+            if (scene == null)
+                return;
+
+            scene.UnregisterModuleInterface<IInventoryArchiverModule>(this);
+            m_scenes.Remove(scene.RegionInfo.RegionID);
+
+            if (ReferenceEquals(m_aScene, scene))
+            {
+                m_aScene = null;
+                foreach (Scene remaining in m_scenes.Values)
+                {
+                    m_aScene = remaining;
+                    break;
+                }
+
+                m_UserAccountService = null;
+            }
         }
 
         public void Close() {}
