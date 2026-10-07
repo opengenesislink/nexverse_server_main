@@ -265,6 +265,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
 
+      - name: Verify offline IM email notification
+        shell: bash
+        run: python3 tools/ci/verify_offline_im_email.py
+
       - name: Verify cross-region object messaging
         shell: bash
         run: python3 tools/ci/verify_object_messaging.py
