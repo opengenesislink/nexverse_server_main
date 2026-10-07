@@ -1227,6 +1227,118 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             wComm?.DeliverMessage(ChatTypeEnum.Region, channelID, m_host.Name, m_host.UUID, Util.UTF8.GetString(binText));
         }
 
+        public void llEstateSay(int channelID, string text)
+        {
+            if (channelID == 0)
+            {
+                Error("llEstateSay", "Cannot use on channel 0");
+                return;
+            }
+
+            if (channelID == ScriptBaseClass.DEBUG_CHANNEL)
+            {
+                Error("llEstateSay", "Cannot use the debug channel");
+                return;
+            }
+
+            EstateSettings estate =
+                World.RegionInfo.EstateSettings;
+
+            UUID ownerID =
+                m_host.OwnerID;
+
+            if (estate == null ||
+                !estate.IsEstateManagerOrOwner(ownerID))
+            {
+                Error(
+                    "llEstateSay",
+                    "Only the Estate Owner or an Estate Manager may use this function");
+
+                m_log.WarnFormat(
+                    "[LSL ESTATE SAY]: Nicht autorisierter Aufruf durch Objekt {0} ({1}), Besitzer {2}, Region {3}.",
+                    m_host.Name,
+                    m_host.UUID,
+                    ownerID,
+                    World.RegionInfo.RegionName);
+                return;
+            }
+
+            byte[] binText =
+                Utils.StringToBytesNoTerm(
+                    text,
+                    1023);
+
+            string message =
+                Util.UTF8.GetString(
+                    binText);
+
+            uint estateID =
+                estate.EstateID;
+
+            bool deliveredLocally =
+                false;
+
+            SceneManager sceneManager =
+                SceneManager.Instance;
+
+            if (sceneManager != null)
+            {
+                foreach (Scene scene in
+                         sceneManager.Scenes)
+                {
+                    EstateSettings targetEstate =
+                        scene?.RegionInfo?.EstateSettings;
+
+                    if (targetEstate == null ||
+                        targetEstate.EstateID != estateID)
+                    {
+                        continue;
+                    }
+
+                    IWorldComm worldComm =
+                        scene.RequestModuleInterface<IWorldComm>();
+
+                    if (worldComm == null)
+                        continue;
+
+                    worldComm.DeliverMessage(
+                        ChatTypeEnum.Region,
+                        channelID,
+                        m_host.Name,
+                        m_host.UUID,
+                        message);
+
+                    deliveredLocally =
+                        true;
+                }
+            }
+
+            if (!deliveredLocally)
+            {
+                IWorldComm worldComm =
+                    World.RequestModuleInterface<IWorldComm>();
+
+                worldComm?.DeliverMessage(
+                    ChatTypeEnum.Region,
+                    channelID,
+                    m_host.Name,
+                    m_host.UUID,
+                    message);
+            }
+
+            IEstateScriptMessageRouter router =
+                World.RequestModuleInterface<IEstateScriptMessageRouter>();
+
+            router?.TryRouteEstateMessage(
+                World.RegionInfo.RegionID,
+                m_host.UUID,
+                ownerID,
+                m_host.Name,
+                estateID,
+                channelID,
+                message);
+        }
+
         public void  llRegionSayTo(string target, int channel, string msg)
         {
             if (channel == ScriptBaseClass.DEBUG_CHANNEL)

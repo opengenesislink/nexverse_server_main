@@ -277,6 +277,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_object_messaging.py
 
+      - name: Verify estate-wide LSL messaging
+        shell: bash
+        run: python3 tools/ci/verify_estate_say.py
+
       - name: Verify NodeAgent registry projection
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexNodeRegistryRegression/NexNodeRegistryRegression.csproj

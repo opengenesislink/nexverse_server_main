@@ -19,6 +19,7 @@ using NexVerse.Core.Messaging;
 using NexVerse.RegionModules.Archives;
 using Nini.Config;
 using OpenMetaverse;
+using OpenSim.Framework;
 using OpenSim.Framework.Servers;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Region.Framework.Interfaces;
@@ -34,7 +35,8 @@ namespace NexVerse.RegionModules.NodeAgent
     public sealed class NexVerseNodeAgentModule :
         ISharedRegionModule,
         INexVerseEventBusModule,
-        ICrossRegionObjectMessageRouter
+        ICrossRegionObjectMessageRouter,
+        IEstateScriptMessageRouter
     {
         private const int DebugChannel = 0x7fffffff;
         private const int ObjectMessageRateEntryLimit = 8192;
@@ -54,6 +56,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private string m_InboundPath = "/internal/nexbus/v1/events";
         private int m_HeartbeatSeconds = 30;
         private bool m_ObjectMessagingEnabled;
+        private bool m_EstateScriptMessagingEnabled = true;
         private bool m_AllowCrossOwnerObjectMessages;
         private int m_ObjectMessagesPerSecond = 20;
         private int m_ObjectMessageMaxAgeSeconds = 30;
@@ -68,6 +71,7 @@ namespace NexVerse.RegionModules.NodeAgent
         private IDisposable m_OarControlSubscription;
         private IDisposable m_IarControlSubscription;
         private IDisposable m_ObjectMessageSubscription;
+        private IDisposable m_EstateScriptMessageSubscription;
         private volatile bool m_MaintenanceMode;
         private volatile bool m_Draining;
         private DateTimeOffset m_StartedAt;
@@ -115,6 +119,10 @@ namespace NexVerse.RegionModules.NodeAgent
                 config.GetBoolean(
                     "CrossRegionObjectMessaging",
                     false);
+            m_EstateScriptMessagingEnabled =
+                config.GetBoolean(
+                    "EstateScriptMessaging",
+                    true);
             m_AllowCrossOwnerObjectMessages =
                 config.GetBoolean(
                     "AllowCrossOwnerObjectMessages",
@@ -167,6 +175,7 @@ namespace NexVerse.RegionModules.NodeAgent
             m_Scenes[scene.RegionInfo.RegionID] = scene;
             scene.RegisterModuleInterface<INexVerseEventBusModule>(this);
             scene.RegisterModuleInterface<ICrossRegionObjectMessageRouter>(this);
+            scene.RegisterModuleInterface<IEstateScriptMessageRouter>(this);
         }
 
         public void RegionLoaded(Scene scene)
@@ -183,6 +192,7 @@ namespace NexVerse.RegionModules.NodeAgent
                 return;
 
             PublishRegionEvent("region.offline", scene);
+            scene.UnregisterModuleInterface<IEstateScriptMessageRouter>(this);
             scene.UnregisterModuleInterface<ICrossRegionObjectMessageRouter>(this);
             scene.UnregisterModuleInterface<INexVerseEventBusModule>(this);
             m_Scenes.TryRemove(scene.RegionInfo.RegionID, out _);
@@ -228,6 +238,14 @@ namespace NexVerse.RegionModules.NodeAgent
                         HandleObjectMessage);
             }
 
+            if (m_EstateScriptMessagingEnabled)
+            {
+                m_EstateScriptMessageSubscription =
+                    m_Bus.Subscribe(
+                        "estate.script.message.requested",
+                        HandleEstateScriptMessage);
+            }
+
             m_HeartbeatTimer = new Timer(
                 _ => PublishHeartbeatSafe(),
                 null,
@@ -270,6 +288,8 @@ namespace NexVerse.RegionModules.NodeAgent
             m_IarControlSubscription = null;
             m_ObjectMessageSubscription?.Dispose();
             m_ObjectMessageSubscription = null;
+            m_EstateScriptMessageSubscription?.Dispose();
+            m_EstateScriptMessageSubscription = null;
             m_ObjectMessageOutboundRates.Clear();
             m_ObjectMessageInboundRates.Clear();
             m_HeartbeatTimer?.Dispose();
@@ -388,6 +408,231 @@ namespace NexVerse.RegionModules.NodeAgent
                 data));
 
             return true;
+        }
+
+        public bool TryRouteEstateMessage(
+            UUID sourceRegionId,
+            UUID sourceObjectId,
+            UUID sourceOwnerId,
+            string sourceName,
+            uint estateId,
+            int channel,
+            string message)
+        {
+            if (!m_Enabled ||
+                !m_EstateScriptMessagingEnabled ||
+                m_Bus == null ||
+                sourceRegionId.IsZero() ||
+                sourceObjectId.IsZero() ||
+                sourceOwnerId.IsZero() ||
+                estateId == 0 ||
+                channel == 0 ||
+                channel == DebugChannel)
+            {
+                return false;
+            }
+
+            if (!m_Scenes.TryGetValue(
+                    sourceRegionId,
+                    out Scene sourceScene))
+            {
+                return false;
+            }
+
+            SceneObjectPart sourcePart =
+                sourceScene.GetSceneObjectPart(
+                    sourceObjectId);
+
+            if (sourcePart == null ||
+                sourcePart.IsDeleted ||
+                sourcePart.OwnerID != sourceOwnerId)
+            {
+                return false;
+            }
+
+            EstateSettings sourceEstate =
+                sourceScene.RegionInfo.EstateSettings;
+
+            if (sourceEstate == null ||
+                sourceEstate.EstateID != estateId ||
+                !sourceEstate.IsEstateManagerOrOwner(sourceOwnerId))
+            {
+                m_Log.WarnFormat(
+                    "[NEX-ESTATE-SAY]: Nicht autorisierter Routing-Versuch von Objekt {0}, Besitzer {1}, Estate {2}.",
+                    sourceObjectId,
+                    sourceOwnerId,
+                    estateId);
+                return false;
+            }
+
+            if (!TryTakeObjectMessageRateSlot(
+                    m_ObjectMessageOutboundRates,
+                    sourceObjectId))
+            {
+                m_Log.WarnFormat(
+                    "[NEX-ESTATE-SAY]: Ratenlimit fuer Quellobjekt {0} erreicht.",
+                    sourceObjectId);
+                return false;
+            }
+
+            string payload =
+                message ?? string.Empty;
+
+            if (payload.Length > 1023)
+                payload = payload[..1023];
+
+            Publish(new NexEvent(
+                "estate.script.message.requested",
+                "nexverse.simulator",
+                new Dictionary<string, string>
+                {
+                    ["source_node_id"] =
+                        m_NodeId,
+                    ["source_region_id"] =
+                        sourceRegionId.ToString(),
+                    ["source_object_id"] =
+                        sourceObjectId.ToString(),
+                    ["source_owner_id"] =
+                        sourceOwnerId.ToString(),
+                    ["source_name"] =
+                        string.IsNullOrWhiteSpace(sourceName)
+                            ? sourcePart.Name ?? string.Empty
+                            : sourceName.Trim(),
+                    ["estate_id"] =
+                        estateId.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture),
+                    ["channel"] =
+                        channel.ToString(
+                            System.Globalization.CultureInfo.InvariantCulture),
+                    ["message"] =
+                        payload
+                }));
+
+            return true;
+        }
+
+        private void HandleEstateScriptMessage(
+            NexEvent nexEvent)
+        {
+            if (!m_Enabled ||
+                !m_EstateScriptMessagingEnabled ||
+                nexEvent == null ||
+                nexEvent.Data == null ||
+                !string.Equals(
+                    nexEvent.Source,
+                    "nexverse.simulator",
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            TimeSpan age =
+                DateTimeOffset.UtcNow -
+                nexEvent.Timestamp;
+
+            if (age >
+                    TimeSpan.FromSeconds(
+                        m_ObjectMessageMaxAgeSeconds) ||
+                age <
+                    TimeSpan.FromSeconds(-5))
+            {
+                return;
+            }
+
+            if (!TryCommandData(
+                    nexEvent,
+                    "source_node_id",
+                    out string sourceNodeId) ||
+                string.Equals(
+                    sourceNodeId,
+                    m_NodeId,
+                    StringComparison.Ordinal) ||
+                !TryCommandData(
+                    nexEvent,
+                    "source_object_id",
+                    out string rawSourceObject) ||
+                !UUID.TryParse(
+                    rawSourceObject,
+                    out UUID sourceObjectId) ||
+                sourceObjectId.IsZero() ||
+                !TryCommandData(
+                    nexEvent,
+                    "source_owner_id",
+                    out string rawSourceOwner) ||
+                !UUID.TryParse(
+                    rawSourceOwner,
+                    out UUID sourceOwnerId) ||
+                sourceOwnerId.IsZero() ||
+                !TryCommandData(
+                    nexEvent,
+                    "estate_id",
+                    out string rawEstateId) ||
+                !uint.TryParse(
+                    rawEstateId,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out uint estateId) ||
+                estateId == 0 ||
+                !TryCommandInt(
+                    nexEvent,
+                    "channel",
+                    out int channel) ||
+                channel == 0 ||
+                channel == DebugChannel)
+            {
+                return;
+            }
+
+            if (!TryTakeObjectMessageRateSlot(
+                    m_ObjectMessageInboundRates,
+                    sourceObjectId))
+            {
+                m_Log.WarnFormat(
+                    "[NEX-ESTATE-SAY]: Eingehendes Ratenlimit fuer Quellobjekt {0} erreicht.",
+                    sourceObjectId);
+                return;
+            }
+
+            string sourceName =
+                nexEvent.Data.TryGetValue(
+                    "source_name",
+                    out string rawName)
+                    ? rawName ?? string.Empty
+                    : string.Empty;
+
+            string message =
+                nexEvent.Data.TryGetValue(
+                    "message",
+                    out string rawMessage)
+                    ? rawMessage ?? string.Empty
+                    : string.Empty;
+
+            if (message.Length > 1023)
+                message = message[..1023];
+
+            foreach (Scene scene in
+                     m_Scenes.Values)
+            {
+                EstateSettings targetEstate =
+                    scene.RegionInfo.EstateSettings;
+
+                if (targetEstate == null ||
+                    targetEstate.EstateID != estateId ||
+                    !targetEstate.IsEstateManagerOrOwner(sourceOwnerId))
+                {
+                    continue;
+                }
+
+                IWorldComm worldComm =
+                    scene.RequestModuleInterface<IWorldComm>();
+
+                worldComm?.DeliverMessage(
+                    ChatTypeEnum.Region,
+                    channel,
+                    sourceName,
+                    sourceObjectId,
+                    message);
+            }
         }
 
         private void HandleObjectMessage(
