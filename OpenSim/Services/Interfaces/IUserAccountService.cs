@@ -99,6 +99,8 @@ namespace OpenSim.Services.Interfaces
         public string NexVerseState = "active";
         public string NexVerseStateReason = string.Empty;
         public int NexVerseStateChanged;
+        public string NexVerseRoles = "resident";
+        public string NexVerseScopes = string.Empty;
 
         public bool LoginAllowed =>
             Active &&
@@ -195,6 +197,10 @@ namespace OpenSim.Services.Interfaces
                 NexVerseStateReason = kvp["NexVerseStateReason"]?.ToString() ?? string.Empty;
             if (kvp.ContainsKey("NexVerseStateChanged"))
                 Int32.TryParse(kvp["NexVerseStateChanged"]?.ToString(), out NexVerseStateChanged);
+            if (kvp.ContainsKey("NexVerseRoles"))
+                NexVerseRoles = kvp["NexVerseRoles"]?.ToString() ?? "resident";
+            if (kvp.ContainsKey("NexVerseScopes"))
+                NexVerseScopes = kvp["NexVerseScopes"]?.ToString() ?? string.Empty;
 
             if (kvp.ContainsKey("Created"))
                 Created = Convert.ToInt32(kvp["Created"].ToString());
@@ -236,6 +242,8 @@ namespace OpenSim.Services.Interfaces
             result["NexVerseState"] = NexVerseState ?? "active";
             result["NexVerseStateReason"] = NexVerseStateReason ?? string.Empty;
             result["NexVerseStateChanged"] = NexVerseStateChanged.ToString();
+            result["NexVerseRoles"] = NexVerseRoles ?? "resident";
+            result["NexVerseScopes"] = NexVerseScopes ?? string.Empty;
 
             string str = string.Empty;
             foreach (KeyValuePair<string, object> kvp in ServiceURLs)
