@@ -181,9 +181,11 @@ namespace NexVerse.Server.Api
 
             INexEventBus eventBus = CreateEventBus(config, server);
             IConfig nexBusConfig = config.Configs["NexBus"];
+            // The UI must remain available for secure bootstrap even when
+            // Enabled=true but a NexBus shared secret has not been provisioned yet.
+            // Report the effective transport, not just the requested setting.
             bool distributedNexBusEnabled =
-                nexBusConfig != null &&
-                nexBusConfig.GetBoolean("Enabled", false);
+                eventBus is DistributedNexEventBus;
             int nodeStaleAfterSeconds =
                 nexBusConfig == null
                     ? 90
@@ -875,6 +877,16 @@ namespace NexVerse.Server.Api
 
             string nodeId = busConfig.GetString("NodeId", Environment.MachineName);
             string sharedKey = busConfig.GetString("SharedKey", string.Empty);
+            if (string.IsNullOrEmpty(sharedKey) ||
+                System.Text.Encoding.UTF8.GetByteCount(sharedKey) < 32)
+            {
+                m_Log.Warn(
+                    "[NEXBUS]: Verteilter Transport angefordert, aber NEXVERSE_NEXBUS_SHARED_KEY fehlt oder ist zu kurz. " +
+                    "Robust startet mit lokalem EventBus, damit der Administrator die Secrets im World-API-Control-Center erstellen kann. " +
+                    "Nach sicherer Hinterlegung des SharedKey Robust neu starten.");
+                return new InMemoryNexEventBus();
+            }
+
             string peersRaw = busConfig.GetString("Peers", string.Empty);
             string inboundPath = busConfig.GetString("InboundPath", "/internal/nexbus/v1/events");
             int queueCapacity = busConfig.GetInt("QueueCapacity", 4096);
