@@ -23,6 +23,7 @@ Simulator service variables are also declared in `bin/config-include/GridCommon.
 
 - `NEXVERSE_ECONOMY_API_KEY` — required only when `[NexEconomyViewer] Enabled = true`; use a restricted machine key with `economy:read` and `economy:transfer`.
 - `NEXVERSE_EXPERIENCES_API_KEY` — required only when `[NexExperiencesViewer] Enabled = true`; use a restricted machine key with `experiences:script`.
+- `NEXVERSE_OFFLINE_IM_SMTP_PASSWORD` — SMTP password used by `[OfflineIMEmail]` when authenticated SMTP is configured. It may remain empty when a trusted local relay is used.
 
 The declarations themselves stay empty in the tracked INI. When the corresponding module is disabled, the empty declaration is sufficient for configuration expansion. When the module is enabled, provide the real value through a protected runtime secret source.
 
@@ -41,6 +42,7 @@ File format:
 NEXVERSE_DB_PASSWORD=<local-secret>
 NEXVERSE_ROBUST_CERT_PASSWORD=<local-secret>
 NEXVERSE_NATIVE_TOKEN_SIGNING_KEY=<local-secret>
+NEXVERSE_OFFLINE_IM_SMTP_PASSWORD=<smtp-secret>
 ```
 
 Then restrict access:
