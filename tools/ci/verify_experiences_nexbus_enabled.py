@@ -52,6 +52,11 @@ assert "account.UserLevel < Math.Max(200, m_AdminMinimumLevel)" in me
 assert "account == null" in me
 assert '"Cache-Control", "no-store"' in me
 
+connector=contents("NexVerse/Server/Api/NexVerseWorldApiConnector.cs")
+assert "eventBus is DistributedNexEventBus" in connector
+assert "System.Text.Encoding.UTF8.GetByteCount(sharedKey) < 32" in connector
+assert "return new InMemoryNexEventBus();" in connector
+
 store=contents("NexVerse/Core/Security/NexApiKeyStore.cs")
 assert "NexScopes.ExperiencesScript" in store
 api=contents("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs")
