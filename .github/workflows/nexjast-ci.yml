@@ -257,6 +257,10 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexLedgerRegression/NexLedgerRegression.csproj
 
+      - name: Verify avatar appearance cache configuration
+        shell: bash
+        run: python3 tools/ci/verify_avatar_appearance_config.py
+
       - name: Verify cross-region object messaging
         shell: bash
         run: python3 tools/ci/verify_object_messaging.py
