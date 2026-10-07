@@ -1581,6 +1581,12 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void llEstateSay(int channelID, string text)
+        {
+            m_LSL_Functions.llEstateSay(channelID, text);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void llRegionSayTo(string key, int channelID, string text)
         {
             m_LSL_Functions.llRegionSayTo(key, channelID, text);
