@@ -55,11 +55,7 @@ COMMIT;
 
 BEGIN;
 
-ALTER TABLE `UserAccounts` ADD `NexVerseRoles` text NOT NULL;
-ALTER TABLE `UserAccounts` ADD `NexVerseScopes` text NOT NULL;
-
-UPDATE `UserAccounts`
-SET `NexVerseRoles` = 'resident'
-WHERE `NexVerseRoles` = '';
+ALTER TABLE `UserAccounts` ADD `NexVerseRoles` varchar(512) NOT NULL DEFAULT 'resident';
+ALTER TABLE `UserAccounts` ADD `NexVerseScopes` varchar(2048) NOT NULL DEFAULT '';
 
 COMMIT;
