@@ -82,6 +82,14 @@ for marker in (
     "StringComparison.OrdinalIgnoreCase",
     "Als IMoneyModule fuer Region",
     "MoneyBalanceReply mit",
+    "BalanceRefreshSeconds",
+    "RefreshConnectedBalances(",
+    "m_BalanceRefreshTimer",
+    "m_BalanceRefreshRunning",
+    "Interlocked.Exchange(",
+    "scene.GetScenePresences()",
+    "presence.IsChildAgent",
+    "presence.IsNPC",
 ):
     assert marker in viewer, f"missing Viewer economy adapter marker: {marker}"
 
@@ -131,6 +139,7 @@ assert 'ApiKey = "${Environment|NEXVERSE_ECONOMY_API_KEY}"' in viewer_config
 assert 'WorldApiBaseUrl = "https://world.stadt-nexverse.de"' in viewer_config
 assert "ConnectionString" not in viewer_config
 assert "CurrencyPurchasePortalUrl" in viewer_config
+assert "BalanceRefreshSeconds = 5" in viewer_config
 
 print("NV$ World API and Viewer adapter contract: OK")
 
