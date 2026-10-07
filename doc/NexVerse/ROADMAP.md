@@ -987,6 +987,7 @@ These identifiers must never be represented as real-world bank accounts.
 Support Firestorm-visible flows including:
 
 - [x] balance through the central World API;
+- [x] Firestorm status-bar balance resolves from `?? NV$` to the authoritative NV$ amount during login; startup refresh retries until the viewer circuit is active and confirms the balance once more after initialization;
 - [x] pay resident;
 - [x] pay object, resolving the local object owner while still raising `OnObjectPaid`;
 - [x] buy object with price/sale-type validation and compensating refund when object delivery fails;

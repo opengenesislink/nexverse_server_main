@@ -56,6 +56,10 @@ namespace NexVerse.RegionModules.Economy
         private int m_RequestTimeoutMilliseconds =
             3000;
 
+        private const int InitialBalanceRetryDelayMilliseconds = 500;
+        private const int InitialBalanceMaxAttempts = 20;
+        private const int InitialBalanceConfirmDelayMilliseconds = 1500;
+
         public event ObjectPaid OnObjectPaid;
 
         public string Name =>
@@ -294,7 +298,13 @@ namespace NexVerse.RegionModules.Economy
                     m_Http.Send(request);
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    m_Log.WarnFormat(
+                        "[NEX-ECONOMY-VIEWER]: Kontostand für {0} konnte nicht geladen werden. World API antwortete mit HTTP {1}.",
+                        agentID,
+                        (int)response.StatusCode);
                     return 0;
+                }
 
                 string json =
                     response.Content
@@ -700,25 +710,76 @@ namespace NexVerse.RegionModules.Economy
             client.OnObjectBuy +=
                 ObjectBuy;
 
-            // Firestorm initializes the status-bar balance with "?? <currency>".
-            // Push one authoritative balance shortly after the client arrives so
-            // a startup MoneyBalanceRequest cannot be lost during module/client setup.
+            // Firestorm initializes the status bar with "?? <currency>" until a
+            // MoneyBalanceReply arrives. The first viewer request can race the
+            // OnNewClient subscription, so keep retrying until the circuit is active.
+            QueueInitialBalanceRefresh(client);
+        }
+
+
+        private void QueueInitialBalanceRefresh(
+            IClientAPI client)
+        {
             ThreadPool.QueueUserWorkItem(
                 _ =>
                 {
-                    Thread.Sleep(250);
-
-                    if (client.IsActive)
+                    for (int attempt = 1;
+                         attempt <= InitialBalanceMaxAttempts;
+                         attempt++)
                     {
-                        SendMoneyBalance(
-                            client,
-                            client.AgentId,
-                            client.SessionId,
-                            UUID.Random());
+                        Thread.Sleep(
+                            InitialBalanceRetryDelayMilliseconds);
+
+                        if (client == null)
+                            return;
+
+                        if (!client.IsActive)
+                            continue;
+
+                        try
+                        {
+                            m_Log.DebugFormat(
+                                "[NEX-ECONOMY-VIEWER]: Firestorm-Kontostand wird initial an {0} gesendet (Versuch {1}).",
+                                client.AgentId,
+                                attempt);
+
+                            SendMoneyBalance(
+                                client,
+                                client.AgentId,
+                                client.SessionId,
+                                UUID.Random());
+
+                            // One confirmation refresh covers viewers that finish
+                            // building the status bar just after the first reply.
+                            Thread.Sleep(
+                                InitialBalanceConfirmDelayMilliseconds);
+
+                            if (client.IsActive)
+                            {
+                                SendMoneyBalance(
+                                    client,
+                                    client.AgentId,
+                                    client.SessionId,
+                                    UUID.Random());
+                            }
+
+                            return;
+                        }
+                        catch (Exception e)
+                        {
+                            m_Log.WarnFormat(
+                                "[NEX-ECONOMY-VIEWER]: Initialer Firestorm-Kontostand für {0} konnte nicht gesendet werden: {1}",
+                                client.AgentId,
+                                e.Message);
+                            return;
+                        }
                     }
+
+                    m_Log.WarnFormat(
+                        "[NEX-ECONOMY-VIEWER]: Firestorm-Kontostand für {0} wurde nicht initial gesendet, weil der Client nicht rechtzeitig aktiv wurde.",
+                        client?.AgentId ?? UUID.Zero);
                 });
         }
-
 
         private void ObjectBuy(
             IClientAPI remoteClient,
@@ -938,6 +999,11 @@ namespace NexVerse.RegionModules.Economy
                 false,
                 0,
                 string.Empty);
+
+            m_Log.DebugFormat(
+                "[NEX-ECONOMY-VIEWER]: Kontostand {0} NV$ an Firestorm-Client {1} gesendet.",
+                balance,
+                agentID);
         }
 
         private void MoneyTransferAction(

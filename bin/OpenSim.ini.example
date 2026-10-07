@@ -1046,7 +1046,7 @@
     Enabled = true
 
     ; Base URL of the Robust World API that hosts [NexEconomy].
-    WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"
+    WorldApiBaseUrl = "https://world.stadt-nexverse.de"
 
     ; Service API key with economy:read and economy:transfer.
     ; Keep the real value outside version control.
