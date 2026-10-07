@@ -1189,6 +1189,16 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [ ] die geerbte ThreadPool-Tuning-Logik und Kommentare aus .NET-2/3/4-/Mono-Zeiten gegen das aktuelle .NET-8-Verhalten pruefen, nur nach Messung anpassen und mit Startup-/Lasttests absichern;
 - [ ] die dabei beruehrten `[OPENSIM MAIN]`-Meldungen auf OpenGenesisLINK/OGL-Branding und deutsche Konsolentexte migrieren.
 
+### 13.1 Estate-weite LSL-Kommunikation
+
+- [x] OpenGenesisLINK-Erweiterung `llEstateSay(integer channel, string message)` eingefuehrt;
+- [x] Aufrufe sind ausschliesslich erlaubt, wenn der Besitzer des Script-Objekts Estate Owner oder Estate Manager des aktuellen Estates ist;
+- [x] Kanal `0` und der reservierte Debug-Kanal werden abgelehnt; Nachrichten bleiben auf 1023 Byte/Zeichen begrenzt wie bei `llRegionSay`;
+- [x] alle laufenden Regionen desselben Estates innerhalb eines Simulatorprozesses erhalten die Nachricht ueber den normalen `IWorldComm`/`listen`-Pfad;
+- [x] bei aktivem NodeAgent/NexBus werden passende Estate-Regionen auf anderen Simulatornodes ueber `estate.script.message.requested` erreicht;
+- [x] empfangende Nodes validieren Estate-ID und Estate-Owner/Manager-Berechtigung erneut und nutzen die bestehenden Nachrichten-Ratenlimits;
+- [x] CI prueft API, Runtime-Stub, Berechtigungspruefung, Cross-Node-Routing und Konfiguration.
+
 ## 13. NexVoice
 
 Build an independent WebRTC voice platform designed for NexVerse and optional external-grid use.
