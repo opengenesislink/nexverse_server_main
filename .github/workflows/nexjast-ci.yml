@@ -201,6 +201,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_region_mutations.py
 
+      - name: Verify World API online region listing
+        shell: bash
+        run: python3 tools/ci/verify_region_listing.py
+
       - name: Verify Estate Control Plane foundation
         shell: bash
         run: python3 tools/ci/verify_estate_control.py
