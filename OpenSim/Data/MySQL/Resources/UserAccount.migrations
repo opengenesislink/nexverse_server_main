@@ -49,3 +49,17 @@ ALTER TABLE `UserAccounts` ADD `DisplayName` varchar(64) CHARACTER SET utf8mb4 N
 ALTER TABLE `UserAccounts` ADD `DisplayNameChanged` int(11) NOT NULL DEFAULT '0';
 
 COMMIT;
+
+
+:VERSION 9        # NexVerse roles and scopes -------------------------
+
+BEGIN;
+
+ALTER TABLE `UserAccounts` ADD `NexVerseRoles` text NOT NULL;
+ALTER TABLE `UserAccounts` ADD `NexVerseScopes` text NOT NULL;
+
+UPDATE `UserAccounts`
+SET `NexVerseRoles` = 'resident'
+WHERE `NexVerseRoles` = '';
+
+COMMIT;
