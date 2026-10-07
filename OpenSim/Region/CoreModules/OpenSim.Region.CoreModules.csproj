@@ -61,6 +61,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Framework\ViewerSupport\FirestormBridgeAssetBootstrapModule.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Reference Include="CSJ2K" >
       <Name>CSJ2K</Name>
       <HintPath>/opt/robust/bin/CSJ2K.dll</HintPath>
