@@ -241,6 +241,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_banking_commerce.py
 
+      - name: Verify segment-aware simple HTTP routing
+        shell: bash
+        run: python3 tools/ci/verify_simple_stream_routing.py
+
       - name: Verify Chapter 11 NexGroups and NexExperiences
         shell: bash
         run: python3 tools/ci/verify_nexgroups_experiences.py
