@@ -2093,21 +2093,28 @@ namespace NexVerse.Server.Api
         private static string[] AudienceForScope(
             string scope)
         {
-            if (!string.IsNullOrWhiteSpace(scope) &&
-                scope.IndexOf(
-                    NexVerse.Core.Security.NexScopes.AdminAll,
-                    StringComparison.OrdinalIgnoreCase) >= 0 &&
-                !scope.StartsWith(
+            if (string.IsNullOrWhiteSpace(scope) ||
+                scope.StartsWith(
                     "self",
                     StringComparison.OrdinalIgnoreCase))
+            {
+                return new[]
+                {
+                    "citizen",
+                    "admin"
+                };
+            }
+
+            if (scope.IndexOf(
+                    NexVerse.Core.Security.NexScopes.AdminAll,
+                    StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return new[] { "admin" };
             }
 
-            if (!string.IsNullOrWhiteSpace(scope) &&
-                !scope.StartsWith(
-                    "self",
-                    StringComparison.OrdinalIgnoreCase))
+            if (scope.IndexOf(
+                    "(service/admin)",
+                    StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return new[]
                 {
@@ -2116,11 +2123,52 @@ namespace NexVerse.Server.Api
                 };
             }
 
+            if (IsCitizenPortalScope(scope))
+            {
+                return new[]
+                {
+                    "citizen",
+                    "admin",
+                    "service"
+                };
+            }
+
             return new[]
             {
-                "citizen",
-                "admin"
+                "admin",
+                "service"
             };
+        }
+
+        private static bool IsCitizenPortalScope(
+            string scope)
+        {
+            string[] citizenScopes =
+            {
+                NexVerse.Core.Security.NexScopes.InventoryRead,
+                NexVerse.Core.Security.NexScopes.InventoryWrite,
+                NexVerse.Core.Security.NexScopes.EconomyRead,
+                NexVerse.Core.Security.NexScopes.EconomyTransfer,
+                NexVerse.Core.Security.NexScopes.GroupsRead,
+                NexVerse.Core.Security.NexScopes.GroupsManage,
+                NexVerse.Core.Security.NexScopes.ExperiencesRead,
+                NexVerse.Core.Security.NexScopes.ExperiencesManage,
+                NexVerse.Core.Security.NexScopes.DiscoveryRead,
+                NexVerse.Core.Security.NexScopes.DiscoverySubmit
+            };
+
+            foreach (string citizenScope in citizenScopes)
+            {
+                if (string.Equals(
+                        scope,
+                        citizenScope,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string AiInstructionForScope(
