@@ -1532,7 +1532,7 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
             Scene scene =
                 sop.ParentGroup?.Scene;
             SceneObjectPartInventory inventory =
-                sop.Inventory;
+                sop.Inventory as SceneObjectPartInventory;
 
             writer.WriteStartElement("SceneObjectPart");
             writer.WriteAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
