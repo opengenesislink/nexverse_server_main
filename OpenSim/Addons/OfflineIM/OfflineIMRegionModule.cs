@@ -56,8 +56,7 @@ namespace OpenSim.OfflineIM
         private bool m_ForwardOfflineGroupMessages = true;
 
         private bool m_EmailEnabled;
-        private string m_EmailFromAddress = "no-reply@stadt-nexverse.de";
-        private string m_EmailFromName = "Stadt NexVerse";
+        private string m_EmailRelayDomain = "im.stadt-nexverse.de";
         private string m_EmailSubjectTemplate = "Offline-IM Nachricht von {SENDER}";
         private string m_EmailSmtpHost = "127.0.0.1";
         private int m_EmailSmtpPort = 25;
@@ -98,8 +97,7 @@ namespace OpenSim.OfflineIM
             if (emailConfig is not null)
             {
                 m_EmailEnabled = emailConfig.GetBoolean("Enabled", false);
-                m_EmailFromAddress = emailConfig.GetString("FromAddress", m_EmailFromAddress).Trim();
-                m_EmailFromName = emailConfig.GetString("FromName", m_EmailFromName).Trim();
+                m_EmailRelayDomain = emailConfig.GetString("RelayDomain", m_EmailRelayDomain).Trim().Trim('.');
                 m_EmailSubjectTemplate = emailConfig.GetString("SubjectTemplate", m_EmailSubjectTemplate);
                 m_EmailSmtpHost = emailConfig.GetString("SMTPHost", m_EmailSmtpHost).Trim();
                 m_EmailSmtpPort = emailConfig.GetInt("SMTPPort", m_EmailSmtpPort);
@@ -121,9 +119,9 @@ namespace OpenSim.OfflineIM
                     (string.IsNullOrWhiteSpace(m_EmailSmtpHost) ||
                      m_EmailSmtpPort < 1 ||
                      m_EmailSmtpPort > 65535 ||
-                     !MailboxAddress.TryParse(m_EmailFromAddress, out _)))
+                     !IsValidRelayDomain(m_EmailRelayDomain)))
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: Invalid SMTP host/port or FromAddress. Offline IM email disabled.");
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: Invalid SMTP host/port or RelayDomain. Offline IM email disabled.");
                     m_EmailEnabled = false;
                 }
 
@@ -135,7 +133,7 @@ namespace OpenSim.OfflineIM
 
             m_log.DebugFormat("[OfflineIM.V2]: Offline messages enabled by {0}", Name);
             if (m_EmailEnabled)
-                m_log.InfoFormat("[OfflineIM.V2.EMAIL]: Offline IM email notification enabled via {0}:{1} from {2}.", m_EmailSmtpHost, m_EmailSmtpPort, m_EmailFromAddress);
+                m_log.InfoFormat("[OfflineIM.V2.EMAIL]: Offline IM email notification enabled via {0}:{1} using avatar relay domain {2}.", m_EmailSmtpHost, m_EmailSmtpPort, m_EmailRelayDomain);
         }
 
         public void AddRegion(Scene scene)
@@ -435,10 +433,16 @@ namespace OpenSim.OfflineIM
 
             try
             {
+                string relayEmail = new UUID(im.fromAgentID).ToString() + "@" + m_EmailRelayDomain;
+                MailboxAddress relayAddress = new MailboxAddress(senderName, relayEmail);
+
                 MimeMessage message = new MimeMessage();
-                message.From.Add(new MailboxAddress(m_EmailFromName, m_EmailFromAddress));
+                message.From.Add(relayAddress);
+                message.ReplyTo.Add(relayAddress);
                 message.To.Add(new MailboxAddress(recipient.Name, recipientAddress.Address));
                 message.Subject = subject;
+                message.Headers["X-NexVerse-IM-From-Agent"] = new UUID(im.fromAgentID).ToString();
+                message.Headers["X-NexVerse-IM-To-Agent"] = recipientID.ToString();
                 message.Body = new TextPart("plain")
                 {
                     Text = body
@@ -498,6 +502,33 @@ namespace OpenSim.OfflineIM
             body.AppendLine("Bitte antworte nicht auf diese E-Mail.");
 
             return body.ToString();
+        }
+
+        private static bool IsValidRelayDomain(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length > 253)
+                return false;
+
+            string[] labels = value.Split('.');
+            if (labels.Length < 2)
+                return false;
+
+            foreach (string label in labels)
+            {
+                if (string.IsNullOrEmpty(label) || label.Length > 63)
+                    return false;
+
+                if (label[0] == '-' || label[label.Length - 1] == '-')
+                    return false;
+
+                foreach (char ch in label)
+                {
+                    if (!(char.IsLetterOrDigit(ch) || ch == '-'))
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         private static string SanitizeHeaderValue(string value)
