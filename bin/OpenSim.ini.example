@@ -882,6 +882,9 @@
     ; <avatar-uuid>@im.stadt-nexverse.de as From and Reply-To.
     RelayDomain = "im.stadt-nexverse.de"
     SubjectTemplate = "Offline-IM Nachricht von {SENDER}"
+    ; Shared with Robust. Must be at least 32 bytes and kept outside git.
+    RelaySigningKey = "${Environment|NEXVERSE_IM_RELAY_SIGNING_KEY}"
+    ReplyLifetimeDays = 5
 
     ; Defaults to a local SMTP relay. Change SMTPHost/SMTPPort for the
     ; production mail server if the simulator host does not provide one.
