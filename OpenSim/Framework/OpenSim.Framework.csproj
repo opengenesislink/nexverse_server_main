@@ -61,6 +61,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="OfflineImMailRelayToken.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="FirestormBridgeCompatibility.cs">
       <SubType>Code</SubType>
     </Compile>
