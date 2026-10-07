@@ -65,6 +65,12 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_environment_expansions.py
 
+      - name: Verify enabled Experiences and NexBus deployment profile
+        shell: bash
+        run: |
+          python3 -m py_compile tools/admin/activate_experiences_nexbus.py
+          python3 tools/ci/verify_experiences_nexbus_enabled.py
+
       - name: Verify OSSL policy coverage
         shell: bash
         run: python3 tools/ci/verify_ossl_policy.py
