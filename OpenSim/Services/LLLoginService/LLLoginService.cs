@@ -707,7 +707,7 @@ namespace OpenSim.Services.LLLoginService
                 if (root is null)
                 {
                     m_log.WarnFormat(
-                        "[FIRESTORM BRIDGE]: Cannot bootstrap inventory for {0}: inventory root missing.",
+                        "[FIRESTORM BRIDGE]: Bridge-Inventar für {0} kann nicht vorbereitet werden: Inventarwurzel fehlt.",
                         principalID);
                     return;
                 }
@@ -772,13 +772,13 @@ namespace OpenSim.Services.LLLoginService
                 if (!m_InventoryService.AddItem(bridgeItem))
                 {
                     m_log.WarnFormat(
-                        "[FIRESTORM BRIDGE]: Failed to add bootstrap inventory item for {0}.",
+                        "[FIRESTORM BRIDGE]: Bootstrap-Inventargegenstand für {0} konnte nicht angelegt werden.",
                         principalID);
                     return;
                 }
 
                 m_log.InfoFormat(
-                    "[FIRESTORM BRIDGE]: Prepared {0} for {1}.",
+                    "[FIRESTORM BRIDGE]: {0} wurde für {1} vorbereitet.",
                     bridgeName,
                     principalID);
             }
@@ -786,7 +786,7 @@ namespace OpenSim.Services.LLLoginService
             {
                 // Bridge compatibility must never make the user's login fail.
                 m_log.WarnFormat(
-                    "[FIRESTORM BRIDGE]: Bootstrap failed for {0}: {1}",
+                    "[FIRESTORM BRIDGE]: Bridge-Bootstrap für {0} fehlgeschlagen: {1}",
                     principalID,
                     e);
             }
@@ -824,7 +824,7 @@ namespace OpenSim.Services.LLLoginService
             if (!m_InventoryService.AddFolder(folder))
             {
                 m_log.WarnFormat(
-                    "[FIRESTORM BRIDGE]: Failed to create inventory folder {0} for {1}.",
+                    "[FIRESTORM BRIDGE]: Inventarordner {0} für {1} konnte nicht angelegt werden.",
                     name,
                     principalID);
                 return null;
