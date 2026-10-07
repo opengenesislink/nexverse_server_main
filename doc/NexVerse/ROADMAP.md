@@ -987,6 +987,995 @@ These identifiers must never be represented as real-world bank accounts.
 Support Firestorm-visible flows including:
 
 - [x] balance through the central World API;
+- [x] Firestorm status-bar balance resolves from `?? NV# OpenGenesisLINK Roadmap
+
+> Status: Active development roadmap  
+> Current stable release: **NexVerse 0.9.3.4**  
+> Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
+> Active development line: **OpenGenesisLINK v0.9.3.8 Dev**  
+> Active milestone: **0.9.3.8 — Search, Places, Land and Destination Guide completed**  
+> Completed milestone codename: **NEXJAST**  
+> Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
+
+## 1. Vision
+
+OpenGenesisLINK is being developed from the OpenSimulator 0.9.3.0 source baseline and the former NexVerse Server line into an independent virtual-world server platform.
+
+The long-term objective is not to preserve every historical OpenSimulator subsystem. OpenGenesisLINK keeps protocol and viewer compatibility where it is useful, while legacy administration, voice, web, monitoring and service components are progressively replaced by OpenGenesisLINK-owned implementations.
+
+The target architecture is centered around:
+
+- a modern authenticated World API;
+- a clean Robust-based control plane;
+- managed simulator and region nodes;
+- Firestorm/Second Life protocol compatibility where required;
+- full-featured NV$ economy and banking;
+- modern identity, social, profile, inventory, group and estate services;
+- Experiences and Pathfinding;
+- a native WebRTC/Janus voice platform;
+- a systematic LSL parity program;
+- search, places, land and destination services;
+- strong monitoring, auditing and operational tooling;
+- a documented extension and developer platform.
+- a defined simulator runtime profile using BulletSim physics, Meshmerizer and Warp3D-generated map tiles.
+
+## 2. Development principles
+
+### 2.1 OpenGenesisLINK Clean Core
+
+New OpenGenesisLINK functionality should be implemented in OpenGenesisLINK-owned modules and stable extension contracts instead of extending obsolete OpenSimulator subsystems indefinitely. Compatibility-sensitive `NexVerse.*` namespaces may remain temporarily until a safe migration path exists.
+
+A legacy component may remain only when at least one of the following is true:
+
+1. Firestorm or Second Life protocol compatibility requires it.
+2. Hypergrid compatibility requires it.
+3. LSL compatibility requires it.
+4. Replacing it would currently create more risk than technical benefit.
+
+When a NexVerse replacement reaches functional parity, the replaced legacy implementation should be removed from source, build files, configuration and documentation.
+
+### 2.2 Compatibility before deletion
+
+Legacy code is not removed solely because it is old.
+
+Before deletion, every candidate must be checked for:
+
+- Firestorm viewer dependencies;
+- LLUDP/CAPS dependencies;
+- LSL functions, events and constants;
+- Hypergrid dependencies;
+- simulator-to-Robust dependencies;
+- database migrations and persisted data;
+- OAR/IAR compatibility.
+
+Example: XML-RPC RemoteAdmin is obsolete and should be removed. XML-RPC functionality used by LSL RemoteData must remain in a compatibility layer until the relevant LSL behavior is intentionally replaced.
+
+### 2.3 API-first
+
+New management functions must be exposed through the authenticated NexVerse World API rather than introducing new private ad-hoc RPC mechanisms.
+
+Primary API host:
+
+`world.stadt-nexverse.de`
+
+Target API root:
+
+`/api/v1/`
+
+### 2.4 Event-driven platform
+
+Cross-service state changes should emit structured events through NexBus.
+
+Examples:
+
+- `avatar.logged_in`
+- `avatar.logged_out`
+- `friend.added`
+- `inventory.changed`
+- `region.started`
+- `region.stopped`
+- `economy.transaction.completed`
+- `experience.permission.granted`
+- `voice.session.joined`
+- `object.message.received`
+
+### 2.5 Every feature is operational
+
+A feature is not considered complete merely because the happy path works.
+
+Where applicable, completion requires:
+
+- API contract;
+- authentication and authorization;
+- tests;
+- Firestorm compatibility verification;
+- LSL compatibility verification;
+- migrations;
+- metrics;
+- structured logging;
+- audit logging;
+- documentation;
+- upgrade and rollback considerations.
+
+## 3. Versioning policy
+
+NexVerse keeps its own version sequence independently of the OpenSimulator upstream version.
+
+The historical source baseline remains OpenSimulator 0.9.3.0 regardless of future NexVerse versions.
+
+Development progression:
+
+- development: `X.Y.Z.N Dev`
+- release candidate: `X.Y.Z.N RC1`, `RC2`, ...
+- release: `X.Y.Z.N`
+
+Each development milestone increments the NexVerse product version.
+
+The first NexVerse development milestone was completed as:
+
+**NexVerse 0.9.3.1 — NEXJAST**
+
+For the current release train, 0.9.3.2 and 0.9.3.3 are development milestones and are not planned as separate stable releases. Development proceeds sequentially through 0.9.3.2 Dev, 0.9.3.3 Dev and 0.9.3.4 Dev. After the 0.9.3.4 scope is complete and release validation passes, the train advances through 0.9.3.4 RC builds to the stable **NexVerse 0.9.3.4** release.
+
+No implementation work from milestone 0.9.3.5 or later is to be started before the 0.9.3.4 release is completed. Existing work already pulled forward from later milestones remains part of the 0.9.3.4 release train and must be completed or explicitly scoped before release.
+
+The larger architectural platform generation will advance to **OpenGenesisLINK v0.9.4.0**.
+
+## 4. Compatibility levels
+
+The product version should not be overloaded to represent every protocol revision. NexVerse should maintain explicit compatibility levels.
+
+Planned examples:
+
+- OpenGenesisLINK Server Version
+- NexVerse API Version
+- NexVerse Internal Protocol Version
+- LSL Compatibility Level
+- Firestorm Compatibility Profile
+- Hypergrid Compatibility Level
+- NexVoice Protocol Version
+- NV$ Economy Protocol Version
+- NexBus Event Schema Version
+
+These values can later be exposed through GridInfo and the World API.
+
+---
+
+# Milestone 0.9.3.1 — NEXJAST
+
+## 5. Legacy Cleanup and Platform Foundation
+
+NEXJAST establishes a clean development foundation before the new API and service architecture expand.
+
+### 5.1 Remove RemoteAdmin
+
+The historical XML-RPC RemoteAdmin system is to be removed completely.
+
+Scope:
+
+- remove RemoteAdmin application plugin;
+- remove RemoteAdmin configuration sections;
+- remove RemoteAdmin passwords and settings;
+- remove RemoteAdmin build/project entries;
+- remove RemoteAdmin documentation and examples;
+- remove dependencies that exist only for RemoteAdmin;
+- replace administrative use cases with the NexVerse World API.
+
+Administrative control must no longer depend on the old RemoteAdmin interface.
+
+### 5.2 Remove legacy voice systems
+
+Remove legacy Vivox and FreeSwitch implementations that will be replaced by NexVoice.
+
+Target removals include:
+
+- VivoxVoiceModule;
+- FreeSwitchVoiceModule;
+- FreeSwitch service;
+- FreeSwitch connectors;
+- FreeSwitch handlers;
+- FreeSwitch interfaces;
+- related Robust connectors;
+- obsolete configuration sections;
+- build and solution entries.
+
+NexVoice becomes the only long-term NexVerse voice architecture.
+
+### 5.3 Remove obsolete IRC bridge
+
+Remove the legacy IRC bridge and related connector/state classes unless a concrete compatibility dependency is discovered.
+
+### 5.4 Legacy OpenID service
+
+The old OpenID provider/server implementation has been removed from Robust.
+
+The optional legacy LLLogin response fields remain temporarily as a compatibility reserve until Firestorm runtime validation is complete. Modern NexVerse identity will use the NexVerse authentication architecture instead.
+
+### 5.5 Repository hygiene
+
+Clean generated build state from source control.
+
+Remove tracked artifacts such as:
+
+- `obj/`
+- NuGet generated caches;
+- generated MSBuild editor configuration;
+- absolute file lists;
+- generated intermediate build files.
+
+The root runtime `bin/` directory must be handled carefully because the inherited OpenSimulator layout stores required runtime configuration there.
+
+### 5.6 Legacy component inventory
+
+Create and maintain a migration table classifying inherited components as:
+
+- KEEP — required and healthy;
+- COMPAT — retained only for protocol/viewer/LSL/HG compatibility;
+- REPLACE — scheduled for NexVerse replacement;
+- REMOVE — no longer required.
+
+### 5.7 NexVerse native foundation status
+
+Implemented during NEXJAST:
+
+- [x] `NexVerse.Core` native assembly introduced.
+- [x] RBAC/scope contracts introduced.
+- [x] audit event contract introduced.
+- [x] in-memory NexBus foundation introduced.
+- [x] `NexVerse.Server.Api` native assembly introduced.
+- [x] Robust loads the World API connector on the public listener.
+- [x] `/api/v1`, `/health`, `/version`, `/capabilities` and `/openapi.json` implemented.
+- [x] World API correlation IDs, API version headers, audit events and NexBus request events implemented.
+- [x] interim AuthenticationService bearer-token bootstrap retired from World API authentication after native resident-session cutover.
+- [x] user API phase 1 connected: self/account lookup, admin search, account creation/provisioning, account profile update, password set/reset and UserLevel update.
+- [x] account creation requires an explicit selectable Home/Start region and initializes both Home and initial Last/Start position.
+- [x] complete current OSSL function surface enabled through an explicit NexVerse permission profile.
+- [x] CI rejects newly added threat-checked OSSL functions without an explicit enabled policy rule.
+- [x] Hypergrid grid-identity URI normalization handles default ports, trailing slashes and host casing consistently.
+- [x] NexVerse-native resident sessions plus OIDC/scoped token issuance fully replace the interim AuthenticationService bearer-token bridge.
+- [x] native HMAC-signed scoped access-token foundation implemented; native tokens are lifecycle-stamp bound.
+- [x] native resident session login verifies credentials internally and issues NexVerse tokens without exposing legacy AuthenticationService tokens.
+- [x] persistent OAuth2/OIDC core implemented: Authorization Code + PKCE S256, refresh-token rotation/revocation, ES256 ID tokens/JWKS, persistent client registration and service-account client_credentials.
+- [x] password, account-state and explicit session revocation invalidate resident access/refresh sessions.
+- [x] complete user lifecycle API connected: create, update, soft-delete/deactivate, lock/unlock, ban/unban and password workflow.
+- [x] account lifecycle state is persisted independently of UserLevel and enforced by Viewer login and World API authentication.
+- [x] account creation is fail-closed through provisioning/provisioning_failed states so incomplete accounts cannot log in.
+- [x] distributed NexBus transport connected end-to-end between Robust and simulator nodes.
+- [x] distributed NexBus core plus authenticated HTTP/HMAC peer transport foundation implemented with relay-loop deduplication and bounded outbound queue.
+- [x] NexVerse NodeAgent region module publishes node/region lifecycle and health heartbeats and exposes local/inbound NexBus pub/sub to simulator modules.
+- [x] production metrics/OpenTelemetry implemented end-to-end through Prometheus export plus a bounded OTLP/HTTP JSON trace/metrics collector pipeline.
+- [x] NexMetrics Prometheus-compatible registry/export endpoint, OpenTelemetry-compatible ActivitySource, OTLP batching/retry/TLS controls and external collector export are implemented and CI-regression tested.
+
+### 5.8 NEXJAST definition of done
+
+**Release status: completed 2 October 2026 — 45/45 criteria satisfied.**
+
+- [x] RemoteAdmin removed from code/build/config.
+- [x] Vivox removed from code/build/config.
+- [x] FreeSwitch removed from code/build/config.
+- [x] obsolete IRC bridge removed.
+- [x] generated `obj/` build artifacts removed from source control.
+- [x] simulator builds successfully (validated by NEXJAST CI Release build).
+- [x] Robust builds successfully (validated by NEXJAST CI Release build).
+- [x] World API runtime smoke test passes against a started Robust process.
+- [x] OSSL policy coverage is regression-checked by NEXJAST CI.
+- [x] HG local-grid URI identity normalization is regression-tested by NEXJAST CI.
+- [x] HG login remains functional (validated end-to-end in CI through a real Hypergrid HomeAgent → Gatekeeper login flow).
+- [x] local grid login remains functional through successful simulator placement (CI starts a real OpenSim region, seeds account/home/estate state, performs `login_to_simulator`, and validates simulator destination + seed capability).
+- [x] Firestorm-compatible LLLogin XML-RPC endpoint is runtime smoke-tested with a real Robust process.
+- [x] Firestorm protocol baseline passes through successful viewer/simulator login placement in CI (`Firestorm-Releasex64` identity, LLLogin XML-RPC response, destination region and seed capability).
+- [x] core LSL XML-RPC RemoteData channel lifecycle and invalid-channel handler behavior are runtime-regression tested against the built XMLRPCModule.
+- [x] NexVerse simulator profile actively enables the local XmlRpcRouterModule and RemoteData listener on port 20800; deployments with multiple simulator processes on one host must override the port per process.
+- [x] end-to-end LSL XML-RPC RemoteData callback is runtime-verified with a running region and persisted script; CI confirms the script instance starts and opens its XML-RPC channel.
+- [x] release runtime version source identifies itself as NexVerse 0.9.3.1.
+
+---
+
+# Milestone 0.9.3.2
+
+> Status: **Development checkpoint completed 3 October 2026**  
+> Runtime line: **NexVerse 0.9.3.2 Dev**  
+> Release-train role: **completed development milestone; not a separate stable release**
+
+## 6. NexVerse World API v1
+
+Introduce the modern authenticated API hosted by Robust and exposed through:
+
+`world.stadt-nexverse.de/api/v1/`
+
+### 6.1 API architecture
+
+Implementation status:
+
+- [x] fixed-window rate limiting is enforced before World API/OAuth authentication with standard rate-limit headers and trusted-proxy controls.
+- [x] request correlation IDs are emitted consistently across guarded API responses and error payloads.
+- [x] bounded `limit`/`offset` pagination is implemented for user and selectable-region searches.
+- [x] filtering/sorting is implemented for user and region searches, and backend search windows honor the public pagination range.
+- [x] `Idempotency-Key` is implemented for account provisioning with persistent response replay, payload-conflict detection and concurrent-request exclusion.
+- [x] OpenAPI 3.1 component schemas and operation-level request/response references are emitted for the core v1 user, region, audit and API-key contracts and runtime-smoke tested.
+- [x] statistics summary remains routable when privileged endpoints are disabled, exposes privacy-safe anonymous aggregates, and requires `statistics:read` for protected online/region/Hypergrid details.
+
+- REST/JSON API;
+- OpenAPI 3.1 specification;
+- versioned endpoints;
+- consistent error model;
+- pagination;
+- filtering and sorting;
+- idempotency where required;
+- correlation/request IDs;
+- rate limiting;
+- structured audit events.
+
+### 6.2 Authentication and authorization
+
+Implementation status:
+
+- [x] OAuth2/OIDC Authorization Code + PKCE S256, Refresh Token und Client-Credentials-Flows sind persistent umgesetzt.
+- [x] browserbasierte OAuth2/OIDC-Anmeldung mit deutscher Zustimmungsseite ist umgesetzt; Client, Redirect-URI, PKCE und Berechtigungsumfänge werden vor und nach der Anmeldung validiert.
+- [x] bestehende Bearer-basierte Autorisierungsaufrufe bleiben für technische Clients kompatibel.
+- [x] Einwohner-Passwörter werden im Browser-Flow weder in URLs noch im HTML zurückgegeben oder clientseitig gespeichert.
+- [x] Freigaben werden mit Akteur, Client, Berechtigungsumfang und Korrelations-ID auditiert.
+- [x] signed access tokens;
+- [x] service accounts;
+- [x] API keys for restricted machine use with hashed secrets, explicit scopes, immediate disable and audited administration;
+- [x] scopes;
+- [x] RBAC;
+
+MFA/passkey integration is intentionally deferred to the 0.9.3.3 identity/security milestone and is not a 0.9.3.2 completion criterion.
+
+Example scopes:
+
+- `users:read`
+- `users:write`
+- `inventory:read`
+- `inventory:write`
+- `friends:manage`
+- `regions:read`
+- `regions:manage`
+- `estates:read`
+- `estates:manage`
+- `economy:transfer`
+- `admin:*`
+
+### 6.3 User administration
+
+API coverage:
+
+- create account;
+- read account;
+- edit account;
+- soft-delete/deactivate account;
+- lock/unlock account;
+- ban/unban account;
+- password/admin reset flows;
+- change UserLevel;
+- account search;
+- [x] account history exposed through persistent administrative audit queries;
+- [x] account audit records persisted append-only with correlation IDs and pagination.
+
+### 6.4 API web interface
+
+Provide a modern web interface under `world.stadt-nexverse.de`.
+
+Implementation status:
+
+- [x] API Control Center dashboard with live health, server/API version, milestone and endpoint/operation counts;
+- [x] machine-readable `x_nexverse_changelog` release notes with a filterable "Was ist neu?" view;
+- [x] roadmap/project-status view driven by machine-readable `x_nexverse_roadmap` metadata, with checklist progress only where the roadmap contains explicit checkboxes;
+- [x] CI verifies published roadmap checklist counts against `doc/NexVerse/ROADMAP.md` to prevent status drift.
+- [x] searchable endpoint catalogue driven by the live OpenAPI document;
+- [x] request/response schemas rendered from the live contract;
+- [x] same-origin live API explorer with Bearer/API-key/Idempotency-Key support;
+- [x] authentication requirements and permission scopes shown per operation;
+- [x] example JSON requests generated from schema metadata;
+- [x] error documentation and response schemas shown in the explorer;
+- [x] API version-history view driven by `x_nexverse_version_history`;
+- [x] deprecation notices are surfaced when operations are marked deprecated.
+- [x] dedicated statistics view automatically shows privacy-safe aggregate metrics and unlocks current-user, region and Hypergrid breakdown details only with `statistics:read`.
+
+### 6.5 Citizen/Admin AI instructions
+
+Implementation status:
+
+- [x] endpoint-level audience, purpose, AI guidance and security constraints are emitted in OpenAPI;
+- [x] citizen/self-service, administrator and machine/service usage are distinguished;
+- [x] the self-hosted API explorer renders these metadata fields per operation;
+- [x] NexVerse CI runtime smoke verifies the admin metadata contract.
+
+OpenAPI metadata should distinguish citizen-facing and admin-facing usage.
+
+Planned custom metadata:
+
+`x-nexverse-audience`
+
+`x-nexverse-ai-instruction`
+
+Each endpoint can document:
+
+- citizen portal purpose;
+- administrator purpose;
+- allowed roles;
+- ChatGPT/API-agent usage guidance;
+- security constraints.
+
+### 6.6 0.9.3.2 definition of done
+
+**Development checkpoint status: completed 3 October 2026 — 36/36 explicit roadmap checklist items satisfied.**
+
+Completion evidence:
+
+- World API v1 contract is published through OpenAPI 3.1 and runtime-smoke tested;
+- OAuth2/OIDC, native resident sessions, service accounts and restricted API keys are implemented and regression-tested;
+- account lifecycle, persistent audit history, rate limiting, idempotency and statistics protections are operational;
+- the self-hosted API Control Center renders live contract, changelog, roadmap, statistics and administration surfaces;
+- simulator/Hypergrid/LLLogin and LSL RemoteData compatibility tests remain green in the release CI;
+- work pulled forward for NodeAgent, region and Estate control is retained as part of the bounded 0.9.3.4 release train;
+- MFA/passkey work is carried into 0.9.3.3 rather than blocking this completed checkpoint.
+
+No stable 0.9.3.2 artifact is produced. The repository advances directly to **NexVerse 0.9.3.3 Dev**.
+
+---
+
+# Milestone 0.9.3.3
+
+> Status: **Development checkpoint completed 3 October 2026**  
+> Next development line: **NexVerse 0.9.3.4 Dev**
+
+## 7. Identity, Display Names, Profiles and Social Graph
+
+### 7.1 Resident-compatible usernames
+
+Implementation status:
+
+- [x] resident login resolver accepts short `Jam`, dotted `jam.resident` and legacy `Jam Resident` forms without rewriting stored accounts;
+- [x] LLLogin normalizes both XML-RPC and LLSD/WebSocket login inputs before account lookup and restores the stored account names after lookup;
+- [x] normalization behavior is covered by a dedicated CI regression.
+
+Support canonical internal usernames such as:
+
+- `antonia.resident`
+- `jam.resident`
+
+Allow login with the short first-name form when the implied last name is `Resident`.
+
+Examples:
+
+- `Jam` resolves to `jam.resident`
+- `jam.resident` remains valid
+
+The `Resident` suffix should not have to be displayed inworld for normal resident accounts.
+
+### 7.2 Display Names
+
+Foundation status implemented during the 0.9.3.3 development line:
+
+- Display Names are stored persistently in the authoritative UserAccount datastore for MySQL/MariaDB, PostgreSQL and SQLite;
+- modern Resident accounts default to the first name while legacy two-part accounts default to FirstName LastName;
+- canonical usernames remain unique identity/login names and are not replaced by Display Names;
+- Display Names are deliberately non-unique;
+- self-service changes use a seven-day cooldown; administrators may override the cooldown through the authenticated World API;
+- `GET /api/v1/users/{principalId}` and account search payloads expose Display Name state and the next allowed self-update time;
+- `PATCH /api/v1/users/{principalId}` accepts `display_name`;
+- viewer `GetDisplayNames` now returns the persistent local Display Name data;
+- viewer `SetDisplayName` is enabled locally and implements the viewer's old/new-name request plus `SetDisplayNameReply` and `DisplayNameUpdate` EventQueue messages;
+- login responses expose username, display name and default-name state;
+- `llGetDisplayName` and `llRequestDisplayName` use the same authoritative account source;
+- same-region viewer caches receive a `DisplayNameUpdate` event after a successful change.
+
+Remaining propagation work before section 7.2 is complete:
+
+> These remaining presentation surfaces are compatibility/UI polish and are not blockers for the completed 0.9.3.3 development checkpoint.
+
+- profiles / WebProfileV3;
+- chat presentation;
+- IM presentation;
+- groups;
+- object/creator presentation where appropriate;
+- resident search;
+- web profiles and privacy-aware public surfaces.
+
+Implement full Display Name support throughout:
+
+- login response;
+- viewer name cache;
+- nearby avatars;
+- profiles;
+- chat;
+- IM;
+- groups;
+- objects/creator views where appropriate;
+- [x] search/listing foundation;
+- web profiles.
+
+### 7.3 WebProfileV3
+
+Checkpoint status: **complete**. The authoritative profile service supports:
+
+- profile image;
+- display name;
+- username;
+- about text;
+- interests;
+- picks;
+- classifieds;
+- profile visibility;
+- online visibility;
+- partner relationship;
+- groups visibility;
+- search visibility;
+- privacy controls.
+
+### 7.4 Friends and relationships API
+
+Checkpoint status: **complete**. API management covers:
+
+- friendship request;
+- accept/decline;
+- remove friend;
+- rights;
+- online status;
+- map/location rights;
+- object-edit rights where supported;
+- block/mute;
+- partner relationship;
+- relationship history and audit.
+
+### 7.5 Security extensions
+
+Checkpoint status: **complete for the 0.9.3.3 foundation**. Implemented:
+
+- TOTP MFA;
+- passkeys/WebAuthn;
+- active sessions;
+- device/session revocation;
+- API token management;
+- login history;
+- security events.
+
+---
+
+# Milestone 0.9.3.4
+
+> Status: **Stable release completed 4 October 2026**
+
+## 8. Simulator, Region and Estate Control Plane
+
+### 8.1 NexVerse NodeAgent
+
+Introduce an authenticated simulator-side control agent.
+
+Implementation status:
+
+- the simulator-side NodeAgent already publishes `node.online`, `node.heartbeat`, `node.offline`, `region.online` and `region.offline` through authenticated NexBus transport;
+- Robust now maintains an in-memory NodeAgent registry rebuilt continuously from those events;
+- nodes are classified as `online`, `stale` or `offline`; the default stale threshold is 90 seconds and is configurable with `NodeStaleAfterSeconds`;
+- `GET /api/v1/nodes` and `GET /api/v1/nodes/{nodeId}` expose the registry with the dedicated `simulators:read` scope;
+- grid-layout region entries are enriched with current `node_id` and `node_state` when a NodeAgent ownership mapping is known;
+- `simulators:manage` remains reserved for simulator-service lifecycle operations; region lifecycle mutations use `regions:manage`.
+
+Every simulator node registers with Robust and publishes:
+
+- node ID;
+- hostname;
+- version;
+- capabilities;
+- uptime;
+- CPU;
+- RAM;
+- disk;
+- region list;
+- agent count;
+- health state;
+- heartbeat timestamp.
+
+### 8.2 Simulator management
+
+World API functions:
+
+- list simulators;
+- inspect health;
+- [x] node discovery and health inspection;
+- [x] managed region start/stop/restart on simulator nodes;
+- [x] maintenance mode;
+- [x] drain/resume admission state;
+- [x] CPU, memory, disk, uptime, region and agent health telemetry;
+- retrieve logs (post-0.9.3.4 operational enhancement);
+- execute approved general-purpose administrative commands (deferred: 0.9.3.4 exposes bounded region/node commands instead);
+- update/roll back node (deferred to deployment/update orchestration).
+
+### 8.3 Region management
+
+- [x] create region;
+- update region configuration;
+- enable/disable region;
+- [x] start/stop/restart NexVerse-managed region;
+- migrate region between nodes;
+- change region placement;
+- set region type;
+- view region metrics;
+- region health;
+- access lists;
+- ban lists;
+- environment;
+- parcel summary;
+- region console actions via controlled APIs.
+
+### 8.4 Interactive World Grid Planner
+
+Add an administrator-facing raster world map to the NexVerse World API web interface for region placement and capacity planning.
+
+Region-Control-Plane foundation implemented during the 0.9.3.2 World API line:
+
+- read-only bounded raster layout through `GET /api/v1/grid/layout`;
+- exact single-cell inspection through `GET /api/v1/grid/cells/{x}/{y}`;
+- preflight placement validation through `GET /api/v1/grid/validate-placement`;
+- 256m base-cell normalization with actual world-meter coordinates in responses;
+- multi-cell VarRegion footprints and partial-overlap detection;
+- existing GridService reservation flags and the historical low-Y Hypergrid link band represented as reserved cells;
+- a maximum 128x128-cell layout viewport to keep control-plane reads bounded;
+- `regions:read` authorization for all three read-only control-plane operations;
+- a first interactive read-only Grid Planner in the API Control Center with viewport navigation, status filtering, adjustable cell scale, cell hover/click inspection and live VarRegion placement preview.
+
+Managed region mutations are now connected during the 0.9.3.2 World API line:
+
+- `POST /api/v1/regions` queues validated region creation through `regions:manage`;
+- `PATCH /api/v1/regions/{regionId}/placement` queues validated placement changes through `regions:manage`;
+- `GET /api/v1/region-operations/{operationId}` exposes asynchronous operation state through `regions:read`;
+- Robust dispatches addressed NexBus commands only to online NodeAgents advertising managed-region capability;
+- managed-region execution is disabled by default and requires explicit `ManagedRegionCommands=true`;
+- created regions use dedicated NexVerse-managed INI files and a bounded managed UDP-port range;
+- region moves are restricted to NexVerse-managed files and are refused while root agents are present;
+- failed move recreation attempts roll back to the previous managed placement;
+- managed grid-registration collisions fail the operation without terminating the simulator process;
+- create/move requests support persistent `Idempotency-Key` protection and emit audit/NexBus lifecycle state;
+- `POST /api/v1/regions/{regionId}/lifecycle` queues managed `start`, `stop` and `restart` actions through `regions:manage`;
+- stop/restart are refused while root agents are present and only NexVerse-managed region files may be controlled;
+- stopped managed regions can be started again on an explicitly selected online NodeAgent, with lifecycle actions tracked through the same asynchronous operation registry.
+
+The API Control Center Grid Planner now exposes the managed create/move form, node discovery, Estate/Node input, Idempotency-Key support, live asynchronous operation-state feedback, global registered-region search/jump and dedicated start/stop/restart controls through `POST /api/v1/regions/{regionId}/lifecycle`. Region search responses include grid/world coordinates so VarRegion origins can be selected exactly. Estate IDs can now be populated from the least-privilege Estate read API; richer node filtering and Estate write/policy management remain subsequent work.
+
+The planner must provide:
+
+- a scrollable and zoomable grid based on the OpenSim 256m base region cell;
+- mouse hover over every raster cell showing exact grid coordinates;
+- display of both region-grid coordinates and absolute world-meter coordinates;
+- clear visual distinction between free, occupied, reserved and unavailable cells;
+- region name, UUID, simulator/node, size and status for occupied cells;
+- correct multi-cell occupancy for VarRegions larger than 256x256m;
+- detection of overlap before a new region is created;
+- click-to-select a free cell;
+- direct hand-off of the selected coordinates into the create-region form;
+- optional region-size selection with live preview of the footprint before creation;
+- search/jump to region name, UUID or coordinates;
+- pan/zoom controls and useful viewport bounds;
+- filtering by simulator node, estate, region state and region type;
+- refresh after region create, delete, move, start or stop operations.
+
+The raster must be driven by API data rather than by scraping rendered map tiles.
+
+Planned API contracts:
+
+- `GET /api/v1/grid/layout` — return region placements and occupancy for a bounded grid window;
+- `GET /api/v1/grid/cells/{x}/{y}` — inspect one grid cell and any occupying region;
+- `GET /api/v1/grid/validate-placement` — validate whether a proposed origin and region size are free;
+- `POST /api/v1/regions` — create a region using validated grid coordinates;
+- `PATCH /api/v1/regions/{regionId}/placement` — move a region after safety checks.
+
+The layout response should expose enough information for the UI to calculate occupancy without ambiguity:
+
+- origin grid X/Y;
+- origin world X/Y in meters;
+- region width/height in meters;
+- width/height in 256m cells;
+- occupied cell range;
+- region UUID/name;
+- simulator/node ID;
+- online/offline state;
+- estate ID where available.
+
+Placement validation must reject overlaps, including partial overlap with VarRegions.
+
+### 8.5 Estate management
+
+Foundation implemented during the 0.9.3.2 World API line:
+
+- `estates:read` is a dedicated least-privilege scope separate from `estates:manage`;
+- `GET /api/v1/estates` lists basic Estate metadata with optional name/ID and owner filtering plus bounded pagination;
+- `GET /api/v1/estates/{estateId}` reads one Estate;
+- responses intentionally expose only Estate ID, name, owner UUID, parent Estate ID and region count;
+- Estate manager/member/ban/group access collections are not exposed by this read foundation;
+- Robust reads through the authoritative OpenSim `IEstateDataService` / configured Estate datastore rather than a parallel NexVerse table;
+- the Grid Planner can load Estate names/IDs into the managed region-create form while retaining manual Estate-ID entry;
+- managed region creation validates Estate existence on Robust before dispatching a NexBus create command.
+
+Complete Estate API:
+
+- [x] estate create/update;
+- [x] estate delete (refused while regions remain assigned);
+- [x] owner;
+- [x] managers;
+- [x] allowed residents;
+- [x] banned residents;
+- [x] allowed groups;
+- [x] estate access;
+- [x] voice policy;
+- [x] scripts policy;
+- maturity;
+- terrain/environment defaults;
+- experience rules;
+- [x] region membership;
+- estate templates.
+
+Write/control status added during the 0.9.3.2 World API line:
+
+- `POST /api/v1/estates` creates Estates through the authoritative OpenSim Estate datastore and requires a local NexVerse owner;
+- `PATCH /api/v1/estates/{estateId}` updates name, owner, parent, manager/allow/ban/group lists and supported boolean Estate policies;
+- `GET /api/v1/estates/{estateId}/management` exposes sensitive administrative lists only with `estates:manage`;
+- contradictory access policy is rejected: owner/managers cannot be banned and the same resident cannot be both allowed and banned;
+- `PUT /api/v1/estates/{estateId}/regions/{regionId}` reassigns a registered region and records audit/NexBus events;
+- region reassignment explicitly reports that a running simulator region must be restarted to reload live Estate settings;
+- the API Control Center provides Estate load/create/update and Region→Estate assignment controls;
+- SQLite Estate region lookup was completed so management-region membership works consistently across supported database providers;
+- Estate delete is exposed with a fail-safe guard and is refused while regions remain assigned.
+
+---
+
+# Milestone 0.9.3.5
+
+Official product identity from this development line onward: **OpenGenesisLINK**. The runtime/release form is **OpenGenesisLINK v0.9.3.5 Dev** during development and **OpenGenesisLINK v0.9.3.5** for the stable release. NexVerse remains the grid/world deployment; compatibility-sensitive internal NexVerse identifiers are migrated separately rather than renamed blindly.
+
+> **Status:** active development milestone since 4 October 2026.
+
+## Continuous code quality and LSL compatibility
+
+Applies to every development block from 0.9.3.5 onward:
+
+- review touched subsystems for dead code, obsolete compatibility shims and duplicate implementations;
+- remove legacy code only when viewer, Hypergrid, script and migration compatibility are not required;
+- prefer one authoritative implementation over parallel NexVerse/OpenSim code paths;
+- keep CI regression guards for removed legacy components and newly consolidated paths;
+- continuously reduce warnings, stale configuration and unreachable code;
+- audit the original LSL API independently from NexVerse game/experience extensions;
+- inventory missing original LSL functions across ScriptEngine API/runtime and implement compatible behaviour with regression tests;
+- do not count game-specific functions as substitutes for missing original LSL functions.
+
+## 9. Inventory, OAR/IAR, Job Engine and NexBus
+
+### 9.0 LunaTexture — Texture Recovery & Diagnostics
+
+NexVerse-native resilience layer for Warp3D and asset diagnostics.
+
+Phase 1 implementation status:
+
+- [x] classify missing, empty, JPEG2000, PNG, JPEG, GIF/BMP, unknown and decoder-failed texture assets;
+- [x] validate texture payload signatures before/around JPEG2000 decoding;
+- [x] provide a controlled non-destructive raster decoder fallback for PNG/JPEG/GIF/BMP payloads stored as texture assets;
+- [x] deduplicate missing/decode warnings per texture UUID;
+- [x] provide explicit non-destructive render placeholder textures;
+- [x] expose bounded diagnostic snapshots through a simulator-side `ILunaTextureDiagnostics` contract;
+- [x] provide `nex texture inspect <uuid>` and bounded retry via `nex texture retry <uuid>`;
+- [x] persist diagnostic records beyond the region-module lifetime through a bounded per-region JSON store with atomic replacement;
+- diagnose Hypergrid/local asset-source failures separately;
+- suppress repeated warning storms while retaining inspectable diagnostics;
+- [x] expose bounded administrator inspection/retry controls;
+- [x] expose aggregated LunaTexture diagnostics through the World API via NodeAgent heartbeat projection into the Robust node registry;
+- never overwrite the authoritative original asset automatically during recovery.
+
+### 9.1 Complete Inventory API
+
+Support:
+
+- [x] browse inventory tree (read-only API foundation);
+- [x] create folder;
+- [x] rename folder;
+- [x] move folder;
+- [x] delete folder (safe move to Trash);
+- [x] restore from trash;
+- [x] empty trash;
+- create item — implemented as admin-only creation from an existing validated asset with explicit permission masks;
+- [x] rename item;
+- [x] move item;
+- [x] copy item;
+- [x] delete item (safe move to Trash);
+- [x] sort (name-ordered search result foundation);
+- search — implemented as bounded case-insensitive `q` search with `limit` across folder names and item names/descriptions;
+- [x] inspect permissions (item permission masks);
+- [x] update allowed metadata (name/description);
+- links — implemented for direct owned item/folder targets using native `AssetType.Link` / `AssetType.LinkFolder` semantics;
+- [x] Lost & Found;
+- [x] asset reference information (asset UUID/type; read-only foundation).
+
+### 9.2 OAR management
+
+API-driven region archives:
+
+- [x] export OAR orchestration foundation via authoritative `IRegionArchiverModule`;
+- [x] import OAR orchestration foundation with mandatory validation and optional dry-run;
+- [x] validate archive foundation (non-mutating control-file/TAR inspection + SHA-256);
+- [x] dry-run inspection foundation (entry/assets/objects/terrain/settings/parcels metadata);
+- [x] operation lifecycle foundation (`queued`, `running`, `completed`, `failed`) keyed by request ID;
+- [x] failure reporting foundation from archiver completion events and synchronous start failures;
+- [x] archive metadata foundation (size, SHA-256 and content counters);
+- [x] storage policy foundation (managed .oar path and maximum archive size);
+
+World API management surface:
+
+- [x] authenticated OAR export start endpoint;
+- [x] authenticated OAR import/dry-run start endpoint;
+- [x] asynchronous operation status endpoint;
+- [x] Robust-to-simulator routing through NexBus and the region NodeAgent;
+- [x] no duplicate archiver path in Robust; simulator uses `IOglOarOperations` -> authoritative `IRegionArchiverModule`.
+
+### 9.3 IAR management
+
+API-driven avatar inventory archives:
+
+- [x] IAR export operation foundation over authoritative `IInventoryArchiverModule`;
+- [x] IAR import operation foundation with read-only archive validation;
+- partial subtree export — implemented through the authoritative IAR `inventory_path` parameter;
+- [x] native conflict policy exposed as `merge=true/false` (no invented unsupported modes);
+- [x] progress;
+- failure reporting — implemented through terminal IAR operation/job state and error metadata;
+- encrypted backup option — implemented as validated authenticated `.oglbackup` AES-GCM storage outside World API passphrase payloads.
+
+### 9.4 NexVerse Job Engine
+
+Long-running operations become jobs rather than blocking HTTP calls.
+
+Examples:
+
+- [x] OAR import/export projected into the persistent Job Engine;
+- [x] IAR import/export projected into the persistent Job Engine;
+- [x] inventory repair;
+- [x] region migration;
+- [x] backup;
+- [x] restore;
+- [x] asset reindex;
+- [x] database maintenance.
+
+Job API should expose:
+
+- [x] queued;
+- [x] running;
+- [x] completed;
+- [x] failed;
+- [x] cancelled;
+- [x] progress;
+- [x] logs;
+- [x] result metadata.
+
+Foundation notes:
+
+- [x] persistent JSON-backed job registry with atomic replacement;
+- [x] strict lifecycle transitions and bounded per-job logs;
+- [x] interrupted running jobs fail explicitly after process restart rather than silently resuming;
+- [x] NexBus correlation bridge can project existing asynchronous operations into jobs;
+- [x] `/api/v1/jobs` list/detail API with compatibility reads from existing OAR/IAR operation URLs;
+- [x] removed duplicate Robust-side OAR/IAR in-memory operation registries; persistent Job Engine is authoritative;
+- [x] OAR/IAR publish phase-based progress into the Job Engine (`archiver_running` -> `completed`);
+- [x] archive worker cancellation contract refuses unsafe cancellation after the legacy archiver has started;
+- [x] native OGL worker contract/runner with cooperative CancellationToken support;
+- [x] native directory backup worker with staging, SHA-256 manifest, atomic activation and cleanup;
+- [x] native restore worker with full manifest verification, path-confinement, staging and non-destructive atomic activation;
+- [x] native asset reindex worker with SHA-256 blob verification and atomic OGL index activation;
+- [x] transactional cross-node region migration worker with shared-storage preflight, OAR hash verification and rollback;
+- [x] native database maintenance worker with provider-aware table discovery, bounded ANALYZE-only execution, dry-run and secret redaction;
+- [x] native inventory repair worker with dry-run default, bounded structural repair, root reattachment and no delete/direct-database path;
+- cancellation remains lifecycle-capable; active worker cancellation is exposed only where the underlying worker can stop safely.
+
+### 9.5 NexBus
+
+Create the internal event/message bus for:
+
+- simulator events;
+- object messages;
+- economy events;
+- identity events;
+- social events;
+- group events;
+- voice presence;
+- experiences;
+- monitoring.
+
+Implemented transport foundation:
+
+- local in-memory pub/sub remains the fallback;
+- distributed bus preserves event IDs/timestamps across processes;
+- relay-loop suppression uses bounded EventId deduplication;
+- HTTP peer fan-out is HMAC-SHA256 authenticated;
+- outbound delivery is queued so API publishers do not block on peer latency;
+- transport is configuration-driven and disabled by default;
+- simulator integration is provided by `NexVerse.RegionModules.dll` / `NexVerseNodeAgentModule`, including HMAC inbound/outbound transport, NodeAgent heartbeats and region lifecycle events.
+
+### 9.6 Cross-region object-to-object communication
+
+- [x] Existing `llRegionSayTo` keeps native local behavior and gains an optional NexBus fallback only for non-local UUID targets.
+- [x] Simulator NodeAgent validates the source scene/object/owner before publishing `object.message.requested`.
+- [x] Receiving nodes resolve the exact target object UUID and inject through the native `IWorldComm` listener path.
+- [x] Same-owner policy is the secure default; cross-owner routing requires explicit `AllowCrossOwnerObjectMessages=true`.
+- [x] Per-source outbound and inbound rate limits are configurable and bounded.
+- [x] Delayed events are rejected by maximum age in addition to NexBus EventId deduplication.
+- [x] Existing 1023-character and debug-channel restrictions remain enforced.
+- [x] Delivery receipts are projected as `object.message.received`.
+- [x] Feature is configuration-driven and disabled by default; it requires the authenticated NexBus transport and is not automatically extended to untrusted Hypergrid peers.
+
+---
+
+# Milestone 0.9.3.6
+
+## 10. NV$ Economy, Banking, Commerce and Land
+
+### 10.1 Double-entry ledger
+
+Build the economy around immutable double-entry accounting.
+
+- [x] Immutable account/posting/transaction domain model in `NexVerse.Core.Economy`.
+- [x] Internal currency contract uses code `NVD`, display symbol `NV$` and integer units.
+- [x] Every transaction requires at least two accounts and exactly balanced debit/credit totals.
+- [x] Posting amounts must be positive; duplicate posting IDs and conflicting transaction-ID reuse are rejected.
+- [x] Transaction retries with identical immutable content are idempotent and do not double-book.
+- [x] Account balances use an explicit normal side so wallet/liability and system accounts can be modeled correctly.
+- [x] Storage abstraction `INexLedgerStore` keeps the domain independent from MySQL/MariaDB/PostgreSQL/SQLite.
+- [x] Deterministic in-memory reference store and CI regression cover atomic failure behavior and balance invariants.
+- [x] Ledger account classes and journal payload sizes are explicitly bounded and validated before storage.
+- [x] Provider-neutral `NexLedgerSqlStore` persists accounts, immutable transactions and postings through ADO.NET with schema versioning and serializable append transactions.
+- [x] SQLite file-backed regression verifies schema migration, reopen persistence, balances, history, idempotency and rejected-booking atomicity.
+- [x] `NexLedgerSqlRuntime` resolves existing MySQL/MariaDB, PostgreSQL and SQLite storage-provider names to the shipped ADO.NET drivers via reflection.
+- [x] Dedicated `NexEconomyConnector` binds the ledger to Robust, inherits `[DatabaseService]` by default, supports an explicit `[NexEconomy]` override and remains disabled by default.
+- [x] Robust SQLite bootstrap smoke verifies real connector loading and schema-v2 creation before any payment/API route is enabled.
+- [x] Live MariaDB + PostgreSQL matrix regression covers schema migration, durable transactions, explicit rollback and uncommitted connection-loss rollback semantics through the shipped providers.
+- [x] Account lifecycle uses Active/Locked/Closed state with append-only state events; closed accounts are terminal and require zero balance.
+- [x] `NexEconomyService` is the production policy boundary for wallet transfers, overdraft prevention, administrative adjustments and deterministic append-only reversals.
+- [x] Production World API and central Viewer `IMoneyModule` adapter use `NexEconomyService`; the simulator has no SQL access and no public endpoint exposes arbitrary journal append.
+
+Account classes:
+
+- resident;
+- group;
+- business/merchant;
+- estate;
+- object/merchant endpoint;
+- system;
+- escrow.
+
+### 10.2 Virtual NexVerse bank accounts
+
+Provide fictional virtual account identifiers/IBAN-style numbers for NexVerse-only use.
+
+These identifiers must never be represented as real-world bank accounts.
+
+- [x] dedicated non-IBAN `NVBAN` scheme with an unmistakable `NVBAN-` prefix and restricted human-readable alphabet;
+- [x] deterministic collision-resistant identifier derivation bound to the immutable ledger account UUID;
+- [x] one-to-one persistent mapping introduced in ledger schema v3 and retained in current schema v4 for SQLite, MariaDB/MySQL and PostgreSQL;
+- [x] in-memory reference-store support and regression coverage for assignment, idempotency, reverse lookup and SQL persistence;
+- [x] policy-bound `NexEconomyService` access; API code never writes the mapping table directly;
+- [x] authenticated `GET /api/v1/economy/virtual-account` World API contract using `economy:read`;
+- [x] resident tokens may read only their own virtual account; service/admin reads follow the existing account-read authorization boundary;
+- [x] API response explicitly labels the identifier OpenGenesisLINK-only and not a real-world bank account or IBAN.
+
+### 10.3 Banking functions
+
+**Status: completed on the 0.9.3.6 development line.** Generic scheduled/recurring payments remain the explicitly deferred post-foundation item; recurring land rent has a persistent due-date model in 10.5.
+
+- [x] balances through the immutable ledger;
+- [x] bounded transaction history with account authorization;
+- [x] date-bounded statements with opening/closing balances;
+- [x] idempotent banking transfers by ledger UUID or OpenGenesisLINK `NVBAN`;
+- [x] persistent payment requests with pay/cancel/expiry state;
+- [x] refunds as append-only reversals;
+- [x] dedicated escrow accounts with controlled fund/release flows;
+- [x] per-transfer and daily outgoing limits;
+- [x] optional flat transfer fees routed to an explicit fee wallet;
+- [x] account locking from the 10.1 lifecycle remains enforced by every banking transfer;
+- [x] reconciliation recomputes account balance from immutable postings;
+- [x] World API banking mutations emit persistent audit events through the existing audit sink;
+- [x] generic recurring payments remain intentionally deferred as originally specified; the storage/service design does not fake a scheduler.
+
+### 10.4 Viewer economy compatibility
+
+Support Firestorm-visible flows including:
+
+ to the authoritative NV$ amount during login; startup refresh retries until the viewer circuit is active and confirms the balance once more after initialization;
 - [x] pay resident;
 - [x] pay object, resolving the local object owner while still raising `OnObjectPaid`;
 - [x] buy object with price/sale-type validation and compensating refund when object delivery fails;
