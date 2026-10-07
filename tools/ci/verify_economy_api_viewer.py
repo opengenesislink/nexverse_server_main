@@ -75,6 +75,13 @@ for marker in (
     "InitialBalanceConfirmDelayMilliseconds",
     "client.IsActive",
     "SendEconomyData(",
+    "public Type ReplaceableInterface =>",
+    "null;",
+    '"economymodule"',
+    '"EconomyModule"',
+    "StringComparison.OrdinalIgnoreCase",
+    "Als IMoneyModule fuer Region",
+    "MoneyBalanceReply mit",
 ):
     assert marker in viewer, f"missing Viewer economy adapter marker: {marker}"
 
@@ -126,3 +133,19 @@ assert "ConnectionString" not in viewer_config
 assert "CurrencyPurchasePortalUrl" in viewer_config
 
 print("NV$ World API and Viewer adapter contract: OK")
+
+# NexVerseMoneyModule must be loaded deterministically before the legacy
+# replaceable SampleMoneyModule. Otherwise both compete for IMoneyModule in
+# RegionModulesController's deferred dictionary and the viewer receives no
+# MoneyBalanceReply despite Initialise() succeeding.
+replaceable_block = viewer.split("public Type ReplaceableInterface =>", 1)[1].split(";", 1)[0]
+assert "null" in replaceable_block
+assert "typeof(IMoneyModule)" not in replaceable_block
+
+selection_pos = viewer.find('"economymodule"')
+enabled_pos = viewer.find('config?.Configs["NexEconomyViewer"]')
+assert selection_pos >= 0 and enabled_pos >= 0 and selection_pos < enabled_pos
+
+register_pos = viewer.find("scene.RegisterModuleInterface<IMoneyModule>")
+balance_hook_pos = viewer.find("client.OnMoneyBalanceRequest +=")
+assert register_pos >= 0 and balance_hook_pos >= 0
