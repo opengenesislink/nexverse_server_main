@@ -1169,6 +1169,16 @@ Support Firestorm-visible flows including:
 - [x] optional viewer CAPS: `NexSearch`, `NexPlaces`, `NexLandPortal`, `NexDestinationGuide`;
 - [x] standard Firestorm/SL-compatible search behavior remains untouched.
 
+### 12.5 0.9.3.8 release hardening — current focus
+
+No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented; the remaining work is runtime quality, compatibility and release validation.
+
+- [ ] complete a Firestorm runtime acceptance pass covering login, teleport, inventory, profiles, display names, friends, groups, IM, economy, land, map, search and uploads;
+- [ ] reduce simulator startup time: measure the boot phases, remove redundant/blocking world-map work, avoid repeated image-decode stalls such as `Decoded image with unhandled number of components: 0`, and defer non-essential map generation until the region is available where safe;
+- [ ] runtime-verify the Firestorm LSL Bridge bootstrap, initial NV$ status-bar balance, `nv give`/`nv balance` diagnostics with avatar notification, offline-IM mail relay and Hypergrid messaging/teleport paths;
+- [ ] perform a clean deployment-profile rebuild/restart smoke test and resolve blocking startup warnings/errors before release candidate;
+- [ ] cut and validate 0.9.3.8 RC/stable, update the roadmap release header and tag the release before starting milestone 0.9.3.9.
+
 ---
 
 # Milestone 0.9.3.9
