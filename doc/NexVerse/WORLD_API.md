@@ -582,7 +582,7 @@ The full key is returned exactly once. Its secret is persisted only as a PBKDF2-
 
 `data/nexverse-api-keys.json`
 
-Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts.
+Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts. The simulator's Experiences adapter may receive only the `experiences:script` machine scope for Experience script operations; `experiences:manage` and administrator permissions remain unavailable to machine API keys.
 
 API-key principals use subjects in the form `api-key:<key_id>`. Disabling a key takes effect immediately because validation is performed against the persistent key store on every request.
 
