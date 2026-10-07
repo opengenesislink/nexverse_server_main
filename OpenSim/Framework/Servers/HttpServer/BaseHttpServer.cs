@@ -1110,18 +1110,24 @@ namespace OpenSim.Framework.Servers.HttpServer
 
         private bool TryGetSimpleStreamHandler(string uripath, out ISimpleStreamHandler handler)
         {
+            // A fixed route always takes precedence over variable-path routes.
             if(m_simpleStreamHandlers.TryGetValue(uripath, out handler))
                 return true;
 
-            // look only for keyword before second slash ( /keyword/someparameter/... )
-            handler = null;
-            if(uripath.Length < 3)
-                return false;
-            int indx = uripath.IndexOf('/', 2);
-            if(indx < 0 || indx == uripath.Length - 1)
-                return false;
+            // Match the whole registered variable path, then progressively shorter
+            // segment-aligned prefixes. The longest prefix must win: /api/v1/experiences
+            // must not be intercepted by the fallback /api handler.
+            if(m_simpleStreamVarPath.TryGetValue(uripath, out handler))
+                return true;
 
-            return m_simpleStreamVarPath.TryGetValue(uripath[..indx], out handler);
+            for(int slash = uripath.LastIndexOf('/'); slash > 0; slash = uripath.LastIndexOf('/', slash - 1))
+            {
+                if(m_simpleStreamVarPath.TryGetValue(uripath[..slash], out handler))
+                    return true;
+            }
+
+            handler = null;
+            return false;
         }
 
         /// <summary>
