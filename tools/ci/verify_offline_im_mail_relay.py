@@ -38,6 +38,7 @@ for needle in (
     "IncomingInstantMessage(im)",
     "MessageFlags.Seen",
     "MaximumReplyCharacters",
+    "Ignored catch-all mail from non-NexVerse sender",
 ):
     assert needle in relay, f"Robust IM mail relay missing {needle}"
 
