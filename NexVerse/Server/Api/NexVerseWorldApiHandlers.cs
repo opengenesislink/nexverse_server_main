@@ -135,6 +135,9 @@ namespace NexVerse.Server.Api
                 ["/api/v1/capabilities"] = GetOperation("NexVerse-Funktions- und Kompatibilitätsstufen"),
                 ["/api/v1/openapi.json"] = GetOperation("OpenAPI-Dokument"),
                 ["/api/v1/docs"] = GetOperation("Selbst gehostete, durchsuchbare API-Dokumentation mit Live-Explorer"),
+                ["/api/v1/chatgpt-instructions.md"] = GetOperation("ChatGPT-Gesamtanweisung fuer NexVerse World API herunterladen"),
+                ["/api/v1/chatgpt-buergerportal.md"] = GetOperation("ChatGPT-Anweisung fuer das NexVerse Buergerportal herunterladen"),
+                ["/api/v1/chatgpt-admin.md"] = GetOperation("ChatGPT-Anweisung fuer den NexVerse Adminbereich herunterladen"),
                 ["/api/v1/auth/session"] = CredentialPostOperation(
                     "Native NexVerse-Einwohnersitzung erstellen"),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
