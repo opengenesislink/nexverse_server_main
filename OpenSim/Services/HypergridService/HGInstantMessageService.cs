@@ -159,7 +159,7 @@ namespace OpenSim.Services.HypergridService
             }
 
             if (!success && m_InGatekeeper) // we do this only in the Gatekeeper IM service
-                UndeliveredMessage(im);
+                success = UndeliveredMessage(im);
 
             return success;
         }
