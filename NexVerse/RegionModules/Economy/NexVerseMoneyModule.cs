@@ -82,8 +82,9 @@ namespace NexVerse.RegionModules.Economy
             IConfigSource config)
         {
             string selectedModule =
-                (config?.Configs["Startup"]?
-                    .GetString("economymodule", string.Empty) ??
+                (config?.Configs["Startup"]?.GetString(
+                    "economymodule",
+                    string.Empty) ??
                  string.Empty)
                     .Trim();
 
@@ -93,16 +94,18 @@ namespace NexVerse.RegionModules.Economy
                     config?.Configs["Economy"];
 
                 selectedModule =
-                    (economySelection?
-                        .GetString("economymodule", string.Empty) ??
+                    (economySelection?.GetString(
+                        "economymodule",
+                        string.Empty) ??
                      string.Empty)
                         .Trim();
 
                 if (string.IsNullOrWhiteSpace(selectedModule))
                 {
                     selectedModule =
-                        (economySelection?
-                            .GetString("EconomyModule", string.Empty) ??
+                        (economySelection?.GetString(
+                            "EconomyModule",
+                            string.Empty) ??
                          string.Empty)
                             .Trim();
                 }
