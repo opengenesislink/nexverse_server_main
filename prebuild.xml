@@ -189,8 +189,6 @@
 
       <ReferencePath>../../../bin/</ReferencePath>
       <Reference name="log4net"/>
-      <Reference name="MailKit"/>
-      <Reference name="MimeKit"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenSim.Framework"/>
@@ -1860,6 +1858,8 @@
       <Reference name="Mono.Addins"/>
       <Reference name="MySql.Data"/>
       <Reference name="log4net"/>
+      <Reference name="MailKit"/>
+      <Reference name="MimeKit"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
 
