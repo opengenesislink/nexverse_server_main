@@ -996,6 +996,7 @@ Support Firestorm-visible flows including:
 - [x] group accounting: local groups are provisioned as central NV$ group wallets on demand;
 - [x] transaction notifications through balance refreshes and explicit purchase/payment failure/success messages;
 - [x] simulator remains database-isolated; all money/commerce operations cross the authenticated World API.
+- [x] Robust console diagnostics provide `nv give` and `nv balance`; test credits use the audited double-entry administrative-adjustment path and notify the avatar when the IM service is available.
 
 ### 10.5 Land commerce
 
