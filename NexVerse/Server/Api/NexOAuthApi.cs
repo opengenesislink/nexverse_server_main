@@ -88,6 +88,11 @@ namespace NexVerse.Server.Api
                 {
                     NexScopes.OpenId,
                     NexScopes.Profile,
+                    NexScopes.ProfileRead,
+                    NexScopes.ProfileWrite,
+                    NexScopes.RelationshipsRead,
+                    NexScopes.RelationshipsWrite,
+                    NexScopes.SecurityManage,
                     NexScopes.OfflineAccess,
                     NexScopes.UsersRead,
                     NexScopes.UsersWrite,
@@ -103,6 +108,14 @@ namespace NexVerse.Server.Api
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
                     NexScopes.EconomyTransfer,
+                    NexScopes.GroupsRead,
+                    NexScopes.GroupsManage,
+                    NexScopes.ExperiencesRead,
+                    NexScopes.ExperiencesManage,
+                    NexScopes.ExperiencesScript,
+                    NexScopes.DiscoveryRead,
+                    NexScopes.DiscoverySubmit,
+                    NexScopes.DiscoveryManage,
                     NexScopes.AdminAll
                 }
             });
@@ -328,14 +341,12 @@ namespace NexVerse.Server.Api
                 m_Security.Record(user.PrincipalId, "login.mfa.success", true);
             }
 
-            List<string> residentScopes = new List<string>
-            {
-                NexScopes.UsersRead,
-                NexScopes.UsersWrite
-            };
-
-            if (user.UserLevel >= m_AdminMinimumLevel)
-                residentScopes.Add(NexScopes.AdminAll);
+            string[] residentScopes =
+                NexAuthorizationPolicy.GetEffectiveScopes(
+                    user.UserLevel,
+                    m_AdminMinimumLevel,
+                    user.Roles,
+                    user.ExplicitScopes);
 
             NexPrincipal principal = new NexPrincipal(
                 user.PrincipalId,

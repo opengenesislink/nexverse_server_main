@@ -147,8 +147,22 @@ namespace NexVerse.Server.Api
                     new List<string>(
                         nativeClaims.Scopes);
 
-                if (account.UserLevel <
-                    m_AdminMinimumLevel)
+                string[] currentRoles =
+                    NexAuthorizationPolicy.SplitStoredValues(
+                        account.NexVerseRoles);
+                string[] currentExplicitScopes =
+                    NexAuthorizationPolicy.SplitStoredValues(
+                        account.NexVerseScopes);
+                string[] currentEffectiveScopes =
+                    NexAuthorizationPolicy.GetEffectiveScopes(
+                        account.UserLevel,
+                        m_AdminMinimumLevel,
+                        currentRoles,
+                        currentExplicitScopes);
+
+                if (!currentEffectiveScopes.Contains(
+                        NexScopes.AdminAll,
+                        StringComparer.OrdinalIgnoreCase))
                 {
                     scopes.RemoveAll(x =>
                         string.Equals(
@@ -565,11 +579,69 @@ namespace NexVerse.Server.Api
                 return false;
 
             account.UserLevel = userLevel;
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
+
             bool stored = m_UserAccounts.StoreUserAccount(account);
             if (stored)
                 m_UserAccounts.InvalidateCache(id);
 
             return stored;
+        }
+
+        public NexUserRecord SetAuthorization(
+            string principalId,
+            IEnumerable<string> roles,
+            IEnumerable<string> scopes,
+            bool allowPrivilegedGrant,
+            out string error)
+        {
+            error = string.Empty;
+
+            if (!UUID.TryParse(principalId, out UUID id))
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            UserAccount account =
+                m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null)
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            if (!NexAuthorizationPolicy.TryNormalizeAssignment(
+                    roles,
+                    scopes,
+                    allowPrivilegedGrant,
+                    out string[] normalizedRoles,
+                    out string[] normalizedScopes,
+                    out error))
+            {
+                return null;
+            }
+
+            account.NexVerseRoles =
+                NexAuthorizationPolicy.JoinStoredValues(
+                    normalizedRoles);
+            account.NexVerseScopes =
+                NexAuthorizationPolicy.JoinStoredValues(
+                    normalizedScopes);
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+            {
+                error = "authorization_update_failed";
+                return null;
+            }
+
+            m_UserAccounts.InvalidateCache(id);
+            return Convert(account);
         }
 
         public bool SetPassword(string principalId, string password)
@@ -682,6 +754,10 @@ namespace NexVerse.Server.Api
                 account.NexVerseState,
                 account.NexVerseStateReason,
                 account.NexVerseStateChanged,
+                NexAuthorizationPolicy.SplitStoredValues(
+                    account.NexVerseRoles),
+                NexAuthorizationPolicy.SplitStoredValues(
+                    account.NexVerseScopes),
                 account.Created);
         }
     }
@@ -799,6 +875,12 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (string.Equals(path, "/api/v1/auth/authorization-model", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleAuthorizationModel(request, response);
+                return;
+            }
+
             if (string.Equals(path, "/api/v1/audit", StringComparison.OrdinalIgnoreCase))
             {
                 HandleAuditSearch(request, response, null);
@@ -900,6 +982,12 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
+                if (parts.Length == 2 && string.Equals(parts[1], "authorization", StringComparison.OrdinalIgnoreCase))
+                {
+                    HandleUserAuthorization(request, response, parts[0]);
+                    return;
+                }
+
                 if (parts.Length == 2 && string.Equals(parts[1], "password", StringComparison.OrdinalIgnoreCase))
                 {
                     HandleSetPassword(request, response, parts[0]);
@@ -908,6 +996,258 @@ namespace NexVerse.Server.Api
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown NexVerse API endpoint.");
+        }
+
+        private void HandleAuthorizationModel(
+            IOSHttpRequest request,
+            IOSHttpResponse response)
+        {
+            if (!RequireMethod(request, response, "GET"))
+                return;
+
+            if (!Authenticate(
+                    request,
+                    response,
+                    NexScopes.SecurityManage,
+                    out NexPrincipal _,
+                    out UserAccount _))
+                return;
+
+            WriteJson(response, new
+            {
+                roles = NexRoles.All.Select(role => new
+                {
+                    id = role,
+                    scopes = NexAuthorizationPolicy.GetRoleScopes(role)
+                }).ToArray(),
+                scopes = NexAuthorizationPolicy.AssignableScopes,
+                privileged = new
+                {
+                    roles = new[] { NexRoles.Administrator },
+                    scopes = new[]
+                    {
+                        NexScopes.AdminAll,
+                        NexScopes.SecurityManage
+                    },
+                    note = "administrator and privileged security grants require admin:*"
+                }
+            });
+        }
+
+        private void HandleUserAuthorization(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            string principalId)
+        {
+            if (!Authenticate(
+                    request,
+                    response,
+                    NexScopes.SecurityManage,
+                    out NexPrincipal principal,
+                    out UserAccount _))
+                return;
+
+            NexUserRecord existing =
+                m_Users.GetById(principalId);
+            if (existing == null)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.NotFound,
+                    "user_not_found",
+                    "User account was not found.");
+                return;
+            }
+
+            bool callerIsAdmin =
+                principal.HasScope(NexScopes.AdminAll);
+
+            bool targetIsAdmin =
+                existing.UserLevel >= m_AdminMinimumLevel ||
+                existing.Roles.Contains(
+                    NexRoles.Administrator,
+                    StringComparer.OrdinalIgnoreCase) ||
+                existing.ExplicitScopes.Contains(
+                    NexScopes.AdminAll,
+                    StringComparer.OrdinalIgnoreCase);
+
+            if (IsMethod(request, "GET"))
+            {
+                WriteJson(
+                    response,
+                    AuthorizationPayload(existing));
+                return;
+            }
+
+            if (!RequireMethod(request, response, "PATCH"))
+                return;
+
+            if (targetIsAdmin && !callerIsAdmin)
+            {
+                WriteError(
+                    response,
+                    HttpStatusCode.Forbidden,
+                    "admin_target_requires_admin",
+                    "Changing an administrator requires admin:*.");
+                return;
+            }
+
+            if (!TryReadJson(
+                    request,
+                    response,
+                    out JsonDocument document))
+                return;
+
+            using (document)
+            {
+                JsonElement root =
+                    document.RootElement;
+
+                string[] roles =
+                    existing.Roles.ToArray();
+                string[] scopes =
+                    existing.ExplicitScopes.ToArray();
+
+                if (root.TryGetProperty(
+                        "roles",
+                        out JsonElement rolesElement))
+                {
+                    if (!TryReadStringArray(
+                            rolesElement,
+                            out roles))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "invalid_roles",
+                            "roles must be an array of strings.");
+                        return;
+                    }
+                }
+
+                if (root.TryGetProperty(
+                        "scopes",
+                        out JsonElement scopesElement))
+                {
+                    if (!TryReadStringArray(
+                            scopesElement,
+                            out scopes))
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.BadRequest,
+                            "invalid_scopes",
+                            "scopes must be an array of strings.");
+                        return;
+                    }
+                }
+
+                if (!root.TryGetProperty("roles", out _) &&
+                    !root.TryGetProperty("scopes", out _))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.BadRequest,
+                        "no_changes",
+                        "roles and/or scopes are required.");
+                    return;
+                }
+
+                NexUserRecord updated =
+                    m_Users.SetAuthorization(
+                        principalId,
+                        roles,
+                        scopes,
+                        callerIsAdmin,
+                        out string error);
+
+                if (updated == null)
+                {
+                    HttpStatusCode status =
+                        error == "user_not_found"
+                            ? HttpStatusCode.NotFound
+                            : error.Contains(
+                                  "requires_admin",
+                                  StringComparison.Ordinal)
+                                ? HttpStatusCode.Forbidden
+                                : HttpStatusCode.BadRequest;
+
+                    WriteError(
+                        response,
+                        status,
+                        error,
+                        "The requested roles or scopes could not be assigned.");
+                    return;
+                }
+
+                m_OAuthStore?.RevokeSubjectRefreshTokens(
+                    principalId);
+
+                string correlationId =
+                    AddCorrelation(response);
+
+                m_Audit.Record(
+                    new NexAuditEvent(
+                        principal.Subject,
+                        "users.authorization.update",
+                        principalId,
+                        correlationId,
+                        new Dictionary<string, string>
+                        {
+                            ["roles"] =
+                                string.Join(" ", updated.Roles),
+                            ["scopes"] =
+                                string.Join(" ", updated.ExplicitScopes)
+                        }));
+
+                m_EventBus.Publish(
+                    new NexEvent(
+                        "user.authorization.changed",
+                        "nexverse.world-api",
+                        new Dictionary<string, string>
+                        {
+                            ["principal_id"] = principalId
+                        },
+                        correlationId));
+
+                WriteJson(response, new
+                {
+                    authorization =
+                        AuthorizationPayload(updated),
+                    reauthentication_required = true,
+                    correlation_id = correlationId
+                });
+            }
+        }
+
+        private static bool TryReadStringArray(
+            JsonElement element,
+            out string[] values)
+        {
+            values = Array.Empty<string>();
+
+            if (element.ValueKind != JsonValueKind.Array)
+                return false;
+
+            List<string> result =
+                new List<string>();
+
+            foreach (JsonElement item in
+                     element.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.String)
+                    return false;
+
+                string value =
+                    (item.GetString() ?? string.Empty)
+                        .Trim();
+
+                if (!string.IsNullOrWhiteSpace(value))
+                    result.Add(value);
+            }
+
+            values = result.ToArray();
+            return true;
         }
 
         private void HandleApiKeys(
@@ -1225,19 +1565,12 @@ namespace NexVerse.Server.Api
                     return;
                 }
 
-                List<string> scopes =
-                    new List<string>
-                    {
-                        NexScopes.UsersRead,
-                        NexScopes.UsersWrite
-                    };
-
-                if (user.UserLevel >=
-                    m_AdminMinimumLevel)
-                {
-                    scopes.Add(
-                        NexScopes.AdminAll);
-                }
+                string[] scopes =
+                    NexAuthorizationPolicy.GetEffectiveScopes(
+                        user.UserLevel,
+                        m_AdminMinimumLevel,
+                        user.Roles,
+                        user.ExplicitScopes);
 
                 if (m_Security != null && m_Security.IsTotpEnabled(user.PrincipalId))
                 {
@@ -2696,7 +3029,29 @@ namespace NexVerse.Server.Api
                 ["account_state"] = user.AccountState,
                 ["account_state_reason"] = user.AccountStateReason,
                 ["account_state_changed"] = user.AccountStateChanged,
+                ["roles"] = user.Roles,
+                ["explicit_scopes"] = user.ExplicitScopes,
                 ["created"] = user.Created
+            };
+        }
+
+        private object AuthorizationPayload(
+            NexUserRecord user)
+        {
+            return new
+            {
+                principal_id = user.PrincipalId,
+                roles = user.Roles,
+                explicit_scopes = user.ExplicitScopes,
+                effective_scopes =
+                    NexAuthorizationPolicy.GetEffectiveScopes(
+                        user.UserLevel,
+                        m_AdminMinimumLevel,
+                        user.Roles,
+                        user.ExplicitScopes),
+                legacy_user_level = user.UserLevel,
+                legacy_admin =
+                    user.UserLevel >= m_AdminMinimumLevel
             };
         }
 

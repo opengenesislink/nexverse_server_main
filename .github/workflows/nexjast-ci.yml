@@ -193,6 +193,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_native_auth_cutover.py
 
+      - name: Verify user role and scope authorization
+        shell: bash
+        run: python3 tools/ci/verify_user_authorization.py
+
       - name: Verify Region Control Plane mutations
         shell: bash
         run: python3 tools/ci/verify_region_mutations.py

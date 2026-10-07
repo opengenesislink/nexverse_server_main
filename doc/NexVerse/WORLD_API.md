@@ -155,7 +155,26 @@ Native token issuance is disabled by default and requires `EnableNativeTokens=tr
 
 A native token is bound to the account lifecycle security stamp. Lock, ban, deactivation, unlock, unban, reactivation, password change and explicit session revocation advance that stamp and invalidate older resident sessions.
 
-Administrators at or above `AdminMinimumUserLevel` receive the NexVerse `admin:*` scope. The default minimum is 200. Normal resident bootstrap sessions receive `users:read` and `users:write`.
+Administrators at or above `AdminMinimumUserLevel` continue to receive the NexVerse `admin:*` scope for backward compatibility. The default minimum is 200. In addition, local residents now have persistent NexVerse roles and explicit scopes stored with the user account. Native session and OAuth issuance calculate the effective scope set from the resident role(s), explicit scopes and the legacy UserLevel.
+
+Built-in roles are `resident`, `support`, `moderator`, `region_manager` and `administrator`. The `administrator` role grants `admin:*`. Privileged grants (`administrator`, `admin:*` and `security:manage`) may only be assigned by a principal that already has `admin:*`.
+
+Authorization administration uses:
+
+- `GET /api/v1/auth/authorization-model` — return the role/scope catalog;
+- `GET /api/v1/users/{principalId}/authorization` — inspect assigned and effective permissions;
+- `PATCH /api/v1/users/{principalId}/authorization` — replace assigned roles and/or explicit scopes.
+
+Example:
+
+```json
+{
+  "roles": ["region_manager"],
+  "scopes": ["economy:read"]
+}
+```
+
+A successful authorization change advances the account security stamp and revokes resident refresh tokens, so existing bearer sessions become stale and the user must sign in again. Normal resident bootstrap sessions still receive at least `users:read` and `users:write`.
 
 World API bearer authentication now accepts only native NexVerse access tokens. Restricted machine integrations use `X-NexVerse-Api-Key`; OAuth service clients use `client_credentials`.
 
@@ -202,6 +221,7 @@ Current user mutations emit audit and NexBus events:
 - account profile update: `users.update` / `user.updated`
 - password update: `users.password.update` / `user.password.changed`
 - UserLevel update: `users.level.update` / `user.level.changed`
+- role/scope update: `users.authorization.update` / `user.authorization.changed`
 - lifecycle transition: `users.state.update` / `user.state.changed`
 - soft deletion/deactivation: `users.deactivate` / `user.deactivated`
 

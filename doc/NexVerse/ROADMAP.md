@@ -1199,6 +1199,16 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [x] empfangende Nodes validieren Estate-ID und Estate-Owner/Manager-Berechtigung erneut und nutzen die bestehenden Nachrichten-Ratenlimits;
 - [x] CI prueft API, Runtime-Stub, Berechtigungspruefung, Cross-Node-Routing und Konfiguration.
 
+### 13.2 Benutzerrollen und World-API-Scopes
+
+- [x] persistente Einwohnerrollen und explizite Scopes in `UserAccounts` fuer MariaDB/MySQL, PostgreSQL und SQLite;
+- [x] Rollen `resident`, `support`, `moderator`, `region_manager` und `administrator`;
+- [x] effektive Token-Scopes aus Rolle, expliziten Scopes und kompatiblem Legacy-`UserLevel` berechnen;
+- [x] `security:manage` als delegierbare Berechtigungsverwaltung, waehrend `administrator`, `admin:*` und die Vergabe von `security:manage` selbst `admin:*` erfordern;
+- [x] `GET /api/v1/auth/authorization-model` sowie `GET/PATCH /api/v1/users/{principalId}/authorization`;
+- [x] Rollen-/Scope-Aenderungen invalidieren bestehende Bearer-/Refresh-Sitzungen ueber den Security-Stamp;
+- [x] OpenAPI-/World-API-Dokumentation und CI-Vertrag fuer die Rechteverwaltung.
+
 ## 13. NexVoice
 
 Build an independent WebRTC voice platform designed for NexVerse and optional external-grid use.
