@@ -1831,9 +1831,25 @@ namespace NexVerse.RegionModules.NodeAgent
                 return;
             }
 
+            NexEvent nexEvent;
             try
             {
-                NexEvent nexEvent = NexBusProtocol.Deserialize(payload);
+                nexEvent = NexBusProtocol.Deserialize(payload);
+            }
+            catch (Exception e)
+            {
+                m_Log.Warn(
+                    "[NEX-NODE]: Eingehendes NexBus-Ereignis konnte nicht dekodiert werden.",
+                    e);
+                WriteInbound(
+                    response,
+                    HttpStatusCode.BadRequest,
+                    new { error = "invalid_event" });
+                return;
+            }
+
+            try
+            {
                 bool accepted = m_Bus.Receive(nexEvent);
                 WriteInbound(
                     response,
@@ -1844,12 +1860,15 @@ namespace NexVerse.RegionModules.NodeAgent
                         event_id = nexEvent.EventId
                     });
             }
-            catch
+            catch (Exception e)
             {
+                m_Log.Error(
+                    $"[NEX-NODE]: NexBus-Ereignis {nexEvent.EventId} ({nexEvent.Name}) konnte nicht verarbeitet werden.",
+                    e);
                 WriteInbound(
                     response,
-                    HttpStatusCode.BadRequest,
-                    new { error = "invalid_event" });
+                    HttpStatusCode.InternalServerError,
+                    new { error = "event_processing_failed" });
             }
         }
 

@@ -132,11 +132,49 @@ namespace NexVerse.Server.Api
 
                     if (!response.IsSuccessStatusCode)
                     {
+                        string errorCode = "unknown";
+                        try
+                        {
+                            // Only inspect short, structured peer error responses.
+                            // Never log event payloads or signed authorization headers.
+                            long? bodyLength = response.Content?.Headers.ContentLength;
+                            if (bodyLength.HasValue &&
+                                bodyLength.Value > 0 &&
+                                bodyLength.Value <= 2048)
+                            {
+                                string body = response.Content.ReadAsStringAsync(
+                                    m_Cancellation.Token).GetAwaiter().GetResult();
+                                using JsonDocument document = JsonDocument.Parse(body);
+                                if (document.RootElement.TryGetProperty(
+                                        "error",
+                                        out JsonElement error) &&
+                                    error.ValueKind == JsonValueKind.String)
+                                {
+                                    string code = error.GetString();
+                                    if (!string.IsNullOrWhiteSpace(code) &&
+                                        code.Length <= 64 &&
+                                        System.Text.RegularExpressions.Regex.IsMatch(
+                                            code,
+                                            @"^[a-z0-9_]+$"))
+                                    {
+                                        errorCode = code;
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // An unreadable error response must not stop delivery
+                            // of subsequent events.
+                        }
+
                         m_Log.WarnFormat(
-                            "[NEXBUS]: Peer {0} rejected event {1} with HTTP {2}.",
+                            "[NEXBUS]: Peer {0} hat Ereignis {1} ({2}) mit HTTP {3} abgelehnt; Fehlercode: {4}.",
                             peer,
                             nexEvent.EventId,
-                            (int)response.StatusCode);
+                            nexEvent.Name,
+                            (int)response.StatusCode,
+                            errorCode);
                     }
                 }
                 catch (OperationCanceledException)
@@ -190,6 +228,7 @@ namespace NexVerse.Server.Api
 
     internal sealed class NexBusHttpEndpoint
     {
+        private static readonly ILog m_Log = LogManager.GetLogger(typeof(NexBusHttpEndpoint));
         private static readonly JsonSerializerOptions s_Json = new JsonSerializerOptions();
         private readonly DistributedNexEventBus m_Bus;
         private readonly string m_SharedKey;
@@ -231,9 +270,20 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            NexEvent nexEvent;
             try
             {
-                NexEvent nexEvent = NexBusProtocol.Deserialize(payload);
+                nexEvent = NexBusProtocol.Deserialize(payload);
+            }
+            catch (Exception e)
+            {
+                m_Log.Warn("[NEXBUS]: Eingehendes Ereignis konnte nicht dekodiert werden.", e);
+                Write(response, HttpStatusCode.BadRequest, new { error = "invalid_event" });
+                return;
+            }
+
+            try
+            {
                 bool accepted = m_Bus.Receive(nexEvent);
                 Write(response, HttpStatusCode.Accepted, new
                 {
@@ -241,9 +291,12 @@ namespace NexVerse.Server.Api
                     event_id = nexEvent.EventId
                 });
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Write(response, HttpStatusCode.BadRequest, new { error = "invalid_event" });
+                m_Log.Error(
+                    $"[NEXBUS]: Ereignis {nexEvent.EventId} ({nexEvent.Name}) konnte nicht verarbeitet werden.",
+                    e);
+                Write(response, HttpStatusCode.InternalServerError, new { error = "event_processing_failed" });
             }
         }
 
