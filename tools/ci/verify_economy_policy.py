@@ -43,6 +43,7 @@ for marker in (
 for marker in (
     "public sealed class NexEconomyService",
     "EnsureResidentAccount(",
+    "EnsureSystemAccount(",
     "AdministrativeAdjustment(",
     "Reverse(",
     "SetAccountStatus(",
