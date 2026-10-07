@@ -494,13 +494,18 @@
     LocalServiceModule = "OpenSim.Services.EstateService.dll:EstateDataService"
 
 [LibraryService]
-    LibraryName = "OpenSim Library"
+    LibraryName = "Bibiothek"
     DefaultLibrary = "./inventory/Libraries.xml"
 
 [LoginService]
     ; NexVerse resident-name compatibility:
     ; Jam, jam.resident and Jam Resident resolve to the same account.
     EnableNexVerseResidentNames = true
+    ; Firestorm does not auto-create a new LSL Bridge container on OpenSim.
+    ; Prepare the empty per-user container during login so Firestorm can finish
+    ; creation itself and keep the LSL script owned/created by the avatar.
+    EnableFirestormBridgeBootstrap = true
+    FirestormBridgeVersion = "2.29"
 
     ; for the server connector
     LocalServiceModule = "OpenSim.Services.LLLoginService.dll:LLLoginService"

@@ -261,6 +261,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_avatar_appearance_config.py
 
+      - name: Verify Firestorm bridge bootstrap compatibility
+        shell: bash
+        run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
+
       - name: Verify cross-region object messaging
         shell: bash
         run: python3 tools/ci/verify_object_messaging.py

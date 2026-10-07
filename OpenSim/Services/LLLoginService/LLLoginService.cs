@@ -94,6 +94,8 @@ namespace OpenSim.Services.LLLoginService
 
         protected bool m_allowDuplicatePresences = false;
         protected bool m_EnableNexVerseResidentNames = true;
+        protected bool m_EnableFirestormBridgeBootstrap = false;
+        protected string m_FirestormBridgeVersion = FirestormBridgeCompatibility.DefaultBridgeVersion;
         protected string m_messageKey;
         protected bool m_allowLoginFallbackToAnyRegion = true;  // if login requested region if not found and there are no Default or fallback regions,
                                                                 // try any online. This is legacy behaviour
@@ -127,6 +129,16 @@ namespace OpenSim.Services.LLLoginService
                 m_LoginServerConfig.GetBoolean(
                     "EnableNexVerseResidentNames",
                     true);
+            m_EnableFirestormBridgeBootstrap =
+                m_LoginServerConfig.GetBoolean(
+                    "EnableFirestormBridgeBootstrap",
+                    false);
+            m_FirestormBridgeVersion =
+                m_LoginServerConfig.GetString(
+                    "FirestormBridgeVersion",
+                    FirestormBridgeCompatibility.DefaultBridgeVersion).Trim();
+            if (string.IsNullOrWhiteSpace(m_FirestormBridgeVersion))
+                m_FirestormBridgeVersion = FirestormBridgeCompatibility.DefaultBridgeVersion;
             m_GatekeeperURL = Util.GetConfigVarFromSections<string>(config, "GatekeeperURI",
                 new string[] { "Startup", "Hypergrid", "LoginService" }, string.Empty);
             m_MapTileURL = m_LoginServerConfig.GetString("MapTileURL", string.Empty);
@@ -526,6 +538,16 @@ namespace OpenSim.Services.LLLoginService
                 // (If we're not using the Suitcase inventory service then this won't do anything.)
                 m_HGInventoryService?.GetRootFolder(account.PrincipalID);
 
+                // Firestorm deliberately does not create a new LSL bridge container on
+                // OpenSim grids.  OpenGenesisLINK provides the empty, attachable container
+                // in the expected inventory location so Firestorm can attach it and create
+                // its own per-user v2 bridge script.
+                if (m_EnableFirestormBridgeBootstrap &&
+                    FirestormBridgeCompatibility.IsFirestormViewer(clientVersion, channel))
+                {
+                    EnsureFirestormBridgeInventory(account.PrincipalID);
+                }
+
                 List<InventoryFolderBase> inventorySkel = m_InventoryService.GetInventorySkeleton(account.PrincipalID);
                 if (m_RequireInventory && inventorySkel is null || inventorySkel.Count == 0)
                 {
@@ -672,6 +694,143 @@ namespace OpenSim.Services.LLLoginService
                 m_PresenceService?.LogoutAgent(session);
                 return LLFailedLoginResponse.InternalError;
             }
+        }
+
+        private void EnsureFirestormBridgeInventory(UUID principalID)
+        {
+            if (m_InventoryService is null)
+                return;
+
+            try
+            {
+                InventoryFolderBase root = m_InventoryService.GetRootFolder(principalID);
+                if (root is null)
+                {
+                    m_log.WarnFormat(
+                        "[FIRESTORM BRIDGE]: Cannot bootstrap inventory for {0}: inventory root missing.",
+                        principalID);
+                    return;
+                }
+
+                InventoryFolderBase firestormFolder =
+                    GetOrCreateFirestormFolder(
+                        principalID,
+                        root,
+                        FirestormBridgeCompatibility.RootFolderName);
+
+                if (firestormFolder is null)
+                    return;
+
+                InventoryFolderBase bridgeFolder =
+                    GetOrCreateFirestormFolder(
+                        principalID,
+                        firestormFolder,
+                        FirestormBridgeCompatibility.BridgeFolderName);
+
+                if (bridgeFolder is null)
+                    return;
+
+                string bridgeName =
+                    FirestormBridgeCompatibility.GetBridgeItemName(
+                        m_FirestormBridgeVersion);
+
+                InventoryCollection bridgeContents =
+                    m_InventoryService.GetFolderContent(
+                        principalID,
+                        bridgeFolder.ID);
+
+                if (bridgeContents?.Items is not null &&
+                    bridgeContents.Items.Any(
+                        item =>
+                            item is not null &&
+                            item.Name == bridgeName &&
+                            item.AssetType == (int)AssetType.Object))
+                {
+                    return;
+                }
+
+                uint all = (uint)OpenSim.Framework.PermissionMask.All;
+                InventoryItemBase bridgeItem =
+                    new(UUID.Random(), principalID)
+                    {
+                        AssetID = FirestormBridgeCompatibility.BootstrapAssetId,
+                        Name = bridgeName,
+                        Description =
+                            "Firestorm LSL Bridge bootstrap container",
+                        CreatorId = principalID.ToString(),
+                        AssetType = (int)AssetType.Object,
+                        InvType = (int)InventoryType.Object,
+                        Folder = bridgeFolder.ID,
+                        BasePermissions = all,
+                        CurrentPermissions = all,
+                        NextPermissions = all,
+                        EveryOnePermissions = (uint)OpenSim.Framework.PermissionMask.None,
+                        GroupPermissions = (uint)OpenSim.Framework.PermissionMask.None,
+                        Flags = 0
+                    };
+
+                if (!m_InventoryService.AddItem(bridgeItem))
+                {
+                    m_log.WarnFormat(
+                        "[FIRESTORM BRIDGE]: Failed to add bootstrap inventory item for {0}.",
+                        principalID);
+                    return;
+                }
+
+                m_log.InfoFormat(
+                    "[FIRESTORM BRIDGE]: Prepared {0} for {1}.",
+                    bridgeName,
+                    principalID);
+            }
+            catch (Exception e)
+            {
+                // Bridge compatibility must never make the user's login fail.
+                m_log.WarnFormat(
+                    "[FIRESTORM BRIDGE]: Bootstrap failed for {0}: {1}",
+                    principalID,
+                    e);
+            }
+        }
+
+        private InventoryFolderBase GetOrCreateFirestormFolder(
+            UUID principalID,
+            InventoryFolderBase parent,
+            string name)
+        {
+            InventoryCollection contents =
+                m_InventoryService.GetFolderContent(
+                    principalID,
+                    parent.ID);
+
+            InventoryFolderBase existing =
+                contents?.Folders?.FirstOrDefault(
+                    folder =>
+                        folder is not null &&
+                        folder.Owner == principalID &&
+                        folder.Name == name);
+
+            if (existing is not null)
+                return existing;
+
+            InventoryFolderBase folder =
+                new(
+                    UUID.Random(),
+                    name,
+                    principalID,
+                    (short)FolderType.None,
+                    parent.ID,
+                    1);
+
+            if (!m_InventoryService.AddFolder(folder))
+            {
+                m_log.WarnFormat(
+                    "[FIRESTORM BRIDGE]: Failed to create inventory folder {0} for {1}.",
+                    name,
+                    principalID);
+                return null;
+            }
+
+            return folder;
         }
 
         private static readonly Regex URIRegex = new(@"^uri:(?<region>[^&]+)&(?<x>\d+[.]?\d*)&(?<y>\d+[.]?\d*)&(?<z>\d+[.]?\d*)$", RegexOptions.Compiled);

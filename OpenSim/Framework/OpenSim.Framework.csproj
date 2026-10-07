@@ -61,6 +61,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="FirestormBridgeCompatibility.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Reference Include="log4net" >
       <Name>log4net</Name>
       <HintPath>../../bin/log4net.dll</HintPath>
