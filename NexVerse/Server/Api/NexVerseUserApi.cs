@@ -147,8 +147,22 @@ namespace NexVerse.Server.Api
                     new List<string>(
                         nativeClaims.Scopes);
 
-                if (account.UserLevel <
-                    m_AdminMinimumLevel)
+                string[] currentRoles =
+                    NexAuthorizationPolicy.SplitStoredValues(
+                        account.NexVerseRoles);
+                string[] currentExplicitScopes =
+                    NexAuthorizationPolicy.SplitStoredValues(
+                        account.NexVerseScopes);
+                string[] currentEffectiveScopes =
+                    NexAuthorizationPolicy.GetEffectiveScopes(
+                        account.UserLevel,
+                        m_AdminMinimumLevel,
+                        currentRoles,
+                        currentExplicitScopes);
+
+                if (!currentEffectiveScopes.Contains(
+                        NexScopes.AdminAll,
+                        StringComparer.OrdinalIgnoreCase))
                 {
                     scopes.RemoveAll(x =>
                         string.Equals(
@@ -565,11 +579,69 @@ namespace NexVerse.Server.Api
                 return false;
 
             account.UserLevel = userLevel;
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
+
             bool stored = m_UserAccounts.StoreUserAccount(account);
             if (stored)
                 m_UserAccounts.InvalidateCache(id);
 
             return stored;
+        }
+
+        public NexUserRecord SetAuthorization(
+            string principalId,
+            IEnumerable<string> roles,
+            IEnumerable<string> scopes,
+            bool allowPrivilegedGrant,
+            out string error)
+        {
+            error = string.Empty;
+
+            if (!UUID.TryParse(principalId, out UUID id))
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            UserAccount account =
+                m_UserAccounts.GetUserAccount(UUID.Zero, id);
+            if (account == null)
+            {
+                error = "user_not_found";
+                return null;
+            }
+
+            if (!NexAuthorizationPolicy.TryNormalizeAssignment(
+                    roles,
+                    scopes,
+                    allowPrivilegedGrant,
+                    out string[] normalizedRoles,
+                    out string[] normalizedScopes,
+                    out error))
+            {
+                return null;
+            }
+
+            account.NexVerseRoles =
+                NexAuthorizationPolicy.JoinStoredValues(
+                    normalizedRoles);
+            account.NexVerseScopes =
+                NexAuthorizationPolicy.JoinStoredValues(
+                    normalizedScopes);
+            account.NexVerseStateChanged = Math.Max(
+                OpenSim.Framework.Util.UnixTimeSinceEpoch(),
+                account.NexVerseStateChanged + 1);
+
+            if (!m_UserAccounts.StoreUserAccount(account))
+            {
+                error = "authorization_update_failed";
+                return null;
+            }
+
+            m_UserAccounts.InvalidateCache(id);
+            return Convert(account);
         }
 
         public bool SetPassword(string principalId, string password)
@@ -682,6 +754,10 @@ namespace NexVerse.Server.Api
                 account.NexVerseState,
                 account.NexVerseStateReason,
                 account.NexVerseStateChanged,
+                NexAuthorizationPolicy.SplitStoredValues(
+                    account.NexVerseRoles),
+                NexAuthorizationPolicy.SplitStoredValues(
+                    account.NexVerseScopes),
                 account.Created);
         }
     }
