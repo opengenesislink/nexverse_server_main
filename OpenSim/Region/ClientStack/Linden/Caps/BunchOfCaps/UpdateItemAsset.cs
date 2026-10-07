@@ -34,7 +34,17 @@ namespace OpenSim.Region.ClientStack.Linden
 
         public void UpdateScriptItemAsset(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse, OSDMap map)
         {
-            UpdateInventoryItemAsset(httpRequest, httpResponse, map, (byte)AssetType.LSLText);
+            // UpdateScriptAgent updates a script item that still belongs to the
+            // agent inventory. Firestorm supplies task_id as the compile/bridge
+            // object context before it later moves the script into that object.
+            // Do not treat this task_id as proof that the item already exists in
+            // the task inventory.
+            UpdateInventoryItemAsset(
+                httpRequest,
+                httpResponse,
+                map,
+                (byte)AssetType.LSLText,
+                updateAgentInventoryItem: true);
         }
 
         public void UpdateSettingsItemAsset(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse, OSDMap map)
@@ -52,7 +62,12 @@ namespace OpenSim.Region.ClientStack.Linden
             UpdateInventoryItemAsset(httpRequest, httpResponse, map, (byte)AssetType.Gesture);
         }
 
-        private void UpdateInventoryItemAsset(IOSHttpRequest httpRequest, IOSHttpResponse httpResponse, OSDMap map, byte atype, bool taskSript = false)
+        private void UpdateInventoryItemAsset(
+            IOSHttpRequest httpRequest,
+            IOSHttpResponse httpResponse,
+            OSDMap map,
+            byte atype,
+            bool updateAgentInventoryItem = false)
         {
             m_log.Debug("[CAPS]: UpdateInventoryItemAsset Request in region: " + m_regionName + "\n");
 
@@ -109,7 +124,26 @@ namespace OpenSim.Region.ClientStack.Linden
             uploadResponse.uploader = uploaderURL;
             uploadResponse.state = "upload";
 
-            ItemUpdater uploader = new ItemUpdater(itemID, objectID, atype, uploaderPath, m_HostCapsObj.HttpListener, m_dumpAssetsToFile);
+            UUID callbackObjectID =
+                updateAgentInventoryItem
+                    ? UUID.Zero
+                    : objectID;
+
+            if (updateAgentInventoryItem && !objectID.IsZero())
+            {
+                m_log.DebugFormat(
+                    "[CAPS]: Agent-Inventar-Asset {0} wird im Objektkontext {1} aktualisiert.",
+                    itemID,
+                    objectID);
+            }
+
+            ItemUpdater uploader = new ItemUpdater(
+                itemID,
+                callbackObjectID,
+                atype,
+                uploaderPath,
+                m_HostCapsObj.HttpListener,
+                m_dumpAssetsToFile);
             uploader.m_remoteAdress = httpRequest.RemoteIPEndPoint.Address;
 
             uploader.OnUpLoad += ItemUpdated;
@@ -320,7 +354,7 @@ namespace OpenSim.Region.ClientStack.Linden
                 if (assetID.IsZero())
                 {
                     LLSDAssetUploadError uperror = new LLSDAssetUploadError();
-                    uperror.message = "Failed to update inventory item asset";
+                    uperror.message = "Inventar-Asset konnte nicht aktualisiert werden";
                     uperror.identifier = m_inventoryItemID;
                     res = LLSDHelpers.SerialiseLLSDReply(uperror);
                 }
