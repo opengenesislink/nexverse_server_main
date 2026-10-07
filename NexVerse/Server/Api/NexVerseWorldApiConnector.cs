@@ -29,6 +29,8 @@ namespace NexVerse.Server.Api
         private static readonly ILog m_Log = LogManager.GetLogger(typeof(NexVerseWorldApiConnector));
         private static readonly object s_TelemetrySync = new object();
         private static NexOtlpHttpExporter s_OtlpExporter;
+        private static readonly object s_OfflineImMailRelaySync = new object();
+        private static NexOfflineImMailRelay s_OfflineImMailRelay;
 
         public NexVerseWorldApiConnector(IConfigSource config, IHttpServer server, string configName)
             : base(config, server, configName)
@@ -209,6 +211,60 @@ namespace NexVerse.Server.Api
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", apiGate.Wrap(handlers.Version), "NexVerse World API Version"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", apiGate.Wrap(handlers.Capabilities), "NexVerse World API Capabilities"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/openapi.json", apiGate.Wrap(handlers.OpenApi), "NexVerse World API OpenAPI"));
+
+            IConfig offlineImMailRelayConfig = config.Configs["OfflineIMMailRelay"];
+            if (offlineImMailRelayConfig != null &&
+                offlineImMailRelayConfig.GetBoolean("Enabled", false))
+            {
+                lock (s_OfflineImMailRelaySync)
+                {
+                    if (s_OfflineImMailRelay == null)
+                    {
+                        try
+                        {
+                            IUserAccountService relayUserAccounts =
+                                LoadOptionalService<IUserAccountService>(
+                                    config,
+                                    "UserAccountService");
+                            IInstantMessage relayInstantMessages =
+                                LoadOptionalService<IInstantMessage>(
+                                    config,
+                                    "HGInstantMessageService");
+
+                            if (relayUserAccounts == null)
+                                throw new InvalidOperationException(
+                                    "Offline IM mail relay could not load UserAccountService.");
+
+                            if (relayInstantMessages == null)
+                                throw new InvalidOperationException(
+                                    "Offline IM mail relay could not load HGInstantMessageService.");
+
+                            s_OfflineImMailRelay =
+                                new NexOfflineImMailRelay(
+                                    offlineImMailRelayConfig,
+                                    relayUserAccounts,
+                                    relayInstantMessages);
+                            s_OfflineImMailRelay.Start();
+
+                            AppDomain.CurrentDomain.ProcessExit +=
+                                (_, __) =>
+                                {
+                                    lock (s_OfflineImMailRelaySync)
+                                    {
+                                        s_OfflineImMailRelay?.Dispose();
+                                        s_OfflineImMailRelay = null;
+                                    }
+                                };
+                        }
+                        catch (Exception e)
+                        {
+                            m_Log.ErrorFormat(
+                                "[NEX-IM-MAIL-RELAY]: Failed to start: {0}",
+                                e.Message);
+                        }
+                    }
+                }
+            }
 
             bool privilegedEndpoints = apiConfig.GetBoolean("EnablePrivilegedEndpoints", false);
             if (privilegedEndpoints)
