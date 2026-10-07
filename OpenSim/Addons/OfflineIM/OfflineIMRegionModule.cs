@@ -27,7 +27,12 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
+using System.Threading;
 using log4net;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 using Mono.Addins;
 using Nini.Config;
 using OpenMetaverse;
@@ -50,6 +55,25 @@ namespace OpenSim.OfflineIM
         IMessageTransferModule m_TransferModule = null;
         private bool m_ForwardOfflineGroupMessages = true;
 
+        private bool m_EmailEnabled;
+        private string m_EmailFromAddress = "no-reply@stadt-nexverse.de";
+        private string m_EmailFromName = "Stadt NexVerse";
+        private string m_EmailSubjectTemplate = "Offline-IM Nachricht von {SENDER}";
+        private string m_EmailSmtpHost = "127.0.0.1";
+        private int m_EmailSmtpPort = 25;
+        private bool m_EmailUseStartTls;
+        private bool m_EmailUseSslOnConnect;
+        private string m_EmailSmtpUsername = string.Empty;
+        private string m_EmailSmtpPassword = string.Empty;
+        private int m_EmailPerSenderPerHour = 30;
+        private int m_EmailPerRecipientPerHour = 60;
+        private int m_EmailGlobalPerHour = 500;
+
+        private readonly object m_EmailRateLock = new object();
+        private readonly Dictionary<UUID, Queue<double>> m_EmailSenderRate = new Dictionary<UUID, Queue<double>>();
+        private readonly Dictionary<UUID, Queue<double>> m_EmailRecipientRate = new Dictionary<UUID, Queue<double>>();
+        private readonly Queue<double> m_EmailGlobalRate = new Queue<double>();
+
         private IOfflineIMService m_OfflineIMService;
 
         public void Initialise(IConfigSource config)
@@ -69,7 +93,49 @@ namespace OpenSim.OfflineIM
                 m_OfflineIMService = new OfflineIMServiceRemoteConnector(config);
 
             m_ForwardOfflineGroupMessages = cnf.GetBoolean("ForwardOfflineGroupMessages", m_ForwardOfflineGroupMessages);
+
+            IConfig emailConfig = config.Configs["OfflineIMEmail"];
+            if (emailConfig is not null)
+            {
+                m_EmailEnabled = emailConfig.GetBoolean("Enabled", false);
+                m_EmailFromAddress = emailConfig.GetString("FromAddress", m_EmailFromAddress).Trim();
+                m_EmailFromName = emailConfig.GetString("FromName", m_EmailFromName).Trim();
+                m_EmailSubjectTemplate = emailConfig.GetString("SubjectTemplate", m_EmailSubjectTemplate);
+                m_EmailSmtpHost = emailConfig.GetString("SMTPHost", m_EmailSmtpHost).Trim();
+                m_EmailSmtpPort = emailConfig.GetInt("SMTPPort", m_EmailSmtpPort);
+                m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", false);
+                m_EmailUseSslOnConnect = emailConfig.GetBoolean("UseSslOnConnect", false);
+                m_EmailSmtpUsername = emailConfig.GetString("SMTPUsername", string.Empty).Trim();
+                m_EmailSmtpPassword = emailConfig.GetString("SMTPPassword", string.Empty);
+                m_EmailPerSenderPerHour = Math.Max(1, emailConfig.GetInt("PerSenderPerHour", m_EmailPerSenderPerHour));
+                m_EmailPerRecipientPerHour = Math.Max(1, emailConfig.GetInt("PerRecipientPerHour", m_EmailPerRecipientPerHour));
+                m_EmailGlobalPerHour = Math.Max(1, emailConfig.GetInt("GlobalPerHour", m_EmailGlobalPerHour));
+
+                if (m_EmailUseStartTls && m_EmailUseSslOnConnect)
+                {
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: UseStartTls and UseSslOnConnect cannot both be true. Offline IM email disabled.");
+                    m_EmailEnabled = false;
+                }
+
+                if (m_EmailEnabled &&
+                    (string.IsNullOrWhiteSpace(m_EmailSmtpHost) ||
+                     m_EmailSmtpPort < 1 ||
+                     m_EmailSmtpPort > 65535 ||
+                     !MailboxAddress.TryParse(m_EmailFromAddress, out _)))
+                {
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: Invalid SMTP host/port or FromAddress. Offline IM email disabled.");
+                    m_EmailEnabled = false;
+                }
+
+                if (m_EmailEnabled && !string.IsNullOrEmpty(m_EmailSmtpUsername) && string.IsNullOrEmpty(m_EmailSmtpPassword))
+                {
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: SMTPUsername is configured but SMTPPassword is empty. Delivery may fail.");
+                }
+            }
+
             m_log.DebugFormat("[OfflineIM.V2]: Offline messages enabled by {0}", Name);
+            if (m_EmailEnabled)
+                m_log.InfoFormat("[OfflineIM.V2.EMAIL]: Offline IM email notification enabled via {0}:{1} from {2}.", m_EmailSmtpHost, m_EmailSmtpPort, m_EmailFromAddress);
         }
 
         public void AddRegion(Scene scene)
@@ -78,7 +144,8 @@ namespace OpenSim.OfflineIM
                 return;
 
             scene.RegisterModuleInterface<IOfflineIMService>(this);
-            m_SceneList.Add(scene);
+            lock (m_SceneList)
+                m_SceneList.Add(scene);
             scene.EventManager.OnNewClient += OnNewClient;
         }
 
@@ -94,7 +161,8 @@ namespace OpenSim.OfflineIM
                 {
                     scene.EventManager.OnNewClient -= OnNewClient;
 
-                    m_SceneList.Clear();
+                    lock (m_SceneList)
+                m_SceneList.Clear();
 
                     m_log.Error("[OfflineIM.V2]: No message transfer module is enabled. Disabling offline messages");
                 }
@@ -107,7 +175,8 @@ namespace OpenSim.OfflineIM
             if (!m_Enabled)
                 return;
 
-            m_SceneList.Remove(scene);
+            lock (m_SceneList)
+                m_SceneList.Remove(scene);
             scene.EventManager.OnNewClient -= OnNewClient;
             m_TransferModule.OnUndeliveredMessage -= UndeliveredMessage;
 
@@ -133,7 +202,8 @@ namespace OpenSim.OfflineIM
 
         public void Close()
         {
-            m_SceneList.Clear();
+            lock (m_SceneList)
+                m_SceneList.Clear();
         }
 
         private Scene FindScene(UUID agentID)
@@ -216,6 +286,14 @@ namespace OpenSim.OfflineIM
             string reason = string.Empty;
             bool success = m_OfflineIMService.StoreMessage(im, out reason);
 
+            if (success &&
+                m_EmailEnabled &&
+                im.dialog == (byte)InstantMessageDialog.MessageFromAgent &&
+                !im.fromGroup)
+            {
+                QueueOfflineImEmail(im);
+            }
+
             if (im.dialog == (byte)InstantMessageDialog.MessageFromAgent)
             {
                 IClientAPI client = FindClient(new UUID(im.fromAgentID));
@@ -230,6 +308,204 @@ namespace OpenSim.OfflineIM
                         (success ? "Message saved." : "Message not saved: " + reason),
                         false, new Vector3()));
             }
+        }
+
+        private void QueueOfflineImEmail(GridInstantMessage im)
+        {
+            UUID senderID = new UUID(im.fromAgentID);
+            UUID recipientID = new UUID(im.toAgentID);
+
+            if (!ConsumeEmailRate(senderID, recipientID))
+            {
+                m_log.WarnFormat(
+                    "[OfflineIM.V2.EMAIL]: Rate limit suppressed offline IM email from {0} to {1}.",
+                    senderID,
+                    recipientID);
+                return;
+            }
+
+            GridInstantMessage snapshot = new GridInstantMessage(im, false);
+            ThreadPool.QueueUserWorkItem(_ => SendOfflineImEmail(snapshot));
+        }
+
+        private bool ConsumeEmailRate(UUID senderID, UUID recipientID)
+        {
+            double now = Util.GetTimeStamp();
+            double cutoff = now - 3600.0;
+
+            lock (m_EmailRateLock)
+            {
+                TrimRateQueue(m_EmailGlobalRate, cutoff);
+
+                if (!m_EmailSenderRate.TryGetValue(senderID, out Queue<double> senderQueue))
+                {
+                    senderQueue = new Queue<double>();
+                    m_EmailSenderRate[senderID] = senderQueue;
+                }
+
+                if (!m_EmailRecipientRate.TryGetValue(recipientID, out Queue<double> recipientQueue))
+                {
+                    recipientQueue = new Queue<double>();
+                    m_EmailRecipientRate[recipientID] = recipientQueue;
+                }
+
+                TrimRateQueue(senderQueue, cutoff);
+                TrimRateQueue(recipientQueue, cutoff);
+
+                if (m_EmailGlobalRate.Count >= m_EmailGlobalPerHour ||
+                    senderQueue.Count >= m_EmailPerSenderPerHour ||
+                    recipientQueue.Count >= m_EmailPerRecipientPerHour)
+                {
+                    return false;
+                }
+
+                m_EmailGlobalRate.Enqueue(now);
+                senderQueue.Enqueue(now);
+                recipientQueue.Enqueue(now);
+                return true;
+            }
+        }
+
+        private static void TrimRateQueue(Queue<double> queue, double cutoff)
+        {
+            while (queue.Count > 0 && queue.Peek() < cutoff)
+                queue.Dequeue();
+        }
+
+        private UserAccount FindLocalAccount(UUID principalID)
+        {
+            Scene[] scenes;
+            lock (m_SceneList)
+                scenes = m_SceneList.ToArray();
+
+            foreach (Scene scene in scenes)
+            {
+                try
+                {
+                    IUserAccountService accounts = scene?.UserAccountService;
+                    if (accounts is null)
+                        continue;
+
+                    UserAccount account = accounts.GetUserAccount(scene.RegionInfo.ScopeID, principalID)
+                                          ?? accounts.GetUserAccount(UUID.Zero, principalID);
+
+                    if (account is not null && account.LocalToGrid && account.PrincipalID == principalID)
+                        return account;
+                }
+                catch (Exception e)
+                {
+                    m_log.DebugFormat(
+                        "[OfflineIM.V2.EMAIL]: User account lookup failed for {0} on scene {1}: {2}",
+                        principalID,
+                        scene?.Name ?? "(unknown)",
+                        e.Message);
+                }
+            }
+
+            return null;
+        }
+
+        private void SendOfflineImEmail(GridInstantMessage im)
+        {
+            UUID recipientID = new UUID(im.toAgentID);
+            UserAccount recipient = FindLocalAccount(recipientID);
+
+            if (recipient is null || string.IsNullOrWhiteSpace(recipient.Email))
+                return;
+
+            if (!MailboxAddress.TryParse(recipient.Email.Trim(), out MailboxAddress recipientAddress))
+            {
+                m_log.WarnFormat(
+                    "[OfflineIM.V2.EMAIL]: Invalid email address for local account {0}; notification skipped.",
+                    recipientID);
+                return;
+            }
+
+            string senderName = SanitizeHeaderValue(im.fromAgentName);
+            if (string.IsNullOrWhiteSpace(senderName))
+                senderName = new UUID(im.fromAgentID).ToString();
+
+            string subject = SanitizeHeaderValue(
+                (m_EmailSubjectTemplate ?? "Offline-IM Nachricht von {SENDER}")
+                    .Replace("{SENDER}", senderName, StringComparison.Ordinal));
+
+            string body = BuildOfflineImEmailBody(recipient, senderName, im);
+
+            try
+            {
+                MimeMessage message = new MimeMessage();
+                message.From.Add(new MailboxAddress(m_EmailFromName, m_EmailFromAddress));
+                message.To.Add(new MailboxAddress(recipient.Name, recipientAddress.Address));
+                message.Subject = subject;
+                message.Body = new TextPart("plain")
+                {
+                    Text = body
+                };
+
+                using SmtpClient client = new SmtpClient();
+
+                SecureSocketOptions socketOptions =
+                    m_EmailUseSslOnConnect
+                        ? SecureSocketOptions.SslOnConnect
+                        : m_EmailUseStartTls
+                            ? SecureSocketOptions.StartTls
+                            : SecureSocketOptions.None;
+
+                client.Connect(m_EmailSmtpHost, m_EmailSmtpPort, socketOptions);
+
+                if (!string.IsNullOrWhiteSpace(m_EmailSmtpUsername))
+                    client.Authenticate(m_EmailSmtpUsername, m_EmailSmtpPassword ?? string.Empty);
+
+                client.Send(message);
+                client.Disconnect(true);
+
+                m_log.InfoFormat(
+                    "[OfflineIM.V2.EMAIL]: Sent offline IM email to local account {0} from {1}.",
+                    recipientID,
+                    senderName);
+            }
+            catch (Exception e)
+            {
+                m_log.WarnFormat(
+                    "[OfflineIM.V2.EMAIL]: SMTP delivery failed for local account {0}: {1}",
+                    recipientID,
+                    e.Message);
+            }
+        }
+
+        private static string BuildOfflineImEmailBody(UserAccount recipient, string senderName, GridInstantMessage im)
+        {
+            StringBuilder body = new StringBuilder();
+            body.AppendLine("Hallo " + (string.IsNullOrWhiteSpace(recipient.FirstName) ? "NexVerse Resident" : recipient.FirstName) + ",");
+            body.AppendLine();
+            body.AppendLine("du hast in NexVerse eine Nachricht erhalten, waehrend du offline warst.");
+            body.AppendLine();
+            body.AppendLine("Absender: " + senderName);
+
+            if (im.timestamp > 0)
+            {
+                DateTimeOffset sentAt = DateTimeOffset.FromUnixTimeSeconds(im.timestamp);
+                body.AppendLine("Zeit: " + sentAt.UtcDateTime.ToString("dd.MM.yyyy HH:mm:ss") + " UTC");
+            }
+
+            body.AppendLine();
+            body.AppendLine("Nachricht:");
+            body.AppendLine(im.message ?? string.Empty);
+            body.AppendLine();
+            body.AppendLine("Diese Nachricht wurde automatisch von Stadt NexVerse versendet.");
+            body.AppendLine("Bitte antworte nicht auf diese E-Mail.");
+
+            return body.ToString();
+        }
+
+        private static string SanitizeHeaderValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
+            return value.Replace("\r", " ", StringComparison.Ordinal)
+                        .Replace("\n", " ", StringComparison.Ordinal)
+                        .Trim();
         }
 
         #region IOfflineIM
