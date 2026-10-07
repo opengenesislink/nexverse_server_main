@@ -75,12 +75,19 @@ for marker in (
 ):
     assert marker in world_api, f"missing Node OpenAPI object messaging marker: {marker}"
 
-for path in ("bin/OpenSim.ini", "bin/OpenSim.ini.example", "bin/OpenSimDefaults.ini"):
+# The NexVerse deployment opts in to cross-owner and cross-region delivery.
+# The shipped OpenSimDefaults.ini must retain conservative defaults for other installations.
+for path, enabled in (
+    ("bin/OpenSim.ini", True),
+    ("bin/OpenSim.ini.example", True),
+    ("bin/OpenSimDefaults.ini", False),
+):
     config = Path(path).read_text(encoding="utf-8")
-    assert "CrossRegionObjectMessaging = false" in config
-    assert "AllowCrossOwnerObjectMessages = false" in config
-    assert "ObjectMessagesPerSecond = 20" in config
-    assert "ObjectMessageMaxAgeSeconds = 30" in config
+    state = "true" if enabled else "false"
+    assert f"CrossRegionObjectMessaging = {state}" in config, path
+    assert f"AllowCrossOwnerObjectMessages = {state}" in config, path
+    assert "ObjectMessagesPerSecond = 20" in config, path
+    assert "ObjectMessageMaxAgeSeconds = 30" in config, path
 
 assert "### 9.6 Cross-region object-to-object communication" in roadmap
 print("Cross-region object messaging contract: OK")
