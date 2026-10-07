@@ -2010,6 +2010,8 @@
       <Reference name="OpenSim.Services.MuteListService"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
+      <Reference name="MailKit"/>
+      <Reference name="MimeKit"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true">
