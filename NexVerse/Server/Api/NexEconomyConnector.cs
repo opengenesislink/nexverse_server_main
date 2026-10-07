@@ -151,10 +151,6 @@ namespace NexVerse.Server.Api
                         config,
                         "HGInstantMessageService");
 
-                Economy.EnsureSystemAccount(
-                    s_ConsoleGrantSystemAccountId,
-                    "NV$ Console Administration");
-
                 MainConsole.Instance.Commands.AddCommand(
                     "NexVerse",
                     true,
@@ -250,6 +246,13 @@ namespace NexVerse.Server.Api
                 Economy.EnsureResidentAccount(
                     residentId,
                     account.EffectiveDisplayName);
+
+                // Das administrative Gegenkonto wird erst bei der ersten
+                // tatsaechlichen Gutschrift angelegt. Damit bleibt ein frisch
+                // gestarteter Ledger bis zur ersten Geldbewegung leer.
+                Economy.EnsureSystemAccount(
+                    s_ConsoleGrantSystemAccountId,
+                    "NV$ Console Administration");
 
                 NexLedgerAppendResult result =
                     Economy.AdministrativeAdjustment(
