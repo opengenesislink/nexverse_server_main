@@ -58,6 +58,9 @@ namespace NexVerse.Server.Api
                 capabilities = m_PublicBaseUrl + "/api/v1/capabilities",
                 openapi = m_PublicBaseUrl + "/api/v1/openapi.json",
                 docs = m_PublicBaseUrl + "/api/v1/docs",
+                chatgpt_instructions = m_PublicBaseUrl + "/api/v1/chatgpt-instructions.md",
+                chatgpt_buergerportal = m_PublicBaseUrl + "/api/v1/chatgpt-buergerportal.md",
+                chatgpt_admin = m_PublicBaseUrl + "/api/v1/chatgpt-admin.md",
                 correlation_id = correlationId
             });
         }
