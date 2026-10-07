@@ -147,6 +147,8 @@ namespace NexVerse.Server.Api
                     ("get", "Eingeschränkte Maschinen-API-Schlüssel auflisten", "admin:*", "200"),
                     ("post", "Eingeschränkten Maschinen-API-Schlüssel mit Berechtigungsumfang erstellen", "admin:*", "201"),
                     ("patch", "Maschinen-API-Schlüssel aktivieren oder deaktivieren", "admin:*", "200")),
+                ["/api/v1/auth/authorization-model"] = AuthenticatedOperations(
+                    ("get", "Verfügbare Einwohnerrollen, Einzel-Scopes und privilegierte Zuweisungen lesen", "security:manage", "200")),
                 ["/oauth/authorize"] = AuthenticatedOperations(
                     ("get", "OAuth-2.0-Autorisierungsendpunkt für Authorization Code + PKCE", null, "302")),
                 ["/oauth/token"] = AuthenticatedOperations(
@@ -390,6 +392,9 @@ namespace NexVerse.Server.Api
                     ("patch", "Benutzerkonto sperren, bannen, deaktivieren oder reaktivieren", "admin:*", "200")),
                 ["/api/v1/users/{principalId}/level"] = AuthenticatedOperations(
                     ("patch", "UserLevel ändern", "admin:*", "200")),
+                ["/api/v1/users/{principalId}/authorization"] = AuthenticatedOperations(
+                    ("get", "Rollen, explizite Scopes und effektive Rechte eines Einwohners lesen", "security:manage", "200"),
+                    ("patch", "Rollen und explizite Scopes eines Einwohners ändern", "security:manage", "200")),
                 ["/api/v1/users/{principalId}/password"] = AuthenticatedOperations(
                     ("post", "Benutzerpasswort setzen oder zurücksetzen", "self or admin:*", "200"))
             };
