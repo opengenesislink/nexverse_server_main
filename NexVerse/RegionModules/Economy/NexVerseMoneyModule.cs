@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using log4net;
 using Mono.Addins;
 using Nini.Config;
@@ -698,6 +699,24 @@ namespace NexVerse.RegionModules.Economy
                 SendMoneyBalance;
             client.OnObjectBuy +=
                 ObjectBuy;
+
+            // Firestorm initializes the status-bar balance with "?? <currency>".
+            // Push one authoritative balance shortly after the client arrives so
+            // a startup MoneyBalanceRequest cannot be lost during module/client setup.
+            ThreadPool.QueueUserWorkItem(
+                _ =>
+                {
+                    Thread.Sleep(250);
+
+                    if (client.IsActive)
+                    {
+                        SendMoneyBalance(
+                            client,
+                            client.AgentId,
+                            client.SessionId,
+                            UUID.Random());
+                    }
+                });
         }
 
 
