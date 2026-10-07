@@ -98,6 +98,47 @@ internal static class Program
                 rejectedAdmin,
                 "API key store accepted admin:* scope");
 
+            NexApiKeyRegistration experienceRegistration =
+                reloaded.Create(
+                    "Simulator Experiences adapter",
+                    new[] { NexScopes.ExperiencesScript });
+
+            Require(
+                reloaded.TryValidate(
+                    experienceRegistration.ApiKey,
+                    out NexApiKeyRecord experienceKey) &&
+                experienceKey.Scopes.Length == 1 &&
+                string.Equals(
+                    experienceKey.Scopes[0],
+                    NexScopes.ExperiencesScript,
+                    StringComparison.OrdinalIgnoreCase),
+                "Experiences script machine key could not be issued or validated");
+
+            PersistentNexApiKeyStore experiencesReloaded =
+                new PersistentNexApiKeyStore(path);
+
+            Require(
+                experiencesReloaded.TryValidate(
+                    experienceRegistration.ApiKey,
+                    out _),
+                "Experiences script machine key did not survive a restart");
+
+            bool rejectedExperienceManagement = false;
+            try
+            {
+                experiencesReloaded.Create(
+                    "unsafe Experiences management",
+                    new[] { NexScopes.ExperiencesManage });
+            }
+            catch (ArgumentException)
+            {
+                rejectedExperienceManagement = true;
+            }
+
+            Require(
+                rejectedExperienceManagement,
+                "Machine API keys must not receive experiences:manage");
+
             Console.WriteLine(
                 "NexVerse scoped API key regression: OK");
             return 0;
