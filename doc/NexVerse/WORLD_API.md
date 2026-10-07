@@ -609,6 +609,20 @@ The page loads the live `/api/v1/openapi.json` document from the same running Ro
 
 The explorer has no CDN or third-party JavaScript dependency. Credentials entered into the page are not persisted by the page. The docs response uses `Cache-Control: no-store`, a restrictive same-origin Content Security Policy and `Referrer-Policy: no-referrer`.
 
+### ChatGPT / API-agent instruction downloads
+
+The same control center now exposes a dedicated **ChatGPT / Portale** view. It separates resident self-service from administrative work and links the visible portal categories back to the live OpenAPI audience metadata.
+
+Download routes:
+
+- `GET /api/v1/chatgpt-instructions.md` — complete instruction covering citizen portal, admin area and service integrations;
+- `GET /api/v1/chatgpt-buergerportal.md` — resident self-service instruction with an explicit no-admin-escalation boundary;
+- `GET /api/v1/chatgpt-admin.md` — administrative instruction with explicit authorization and mutation safeguards.
+
+The generated Markdown embeds the runtime World API base URL rather than assuming a development hostname. It tells ChatGPT/API agents to load `/api/v1/openapi.json` first and classify operations from `x-nexverse-audience`, `x-nexverse-scope`, `x-nexverse-ai-instruction` and `x-nexverse-security-constraints`.
+
+The endpoint explorer includes audience filters for **Einwohner**, **Administration** and **Dienst**. The ChatGPT page links directly into those filtered views. Citizen-capable functional scopes such as inventory, economy, groups, experiences and discovery submission are marked as citizen/admin/service in OpenAPI; explicit `admin:*` operations remain admin-only and service/admin-only contracts stay excluded from the citizen view.
+
 
 ## Version history and endpoint automation metadata
 

@@ -85,10 +85,11 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.label2{display:block;color:var(--muted);margin:8px 0 5px}pre{white-space:pre-wrap;word-break:break-word;background:#06101a;border:1px solid var(--line);padding:12px;border-radius:8px;max-height:350px;overflow:auto}
 .action{background:#15324a;color:var(--text);border:1px solid #315a78;border-radius:8px;padding:8px 12px}.action:hover{border-color:var(--accent)}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.hidden{display:none}.status-good{color:var(--good)}.status-bad{color:var(--danger)}
 .empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:9px;text-align:center}
+.portalgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.portalcard{border:1px solid var(--line);background:#0b1621;border-radius:11px;padding:18px}.portalcard h3{margin:0 0 7px;font-size:17px}.portalcard p{margin:0 0 12px;color:var(--muted)}.portalactions{display:flex;gap:8px;flex-wrap:wrap}.actionlink{display:inline-block;text-decoration:none;flex:0 0 auto}.portalmeta{margin-top:12px;color:var(--muted);font-size:12px}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.datatable{width:100%;border-collapse:collapse;min-width:720px}.datatable th,.datatable td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.datatable th{font-size:12px;color:var(--muted);background:#0a1520}.datatable tr:last-child td{border-bottom:0}.datatable td:first-child{font-weight:600}.authnote{margin-top:10px;color:var(--muted);font-size:12px}
 .planner-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.planner-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.planner-actions .action{flex:0 0 auto}.gridlegend{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.legenditem{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}.legendswatch{width:13px;height:13px;border-radius:3px;border:1px solid var(--line)}.gridboardwrap{overflow:auto;max-height:680px;border:1px solid var(--line);border-radius:10px;background:#06101a;padding:12px}.gridboard{--cell:30px;display:grid;gap:2px;width:max-content;min-width:100%}.gridcell{width:var(--cell);height:var(--cell);min-width:var(--cell);padding:0;border:1px solid #22384b;border-radius:3px;background:#0c1a26;color:transparent;position:relative}.gridcell:hover{outline:2px solid var(--accent);z-index:2}.gridcell.free{background:#123326}.gridcell.occupied{background:#1d4c6a}.gridcell.reserved{background:#5a461c}.gridcell.conflict{background:#6a2323}.gridcell.selected{outline:2px solid #fff;z-index:3}.gridcell.preview-ok{box-shadow:inset 0 0 0 2px var(--good)}.gridcell.preview-bad{box-shadow:inset 0 0 0 2px var(--danger)}.gridcell.dimmed{opacity:.22}.gridcell[data-region-name]:after{content:'';position:absolute;inset:35%;border-radius:50%;background:rgba(255,255,255,.72)}.gridinfo{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gridinfo pre{margin:0;min-height:150px}.gridcoord{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.planner-note{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0a1520;color:var(--muted);font-size:12px}.noderow{cursor:pointer}.noderow:hover{background:var(--panel2)}.node-state-online{color:var(--good)}.node-state-stale{color:var(--warn)}.node-state-offline{color:var(--danger)}
 @media(max-width:1100px){.cards,.roadmap-summary{grid-template-columns:repeat(2,1fr)}.changegrid{grid-template-columns:1fr}.explorer{grid-template-columns:1fr}.endpointlist{max-height:420px;overflow:auto}.planner-controls{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version,.gridinfo{grid-template-columns:1fr}.planner-controls{grid-template-columns:1fr 1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
+@media(max-width:760px){.portalgrid{grid-template-columns:1fr}.shell{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.navmeta{display:none}.navbtn{display:inline-block;width:auto}.brand{padding-bottom:12px}main{padding:22px 14px}.hero{display:block}.hero .pill{margin-top:14px}.cards,.roadmap-summary{grid-template-columns:1fr}.grid2,.version,.gridinfo{grid-template-columns:1fr}.planner-controls{grid-template-columns:1fr 1fr}.milestonehead{display:block}.milestonehead .status{margin-top:8px}}
 </style>
 </head>
 <body>
@@ -102,6 +103,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="navbtn" data-page="changes">Was ist neu?</button>
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
+<button class="navbtn" data-page="chatgpt">ChatGPT / Portale</button>
 <button class="navbtn" data-page="explorer">API-Endpunkte</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
 </nav>
@@ -127,6 +129,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="filter" data-goto="changes">Alle Neuerungen</button>
 <button class="filter" data-goto="versions">Versionshistorie</button>
 <button class="filter" data-goto="roadmap">Entwicklungsplan / Projektstatus</button>
+<button class="filter" data-goto="chatgpt">ChatGPT / Portale</button>
 <button class="filter" data-goto="explorer">Endpunktübersicht</button>
 </div>
 </div>
@@ -356,10 +359,69 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="roadmap-list" id="roadmapList"></div>
 </section>
 
+<section class="page" id="page-chatgpt">
+<div class="hero">
+<div><div class="eyebrow">KI-Integration</div><h1>ChatGPT-Anweisungen &amp; Portaltrennung</h1><p>Downloadbare Arbeitsanweisungen fuer ChatGPT und API-Agenten. Die Trennung zwischen Buergerportal, Adminbereich und technischen Diensten folgt den Zielgruppen- und Scope-Metadaten des laufenden OpenAPI-Vertrags.</p></div>
+<div class="pill"><span class="dot good"></span><span>OpenAPI-gebunden</span></div>
+</div>
+
+<div class="section">
+<h2>Gesamtanweisung</h2>
+<p class="sectionlead">Enthaelt gemeinsame Sicherheitsregeln, API-Basis, Authentifizierung, Fehlerbehandlung sowie getrennte Kapitel fuer Buergerportal, Adminbereich und Service-Integrationen.</p>
+<div class="portalactions">
+<a class="action actionlink" href="/api/v1/chatgpt-instructions.md" download>Gesamtanweisung als MD</a>
+<a class="action actionlink" href="/api/v1/openapi.json" target="_blank" rel="noreferrer">OpenAPI JSON oeffnen</a>
+<button class="action" data-goto="explorer">API-Explorer oeffnen</button>
+</div>
+<div class="portalmeta">Technische Quelle der Wahrheit bleibt immer der aktuelle OpenAPI-3.1-Vertrag des laufenden Servers.</div>
+</div>
+
+<div class="portalgrid">
+<div class="portalcard">
+<div class="eyebrow">Einwohner</div>
+<h3>Buergerportal</h3>
+<p>Self-Service fuer das eigene Konto und explizit autorisierte Einwohnerfunktionen. Keine stillschweigende Rechteausweitung auf fremde Konten oder Adminfunktionen.</p>
+<div class="portalactions">
+<a class="action actionlink" href="/api/v1/chatgpt-buergerportal.md" download>Buergerportal-MD</a>
+<button class="action" data-audience-target="citizen">Einwohner-Endpunkte</button>
+</div>
+<div class="portalmeta"><span id="citizenEndpointCount">–</span> Operationen sind aktuell fuer die Zielgruppe Einwohner markiert.</div>
+</div>
+
+<div class="portalcard">
+<div class="eyebrow">Administration</div>
+<h3>Adminbereich</h3>
+<p>Konten, Grid, Regionen, Simulatoren, Estates, Security, Audit und administrative Economy-/Discovery-Funktionen. Nur mit ausdruecklich autorisiertem Admin-Principal.</p>
+<div class="portalactions">
+<a class="action actionlink" href="/api/v1/chatgpt-admin.md" download>Adminbereich-MD</a>
+<button class="action" data-audience-target="admin">Admin-Endpunkte</button>
+</div>
+<div class="portalmeta"><span id="adminEndpointCount">–</span> Operationen sind aktuell fuer die Zielgruppe Administration markiert.</div>
+</div>
+</div>
+
+<div class="section">
+<h2>Automatische Zuordnung</h2>
+<p class="sectionlead">ChatGPT soll nicht anhand des URL-Namens raten. Jede Operation wird anhand der im OpenAPI-Dokument veroeffentlichten Metadaten eingeordnet.</p>
+<div class="changegrid">
+<div class="change"><h3>x-nexverse-audience</h3><p>Ordnet eine Operation Einwohner, Administration und/oder Dienst zu.</p></div>
+<div class="change"><h3>x-nexverse-scope</h3><p>Definiert den benoetigten Berechtigungsumfang.</p></div>
+<div class="change"><h3>x-nexverse-ai-instruction</h3><p>Enthaelt die operation-spezifische Anweisung fuer ChatGPT/API-Agenten.</p></div>
+<div class="change"><h3>x-nexverse-security-constraints</h3><p>Definiert Sicherheits-, Secret-, Audit- und Autorisierungsvorgaben.</p></div>
+</div>
+</div>
+</section>
+
 <section class="page" id="page-explorer">
 <div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den aktuellen Vertrag, prüfe Berechtigungsumfänge und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
 <div class="explorer">
 <div class="endpointlist section">
+<div class="filters" id="endpointAudienceFilters">
+<button class="filter active" data-endpoint-audience="all">Alle</button>
+<button class="filter" data-endpoint-audience="citizen">Einwohner</button>
+<button class="filter" data-endpoint-audience="admin">Administration</button>
+<button class="filter" data-endpoint-audience="service">Dienst</button>
+</div>
 <input class="search" id="search" placeholder="Endpunkt, Methode, Berechtigung suchen…">
 <div id="endpoints"></div>
 </div>
@@ -399,7 +461,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 
 <script>
 'use strict';
-let spec=null,entries=[],selected=null,changes=[],gridLayout=null,gridSelected=null,gridValidation=null,gridSearchResults=[];
+let spec=null,entries=[],selected=null,changes=[],gridLayout=null,gridSelected=null,gridValidation=null,gridSearchResults=[],endpointAudience='all';
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
@@ -419,6 +481,19 @@ function showPage(name){
 }
 document.querySelectorAll('.navbtn').forEach(x=>x.addEventListener('click',()=>showPage(x.dataset.page)));
 document.querySelectorAll('[data-goto]').forEach(x=>x.addEventListener('click',()=>showPage(x.dataset.goto)));
+
+function setEndpointAudience(audience){
+  endpointAudience=audience||'all';
+  document.querySelectorAll('[data-endpoint-audience]').forEach(x=>x.classList.toggle('active',x.dataset.endpointAudience===endpointAudience));
+  renderEndpointList();
+}
+function openAudienceEndpoints(audience){
+  $('search').value='';
+  setEndpointAudience(audience);
+  showPage('explorer');
+}
+document.querySelectorAll('[data-endpoint-audience]').forEach(x=>x.addEventListener('click',()=>setEndpointAudience(x.dataset.endpointAudience)));
+document.querySelectorAll('[data-audience-target]').forEach(x=>x.addEventListener('click',()=>openAudienceEndpoints(x.dataset.audienceTarget)));
 
 function resolveSchema(schema){
   if(!schema)return null;
@@ -471,7 +546,9 @@ function renderEndpointList(){
   const host=$('endpoints');host.replaceChildren();
   for(const entry of entries){
     const scope=entry.op['x-nexverse-scope']||'';
-    const hay=[entry.method,entry.path,entry.op.summary||'',scope].join(' ').toLowerCase();
+    const audiences=entry.op['x-nexverse-audience']||[];
+    const hay=[entry.method,entry.path,entry.op.summary||'',scope,...audiences].join(' ').toLowerCase();
+    if(endpointAudience!=='all'&&!audiences.includes(endpointAudience))continue;
     if(q&&!hay.includes(q))continue;
     const div=document.createElement('div');div.className='endpoint'+(selected===entry?' active':'');
     const top=document.createElement('div');
@@ -1184,6 +1261,8 @@ async function init(){
     spec=results[0];const health=results[1],version=results[2];
     changes=spec['x_nexverse_changelog']||[];
     buildEntries();
+    $('citizenEndpointCount').textContent=entries.filter(x=>(x.op['x-nexverse-audience']||[]).includes('citizen')).length;
+    $('adminEndpointCount').textContent=entries.filter(x=>(x.op['x-nexverse-audience']||[]).includes('admin')).length;
     $('healthText').textContent=health.status==='ok'?'API online':'API Status: '+(health.status||'unbekannt');$('healthDot').className='dot '+(health.status==='ok'?'good':'bad');
     $('serverVersion').textContent=version.server_version||'–';$('milestone').textContent='Meilenstein '+(version.milestone||'–')+(version.milestone_title?' · '+version.milestone_title:'');$('apiVersion').textContent=version.api_version||spec.info?.version||'–';
     $('endpointCount').textContent=Object.keys(spec.paths||{}).length;$('operationCount').textContent=entries.length+' Operationen';
