@@ -19,6 +19,7 @@ using NexVerse.Core.Messaging;
 using NexVerse.RegionModules.Archives;
 using Nini.Config;
 using OpenMetaverse;
+using OpenSim.Framework;
 using OpenSim.Framework.Servers;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Region.Framework.Interfaces;
