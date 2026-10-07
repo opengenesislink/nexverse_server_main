@@ -162,7 +162,7 @@ namespace OpenSim.OfflineIM
                     scene.EventManager.OnNewClient -= OnNewClient;
 
                     lock (m_SceneList)
-                m_SceneList.Clear();
+                        m_SceneList.Clear();
 
                     m_log.Error("[OfflineIM.V2]: No message transfer module is enabled. Disabling offline messages");
                 }
@@ -206,9 +206,15 @@ namespace OpenSim.OfflineIM
                 m_SceneList.Clear();
         }
 
+        private Scene[] SnapshotScenes()
+        {
+            lock (m_SceneList)
+                return m_SceneList.ToArray();
+        }
+
         private Scene FindScene(UUID agentID)
         {
-            foreach (Scene s in m_SceneList)
+            foreach (Scene s in SnapshotScenes())
             {
                 ScenePresence presence = s.GetScenePresence(agentID);
                 if (presence != null && !presence.IsChildAgent)
@@ -219,7 +225,7 @@ namespace OpenSim.OfflineIM
 
         private IClientAPI FindClient(UUID agentID)
         {
-            foreach (Scene s in m_SceneList)
+            foreach (Scene s in SnapshotScenes())
             {
                 ScenePresence presence = s.GetScenePresence(agentID);
                 if (presence != null && !presence.IsChildAgent)
@@ -374,11 +380,7 @@ namespace OpenSim.OfflineIM
 
         private UserAccount FindLocalAccount(UUID principalID)
         {
-            Scene[] scenes;
-            lock (m_SceneList)
-                scenes = m_SceneList.ToArray();
-
-            foreach (Scene scene in scenes)
+            foreach (Scene scene in SnapshotScenes())
             {
                 try
                 {
