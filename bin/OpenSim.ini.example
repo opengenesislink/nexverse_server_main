@@ -1326,6 +1326,22 @@
   ;; web sites by other users on their profiles
   ; AllowUserProfileWebURLs = true
 
+[Appearance]
+    ; OpenGenesisLINK avatar appearance optimization.
+    ; Persist and reuse baked avatar textures so returning avatars can resolve
+    ; from cloud state faster after login, teleport and region crossings.
+    PersistBakedTextures = true
+    ReuseTextures = true
+
+    ; Keep a short debounce for viewer appearance transactions while reducing
+    ; the visible delay before the completed appearance is distributed.
+    DelayBeforeAppearanceSend = 1
+    DelayBeforeAppearanceSave = 3
+
+    ; Do not generate periodic appearance traffic unless a concrete viewer
+    ; compatibility problem requires it.
+    ResendAppearanceUpdates = false
+
 [XBakes]
   ;# {URL} {} {Set URL for Baked texture service} {}
   ;; Sets the URL for the baked texture ROBUST service.
