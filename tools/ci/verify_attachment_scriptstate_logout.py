@@ -9,6 +9,14 @@ inventory = Path(
     "OpenSim/Region/Framework/Scenes/SceneObjectPartInventory.cs"
 ).read_text(encoding="utf-8")
 
+serializer = Path(
+    "OpenSim/Region/Framework/Scenes/Serialization/SceneObjectSerializer.cs"
+).read_text(encoding="utf-8")
+
+attachments = Path(
+    "OpenSim/Region/CoreModules/Avatar/Attachments/AttachmentsModule.cs"
+).read_text(encoding="utf-8")
+
 for marker in (
     "SceneObjectPart part = parts[i];",
     "IEntityInventory inventory = part?.Inventory;",
@@ -36,4 +44,26 @@ for marker in (
         "missing disposed inventory/script-state guard: " + marker
     )
 
-print("Attachment logout script-state safety contract: OK")
+for marker in (
+    "sop.ParentGroup?.Scene",
+    "SceneObjectPartInventory inventory =",
+    "(inventory?.Serial ?? 0).ToString()",
+    "inventory?.Items",
+    "if (tinv == null || tinv.Count == 0)",
+    "scene != null",
+    "if (item == null)",
+):
+    assert marker in serializer, (
+        "missing detached attachment serializer guard: " + marker
+    )
+
+for marker in (
+    "SceneObjectPart root = grp?.RootPart;",
+    "if (root == null || root.Inventory == null)",
+    "Attachment asset update skipped because the root part or its inventory was already disposed.",
+):
+    assert marker in attachments, (
+        "missing attachment asset-save guard: " + marker
+    )
+
+print("Attachment logout script-state and serializer safety contract: OK")
