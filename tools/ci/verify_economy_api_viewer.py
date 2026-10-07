@@ -77,8 +77,8 @@ for marker in (
     "SendEconomyData(",
     "public Type ReplaceableInterface =>",
     "null;",
-    'GetString("economymodule", string.Empty)',
-    'GetString("EconomyModule", string.Empty)',
+    '"economymodule"',
+    '"EconomyModule"',
     "StringComparison.OrdinalIgnoreCase",
     "Als IMoneyModule fuer Region",
     "MoneyBalanceReply mit",
@@ -142,7 +142,7 @@ replaceable_block = viewer.split("public Type ReplaceableInterface =>", 1)[1].sp
 assert "null" in replaceable_block
 assert "typeof(IMoneyModule)" not in replaceable_block
 
-selection_pos = viewer.find('GetString("economymodule", string.Empty)')
+selection_pos = viewer.find('"economymodule"')
 enabled_pos = viewer.find('config?.Configs["NexEconomyViewer"]')
 assert selection_pos >= 0 and enabled_pos >= 0 and selection_pos < enabled_pos
 
