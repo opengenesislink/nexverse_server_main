@@ -302,7 +302,14 @@ namespace NexVerse.Server.Api
 
             if (string.IsNullOrWhiteSpace(query))
             {
-                regions = m_Grid.GetDefaultRegions(UUID.Zero);
+                // The administrative region browser must show the live grid,
+                // not only regions flagged as login DefaultRegion.
+                regions =
+                    m_Grid.GetOnlineRegions(
+                        UUID.Zero,
+                        0,
+                        0,
+                        safeLimit);
             }
             else if (UUID.TryParse(query.Trim(), out UUID regionId))
             {
