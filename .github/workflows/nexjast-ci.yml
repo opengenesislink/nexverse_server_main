@@ -416,7 +416,7 @@ jobs:
             exit 1
           fi
 
-          grep -F '[NEX-ECONOMY]: NV$ ledger runtime enabled with provider sqlite' ../nexverse-economy-smoke.log
+          grep -F '[NEX-ECONOMY]: NV$-Ledger aktiv mit Provider sqlite' ../nexverse-economy-smoke.log
 
       - name: Runtime regression local secret env loading
         shell: bash

@@ -84,6 +84,54 @@ namespace NexVerse.Core.Economy
             return existing;
         }
 
+        public NexLedgerAccount EnsureSystemAccount(
+            Guid accountId,
+            string displayName)
+        {
+            if (accountId == Guid.Empty)
+                throw new ArgumentException("System account ID is required.", nameof(accountId));
+
+            NexLedgerAccount existing =
+                m_Ledger.GetAccount(accountId);
+
+            if (existing != null)
+            {
+                if (existing.AccountClass != NexLedgerAccountClass.System ||
+                    existing.NormalSide != NexLedgerSide.Debit ||
+                    !string.Equals(
+                        existing.CurrencyCode,
+                        NexLedgerCurrency.Code,
+                        StringComparison.Ordinal))
+                {
+                    throw new NexLedgerConflictException(
+                        "System UUID is already used by an incompatible ledger account.");
+                }
+
+                return existing;
+            }
+
+            NexLedgerAccount created =
+                new NexLedgerAccount(
+                    accountId,
+                    NexLedgerAccountClass.System,
+                    NexLedgerSide.Debit,
+                    "system:" + accountId.ToString("D"),
+                    string.IsNullOrWhiteSpace(displayName)
+                        ? "NV$ System"
+                        : displayName);
+
+            if (m_Ledger.TryCreateAccount(created))
+                return created;
+
+            existing =
+                m_Ledger.GetAccount(accountId);
+
+            if (existing == null)
+                throw new NexLedgerConflictException("System ledger account could not be created.");
+
+            return existing;
+        }
+
         public NexVirtualBankAccount EnsureVirtualBankAccount(Guid accountId)
         {
             NexLedgerAccount account =
