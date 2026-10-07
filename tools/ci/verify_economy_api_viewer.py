@@ -68,7 +68,10 @@ for marker in (
     '"Idempotency-Key"',
     "SendMoneyBalance(",
     "ThreadPool.QueueUserWorkItem(",
-    "Thread.Sleep(250)",
+    "QueueInitialBalanceRefresh",
+    "InitialBalanceMaxAttempts",
+    "InitialBalanceRetryDelayMilliseconds",
+    "InitialBalanceConfirmDelayMilliseconds",
     "client.IsActive",
     "SendEconomyData(",
 ):
@@ -109,7 +112,7 @@ assert "[NexEconomyViewer]" in opensim
 viewer_config = opensim.split("[NexEconomyViewer]", 1)[1].split("\n[", 1)[0]
 assert "Enabled = true" in viewer_config
 assert 'ApiKey = "${Environment|NEXVERSE_ECONOMY_API_KEY}"' in viewer_config
-assert 'WorldApiBaseUrl = "${Const|BaseURL}:${Const|PublicPort}"' in viewer_config
+assert 'WorldApiBaseUrl = "https://world.stadt-nexverse.de"' in viewer_config
 assert "ConnectionString" not in viewer_config
 assert "CurrencyPurchasePortalUrl" in viewer_config
 
