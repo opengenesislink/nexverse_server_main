@@ -53,3 +53,13 @@ ALTER TABLE `UserAccounts` ADD `DisplayName` varchar(64) NOT NULL DEFAULT '';
 ALTER TABLE `UserAccounts` ADD `DisplayNameChanged` integer NOT NULL DEFAULT 0;
 
 COMMIT;
+
+
+:VERSION 6        # NexVerse roles and scopes -------------------------
+
+BEGIN;
+
+ALTER TABLE `UserAccounts` ADD `NexVerseRoles` text NOT NULL DEFAULT 'resident';
+ALTER TABLE `UserAccounts` ADD `NexVerseScopes` text NOT NULL DEFAULT '';
+
+COMMIT;
