@@ -166,11 +166,11 @@ namespace OpenSim.Services.FSAssetService
                 m_FallbackService = LoadPlugin<IAssetService>(str, args);
                 if (m_FallbackService != null)
                 {
-                    m_log.Info("[FSASSETS]: Fallback service loaded");
+                    m_log.Info("[FSASSETS]: Fallback-Dienst wurde geladen");
                 }
                 else
                 {
-                    m_log.Error("[FSASSETS]: Failed to load fallback service");
+                    m_log.Error("[FSASSETS]: Fallback-Dienst konnte nicht geladen werden");
                 }
             }
 
@@ -184,7 +184,7 @@ namespace OpenSim.Services.FSAssetService
             m_FSBase = assetConfig.GetString("BaseDirectory", String.Empty);
             if (m_FSBase.Length == 0)
             {
-                m_log.ErrorFormat("[FSASSETS]: BaseDirectory not specified");
+                m_log.ErrorFormat("[FSASSETS]: BaseDirectory ist nicht angegeben");
                 throw new Exception("Configuration error");
             }
 
@@ -200,7 +200,7 @@ namespace OpenSim.Services.FSAssetService
                 {
                     m_AssetLoader = LoadPlugin<IAssetLoader>(loader);
                     string loaderArgs = assetConfig.GetString("AssetLoaderArgs", string.Empty);
-                    m_log.InfoFormat("[FSASSETS]: Loading default asset set from {0}", loaderArgs);
+                    m_log.InfoFormat("[FSASSETS]: Standard-Asset-Satz wird aus {0} geladen", loaderArgs);
                     m_AssetLoader.ForEachDefaultXmlAsset(loaderArgs,
                             delegate(AssetBase a)
                             {
@@ -221,7 +221,7 @@ namespace OpenSim.Services.FSAssetService
                 }
             }
 
-            m_log.Info("[FSASSETS]: FS asset service enabled");
+            m_log.Info("[FSASSETS]: FS-Asset-Dienst ist aktiviert");
         }
 
         private void Stats()
@@ -237,7 +237,7 @@ namespace OpenSim.Services.FSAssetService
                         double avg = (double)m_readTicks / (double)m_readCount;
 //                        if (avg > 10000)
 //                            Environment.Exit(0);
-                        m_log.InfoFormat("[FSASSETS]: Read stats: {0} files, {1} ticks, avg {2:F2}, missing {3}, FS {4}", m_readCount, m_readTicks, (double)m_readTicks / (double)m_readCount, m_missingAssets, m_missingAssetsFS);
+                        m_log.InfoFormat("[FSASSETS]: Lesestatistik: {0} Dateien, {1} Ticks, Durchschnitt {2:F2}, fehlend {3}, FS {4}", m_readCount, m_readTicks, (double)m_readTicks / (double)m_readCount, m_missingAssets, m_missingAssetsFS);
                     }
                     m_readCount = 0;
                     m_readTicks = 0;
@@ -249,7 +249,7 @@ namespace OpenSim.Services.FSAssetService
 
         private void Writer()
         {
-            m_log.InfoFormat("[FSASSETS]: Writer started with spooldir {0} and basedir {1}", m_SpoolDirectory, m_FSBase);
+            m_log.InfoFormat("[FSASSETS]: Schreibdienst gestartet mit Spool-Verzeichnis {0} und Basisverzeichnis {1}", m_SpoolDirectory, m_FSBase);
 
             while (true)
             {
@@ -322,7 +322,7 @@ namespace OpenSim.Services.FSAssetService
                                 }
                             }
                             // Could not resolve, skipping
-                            m_log.ErrorFormat("[FSASSETS]: Could not resolve path creation error for {0}", diskFile);
+                            m_log.ErrorFormat("[FSASSETS]: Fehler beim Erstellen des Pfads für {0} konnte nicht aufgelöst werden", diskFile);
                             break;
                         }
 
@@ -353,7 +353,7 @@ namespace OpenSim.Services.FSAssetService
                     int totalTicks = System.Environment.TickCount - tickCount;
                     if (totalTicks > 0) // Wrap?
                     {
-                        m_log.InfoFormat("[FSASSETS]: Write cycle complete, {0} files, {1} ticks, avg {2:F2}", files.Length, totalTicks, (double)totalTicks / (double)files.Length);
+                        m_log.InfoFormat("[FSASSETS]: Schreibzyklus abgeschlossen: {0} Dateien, {1} Ticks, Durchschnitt {2:F2}", files.Length, totalTicks, (double)totalTicks / (double)files.Length);
                     }
                 }
 
@@ -457,7 +457,7 @@ namespace OpenSim.Services.FSAssetService
                         asset.Metadata.ContentType =
                                 SLUtil.SLAssetTypeToContentType((int)asset.Type);
                         sha = GetSHA256Hash(asset.Data);
-                        m_log.InfoFormat("[FSASSETS]: Added asset {0} from fallback to local store", id);
+                        m_log.InfoFormat("[FSASSETS]: Asset {0} wurde aus dem Fallback in den lokalen Speicher übernommen", id);
                         Store(asset);
                     }
                 }
@@ -484,7 +484,7 @@ namespace OpenSim.Services.FSAssetService
                             asset.Metadata.ContentType =
                                     SLUtil.SLAssetTypeToContentType((int)asset.Type);
                             sha = GetSHA256Hash(asset.Data);
-                            m_log.InfoFormat("[FSASSETS]: Added asset {0} from fallback to local store", id);
+                            m_log.InfoFormat("[FSASSETS]: Asset {0} wurde aus dem Fallback in den lokalen Speicher übernommen", id);
                             Store(asset);
                         }
                     }
@@ -636,7 +636,7 @@ namespace OpenSim.Services.FSAssetService
             {
                 string assetName = asset.Name.Substring(0, AssetBase.MAX_ASSET_NAME);
                 m_log.WarnFormat(
-                    "[FSASSETS]: Name '{0}' for asset {1} truncated from {2} to {3} characters on add",
+                    "[FSASSETS]: Name '{0}' für Asset {1} wurde beim Hinzufügen von {2} auf {3} Zeichen gekürzt",
                     asset.Name, asset.ID, asset.Name.Length, assetName.Length);
                 asset.Name = assetName;
             }
@@ -645,7 +645,7 @@ namespace OpenSim.Services.FSAssetService
             {
                 string assetDescription = asset.Description.Substring(0, AssetBase.MAX_ASSET_DESC);
                 m_log.WarnFormat(
-                    "[FSASSETS]: Description '{0}' for asset {1} truncated from {2} to {3} characters on add",
+                    "[FSASSETS]: Beschreibung '{0}' für Asset {1} wurde beim Hinzufügen von {2} auf {3} Zeichen gekürzt",
                     asset.Description, asset.ID, asset.Description.Length, assetDescription.Length);
                 asset.Description = assetDescription;
             }
