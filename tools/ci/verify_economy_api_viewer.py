@@ -67,6 +67,9 @@ for marker in (
     '"X-NexVerse-Api-Key"',
     '"Idempotency-Key"',
     "SendMoneyBalance(",
+    "ThreadPool.QueueUserWorkItem(",
+    "Thread.Sleep(250)",
+    "client.IsActive",
     "SendEconomyData(",
 ):
     assert marker in viewer, f"missing Viewer economy adapter marker: {marker}"
