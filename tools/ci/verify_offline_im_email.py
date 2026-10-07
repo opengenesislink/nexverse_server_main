@@ -27,7 +27,7 @@ for path in ("bin/OpenSim.ini", "bin/OpenSim.ini.example"):
     section = text.split("[OfflineIMEmail]", 1)[1].split("\n[", 1)[0]
     for needle in (
         "Enabled = true",
-        'FromAddress = "no-reply@stadt-nexverse.de"',
+        'RelayDomain = "im.stadt-nexverse.de"',
         'SubjectTemplate = "Offline-IM Nachricht von {SENDER}"',
         'SMTPPassword = "${Environment|NEXVERSE_OFFLINE_IM_SMTP_PASSWORD}"',
         "PerSenderPerHour = 30",
