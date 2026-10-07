@@ -143,6 +143,11 @@ namespace NexVerse.Server.Api
                 ["/api/v1/chatgpt-admin.md"] = GetOperation("ChatGPT-Anweisung fuer den NexVerse Adminbereich herunterladen"),
                 ["/api/v1/auth/session"] = CredentialPostOperation(
                     "Native NexVerse-Einwohnersitzung erstellen"),
+                ["/api/v1/auth/admin/session"] = MergeOperations(
+                    AdminCredentialPostOperation(
+                        "World-API-Administrator-Anmeldung (nur UserLevel >= 200 und admin:*)"),
+                    AuthenticatedOperations(
+                        ("get", "Aktive Administratorsitzung und tatsächlichen UserLevel prüfen", "admin:*", "200"))),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
                     ("get", "Eingeschränkte Maschinen-API-Schlüssel auflisten", "admin:*", "200"),
                     ("post", "Eingeschränkten Maschinen-API-Schlüssel mit Berechtigungsumfang erstellen", "admin:*", "201"),
@@ -1991,6 +1996,34 @@ namespace NexVerse.Server.Api
             {
                 ["post"] = operation
             };
+        }
+
+        private static object AdminCredentialPostOperation(
+            string summary)
+        {
+            Dictionary<string, object> methods =
+                (Dictionary<string, object>)CredentialPostOperation(summary);
+            Dictionary<string, object> operation =
+                (Dictionary<string, object>)methods["post"];
+
+            operation["x-nexverse-audience"] = new[] { "admin" };
+            operation["x-nexverse-scope"] = "admin:*";
+            operation["x-nexverse-ai-instruction"] =
+                "Nur lokale NexVerse-Konten mit UserLevel >= 200 und admin:* fuer das Control Center anmelden. Niemals administrative Tokens oder Passwoerter protokollieren.";
+            operation["x-nexverse-security-constraints"] =
+                new[]
+                {
+                    "Nur TLS verwenden.",
+                    "UserLevel >= 200 und admin:* werden serverseitig vor Token-Ausgabe geprueft.",
+                    "Die Zwei-Faktor-Pruefung wird bei aktivierter TOTP-Authentifizierung erzwungen.",
+                    "Administratives Bearer-Token weder persistent speichern noch in URLs weitergeben."
+                };
+            Dictionary<string, object> responses =
+                (Dictionary<string, object>)operation["responses"];
+            responses["403"] = JsonResponse(
+                "Administrator mit UserLevel mindestens 200 erforderlich",
+                "Error");
+            return methods;
         }
 
         private static object PublicOperations(

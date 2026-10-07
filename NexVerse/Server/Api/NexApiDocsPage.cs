@@ -104,6 +104,8 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
 <button class="navbtn" data-page="chatgpt">ChatGPT / Portale</button>
+<button class="navbtn" data-page="adminlogin">Admin-Anmeldung</button>
+<button class="navbtn" data-page="secrets">Schlüssel &amp; Einrichtung</button>
 <button class="navbtn" data-page="explorer">API-Endpunkte</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
 </nav>
@@ -131,6 +133,8 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="filter" data-goto="roadmap">Entwicklungsplan / Projektstatus</button>
 <button class="filter" data-goto="chatgpt">ChatGPT / Portale</button>
 <button class="filter" data-goto="explorer">Endpunktübersicht</button>
+<button class="filter" data-goto="adminlogin">Admin-Anmeldung</button>
+<button class="filter" data-goto="secrets">Schlüssel &amp; Einrichtung</button>
 </div>
 </div>
 </section>
@@ -412,6 +416,69 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </div>
 </section>
 
+
+
+<section class="page" id="page-adminlogin">
+<div class="hero">
+<div><div class="eyebrow">Geschützter Verwaltungszugang</div>
+<h1>Als NexVerse-Administrator anmelden</h1>
+<p>Dieses Control Center erlaubt die Anmeldung ausschließlich für lokale NexVerse-Benutzer mit <code>UserLevel >= 200</code> und <code>admin:*</code>. Andere Einwohner können die öffentliche API-Dokumentation weiter lesen, erhalten jedoch keine Administratorsitzung.</p></div>
+<div class="pill"><span class="dot" id="adminLoginDot"></span><span id="adminLoginState">Nicht angemeldet</span></div>
+</div>
+<div class="section">
+<h2>Administrator-Konto</h2>
+<p class="sectionlead">Melde dich mit den lokalen Avatar-Zugangsdaten an. Benutzername: <code>Vorname.Nachname</code> (oder kurzer Resident-Name). Bei aktivierter Zwei-Faktor-Authentifizierung ist der TOTP-Code erforderlich.</p>
+<div class="grid2">
+<div><label class="label2" for="adminLoginUsername">Benutzername</label><input id="adminLoginUsername" spellcheck="false" autocomplete="username" placeholder="Vorname.Nachname"></div>
+<div><label class="label2" for="adminLoginPassword">Avatar-Passwort</label><input id="adminLoginPassword" type="password" autocomplete="current-password"></div>
+<div><label class="label2" for="adminLoginTotp">TOTP (falls aktiviert)</label><input id="adminLoginTotp" autocomplete="one-time-code" inputmode="numeric" placeholder="Optional"></div>
+</div>
+<div class="row" style="margin-top:16px">
+<button class="action" id="adminLoginSubmit">Als Administrator anmelden</button>
+<button class="action" id="adminLoginLogout" disabled>Abmelden</button>
+</div>
+<p class="authnote" id="adminLoginMessage" role="status">Der Login verwendet ausschließlich den geschützten NexVerse-Endpunkt <code>POST /api/v1/auth/admin/session</code>. Das Access-Token wird nur im Arbeitsspeicher dieser Seite gehalten, nicht als Cookie oder im Browserspeicher abgelegt.</p>
+</div>
+</section>
+
+<section class="page" id="page-secrets">
+<div class="hero"><div><div class="eyebrow">Systemverwaltung</div><h1>API-Schlüssel &amp; NexBus einrichten</h1>
+<p>Erzeuge auf dieser Seite dedizierte Maschinen-API-Schlüssel und einen gemeinsamen NexBus-Signaturschlüssel. Kopiere anschließend die fertigen Zeilen in die geschützte <code>/etc/nexverse/nexverse.env</code> auf den beteiligten Servern.</p></div></div>
+<div class="section">
+<h2>1. Geschützte Administrator-Sitzung</h2>
+<p class="sectionlead">Für die Schlüsselverwaltung ist eine aktive World-API-Administratorsitzung (UserLevel mindestens 200, Scope <code>admin:*</code>) erforderlich.</p>
+<button class="action" data-goto="adminlogin">Admin-Login öffnen</button>
+</div>
+<div class="section">
+<h2>2. Erforderliche Schlüssel auswählen</h2>
+<p class="sectionlead">Bereits eingerichtete Schlüssel nicht unnötig neu erzeugen. Neue API-Schlüssel bleiben zusätzlich zu bestehenden registriert, bis sie ausdrücklich deaktiviert werden.</p>
+<div class="changegrid">
+<label class="change"><input type="checkbox" id="secretEconomy" style="width:auto" /> <strong>Economy / NV$</strong><p><code>economy:read</code> und <code>economy:transfer</code>. Nur auswählen, wenn noch kein gültiger Economy-Key existiert.</p></label>
+<label class="change"><input type="checkbox" id="secretExperiences" checked style="width:auto" /> <strong>Experiences</strong><p><code>experiences:script</code>. Eigener Schlüssel für den Simulator, keine Administrationsrechte.</p></label>
+<label class="change"><input type="checkbox" id="secretNexBus" checked style="width:auto" /> <strong>NexBus / NodeAgent</strong><p>Gemeinsamer zufälliger HMAC-Signaturschlüssel für Robust und alle Simulator-Nodes.</p></label>
+</div>
+<p class="authnote">Der NexBus-SharedKey ist kein World-API-Key. Er wird lokal im Browser per kryptografisch sicherem Zufall erzeugt und muss auf allen beteiligten Nodes identisch sein.</p>
+<div class="grid2">
+<div><label class="label2" for="secretPeerUrl">Simulator → Robust (NexBus-URL)</label><input id="secretPeerUrl" autocomplete="off" spellcheck="false" placeholder="https://intern.example/internal/nexbus/v1/events"></div>
+<div><label class="label2" for="secretPeers">Robust → Simulator(en), kommagetrennt</label><input id="secretPeers" autocomplete="off" spellcheck="false" placeholder="https://sim-intern.example/internal/nexbus/v1/events"></div>
+</div>
+<p class="authnote">Diese beiden URLs sind nur für NexBus erforderlich. Trage die tatsächlich erreichbaren internen Endpunkte ein. Erlaubt ist HTTPS oder HTTP auf Loopback (127.0.0.1 / ::1); schütze die Endpunkte zusätzlich durch Firewall oder privates Netzwerk. Port und Proxy-Weiterleitung müssen zu deiner Installation passen.</p>
+<div class="row" style="margin-top:14px;flex-wrap:wrap">
+<button class="action" id="secretGenerate">Ausgewählte Schlüssel erstellen</button>
+<button class="action" id="secretCopy" disabled>Konfiguration kopieren</button>
+<button class="action" id="secretClear">Geheimnisse aus dieser Seite löschen</button>
+</div>
+<div class="authnote" id="secretStatus" role="status">Noch keine Schlüssel erstellt.</div>
+</div>
+<div class="section">
+<h2>3. In Secret-Datei übernehmen</h2>
+<p class="sectionlead">Die Secret-Datei verwendet <code>NAME=WERT</code>, keine INI-Sektionen. Die bisherige Standarddatei heißt <code>/etc/nexverse/nexverse.env</code> (nicht <code>.ini</code>). Bestehende Einträge, insbesondere dein Economy-Key, müssen erhalten bleiben.</p>
+<textarea id="secretOutput" readonly autocomplete="off" spellcheck="false" style="min-height:210px" placeholder="Die einmalig angezeigten Schlüssel erscheinen nach erfolgreicher Erzeugung hier."></textarea>
+<p class="authnote">Die vollständigen API-Keys zeigt die World API nur beim Erstellen an. Eine Seite oder den Browser erst verlassen, wenn du die neuen Werte sicher übernommen hast. Sie werden weder dauerhaft im Browserspeicher noch in Cookies oder URLs abgelegt.</p>
+<p class="authnote">Setze für die Secret-Datei <code>chmod 600 /etc/nexverse/nexverse.env</code>. Starte zunächst Robust mit dem neuen NexBus-Key und dem PR-#104-Code neu, danach die Simulatoren. Bereits vorhandene Prozessvariablen haben Vorrang vor der Datei.</p>
+</div>
+</section>
+
 <section class="page" id="page-explorer">
 <div class="hero"><div><div class="eyebrow">OpenAPI 3.1</div><h1>API-Endpunkte prüfen</h1><p>Durchsuche den aktuellen Vertrag, prüfe Berechtigungsumfänge und führe autorisierte Anfragen direkt gegen denselben Server aus.</p></div></div>
 <div class="explorer">
@@ -462,6 +529,63 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <script>
 'use strict';
 let spec=null,entries=[],selected=null,changes=[],gridLayout=null,gridSelected=null,gridValidation=null,gridSearchResults=[],endpointAudience='all';
+let adminSessionToken='',adminSessionExpiry=0,adminNextPage='secrets';
+function adminIsActive(){
+  return Boolean(adminSessionToken&&Date.now()<adminSessionExpiry);
+}
+function adminAuthToken(){
+  if(adminIsActive())return adminSessionToken;
+  adminSessionToken='';
+  adminSessionExpiry=0;
+  return '';
+}
+function adminUpdateStatus(message,ok){
+  $('adminLoginState').textContent=message;
+  $('adminLoginDot').className='dot'+(ok===true?' good':ok===false?' bad':'');
+  $('adminLoginLogout').disabled=!adminIsActive();
+  $('adminLoginMessage').textContent=message;
+}
+function adminLogout(){
+  adminSessionToken='';
+  adminSessionExpiry=0;
+  ['adminLoginPassword','adminLoginTotp','bearer','gridBearer','nodesBearer','statsBearer'].forEach(id=>{$(id).value=''});
+  secretClear();
+  adminUpdateStatus('Abgemeldet',null);
+  showPage('adminlogin');
+}
+async function adminLogin(){
+  if(!window.isSecureContext){adminUpdateStatus('Administrator-Login ist nur über HTTPS erlaubt.',false);return}
+  const username=$('adminLoginUsername').value.trim();
+  const password=$('adminLoginPassword').value;
+  const totp=$('adminLoginTotp').value.trim();
+  if(!username||!password){adminUpdateStatus('Benutzername und Passwort erforderlich.',false);return}
+  $('adminLoginSubmit').disabled=true;
+  try{
+    const body={username,password};
+    if(totp)body.totp=totp;
+    const res=await fetch('/api/v1/auth/admin/session',{
+      method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error('HTTP '+res.status+' ('+(data.error||'login_failed')+')');
+    if(Number(data.user_level)<200||!data.scope?.split(/\s+/).includes('admin:*')||!data.administrator)
+      throw new Error('Administratorrolle oder UserLevel 200 fehlt.');
+    adminSessionToken=data.access_token;
+    adminSessionExpiry=Date.now()+Math.max(0,Number(data.expires_in||0)-30)*1000;
+    if(!adminIsActive())throw new Error('Administratorsitzung bereits abgelaufen.');
+    adminUpdateStatus('Angemeldet · UserLevel '+data.user_level,true);
+    showPage(adminNextPage||'secrets');
+  }catch(err){
+    adminSessionToken='';adminSessionExpiry=0;
+    adminUpdateStatus('Anmeldung fehlgeschlagen: '+String(err.message||err),false);
+  }finally{
+    $('adminLoginPassword').value='';
+    $('adminLoginTotp').value='';
+    $('adminLoginSubmit').disabled=false;
+  }
+}
+
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
@@ -475,6 +599,11 @@ function audienceLabel(value){return audienceLabels[value]||value||''}
 function languageLabel(value){return languageLabels[value]||value||''}
 
 function showPage(name){
+  if(['secrets','nodes','grid'].includes(name)&&!adminIsActive()){
+    adminNextPage=name;
+    name='adminlogin';
+    adminUpdateStatus('Anmeldung mit UserLevel >= 200 erforderlich.',null);
+  }
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+name));
   document.querySelectorAll('.navbtn').forEach(x=>x.classList.toggle('active',x.dataset.page===name));
   window.scrollTo({top:0,behavior:'smooth'});
@@ -717,7 +846,7 @@ function renderStatistics(data){
 }
 async function loadStatistics(){
   const headers={'Accept':'application/json'};
-  const bearer=$('statsBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('statsBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('statsApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -743,7 +872,7 @@ async function loadStatistics(){
 
 function nodeHeaders(){
   const headers={'Accept':'application/json'};
-  const bearer=$('nodesBearer').value.trim()||$('gridBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('nodesBearer').value.trim()||$('gridBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('nodesApiKey').value.trim()||$('gridApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -819,7 +948,7 @@ async function loadNodes(){
 
 function gridHeaders(){
   const headers={'Accept':'application/json'};
-  const bearer=$('gridBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('gridBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('gridApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -1239,7 +1368,7 @@ async function runGridLifecycle(action){
 
 async function execute(){
   if(!selected)return;
-  const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
+  const headers={'Accept':'application/json'},bearer=$('bearer').value.trim()||adminAuthToken(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;if(key)headers['X-NexVerse-Api-Key']=key;if(idem)headers['Idempotency-Key']=idem;
   const body=$('body').value.trim(),opts={method:selected.method,headers};
   if(body&&!['GET','HEAD'].includes(selected.method)){headers['Content-Type']='application/json';opts.body=body}
@@ -1251,6 +1380,124 @@ async function execute(){
     const headerLines=[];res.headers.forEach((v,k)=>headerLines.push(k+': '+v));$('output').textContent=headerLines.join('\n')+'\n\n'+formatted;
   }catch(err){$('status').textContent='Anfrage fehlgeschlagen';$('status').className='small status-bad';$('output').textContent=String(err)}
 }
+
+/* Secrets console: admin-only World API key issuance; no browser persistence. */
+function secretStatus(message, ok) {
+  const node=$('secretStatus');
+  node.textContent=message;
+  node.className='authnote'+(ok===true?' status-good':ok===false?' status-bad':'');
+}
+function secretClear() {
+  ['secretOutput'].forEach(id=>{$(id).value=''});
+  $('secretCopy').disabled=true;
+  secretStatus('Geheimnisse aus der geöffneten Seite gelöscht.',true);
+}
+function secretRandomHmac() {
+  if(!window.isSecureContext||!window.crypto?.getRandomValues)
+    throw new Error('Für die sichere Zufallsgenerierung ist HTTPS erforderlich.');
+  const bytes=new Uint8Array(48);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+function secretValidateEndpoint(text) {
+  let url;
+  try{url=new URL(text)}catch{throw new Error('NexBus-Peer-URL ist ungültig: '+text)}
+  if(url.pathname!=='/internal/nexbus/v1/events'||url.search||url.hash||url.username||url.password)
+    throw new Error('NexBus-URL muss exakt auf /internal/nexbus/v1/events enden.');
+  const loopback=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
+  if(url.protocol!=='https:'&&!(url.protocol==='http:'&&loopback))
+    throw new Error('NexBus erfordert HTTPS oder HTTP auf localhost.');
+  return url.href;
+}
+function secretBuildLines(values) {
+  const names=['NEXVERSE_ECONOMY_API_KEY','NEXVERSE_EXPERIENCES_API_KEY',
+    'NEXVERSE_NEXBUS_SHARED_KEY','NEXVERSE_NEXBUS_PEER_URL','NEXVERSE_NEXBUS_PEERS'];
+  $('secretOutput').value=names.filter(name=>Object.hasOwn(values,name)).map(name=>name+'='+values[name]).join('\n')+'\n';
+  $('secretCopy').disabled=!Object.keys(values).length;
+}
+async function secretJson(url,opts) {
+  const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...opts});
+  let data={};
+  try{data=await response.json()}catch{}
+  if(!response.ok)throw new Error('HTTP '+response.status+' ('+(data.error||'api_error')+')');
+  return data;
+}
+async function secretAdminToken() {
+  const token=adminAuthToken();
+  if(!token)throw new Error('Eine aktive Admin-Sitzung mit UserLevel 200 ist erforderlich.');
+  return token;
+}
+async function secretGenerate() {
+  const wantEconomy=$('secretEconomy').checked;
+  const wantExperiences=$('secretExperiences').checked;
+  const wantBus=$('secretNexBus').checked;
+  if(!wantEconomy&&!wantExperiences&&!wantBus){
+    secretStatus('Bitte mindestens einen Schlüssel auswählen.',false);return;
+  }
+  const values={};
+  let peers=[];
+  let peerUrl='';
+  try {
+    if(wantBus){
+      peerUrl=secretValidateEndpoint($('secretPeerUrl').value.trim());
+      peers=$('secretPeers').value.split(',').map(x=>x.trim()).filter(Boolean).map(secretValidateEndpoint);
+      if(!peers.length)throw new Error('Mindestens eine Robust-zu-Simulator-URL angeben.');
+    }
+    if(!window.isSecureContext)throw new Error('Schlüssel nur über HTTPS generieren.');
+    const token=await secretAdminToken();
+    if(!window.confirm('Neue Maschinen-API-Schlüssel werden sofort serverseitig registriert. Erstellung starten?'))return;
+    $('secretGenerate').disabled=true;
+    $('secretCopy').disabled=true;
+    $('secretOutput').value='';
+    secretStatus('Schlüssel werden registriert…',null);
+    if(wantBus){
+      values.NEXVERSE_NEXBUS_SHARED_KEY=secretRandomHmac();
+      values.NEXVERSE_NEXBUS_PEER_URL=peerUrl;
+      values.NEXVERSE_NEXBUS_PEERS=peers.join(',');
+      secretBuildLines(values);
+    }
+    if(wantEconomy||wantExperiences){
+      for(const item of [
+        {wanted:wantEconomy,name:'NexVerse Simulator Economy',
+         scopes:['economy:read','economy:transfer'],env:'NEXVERSE_ECONOMY_API_KEY'},
+        {wanted:wantExperiences,name:'NexVerse Simulator Experiences',
+         scopes:['experiences:script'],env:'NEXVERSE_EXPERIENCES_API_KEY'}
+      ]){
+        if(!item.wanted)continue;
+        const data=await secretJson('/api/v1/auth/api-keys',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({name:item.name,scopes:item.scopes})
+        });
+        if(!/^nxk_[0-9a-f]{32}\.[A-Za-z0-9_-]{64}$/.test(data.api_key||''))
+          throw new Error('Die API antwortete ohne vollständigen Maschinen-API-Schlüssel.');
+        values[item.env]=data.api_key;
+        secretBuildLines(values);
+      }
+    }
+    secretStatus('Alle ausgewählten Schlüssel erstellt. Konfigurationsblock jetzt sicher kopieren.',true);
+  }catch(err){
+    secretBuildLines(values);
+    secretStatus('Einrichtung nicht vollständig: '+String(err.message||err)+
+      '. Bereits erstellte Schlüssel stehen im Ausgabefeld; kopieren, bevor du erneut startest.',false);
+  }finally{
+    $('secretGenerate').disabled=false;
+  }
+}
+async function secretCopy() {
+  if(!adminAuthToken()){secretClear();showPage('adminlogin');return}
+  const contents=$('secretOutput').value;
+  if(!contents.trim())return;
+  try{
+    await navigator.clipboard.writeText(contents);
+    secretStatus('Konfigurationszeilen in die Zwischenablage kopiert. Sicher in nexverse.env einfügen.',true);
+  }catch{
+    $('secretOutput').focus();
+    $('secretOutput').select();
+    secretStatus('Zwischenablage nicht verfügbar. Ausgabe markieren und manuell kopieren.',false);
+  }
+}
+
 async function init(){
   try{
     const results=await Promise.all([
@@ -1275,6 +1522,13 @@ async function init(){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
 }
+$('adminLoginSubmit').addEventListener('click',adminLogin);
+$('adminLoginLogout').addEventListener('click',adminLogout);
+$('adminLoginPassword').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();adminLogin()}});
+$('adminLoginTotp').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();adminLogin()}});
+$('secretGenerate').addEventListener('click',secretGenerate);
+$('secretCopy').addEventListener('click',secretCopy);
+$('secretClear').addEventListener('click',secretClear);
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value='';$('gridMutationIdempotency').value=''});

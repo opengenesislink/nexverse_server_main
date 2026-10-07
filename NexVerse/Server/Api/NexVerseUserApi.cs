@@ -876,6 +876,15 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            if (string.Equals(path, "/api/v1/auth/admin/session", StringComparison.OrdinalIgnoreCase))
+            {
+                if (IsMethod(request, "POST"))
+                    HandleNativeSessionLogin(request, response, true);
+                else
+                    HandleAdminSessionInfo(request, response);
+                return;
+            }
+
             if (string.Equals(path, "/api/v1/auth/api-keys", StringComparison.OrdinalIgnoreCase))
             {
                 HandleApiKeys(request, response);
@@ -1484,9 +1493,41 @@ namespace NexVerse.Server.Api
                 "GET, POST or PATCH is required.");
         }
 
-        private void HandleNativeSessionLogin(
+        private void HandleAdminSessionInfo(
             IOSHttpRequest request,
             IOSHttpResponse response)
+        {
+            if (!RequireMethod(request, response, "GET"))
+                return;
+
+            if (!Authenticate(request, response, NexScopes.AdminAll,
+                    out NexPrincipal principal, out UserAccount account))
+                return;
+
+            if (account == null ||
+                account.UserLevel < Math.Max(200, m_AdminMinimumLevel))
+            {
+                WriteError(response, HttpStatusCode.Forbidden,
+                    "administrator_required",
+                    "World API Control Center requires a local NexVerse administrator with UserLevel >= 200.");
+                return;
+            }
+
+            response.AddHeader("Cache-Control", "no-store");
+            WriteJson(response, new
+            {
+                administrator = true,
+                user_level = account.UserLevel,
+                principal_id = account.PrincipalID.ToString(),
+                scope = NexScopes.AdminAll,
+                correlation_id = AddCorrelation(response)
+            });
+        }
+
+        private void HandleNativeSessionLogin(
+            IOSHttpRequest request,
+            IOSHttpResponse response,
+            bool requireAdmin = false)
         {
             if (!RequireMethod(
                 request,
@@ -1579,6 +1620,23 @@ namespace NexVerse.Server.Api
                         user.Roles,
                         user.ExplicitScopes);
 
+                // The citizen login remains available for residents. The separate
+                // Control Center login must reject all sub-200 accounts *before*
+                // issuing any admin session token, regardless of granted scopes.
+                if (requireAdmin &&
+                    (user.UserLevel < Math.Max(200, m_AdminMinimumLevel) ||
+                     !scopes.Contains(
+                         NexScopes.AdminAll,
+                         StringComparer.OrdinalIgnoreCase)))
+                {
+                    WriteError(
+                        response,
+                        HttpStatusCode.Forbidden,
+                        "administrator_required",
+                        "World API Control Center requires UserLevel >= 200 and admin:*.");
+                    return;
+                }
+
                 if (m_Security != null && m_Security.IsTotpEnabled(user.PrincipalId))
                 {
                     string totp = GetOptionalString(root, "totp");
@@ -1597,7 +1655,9 @@ namespace NexVerse.Server.Api
                         scopes,
                         user.AccountStateChanged);
 
-                NexSecuritySession securitySession = m_Security?.CreateSession(user.PrincipalId, "native-world-api");
+                NexSecuritySession securitySession = m_Security?.CreateSession(
+                    user.PrincipalId,
+                    requireAdmin ? "native-world-api-admin" : "native-world-api");
 
                 string correlationId =
                     AddCorrelation(response);
@@ -1612,7 +1672,7 @@ namespace NexVerse.Server.Api
                 m_Audit.Record(
                     new NexAuditEvent(
                         user.PrincipalId,
-                        "auth.session.login",
+                        requireAdmin ? "auth.admin.session.login" : "auth.session.login",
                         user.PrincipalId,
                         correlationId,
                         new Dictionary<string, string>
@@ -1651,6 +1711,8 @@ namespace NexVerse.Server.Api
                         principal_id =
                             user.PrincipalId,
                         session_id = securitySession?.Id,
+                        user_level = user.UserLevel,
+                        administrator = requireAdmin,
                         correlation_id =
                             correlationId
                     });
