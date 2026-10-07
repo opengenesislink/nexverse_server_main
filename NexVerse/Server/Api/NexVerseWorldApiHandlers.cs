@@ -143,6 +143,11 @@ namespace NexVerse.Server.Api
                 ["/api/v1/chatgpt-admin.md"] = GetOperation("ChatGPT-Anweisung fuer den NexVerse Adminbereich herunterladen"),
                 ["/api/v1/auth/session"] = CredentialPostOperation(
                     "Native NexVerse-Einwohnersitzung erstellen"),
+                ["/api/v1/auth/admin/session"] = MergeOperations(
+                    CredentialPostOperation(
+                        "World-API-Administrator-Anmeldung (nur UserLevel >= 200 und admin:*)"),
+                    AuthenticatedOperations(
+                        ("get", "Aktive Administratorsitzung und tatsächlichen UserLevel prüfen", "admin:*", "200"))),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
                     ("get", "Eingeschränkte Maschinen-API-Schlüssel auflisten", "admin:*", "200"),
                     ("post", "Eingeschränkten Maschinen-API-Schlüssel mit Berechtigungsumfang erstellen", "admin:*", "201"),
