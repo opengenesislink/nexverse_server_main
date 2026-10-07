@@ -13,4 +13,5 @@ using Mono.Addins;
 [assembly: AssemblyVersion(OpenSim.VersionInfo.AssemblyVersionNumber)]
 
 [assembly: Addin("NexVerse.RegionModules", OpenSim.VersionInfo.VersionNumber)]
+[assembly: AddinDependency("OpenSim", OpenSim.VersionInfo.VersionNumber)]
 [assembly: AddinDependency("OpenSim.Region.Framework", OpenSim.VersionInfo.VersionNumber)]
