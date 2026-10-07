@@ -1913,7 +1913,16 @@ namespace OpenSim.Region.Framework.Scenes
             SceneObjectPart[] parts = m_parts.GetArray();
             for (int i = 0; i < parts.Length; i++)
             {
-                Dictionary<UUID, string> pstates = parts[i].Inventory.GetScriptStates(oldIDs);
+                SceneObjectPart part = parts[i];
+                IEntityInventory inventory = part?.Inventory;
+                if (inventory is null)
+                    continue;
+
+                Dictionary<UUID, string> pstates =
+                    inventory.GetScriptStates(oldIDs);
+                if (pstates is null || pstates.Count == 0)
+                    continue;
+
                 foreach (KeyValuePair<UUID, string> kvp in pstates)
                     states[kvp.Key] = kvp.Value;
             }
