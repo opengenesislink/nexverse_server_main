@@ -49,15 +49,23 @@ internal static class Program
         Guid merchantId =
             Guid.NewGuid();
 
+        NexLedgerAccount system =
+            economy.EnsureSystemAccount(
+                systemId,
+                label + " issuance");
+
         Require(
-            ledger.TryCreateAccount(
-                new NexLedgerAccount(
-                    systemId,
-                    NexLedgerAccountClass.System,
-                    NexLedgerSide.Debit,
-                    "system:" + label + ":" + systemId.ToString("N"),
-                    label + " issuance")),
-            label + ": system account not created");
+            system.AccountId == systemId &&
+            system.AccountClass == NexLedgerAccountClass.System &&
+            system.NormalSide == NexLedgerSide.Debit,
+            label + ": system account mapping mismatch");
+
+        Require(
+            economy.EnsureSystemAccount(
+                systemId,
+                label + " issuance").AccountId ==
+                systemId,
+            label + ": system account ensure is not idempotent");
 
         NexLedgerAccount resident =
             economy.EnsureResidentAccount(
