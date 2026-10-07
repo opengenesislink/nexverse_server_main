@@ -562,11 +562,16 @@ namespace NexVerse.RegionModules.NodeAgent
                     rawSourceOwner,
                     out UUID sourceOwnerId) ||
                 sourceOwnerId.IsZero() ||
-                !TryCommandInt(
+                !TryCommandData(
                     nexEvent,
                     "estate_id",
-                    out int rawEstateId) ||
-                rawEstateId <= 0 ||
+                    out string rawEstateId) ||
+                !uint.TryParse(
+                    rawEstateId,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out uint estateId) ||
+                estateId == 0 ||
                 !TryCommandInt(
                     nexEvent,
                     "channel",
@@ -576,9 +581,6 @@ namespace NexVerse.RegionModules.NodeAgent
             {
                 return;
             }
-
-            uint estateId =
-                (uint)rawEstateId;
 
             if (!TryTakeObjectMessageRateSlot(
                     m_ObjectMessageInboundRates,
