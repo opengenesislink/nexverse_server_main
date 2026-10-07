@@ -815,6 +815,11 @@ jobs:
 
           assert doc["paths"]["/api/v1/users"]["post"]["x-nexverse-audience"] == ["admin"]
           assert doc["paths"]["/api/v1/nodes"]["get"]["x-nexverse-audience"] == ["admin", "service"]
+          assert doc["paths"]["/api/v1/economy/balance"]["get"]["x-nexverse-audience"] == ["citizen", "admin", "service"]
+          assert doc["paths"]["/api/v1/inventory/tree"]["get"]["x-nexverse-audience"] == ["citizen", "admin", "service"]
+          assert "/api/v1/chatgpt-instructions.md" in doc["paths"]
+          assert "/api/v1/chatgpt-buergerportal.md" in doc["paths"]
+          assert "/api/v1/chatgpt-admin.md" in doc["paths"]
           assert "x-nexverse-ai-instruction" in doc["paths"]["/api/v1/users"]["post"]
           assert "x-nexverse-security-constraints" in doc["paths"]["/api/v1/users"]["post"]
           print("NexVerse OpenAPI 3.1 schema contract smoke: OK")
@@ -837,6 +842,12 @@ jobs:
           grep -F 'x_nexverse_changelog' /tmp/nexverse-api-docs.html
           grep -F 'x_nexverse_roadmap' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/openapi.json' /tmp/nexverse-api-docs.html
+          grep -F 'ChatGPT / Portale' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/chatgpt-instructions.md' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/chatgpt-buergerportal.md' /tmp/nexverse-api-docs.html
+          grep -F '/api/v1/chatgpt-admin.md' /tmp/nexverse-api-docs.html
+          grep -F 'data-audience-target="citizen"' /tmp/nexverse-api-docs.html
+          grep -F 'data-endpoint-audience="admin"' /tmp/nexverse-api-docs.html
           grep -F 'Interaktiver Grid-Planer' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/grid/layout' /tmp/nexverse-api-docs.html
           grep -F '/api/v1/grid/validate-placement' /tmp/nexverse-api-docs.html
@@ -868,6 +879,20 @@ jobs:
             echo "::error::API Control Center must not persist credentials in localStorage."
             exit 1
           fi
+
+          curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/chatgpt-instructions.md > /tmp/nexverse-chatgpt.md
+          grep -F 'NexVerse World API - ChatGPT Gesamtanweisung' /tmp/nexverse-chatgpt.md
+          grep -F 'Buergerportal / Einwohner-Selbstbedienung' /tmp/nexverse-chatgpt.md
+          grep -F '## Adminbereich' /tmp/nexverse-chatgpt.md
+          grep -F '/api/v1/openapi.json' /tmp/nexverse-chatgpt.md
+
+          curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/chatgpt-buergerportal.md > /tmp/nexverse-chatgpt-citizen.md
+          grep -F 'ChatGPT Anweisung Buergerportal' /tmp/nexverse-chatgpt-citizen.md
+          grep -F 'admin:* gehoeren nicht in das Buergerportal' /tmp/nexverse-chatgpt-citizen.md
+
+          curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/chatgpt-admin.md > /tmp/nexverse-chatgpt-admin.md
+          grep -F 'ChatGPT Anweisung Adminbereich' /tmp/nexverse-chatgpt-admin.md
+          grep -F 'Administrative Mutationen nur mit ausdruecklicher Benutzerabsicht' /tmp/nexverse-chatgpt-admin.md
 
 
   ledger-db-matrix:
