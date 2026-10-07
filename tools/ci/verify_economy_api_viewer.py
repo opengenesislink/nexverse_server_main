@@ -80,6 +80,7 @@ for marker in (
 
 for marker in (
     '[assembly: Addin("NexVerse.RegionModules", OpenSim.VersionInfo.VersionNumber)]',
+    '[assembly: AddinDependency("OpenSim", OpenSim.VersionInfo.VersionNumber)]',
     '[assembly: AddinDependency("OpenSim.Region.Framework", OpenSim.VersionInfo.VersionNumber)]',
     '[assembly: AssemblyVersion(OpenSim.VersionInfo.AssemblyVersionNumber)]',
 ):
