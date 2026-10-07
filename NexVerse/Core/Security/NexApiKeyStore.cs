@@ -99,7 +99,8 @@ namespace NexVerse.Core.Security
                     NexScopes.EstatesRead,
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
-                    NexScopes.EconomyTransfer
+                    NexScopes.EconomyTransfer,
+                    NexScopes.ExperiencesScript
                 },
                 StringComparer.OrdinalIgnoreCase);
 
