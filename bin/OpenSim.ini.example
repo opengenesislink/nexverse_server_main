@@ -1326,6 +1326,13 @@
   ;; web sites by other users on their profiles
   ; AllowUserProfileWebURLs = true
 
+
+[FirestormBridge]
+    ; Firestorm intentionally does not create a new LSL Bridge container on
+    ; OpenSim grids.  This module ensures that the shared empty object asset
+    ; referenced by the login-service bootstrap exists in the grid asset store.
+    Enabled = true
+
 [Appearance]
     ; OpenGenesisLINK avatar appearance optimization.
     ; Persist and reuse baked avatar textures so returning avatars can resolve
