@@ -60,11 +60,11 @@ namespace OpenSim.OfflineIM
         private string m_EmailSubjectTemplate = "Offline-IM Nachricht von {SENDER}";
         private string m_EmailRelaySigningKey = string.Empty;
         private int m_EmailReplyLifetimeDays = 5;
-        private string m_EmailSmtpHost = "127.0.0.1";
-        private int m_EmailSmtpPort = 25;
-        private bool m_EmailUseStartTls;
+        private string m_EmailSmtpHost = "mail.nexvortex.de";
+        private int m_EmailSmtpPort = 587;
+        private bool m_EmailUseStartTls = true;
         private bool m_EmailUseSslOnConnect;
-        private string m_EmailSmtpUsername = string.Empty;
+        private string m_EmailSmtpUsername = "relay@im.stadt-nexverse.de";
         private string m_EmailSmtpPassword = string.Empty;
         private int m_EmailPerSenderPerHour = 30;
         private int m_EmailPerRecipientPerHour = 60;
@@ -105,9 +105,9 @@ namespace OpenSim.OfflineIM
                 m_EmailReplyLifetimeDays = Math.Max(1, Math.Min(30, emailConfig.GetInt("ReplyLifetimeDays", 5)));
                 m_EmailSmtpHost = emailConfig.GetString("SMTPHost", m_EmailSmtpHost).Trim();
                 m_EmailSmtpPort = emailConfig.GetInt("SMTPPort", m_EmailSmtpPort);
-                m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", false);
+                m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", m_EmailUseStartTls);
                 m_EmailUseSslOnConnect = emailConfig.GetBoolean("UseSslOnConnect", false);
-                m_EmailSmtpUsername = emailConfig.GetString("SMTPUsername", string.Empty).Trim();
+                m_EmailSmtpUsername = emailConfig.GetString("SMTPUsername", m_EmailSmtpUsername).Trim();
                 m_EmailSmtpPassword = emailConfig.GetString("SMTPPassword", string.Empty);
                 m_EmailPerSenderPerHour = Math.Max(1, emailConfig.GetInt("PerSenderPerHour", m_EmailPerSenderPerHour));
                 m_EmailPerRecipientPerHour = Math.Max(1, emailConfig.GetInt("PerRecipientPerHour", m_EmailPerRecipientPerHour));
@@ -115,7 +115,7 @@ namespace OpenSim.OfflineIM
 
                 if (m_EmailUseStartTls && m_EmailUseSslOnConnect)
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: UseStartTls and UseSslOnConnect cannot both be true. Offline IM email disabled.");
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: UseStartTls und UseSslOnConnect dürfen nicht gleichzeitig aktiviert sein. Offline-IM-E-Mail wurde deaktiviert.");
                     m_EmailEnabled = false;
                 }
 
@@ -125,24 +125,38 @@ namespace OpenSim.OfflineIM
                      m_EmailSmtpPort > 65535 ||
                      !IsValidRelayDomain(m_EmailRelayDomain)))
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: Invalid SMTP host/port or RelayDomain. Offline IM email disabled.");
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: Ungültiger SMTP-Server, SMTP-Port oder RelayDomain. Offline-IM-E-Mail wurde deaktiviert.");
                     m_EmailEnabled = false;
                 }
 
                 if (m_EmailEnabled && !string.IsNullOrEmpty(m_EmailSmtpUsername) && string.IsNullOrEmpty(m_EmailSmtpPassword))
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: SMTPUsername is configured but SMTPPassword is empty. Delivery may fail.");
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: SMTPUsername ist konfiguriert, aber SMTPPassword ist leer. Der Versand kann fehlschlagen.");
                 }
 
                 if (m_EmailEnabled && !OfflineImMailRelayToken.IsSigningKeyStrongEnough(m_EmailRelaySigningKey))
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: RelaySigningKey is missing or shorter than 32 bytes. Secure email replies are disabled until NEXVERSE_IM_RELAY_SIGNING_KEY is configured.");
+                    m_log.Warn("[OfflineIM.V2.EMAIL]: RelaySigningKey fehlt oder ist kürzer als 32 Byte. Sichere E-Mail-Antworten bleiben deaktiviert, bis NEXVERSE_IM_RELAY_SIGNING_KEY konfiguriert ist.");
                 }
             }
 
-            m_log.DebugFormat("[OfflineIM.V2]: Offline messages enabled by {0}", Name);
+            m_log.DebugFormat("[OfflineIM.V2]: Offline-Nachrichten wurden durch {0} aktiviert", Name);
             if (m_EmailEnabled)
-                m_log.InfoFormat("[OfflineIM.V2.EMAIL]: Offline IM email notification enabled via {0}:{1} using avatar relay domain {2}.", m_EmailSmtpHost, m_EmailSmtpPort, m_EmailRelayDomain);
+            {
+                string smtpSecurity = m_EmailUseSslOnConnect
+                    ? "SSL/TLS"
+                    : m_EmailUseStartTls
+                        ? "STARTTLS"
+                        : "keine";
+
+                m_log.InfoFormat(
+                    "[OfflineIM.V2.EMAIL]: SMTP-Konfiguration aktiv: Server {0}:{1}, Verschlüsselung {2}, Benutzer {3}, Relay-Domain {4}. Passwortquelle: geschützte NexVerse-Runtime-Konfiguration.",
+                    m_EmailSmtpHost,
+                    m_EmailSmtpPort,
+                    smtpSecurity,
+                    string.IsNullOrWhiteSpace(m_EmailSmtpUsername) ? "(keiner)" : m_EmailSmtpUsername,
+                    m_EmailRelayDomain);
+            }
         }
 
         public void AddRegion(Scene scene)
@@ -171,7 +185,7 @@ namespace OpenSim.OfflineIM
                     lock (m_SceneList)
                         m_SceneList.Clear();
 
-                    m_log.Error("[OfflineIM.V2]: No message transfer module is enabled. Disabling offline messages");
+                    m_log.Error("[OfflineIM.V2]: Kein Nachrichtenübertragungsmodul ist aktiviert. Offline-Nachrichten werden deaktiviert.");
                 }
                 m_TransferModule.OnUndeliveredMessage += UndeliveredMessage;
             }
@@ -248,12 +262,12 @@ namespace OpenSim.OfflineIM
 
         private void RetrieveInstantMessages(IClientAPI client)
         {
-            m_log.DebugFormat("[OfflineIM.V2]: Retrieving stored messages for {0}", client.AgentId);
+            m_log.DebugFormat("[OfflineIM.V2]: Gespeicherte Nachrichten für {0} werden abgerufen", client.AgentId);
 
             List<GridInstantMessage> msglist = m_OfflineIMService.GetMessages(client.AgentId);
 
             if (msglist == null)
-                m_log.DebugFormat("[OfflineIM.V2]: WARNING null message list.");
+                m_log.DebugFormat("[OfflineIM.V2]: WARNUNG: Nachrichtenliste ist null.");
 
             foreach (GridInstantMessage im in msglist)
             {
@@ -331,7 +345,7 @@ namespace OpenSim.OfflineIM
             if (!ConsumeEmailRate(senderID, recipientID))
             {
                 m_log.WarnFormat(
-                    "[OfflineIM.V2.EMAIL]: Rate limit suppressed offline IM email from {0} to {1}.",
+                    "[OfflineIM.V2.EMAIL]: Ratenlimit hat die Offline-IM-E-Mail von {0} an {1} unterdrückt.",
                     senderID,
                     recipientID);
                 return;
@@ -404,9 +418,9 @@ namespace OpenSim.OfflineIM
                 catch (Exception e)
                 {
                     m_log.DebugFormat(
-                        "[OfflineIM.V2.EMAIL]: User account lookup failed for {0} on scene {1}: {2}",
+                        "[OfflineIM.V2.EMAIL]: Benutzerkonto {0} konnte in Szene {1} nicht ermittelt werden: {2}",
                         principalID,
-                        scene?.Name ?? "(unknown)",
+                        scene?.Name ?? "(unbekannt)",
                         e.Message);
                 }
             }
@@ -425,7 +439,7 @@ namespace OpenSim.OfflineIM
             if (!MailboxAddress.TryParse(recipient.Email.Trim(), out MailboxAddress recipientAddress))
             {
                 m_log.WarnFormat(
-                    "[OfflineIM.V2.EMAIL]: Invalid email address for local account {0}; notification skipped.",
+                    "[OfflineIM.V2.EMAIL]: Ungültige E-Mail-Adresse für lokales Konto {0}; Benachrichtigung wird übersprungen.",
                     recipientID);
                 return;
             }
@@ -496,14 +510,14 @@ namespace OpenSim.OfflineIM
                 client.Disconnect(true);
 
                 m_log.InfoFormat(
-                    "[OfflineIM.V2.EMAIL]: Sent offline IM email to local account {0} from {1}.",
+                    "[OfflineIM.V2.EMAIL]: Offline-IM-E-Mail an lokales Konto {0} von {1} wurde versendet.",
                     recipientID,
                     senderName);
             }
             catch (Exception e)
             {
                 m_log.WarnFormat(
-                    "[OfflineIM.V2.EMAIL]: SMTP delivery failed for local account {0}: {1}",
+                    "[OfflineIM.V2.EMAIL]: SMTP-Versand für lokales Konto {0} fehlgeschlagen: {1}",
                     recipientID,
                     e.Message);
             }

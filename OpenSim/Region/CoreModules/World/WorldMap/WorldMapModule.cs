@@ -237,7 +237,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
 
             string regionimage = "regionImage" + m_scene.RegionInfo.RegionID.ToString();
             regionimage = regionimage.Replace("-", "");
-            m_log.Info("[WORLD MAP]: JPEG Map location: " + m_scene.RegionInfo.ServerURI + "index.php?method=" + regionimage);
+            m_log.Info("[WORLD MAP]: JPEG-Kartenadresse: " + m_scene.RegionInfo.ServerURI + "index.php?method=" + regionimage);
 
             MainServer.Instance.AddIndexPHPMethodHandler(regionimage, OnHTTPGetMapImage);
             MainServer.Instance.AddSimpleStreamHandler(new SimpleStreamHandler(
@@ -531,7 +531,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
 
                     default:
                         // unkown map item type
-                        m_log.DebugFormat("[WORLD MAP]: Unknown MapItem type {0}", itemtype);
+                        m_log.DebugFormat("[WORLD MAP]: Unbekannter MapItem-Typ {0}", itemtype);
                         break;
                 }
             }
@@ -817,7 +817,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 WebUtil.GlobalExpiringBadURLs.Add(serverURI, 120000);
                 m_blacklistedregions.Add(regionhandle, expireBlackListTime);
                 m_cachedRegionMapItemsResponses.Remove(regionhandle);
-                m_log.DebugFormat("[WORLD MAP]: Access to {0} failed with {1}", httpserver, e);
+                m_log.DebugFormat("[WORLD MAP]: Zugriff auf {0} fehlgeschlagen: {1}", httpserver, e);
                 Interlocked.Decrement(ref nAsyncRequests);
                 return;
             }
@@ -845,13 +845,13 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 m_blacklistedregions.Add(regionhandle, expireBlackListTime);
                 m_cachedRegionMapItemsResponses.Remove(regionhandle);
 
-                m_log.WarnFormat("[WORLD MAP]: Blacklisted url {0}", httpserver);
+                m_log.WarnFormat("[WORLD MAP]: URL {0} steht auf der Sperrliste", httpserver);
                 Interlocked.Decrement(ref nAsyncRequests);
                 return;
             }
             catch
             {
-                m_log.DebugFormat("[WORLD MAP]: RequestMapItems failed for {0}", httpserver);
+                m_log.DebugFormat("[WORLD MAP]: RequestMapItems für {0} fehlgeschlagen", httpserver);
                 m_blacklistedregions.Add(regionhandle, expireBlackListTime);
                 m_cachedRegionMapItemsResponses.Remove(regionhandle);
                 Interlocked.Decrement(ref nAsyncRequests);
@@ -868,7 +868,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
             }
             catch (Exception ex)
             {
-                m_log.InfoFormat("[WORLD MAP]: exception on parse of RequestMapItems reply from {0}: {1}", httpserver, ex.Message);
+                m_log.InfoFormat("[WORLD MAP]: Fehler beim Auswerten der RequestMapItems-Antwort von {0}: {1}", httpserver, ex.Message);
                 m_blacklistedregions.Add(regionhandle, expireBlackListTime);
                 m_cachedRegionMapItemsResponses.Remove(regionhandle);
 
@@ -943,7 +943,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                             m_mapBlockRequests[agentID].Count == 0 ))
                     {
                         spamBlocked.Remove(agentID);
-                        m_log.DebugFormat("[WoldMapModule] RequestMapBlocks release spammer {0}", agentID);
+                        m_log.DebugFormat("[WoldMapModule] RequestMapBlocks: Sperre für {0} wird aufgehoben", agentID);
                     }
                     else
                         return;
@@ -961,7 +961,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                                 (!m_mapBlockRequests.ContainsKey(k2) ||
                                 m_mapBlockRequests[k2].Count == 0 ))
                             {
-                                m_log.DebugFormat("[WoldMapModule] RequestMapBlocks release spammer {0}", k2);
+                                m_log.DebugFormat("[WoldMapModule] RequestMapBlocks: Sperre für {0} wird aufgehoben", k2);
                                 k = k2;
                                 expireone = true;
                             }
@@ -995,7 +995,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 else
                 {
                     spamBlocked[agentID] = now + SPAMBLOCKTIMEms;
-                    m_log.DebugFormat("[WoldMapModule] RequestMapBlocks blocking spammer {0} for {1} s",agentID, SPAMBLOCKTIMEms/1000.0);
+                    m_log.DebugFormat("[WoldMapModule] RequestMapBlocks: {0} wird für {1} s gesperrt",agentID, SPAMBLOCKTIMEms/1000.0);
                 }
                 m_mapBlockRequestEvent.Set();
             }
@@ -1177,7 +1177,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
             }
 
             byte[] jpeg = null;
-            m_log.Debug("[WORLD MAP]: Sending map image jpeg");
+            m_log.Debug("[WORLD MAP]: JPEG-Kartenbild wird gesendet");
 
             if (myMapImageJPEG.Length == 0)
             {
@@ -1220,7 +1220,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 catch (Exception e)
                 {
                     // Dummy!
-                    m_log.Warn("[WORLD MAP]: Unable to generate Map image" + e.Message);
+                    m_log.Warn("[WORLD MAP]: Kartenbild konnte nicht erzeugt werden: " + e.Message);
                     response.StatusCode = (int)HttpStatusCode.NotFound;
                     return;
                 }
@@ -1279,7 +1279,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 // FIXME: If console region is root then this will be printed by every module.  Currently, there is no
                 // way to prevent this, short of making the entire module shared (which is complete overkill).
                 // One possibility is to return a bool to signal whether the module has completely handled the command
-                m_log.InfoFormat("[WORLD MAP]: Please change to a specific region in order to export its world map");
+                m_log.InfoFormat("[WORLD MAP]: Bitte zu einer bestimmten Region wechseln, um deren Weltkarte zu exportieren");
                 return;
             }
 
@@ -1294,7 +1294,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 exportPath = DEFAULT_WORLD_MAP_EXPORT_PATH;
 
             m_log.InfoFormat(
-                "[WORLD MAP]: Exporting world map for {0} to {1}", m_regionName, exportPath);
+                "[WORLD MAP]: Weltkarte für {0} wird nach {1} exportiert", m_regionName, exportPath);
 
             // assumed this is 1m less than next grid line
             int regionsView = (int)m_scene.MaxRegionViewDistance;
@@ -1416,7 +1416,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
             mapTexture.Dispose();
 
             m_log.InfoFormat(
-                "[WORLD MAP]: Successfully exported world map for {0} to {1}",
+                "[WORLD MAP]: Weltkarte für {0} wurde erfolgreich nach {1} exportiert",
                 m_regionName, exportPath);
         }
 
@@ -1549,10 +1549,10 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
 
             if (m_mapImageGenerator == null)
             {
-                Console.WriteLine("No map image generator available for {0}", m_scene.Name);
+                Console.WriteLine("Für {0} ist kein Kartenbild-Generator verfügbar", m_scene.Name);
                 return;
             }
-            m_log.DebugFormat("[WORLD MAP]: Generating map image for {0}", m_scene.Name);
+            m_log.DebugFormat("[WORLD MAP]: Kartenbild für {0} wird erzeugt", m_scene.Name);
 
             using (Bitmap mapbmp = m_mapImageGenerator.CreateMapTile())
             {
@@ -1635,7 +1635,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                         asset.Flags = AssetFlags.Maptile;
 
                         // Store the new one
-                        m_log.DebugFormat("[WORLD MAP]: Storing map image {0} for {1}", asset.ID, m_regionName);
+                        m_log.DebugFormat("[WORLD MAP]: Kartenbild {0} für {1} wird gespeichert", asset.ID, m_regionName);
 
                         m_scene.AssetService.Store(asset);
 
@@ -1645,7 +1645,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 }
                 catch (Exception e)
                 {
-                    m_log.Error("[WORLD MAP]: Failed generating terrain map: " + e);
+                    m_log.Error("[WORLD MAP]: Terrain-Karte konnte nicht erzeugt werden: " + e);
                 }
             }
 
@@ -1746,11 +1746,11 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
 
             if (!landForSale)
             {
-                m_log.DebugFormat("[WORLD MAP]: Region {0} has no parcels for sale, not generating overlay", m_regionName);
+                m_log.DebugFormat("[WORLD MAP]: Region {0} hat keine zum Verkauf stehenden Parzellen; Overlay wird nicht erzeugt", m_regionName);
                 return null;
             }
 
-            m_log.DebugFormat("[WORLD MAP]: Region {0} has parcels for sale, generating overlay", m_regionName);
+            m_log.DebugFormat("[WORLD MAP]: Region {0} hat zum Verkauf stehende Parzellen; Overlay wird erzeugt", m_regionName);
 
             using (Bitmap overlay = new Bitmap(regionSizeX, regionSizeY))
             {
@@ -1786,7 +1786,7 @@ namespace OpenSim.Region.CoreModules.World.WorldMap
                 }
                 catch (Exception e)
                 {
-                    m_log.DebugFormat("[WORLD MAP]: Error creating parcel overlay: " + e.ToString());
+                    m_log.DebugFormat("[WORLD MAP]: Fehler beim Erzeugen des Parzellen-Overlays: " + e.ToString());
                 }
             }
 
