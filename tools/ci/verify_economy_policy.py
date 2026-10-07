@@ -8,6 +8,7 @@ service = Path("NexVerse/Core/Economy/NexEconomyService.cs").read_text(encoding=
 memory = Path("NexVerse/Core/Economy/NexLedgerStore.cs").read_text(encoding="utf-8")
 sql = Path("NexVerse/Core/Economy/NexLedgerSqlStore.cs").read_text(encoding="utf-8")
 regression = Path("tools/ci/NexEconomyPolicyRegression/Program.cs").read_text(encoding="utf-8")
+connector = Path("NexVerse/Server/Api/NexEconomyConnector.cs").read_text(encoding="utf-8")
 
 for marker in (
     "NexLedgerAccountStatus",
@@ -113,6 +114,18 @@ for forbidden in (
     "DELETE FROM ogl_ledger_account_events",
 ):
     assert forbidden not in sql, f"append-only ledger contract violated: {forbidden}"
+
+for marker in (
+    '"nv give"',
+    '"nv balance"',
+    "AdministrativeAdjustment(",
+    "EnsureSystemAccount(",
+    "ResolveLocalAccount(",
+    "SendGrantNotification(",
+    '"robust-console"',
+    '"NexVerse Bank"',
+):
+    assert marker in connector, f"missing NV$ console administration marker: {marker}"
 
 for marker in (
     "fraud review",
