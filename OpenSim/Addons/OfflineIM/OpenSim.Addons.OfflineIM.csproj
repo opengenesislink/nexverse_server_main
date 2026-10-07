@@ -66,6 +66,16 @@
       <HintPath>/opt/robust/bin/log4net.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="MailKit" >
+      <Name>MailKit</Name>
+      <HintPath>/opt/robust/bin/MailKit.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MimeKit" >
+      <Name>MimeKit</Name>
+      <HintPath>/opt/robust/bin/MimeKit.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Mono.Addins" >
       <Name>Mono.Addins</Name>
       <HintPath>/opt/robust/bin/Mono.Addins.dll</HintPath>
