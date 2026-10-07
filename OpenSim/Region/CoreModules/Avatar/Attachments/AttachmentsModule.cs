@@ -997,6 +997,14 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
         /// <param name="saveAllScripted"></param>
         private void UpdateKnownItem(IScenePresence sp, SceneObjectGroup grp, string scriptedState)
         {
+            SceneObjectPart root = grp?.RootPart;
+            if (root == null || root.Inventory == null)
+            {
+                m_log.Warn(
+                    "[ATTACHMENTS MODULE]: Attachment asset update skipped because the root part or its inventory was already disposed.");
+                return;
+            }
+
             if(!grp.HasGroupChanged)
             {
                 if (DebugLevel > 0)
@@ -1049,9 +1057,9 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                 permsBase |= (uint)PermissionMask.Move;
                 item.BasePermissions = permsBase;
                 item.CurrentPermissions = permsBase;
-                item.NextPermissions = permsBase & grp.RootPart.NextOwnerMask | (uint)PermissionMask.Move;
-                item.EveryOnePermissions = permsBase & grp.RootPart.EveryoneMask;
-                item.GroupPermissions = permsBase & grp.RootPart.GroupMask;
+                item.NextPermissions = permsBase & root.NextOwnerMask | (uint)PermissionMask.Move;
+                item.EveryOnePermissions = permsBase & root.EveryoneMask;
+                item.GroupPermissions = permsBase & root.GroupMask;
                 item.CurrentPermissions &=
                     ((uint)PermissionMask.Copy |
                         (uint)PermissionMask.Transfer |
@@ -1060,8 +1068,8 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                         (uint)PermissionMask.Export |
                         (uint)PermissionMask.FoldedMask); // Preserve folded permissions ??
 
-                string name = grp.RootPart.Name;
-                string desc = grp.RootPart.Description;
+                string name = root.Name;
+                string desc = root.Description;
 
                 AssetBase asset = m_scene.CreateAsset(name, desc, (sbyte)AssetType.Object,
                     Utils.StringToBytes(sceneObjectXml), sp.UUID);
