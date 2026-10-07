@@ -129,9 +129,13 @@ namespace OpenSim.OfflineIM
                     m_EmailEnabled = false;
                 }
 
-                if (m_EmailEnabled && !string.IsNullOrEmpty(m_EmailSmtpUsername) && string.IsNullOrEmpty(m_EmailSmtpPassword))
+                if (m_EmailEnabled &&
+                    !string.IsNullOrEmpty(m_EmailSmtpUsername) &&
+                    string.IsNullOrEmpty(m_EmailSmtpPassword))
                 {
-                    m_log.Warn("[OfflineIM.V2.EMAIL]: SMTPUsername ist konfiguriert, aber SMTPPassword ist leer. Der Versand kann fehlschlagen.");
+                    m_log.Warn(
+                        "[OfflineIM.V2.EMAIL]: SMTP-Benutzer ist konfiguriert, aber NEXVERSE_OFFLINE_IM_SMTP_PASSWORD fehlt oder ist leer. Offline-IM-E-Mail wurde deaktiviert.");
+                    m_EmailEnabled = false;
                 }
 
                 if (m_EmailEnabled && !OfflineImMailRelayToken.IsSigningKeyStrongEnough(m_EmailRelaySigningKey))
@@ -513,6 +517,15 @@ namespace OpenSim.OfflineIM
                     "[OfflineIM.V2.EMAIL]: Offline-IM-E-Mail an lokales Konto {0} von {1} wurde versendet.",
                     recipientID,
                     senderName);
+            }
+            catch (AuthenticationException e)
+            {
+                m_log.WarnFormat(
+                    "[OfflineIM.V2.EMAIL]: SMTP-Authentifizierung für Benutzer {0} auf {1}:{2} fehlgeschlagen. Bitte NEXVERSE_OFFLINE_IM_SMTP_PASSWORD prüfen. Servermeldung: {3}",
+                    string.IsNullOrWhiteSpace(m_EmailSmtpUsername) ? "(keiner)" : m_EmailSmtpUsername,
+                    m_EmailSmtpHost,
+                    m_EmailSmtpPort,
+                    e.Message);
             }
             catch (Exception e)
             {
