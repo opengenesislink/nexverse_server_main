@@ -82,7 +82,7 @@ namespace OpenSim.Region.CoreModules.Framework.ViewerSupport
                         Constants.servicesGodAgentID.ToString())
                     {
                         Description =
-                            "Empty attachable container used to bootstrap Firestorm LSL Bridge on OpenSim-compatible grids.",
+                            "Firestorm LSL Bridge bootstrap container.",
                         Data = Utils.StringToBytes(xml)
                     };
 
@@ -90,18 +90,18 @@ namespace OpenSim.Region.CoreModules.Framework.ViewerSupport
                 if (string.IsNullOrWhiteSpace(storedId))
                 {
                     m_log.Warn(
-                        "[FIRESTORM BRIDGE]: Failed to store bootstrap object asset.");
+                        "[FIRESTORM BRIDGE]: Bootstrap-Objekt-Asset konnte nicht gespeichert werden.");
                     return;
                 }
 
                 m_log.InfoFormat(
-                    "[FIRESTORM BRIDGE]: Stored bootstrap object asset {0}.",
+                    "[FIRESTORM BRIDGE]: Bootstrap-Objekt-Asset {0} wurde gespeichert.",
                     storedId);
             }
             catch (Exception e)
             {
                 m_log.WarnFormat(
-                    "[FIRESTORM BRIDGE]: Failed to ensure bootstrap object asset: {0}",
+                    "[FIRESTORM BRIDGE]: Bootstrap-Objekt-Asset konnte nicht sichergestellt werden: {0}",
                     e);
             }
         }
