@@ -105,9 +105,9 @@ namespace OpenSim.OfflineIM
                 m_EmailReplyLifetimeDays = Math.Max(1, Math.Min(30, emailConfig.GetInt("ReplyLifetimeDays", 5)));
                 m_EmailSmtpHost = emailConfig.GetString("SMTPHost", m_EmailSmtpHost).Trim();
                 m_EmailSmtpPort = emailConfig.GetInt("SMTPPort", m_EmailSmtpPort);
-                m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", false);
+                m_EmailUseStartTls = emailConfig.GetBoolean("UseStartTls", m_EmailUseStartTls);
                 m_EmailUseSslOnConnect = emailConfig.GetBoolean("UseSslOnConnect", false);
-                m_EmailSmtpUsername = emailConfig.GetString("SMTPUsername", string.Empty).Trim();
+                m_EmailSmtpUsername = emailConfig.GetString("SMTPUsername", m_EmailSmtpUsername).Trim();
                 m_EmailSmtpPassword = emailConfig.GetString("SMTPPassword", string.Empty);
                 m_EmailPerSenderPerHour = Math.Max(1, emailConfig.GetInt("PerSenderPerHour", m_EmailPerSenderPerHour));
                 m_EmailPerRecipientPerHour = Math.Max(1, emailConfig.GetInt("PerRecipientPerHour", m_EmailPerRecipientPerHour));
@@ -142,7 +142,21 @@ namespace OpenSim.OfflineIM
 
             m_log.DebugFormat("[OfflineIM.V2]: Offline-Nachrichten wurden durch {0} aktiviert", Name);
             if (m_EmailEnabled)
-                m_log.InfoFormat("[OfflineIM.V2.EMAIL]: Offline-IM-E-Mail aktiviert über {0}:{1} mit Avatar-Relay-Domain {2}.", m_EmailSmtpHost, m_EmailSmtpPort, m_EmailRelayDomain);
+            {
+                string smtpSecurity = m_EmailUseSslOnConnect
+                    ? "SSL/TLS"
+                    : m_EmailUseStartTls
+                        ? "STARTTLS"
+                        : "keine";
+
+                m_log.InfoFormat(
+                    "[OfflineIM.V2.EMAIL]: SMTP-Konfiguration aktiv: Server {0}:{1}, Verschlüsselung {2}, Benutzer {3}, Relay-Domain {4}. Passwortquelle: geschützte NexVerse-Runtime-Konfiguration.",
+                    m_EmailSmtpHost,
+                    m_EmailSmtpPort,
+                    smtpSecurity,
+                    string.IsNullOrWhiteSpace(m_EmailSmtpUsername) ? "(keiner)" : m_EmailSmtpUsername,
+                    m_EmailRelayDomain);
+            }
         }
 
         public void AddRegion(Scene scene)
