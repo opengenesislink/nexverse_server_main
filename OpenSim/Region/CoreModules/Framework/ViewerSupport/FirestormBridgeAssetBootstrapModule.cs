@@ -62,12 +62,12 @@ namespace OpenSim.Region.CoreModules.Framework.ViewerSupport
                 bridgeContainer.RootPart.Description =
                     "OpenGenesisLINK Firestorm LSL bridge bootstrap container";
 
-                uint all = (uint)PermissionMask.All;
+                uint all = (uint)OpenSim.Framework.PermissionMask.All;
                 bridgeContainer.RootPart.BaseMask = all;
                 bridgeContainer.RootPart.OwnerMask = all;
                 bridgeContainer.RootPart.NextOwnerMask = all;
-                bridgeContainer.RootPart.GroupMask = (uint)PermissionMask.None;
-                bridgeContainer.RootPart.EveryoneMask = (uint)PermissionMask.None;
+                bridgeContainer.RootPart.GroupMask = (uint)OpenSim.Framework.PermissionMask.None;
+                bridgeContainer.RootPart.EveryoneMask = (uint)OpenSim.Framework.PermissionMask.None;
 
                 string xml =
                     SceneObjectSerializer.ToOriginalXmlFormat(
