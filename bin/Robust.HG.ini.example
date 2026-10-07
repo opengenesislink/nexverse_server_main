@@ -26,6 +26,8 @@
     ; Runtime secrets are supplied through process environment,
     ; /etc/nexverse/nexverse.env or bin/nexverse.local.env.
     NEXVERSE_NATIVE_TOKEN_SIGNING_KEY = ""
+    NEXVERSE_IM_RELAY_SIGNING_KEY = ""
+    NEXVERSE_IM_RELAY_IMAP_PASSWORD = ""
 
 [Const]
     ; The domain or IP of the Robust server.
@@ -915,6 +917,26 @@
     OfflineIMService = "OpenSim.Addons.OfflineIM.dll:OfflineIMService"
     ; maximum number of offline ims per user, default 25
     ;MaxOfflineIMs = 25;
+
+
+[OfflineIMMailRelay]
+    ; Central catch-all mailbox relay. Only Robust polls this mailbox.
+    Enabled = true
+    RelayDomain = "im.stadt-nexverse.de"
+    RelaySigningKey = "${Environment|NEXVERSE_IM_RELAY_SIGNING_KEY}"
+
+    ; KeyHelp catch-all mailbox. Adjust IMAPHost if your KeyHelp mail hostname differs.
+    IMAPHost = "mail.stadt-nexverse.de"
+    IMAPPort = 993
+    UseSslOnConnect = true
+    UseStartTls = false
+    IMAPUsername = "relay@im.stadt-nexverse.de"
+    IMAPPassword = "${Environment|NEXVERSE_IM_RELAY_IMAP_PASSWORD}"
+
+    PollSeconds = 20
+    BatchSize = 25
+    MaximumReplyCharacters = 1024
+    MaximumReplyLifetimeDays = 5
 
 [Groups]
     ; Persistent NexGroups moderation overlay. The historical Groups V2

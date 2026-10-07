@@ -24,6 +24,8 @@ Simulator service variables are also declared in `bin/config-include/GridCommon.
 - `NEXVERSE_ECONOMY_API_KEY` — required only when `[NexEconomyViewer] Enabled = true`; use a restricted machine key with `economy:read` and `economy:transfer`.
 - `NEXVERSE_EXPERIENCES_API_KEY` — required only when `[NexExperiencesViewer] Enabled = true`; use a restricted machine key with `experiences:script`.
 - `NEXVERSE_OFFLINE_IM_SMTP_PASSWORD` — SMTP password used by `[OfflineIMEmail]` when authenticated SMTP is configured. It may remain empty when a trusted local relay is used.
+- `NEXVERSE_IM_RELAY_SIGNING_KEY` — shared HMAC secret used by simulators and Robust to create/validate 5-day offline-IM email reply addresses. Use at least 32 random bytes.
+- `NEXVERSE_IM_RELAY_IMAP_PASSWORD` — IMAP password for the KeyHelp catch-all mailbox `relay@im.stadt-nexverse.de`.
 
 The declarations themselves stay empty in the tracked INI. When the corresponding module is disabled, the empty declaration is sufficient for configuration expansion. When the module is enabled, provide the real value through a protected runtime secret source.
 

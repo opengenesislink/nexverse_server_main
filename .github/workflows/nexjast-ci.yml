@@ -269,6 +269,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_offline_im_email.py
 
+      - name: Verify secure offline IM email reply relay
+        shell: bash
+        run: python3 tools/ci/verify_offline_im_mail_relay.py
+
       - name: Verify cross-region object messaging
         shell: bash
         run: python3 tools/ci/verify_object_messaging.py
