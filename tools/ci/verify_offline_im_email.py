@@ -49,6 +49,10 @@ assert 'NEXVERSE_OFFLINE_IM_SMTP_PASSWORD = ""' in grid_common
 
 prebuild = read("prebuild.xml")
 offline_project = prebuild.split('<Project name="OpenSim.Addons.OfflineIM"', 1)[1].split("</Project>", 1)[0]
+assert "NEXVERSE_OFFLINE_IM_SMTP_PASSWORD fehlt oder ist leer" in module
+assert "catch (AuthenticationException e)" in module
+assert "Bitte NEXVERSE_OFFLINE_IM_SMTP_PASSWORD prüfen" in module
+
 assert '<Reference name="MailKit"/>' in offline_project
 assert '<Reference name="MimeKit"/>' in offline_project
 
