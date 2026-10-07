@@ -104,6 +104,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
 <button class="navbtn" data-page="chatgpt">ChatGPT / Portale</button>
+<button class="navbtn" data-page="secrets">Schlüssel &amp; Einrichtung</button>
 <button class="navbtn" data-page="explorer">API-Endpunkte</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
 </nav>
@@ -131,6 +132,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="filter" data-goto="roadmap">Entwicklungsplan / Projektstatus</button>
 <button class="filter" data-goto="chatgpt">ChatGPT / Portale</button>
 <button class="filter" data-goto="explorer">Endpunktübersicht</button>
+<button class="filter" data-goto="secrets">Schlüssel &amp; Einrichtung</button>
 </div>
 </div>
 </section>
@@ -409,6 +411,50 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <div class="change"><h3>x-nexverse-ai-instruction</h3><p>Enthaelt die operation-spezifische Anweisung fuer ChatGPT/API-Agenten.</p></div>
 <div class="change"><h3>x-nexverse-security-constraints</h3><p>Definiert Sicherheits-, Secret-, Audit- und Autorisierungsvorgaben.</p></div>
 </div>
+</div>
+</section>
+
+
+<section class="page" id="page-secrets">
+<div class="hero"><div><div class="eyebrow">Systemverwaltung</div><h1>API-Schlüssel &amp; NexBus einrichten</h1>
+<p>Erzeuge auf dieser Seite dedizierte Maschinen-API-Schlüssel und einen gemeinsamen NexBus-Signaturschlüssel. Kopiere anschließend die fertigen Zeilen in die geschützte <code>/etc/nexverse/nexverse.env</code> auf den beteiligten Servern.</p></div></div>
+<div class="section">
+<h2>1. Als NexVerse-Administrator authentifizieren</h2>
+<p class="sectionlead">Nur ein lokales Konto mit <code>admin:*</code> darf Maschinen-Schlüssel registrieren. Zugangsdaten werden ausschließlich für den einmaligen Anmeldeaufruf verwendet und weder auf dem Server noch im Browser gespeichert.</p>
+<div class="grid2">
+<div><label class="label2" for="secretAdminName">Avatar-Benutzername (Vorname.Nachname)</label><input id="secretAdminName" autocomplete="off" spellcheck="false" placeholder="Vorname.Nachname"></div>
+<div><label class="label2" for="secretAdminPassword">Avatar-Passwort</label><input id="secretAdminPassword" type="password" autocomplete="off"></div>
+<div><label class="label2" for="secretAdminTotp">TOTP (falls aktiviert)</label><input id="secretAdminTotp" type="password" autocomplete="off" inputmode="numeric" placeholder="Optional"></div>
+<div><label class="label2" for="secretAdminBearer">Alternativ: bereits vorhandenes Admin-Bearer-Token</label><input id="secretAdminBearer" type="password" autocomplete="off" spellcheck="false" placeholder="Optional, statt Benutzername und Passwort"></div>
+</div>
+</div>
+<div class="section">
+<h2>2. Erforderliche Schlüssel auswählen</h2>
+<p class="sectionlead">Bereits eingerichtete Schlüssel nicht unnötig neu erzeugen. Neue API-Schlüssel bleiben zusätzlich zu bestehenden registriert, bis sie ausdrücklich deaktiviert werden.</p>
+<div class="changegrid">
+<label class="change"><input type="checkbox" id="secretEconomy" style="width:auto" /> <strong>Economy / NV$</strong><p><code>economy:read</code> und <code>economy:transfer</code>. Nur auswählen, wenn noch kein gültiger Economy-Key existiert.</p></label>
+<label class="change"><input type="checkbox" id="secretExperiences" checked style="width:auto" /> <strong>Experiences</strong><p><code>experiences:script</code>. Eigener Schlüssel für den Simulator, keine Administrationsrechte.</p></label>
+<label class="change"><input type="checkbox" id="secretNexBus" checked style="width:auto" /> <strong>NexBus / NodeAgent</strong><p>Gemeinsamer zufälliger HMAC-Signaturschlüssel für Robust und alle Simulator-Nodes.</p></label>
+</div>
+<p class="authnote">Der NexBus-SharedKey ist kein World-API-Key. Er wird lokal im Browser per kryptografisch sicherem Zufall erzeugt und muss auf allen beteiligten Nodes identisch sein.</p>
+<div class="grid2">
+<div><label class="label2" for="secretPeerUrl">Simulator → Robust (NexBus-URL)</label><input id="secretPeerUrl" autocomplete="off" spellcheck="false" placeholder="https://intern.example/internal/nexbus/v1/events"></div>
+<div><label class="label2" for="secretPeers">Robust → Simulator(en), kommagetrennt</label><input id="secretPeers" autocomplete="off" spellcheck="false" placeholder="https://sim-intern.example/internal/nexbus/v1/events"></div>
+</div>
+<p class="authnote">Diese beiden URLs sind nur für NexBus erforderlich. Trage die tatsächlich erreichbaren internen Endpunkte ein. Erlaubt ist HTTPS oder HTTP auf Loopback (127.0.0.1 / ::1); schütze die Endpunkte zusätzlich durch Firewall oder privates Netzwerk. Port und Proxy-Weiterleitung müssen zu deiner Installation passen.</p>
+<div class="row" style="margin-top:14px;flex-wrap:wrap">
+<button class="action" id="secretGenerate">Ausgewählte Schlüssel erstellen</button>
+<button class="action" id="secretCopy" disabled>Konfiguration kopieren</button>
+<button class="action" id="secretClear">Geheimnisse aus dieser Seite löschen</button>
+</div>
+<div class="authnote" id="secretStatus" role="status">Noch keine Schlüssel erstellt.</div>
+</div>
+<div class="section">
+<h2>3. In Secret-Datei übernehmen</h2>
+<p class="sectionlead">Die Secret-Datei verwendet <code>NAME=WERT</code>, keine INI-Sektionen. Die bisherige Standarddatei heißt <code>/etc/nexverse/nexverse.env</code> (nicht <code>.ini</code>). Bestehende Einträge, insbesondere dein Economy-Key, müssen erhalten bleiben.</p>
+<textarea id="secretOutput" readonly autocomplete="off" spellcheck="false" style="min-height:210px" placeholder="Die einmalig angezeigten Schlüssel erscheinen nach erfolgreicher Erzeugung hier."></textarea>
+<p class="authnote">Die vollständigen API-Keys zeigt die World API nur beim Erstellen an. Eine Seite oder den Browser erst verlassen, wenn du die neuen Werte sicher übernommen hast. Sie werden nicht in localStorage, Cookies oder der URL abgelegt.</p>
+<p class="authnote">Setze für die Secret-Datei <code>chmod 600 /etc/nexverse/nexverse.env</code>. Starte zunächst Robust mit dem neuen NexBus-Key und dem PR-#104-Code neu, danach die Simulatoren. Bereits vorhandene Prozessvariablen haben Vorrang vor der Datei.</p>
 </div>
 </section>
 
@@ -1251,6 +1297,140 @@ async function execute(){
     const headerLines=[];res.headers.forEach((v,k)=>headerLines.push(k+': '+v));$('output').textContent=headerLines.join('\n')+'\n\n'+formatted;
   }catch(err){$('status').textContent='Anfrage fehlgeschlagen';$('status').className='small status-bad';$('output').textContent=String(err)}
 }
+
+/* Secrets console: admin-only World API key issuance; no browser persistence. */
+function secretStatus(message, ok) {
+  const node=$('secretStatus');
+  node.textContent=message;
+  node.className='authnote'+(ok===true?' status-good':ok===false?' status-bad':'');
+}
+function secretClear() {
+  ['secretAdminPassword','secretAdminTotp','secretAdminBearer','secretOutput'].forEach(id=>{$(id).value=''});
+  $('secretCopy').disabled=true;
+  secretStatus('Geheimnisse aus der geöffneten Seite gelöscht.',true);
+}
+function secretRandomHmac() {
+  if(!window.isSecureContext||!window.crypto?.getRandomValues)
+    throw new Error('Für die sichere Zufallsgenerierung ist HTTPS erforderlich.');
+  const bytes=new Uint8Array(48);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+function secretValidateEndpoint(text) {
+  let url;
+  try{url=new URL(text)}catch{throw new Error('NexBus-Peer-URL ist ungültig: '+text)}
+  if(url.pathname!=='/internal/nexbus/v1/events'||url.search||url.hash||url.username||url.password)
+    throw new Error('NexBus-URL muss exakt auf /internal/nexbus/v1/events enden.');
+  const loopback=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
+  if(url.protocol!=='https:'&&!(url.protocol==='http:'&&loopback))
+    throw new Error('NexBus erfordert HTTPS oder HTTP auf localhost.');
+  return url.href;
+}
+function secretBuildLines(values) {
+  const names=['NEXVERSE_ECONOMY_API_KEY','NEXVERSE_EXPERIENCES_API_KEY',
+    'NEXVERSE_NEXBUS_SHARED_KEY','NEXVERSE_NEXBUS_PEER_URL','NEXVERSE_NEXBUS_PEERS'];
+  $('secretOutput').value=names.filter(name=>Object.hasOwn(values,name)).map(name=>name+'='+values[name]).join('\n')+'\n';
+  $('secretCopy').disabled=!Object.keys(values).length;
+}
+async function secretJson(url,opts) {
+  const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...opts});
+  let data={};
+  try{data=await response.json()}catch{}
+  if(!response.ok)throw new Error('HTTP '+response.status+' ('+(data.error||'api_error')+')');
+  return data;
+}
+async function secretAdminToken() {
+  const supplied=$('secretAdminBearer').value.trim();
+  if(supplied)return supplied;
+  const name=$('secretAdminName').value.trim();
+  const pass=$('secretAdminPassword').value;
+  const totp=$('secretAdminTotp').value.trim();
+  if(!name||!pass)throw new Error('Administrator-Benutzername und Passwort fehlen.');
+  const payload={username:name,password:pass};
+  if(totp)payload.totp=totp;
+  const login=await secretJson('/api/v1/auth/session',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+  if(!login.scope?.split(/\s+/).includes('admin:*'))
+    throw new Error('Der angemeldete Einwohner besitzt kein admin:*.');
+  return login.access_token;
+}
+async function secretGenerate() {
+  const wantEconomy=$('secretEconomy').checked;
+  const wantExperiences=$('secretExperiences').checked;
+  const wantBus=$('secretNexBus').checked;
+  if(!wantEconomy&&!wantExperiences&&!wantBus){
+    secretStatus('Bitte mindestens einen Schlüssel auswählen.',false);return;
+  }
+  const values={};
+  let peers=[];
+  let peerUrl='';
+  try {
+    if(wantBus){
+      peerUrl=secretValidateEndpoint($('secretPeerUrl').value.trim());
+      peers=$('secretPeers').value.split(',').map(x=>x.trim()).filter(Boolean).map(secretValidateEndpoint);
+      if(!peers.length)throw new Error('Mindestens eine Robust-zu-Simulator-URL angeben.');
+    }
+    if(!window.isSecureContext)throw new Error('Schlüssel nur über HTTPS generieren.');
+    if(!window.confirm('Neue Maschinen-API-Schlüssel werden sofort serverseitig registriert. Erstellung starten?'))return;
+    $('secretGenerate').disabled=true;
+    $('secretCopy').disabled=true;
+    $('secretOutput').value='';
+    secretStatus('Schlüssel werden registriert…',null);
+    if(wantBus){
+      values.NEXVERSE_NEXBUS_SHARED_KEY=secretRandomHmac();
+      values.NEXVERSE_NEXBUS_PEER_URL=peerUrl;
+      values.NEXVERSE_NEXBUS_PEERS=peers.join(',');
+      secretBuildLines(values);
+    }
+    if(wantEconomy||wantExperiences){
+      const token=await secretAdminToken();
+      // Clear entered login secrets immediately; the session token stays in a local variable only.
+      $('secretAdminPassword').value='';
+      $('secretAdminTotp').value='';
+      for(const item of [
+        {wanted:wantEconomy,name:'NexVerse Simulator Economy',
+         scopes:['economy:read','economy:transfer'],env:'NEXVERSE_ECONOMY_API_KEY'},
+        {wanted:wantExperiences,name:'NexVerse Simulator Experiences',
+         scopes:['experiences:script'],env:'NEXVERSE_EXPERIENCES_API_KEY'}
+      ]){
+        if(!item.wanted)continue;
+        const data=await secretJson('/api/v1/auth/api-keys',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({name:item.name,scopes:item.scopes})
+        });
+        if(!/^nxk_[0-9a-f]{32}\.[A-Za-z0-9_-]{64}$/.test(data.api_key||''))
+          throw new Error('Die API antwortete ohne vollständigen Maschinen-API-Schlüssel.');
+        values[item.env]=data.api_key;
+        secretBuildLines(values);
+      }
+    }
+    secretStatus('Alle ausgewählten Schlüssel erstellt. Konfigurationsblock jetzt sicher kopieren.',true);
+  }catch(err){
+    secretBuildLines(values);
+    secretStatus('Einrichtung nicht vollständig: '+String(err.message||err)+
+      '. Bereits erstellte Schlüssel stehen im Ausgabefeld; kopieren, bevor du erneut startest.',false);
+  }finally{
+    $('secretGenerate').disabled=false;
+    $('secretAdminPassword').value='';
+    $('secretAdminTotp').value='';
+  }
+}
+async function secretCopy() {
+  const contents=$('secretOutput').value;
+  if(!contents.trim())return;
+  try{
+    await navigator.clipboard.writeText(contents);
+    secretStatus('Konfigurationszeilen in die Zwischenablage kopiert. Sicher in nexverse.env einfügen.',true);
+  }catch{
+    $('secretOutput').focus();
+    $('secretOutput').select();
+    secretStatus('Zwischenablage nicht verfügbar. Ausgabe markieren und manuell kopieren.',false);
+  }
+}
+
 async function init(){
   try{
     const results=await Promise.all([
@@ -1275,6 +1455,9 @@ async function init(){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
 }
+$('secretGenerate').addEventListener('click',secretGenerate);
+$('secretCopy').addEventListener('click',secretCopy);
+$('secretClear').addEventListener('click',secretClear);
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value='';$('gridMutationIdempotency').value=''});
