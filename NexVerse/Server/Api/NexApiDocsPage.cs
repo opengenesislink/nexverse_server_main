@@ -104,6 +104,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="navbtn" data-page="versions">Versionen</button>
 <button class="navbtn" data-page="roadmap">Entwicklungsplan</button>
 <button class="navbtn" data-page="chatgpt">ChatGPT / Portale</button>
+<button class="navbtn" data-page="adminlogin">Admin-Anmeldung</button>
 <button class="navbtn" data-page="secrets">Schlüssel &amp; Einrichtung</button>
 <button class="navbtn" data-page="explorer">API-Endpunkte</button>
 <div class="navmeta" id="navmeta">Live-Daten werden geladen…</div>
@@ -132,6 +133,7 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <button class="filter" data-goto="roadmap">Entwicklungsplan / Projektstatus</button>
 <button class="filter" data-goto="chatgpt">ChatGPT / Portale</button>
 <button class="filter" data-goto="explorer">Endpunktübersicht</button>
+<button class="filter" data-goto="adminlogin">Admin-Anmeldung</button>
 <button class="filter" data-goto="secrets">Schlüssel &amp; Einrichtung</button>
 </div>
 </div>
@@ -415,18 +417,37 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 </section>
 
 
+
+<section class="page" id="page-adminlogin">
+<div class="hero">
+<div><div class="eyebrow">Geschützter Verwaltungszugang</div>
+<h1>Als NexVerse-Administrator anmelden</h1>
+<p>Dieses Control Center erlaubt die Anmeldung ausschließlich für lokale NexVerse-Benutzer mit <code>UserLevel >= 200</code> und <code>admin:*</code>. Andere Einwohner können die öffentliche API-Dokumentation weiter lesen, erhalten jedoch keine Administratorsitzung.</p></div>
+<div class="pill"><span class="dot" id="adminLoginDot"></span><span id="adminLoginState">Nicht angemeldet</span></div>
+</div>
+<div class="section">
+<h2>Administrator-Konto</h2>
+<p class="sectionlead">Melde dich mit den lokalen Avatar-Zugangsdaten an. Benutzername: <code>Vorname.Nachname</code> (oder kurzer Resident-Name). Bei aktivierter Zwei-Faktor-Authentifizierung ist der TOTP-Code erforderlich.</p>
+<div class="grid2">
+<div><label class="label2" for="adminLoginUsername">Benutzername</label><input id="adminLoginUsername" spellcheck="false" autocomplete="username" placeholder="Vorname.Nachname"></div>
+<div><label class="label2" for="adminLoginPassword">Avatar-Passwort</label><input id="adminLoginPassword" type="password" autocomplete="current-password"></div>
+<div><label class="label2" for="adminLoginTotp">TOTP (falls aktiviert)</label><input id="adminLoginTotp" autocomplete="one-time-code" inputmode="numeric" placeholder="Optional"></div>
+</div>
+<div class="row" style="margin-top:16px">
+<button class="action" id="adminLoginSubmit">Als Administrator anmelden</button>
+<button class="action" id="adminLoginLogout" disabled>Abmelden</button>
+</div>
+<p class="authnote" id="adminLoginMessage" role="status">Der Login verwendet ausschließlich den geschützten NexVerse-Endpunkt <code>POST /api/v1/auth/admin/session</code>. Das Access-Token wird nur im Arbeitsspeicher dieser Seite gehalten, nicht als Cookie oder im Browserspeicher abgelegt.</p>
+</div>
+</section>
+
 <section class="page" id="page-secrets">
 <div class="hero"><div><div class="eyebrow">Systemverwaltung</div><h1>API-Schlüssel &amp; NexBus einrichten</h1>
 <p>Erzeuge auf dieser Seite dedizierte Maschinen-API-Schlüssel und einen gemeinsamen NexBus-Signaturschlüssel. Kopiere anschließend die fertigen Zeilen in die geschützte <code>/etc/nexverse/nexverse.env</code> auf den beteiligten Servern.</p></div></div>
 <div class="section">
-<h2>1. Als NexVerse-Administrator authentifizieren</h2>
-<p class="sectionlead">Nur ein lokales Konto mit <code>admin:*</code> darf Maschinen-Schlüssel registrieren. Zugangsdaten werden ausschließlich für den einmaligen Anmeldeaufruf verwendet und weder auf dem Server noch im Browser gespeichert.</p>
-<div class="grid2">
-<div><label class="label2" for="secretAdminName">Avatar-Benutzername (Vorname.Nachname)</label><input id="secretAdminName" autocomplete="off" spellcheck="false" placeholder="Vorname.Nachname"></div>
-<div><label class="label2" for="secretAdminPassword">Avatar-Passwort</label><input id="secretAdminPassword" type="password" autocomplete="off"></div>
-<div><label class="label2" for="secretAdminTotp">TOTP (falls aktiviert)</label><input id="secretAdminTotp" type="password" autocomplete="off" inputmode="numeric" placeholder="Optional"></div>
-<div><label class="label2" for="secretAdminBearer">Alternativ: bereits vorhandenes Admin-Bearer-Token</label><input id="secretAdminBearer" type="password" autocomplete="off" spellcheck="false" placeholder="Optional, statt Benutzername und Passwort"></div>
-</div>
+<h2>1. Geschützte Administrator-Sitzung</h2>
+<p class="sectionlead">Für die Schlüsselverwaltung ist eine aktive World-API-Administratorsitzung (UserLevel mindestens 200, Scope <code>admin:*</code>) erforderlich.</p>
+<button class="action" data-goto="adminlogin">Admin-Login öffnen</button>
 </div>
 <div class="section">
 <h2>2. Erforderliche Schlüssel auswählen</h2>
@@ -508,6 +529,63 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <script>
 'use strict';
 let spec=null,entries=[],selected=null,changes=[],gridLayout=null,gridSelected=null,gridValidation=null,gridSearchResults=[],endpointAudience='all';
+let adminSessionToken='',adminSessionExpiry=0,adminNextPage='secrets';
+function adminIsActive(){
+  return Boolean(adminSessionToken&&Date.now()<adminSessionExpiry);
+}
+function adminAuthToken(){
+  if(adminIsActive())return adminSessionToken;
+  adminSessionToken='';
+  adminSessionExpiry=0;
+  return '';
+}
+function adminUpdateStatus(message,ok){
+  $('adminLoginState').textContent=message;
+  $('adminLoginDot').className='dot'+(ok===true?' good':ok===false?' bad':'');
+  $('adminLoginLogout').disabled=!adminIsActive();
+  $('adminLoginMessage').textContent=message;
+}
+function adminLogout(){
+  adminSessionToken='';
+  adminSessionExpiry=0;
+  ['adminLoginPassword','adminLoginTotp','bearer','gridBearer','nodesBearer','statsBearer'].forEach(id=>{$(id).value=''});
+  secretClear();
+  adminUpdateStatus('Abgemeldet',null);
+  showPage('adminlogin');
+}
+async function adminLogin(){
+  if(!window.isSecureContext){adminUpdateStatus('Administrator-Login ist nur über HTTPS erlaubt.',false);return}
+  const username=$('adminLoginUsername').value.trim();
+  const password=$('adminLoginPassword').value;
+  const totp=$('adminLoginTotp').value.trim();
+  if(!username||!password){adminUpdateStatus('Benutzername und Passwort erforderlich.',false);return}
+  $('adminLoginSubmit').disabled=true;
+  try{
+    const body={username,password};
+    if(totp)body.totp=totp;
+    const res=await fetch('/api/v1/auth/admin/session',{
+      method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(body),cache:'no-store',credentials:'same-origin'
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error('HTTP '+res.status+' ('+(data.error||'login_failed')+')');
+    if(Number(data.user_level)<200||!data.scope?.split(/\s+/).includes('admin:*')||!data.administrator)
+      throw new Error('Administratorrolle oder UserLevel 200 fehlt.');
+    adminSessionToken=data.access_token;
+    adminSessionExpiry=Date.now()+Math.max(0,Number(data.expires_in||0)-30)*1000;
+    if(!adminIsActive())throw new Error('Administratorsitzung bereits abgelaufen.');
+    adminUpdateStatus('Angemeldet · UserLevel '+data.user_level,true);
+    showPage(adminNextPage||'secrets');
+  }catch(err){
+    adminSessionToken='';adminSessionExpiry=0;
+    adminUpdateStatus('Anmeldung fehlgeschlagen: '+String(err.message||err),false);
+  }finally{
+    $('adminLoginPassword').value='';
+    $('adminLoginTotp').value='';
+    $('adminLoginSubmit').disabled=false;
+  }
+}
+
 const $=id=>document.getElementById(id);
 const methods=new Set(['get','post','put','patch','delete','options','head']);
 const statusLabels={released:'Veröffentlicht',active:'Aktiv',advanced:'Vorgezogen',started:'Begonnen',foundation:'Grundlage',planned:'Geplant',implemented:'Umgesetzt',development:'Entwicklung',release:'Veröffentlicht'};
@@ -521,6 +599,11 @@ function audienceLabel(value){return audienceLabels[value]||value||''}
 function languageLabel(value){return languageLabels[value]||value||''}
 
 function showPage(name){
+  if(['secrets','nodes','grid'].includes(name)&&!adminIsActive()){
+    adminNextPage=name;
+    name='adminlogin';
+    adminUpdateStatus('Anmeldung mit UserLevel >= 200 erforderlich.',null);
+  }
   document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+name));
   document.querySelectorAll('.navbtn').forEach(x=>x.classList.toggle('active',x.dataset.page===name));
   window.scrollTo({top:0,behavior:'smooth'});
@@ -763,7 +846,7 @@ function renderStatistics(data){
 }
 async function loadStatistics(){
   const headers={'Accept':'application/json'};
-  const bearer=$('statsBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('statsBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('statsApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -789,7 +872,7 @@ async function loadStatistics(){
 
 function nodeHeaders(){
   const headers={'Accept':'application/json'};
-  const bearer=$('nodesBearer').value.trim()||$('gridBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('nodesBearer').value.trim()||$('gridBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('nodesApiKey').value.trim()||$('gridApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -865,7 +948,7 @@ async function loadNodes(){
 
 function gridHeaders(){
   const headers={'Accept':'application/json'};
-  const bearer=$('gridBearer').value.trim()||$('bearer').value.trim();
+  const bearer=$('gridBearer').value.trim()||$('bearer').value.trim()||adminAuthToken();
   const key=$('gridApiKey').value.trim()||$('apiKey').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;
   if(key)headers['X-NexVerse-Api-Key']=key;
@@ -1285,7 +1368,7 @@ async function runGridLifecycle(action){
 
 async function execute(){
   if(!selected)return;
-  const headers={'Accept':'application/json'},bearer=$('bearer').value.trim(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
+  const headers={'Accept':'application/json'},bearer=$('bearer').value.trim()||adminAuthToken(),key=$('apiKey').value.trim(),idem=$('idem').value.trim();
   if(bearer)headers.Authorization='Bearer '+bearer;if(key)headers['X-NexVerse-Api-Key']=key;if(idem)headers['Idempotency-Key']=idem;
   const body=$('body').value.trim(),opts={method:selected.method,headers};
   if(body&&!['GET','HEAD'].includes(selected.method)){headers['Content-Type']='application/json';opts.body=body}
@@ -1305,7 +1388,7 @@ function secretStatus(message, ok) {
   node.className='authnote'+(ok===true?' status-good':ok===false?' status-bad':'');
 }
 function secretClear() {
-  ['secretAdminPassword','secretAdminTotp','secretAdminBearer','secretOutput'].forEach(id=>{$(id).value=''});
+  ['secretOutput'].forEach(id=>{$(id).value=''});
   $('secretCopy').disabled=true;
   secretStatus('Geheimnisse aus der geöffneten Seite gelöscht.',true);
 }
@@ -1340,21 +1423,9 @@ async function secretJson(url,opts) {
   return data;
 }
 async function secretAdminToken() {
-  const supplied=$('secretAdminBearer').value.trim();
-  if(supplied)return supplied;
-  const name=$('secretAdminName').value.trim();
-  const pass=$('secretAdminPassword').value;
-  const totp=$('secretAdminTotp').value.trim();
-  if(!name||!pass)throw new Error('Administrator-Benutzername und Passwort fehlen.');
-  const payload={username:name,password:pass};
-  if(totp)payload.totp=totp;
-  const login=await secretJson('/api/v1/auth/session',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  });
-  if(!login.scope?.split(/\s+/).includes('admin:*'))
-    throw new Error('Der angemeldete Einwohner besitzt kein admin:*.');
-  return login.access_token;
+  const token=adminAuthToken();
+  if(!token)throw new Error('Eine aktive Admin-Sitzung mit UserLevel 200 ist erforderlich.');
+  return token;
 }
 async function secretGenerate() {
   const wantEconomy=$('secretEconomy').checked;
@@ -1373,6 +1444,7 @@ async function secretGenerate() {
       if(!peers.length)throw new Error('Mindestens eine Robust-zu-Simulator-URL angeben.');
     }
     if(!window.isSecureContext)throw new Error('Schlüssel nur über HTTPS generieren.');
+    const token=await secretAdminToken();
     if(!window.confirm('Neue Maschinen-API-Schlüssel werden sofort serverseitig registriert. Erstellung starten?'))return;
     $('secretGenerate').disabled=true;
     $('secretCopy').disabled=true;
@@ -1385,10 +1457,6 @@ async function secretGenerate() {
       secretBuildLines(values);
     }
     if(wantEconomy||wantExperiences){
-      const token=await secretAdminToken();
-      // Clear entered login secrets immediately; the session token stays in a local variable only.
-      $('secretAdminPassword').value='';
-      $('secretAdminTotp').value='';
       for(const item of [
         {wanted:wantEconomy,name:'NexVerse Simulator Economy',
          scopes:['economy:read','economy:transfer'],env:'NEXVERSE_ECONOMY_API_KEY'},
@@ -1414,11 +1482,10 @@ async function secretGenerate() {
       '. Bereits erstellte Schlüssel stehen im Ausgabefeld; kopieren, bevor du erneut startest.',false);
   }finally{
     $('secretGenerate').disabled=false;
-    $('secretAdminPassword').value='';
-    $('secretAdminTotp').value='';
   }
 }
 async function secretCopy() {
+  if(!adminAuthToken()){secretClear();showPage('adminlogin');return}
   const contents=$('secretOutput').value;
   if(!contents.trim())return;
   try{
@@ -1455,6 +1522,10 @@ async function init(){
     $('healthText').textContent='API-Metadaten konnten nicht geladen werden';$('healthDot').className='dot bad';$('navmeta').textContent=String(err);
   }
 }
+$('adminLoginSubmit').addEventListener('click',adminLogin);
+$('adminLoginLogout').addEventListener('click',adminLogout);
+$('adminLoginPassword').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();adminLogin()}});
+$('adminLoginTotp').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();adminLogin()}});
 $('secretGenerate').addEventListener('click',secretGenerate);
 $('secretCopy').addEventListener('click',secretCopy);
 $('secretClear').addEventListener('click',secretClear);
