@@ -4,6 +4,7 @@ from pathlib import Path
 api = Path("NexVerse/Server/Api/NexEconomyApi.cs").read_text(encoding="utf-8")
 connector = Path("NexVerse/Server/Api/NexVerseWorldApiConnector.cs").read_text(encoding="utf-8")
 viewer = Path("NexVerse/RegionModules/Economy/NexVerseMoneyModule.cs").read_text(encoding="utf-8")
+region_addin = Path("NexVerse/RegionModules/Properties/AssemblyInfo.cs").read_text(encoding="utf-8")
 openapi = Path("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs").read_text(encoding="utf-8")
 opensim = Path("bin/OpenSim.ini.example").read_text(encoding="utf-8")
 
@@ -76,6 +77,14 @@ for marker in (
     "SendEconomyData(",
 ):
     assert marker in viewer, f"missing Viewer economy adapter marker: {marker}"
+
+for marker in (
+    '[assembly: Addin("NexVerse.RegionModules", OpenSim.VersionInfo.VersionNumber)]',
+    '[assembly: AddinDependency("OpenSim", OpenSim.VersionInfo.VersionNumber)]',
+    '[assembly: AddinDependency("OpenSim.Region.Framework", OpenSim.VersionInfo.VersionNumber)]',
+    '[assembly: AssemblyVersion(OpenSim.VersionInfo.AssemblyVersionNumber)]',
+):
+    assert marker in region_addin, f"missing NexVerse.RegionModules addin registration: {marker}"
 
 for forbidden in (
     "DbConnection",

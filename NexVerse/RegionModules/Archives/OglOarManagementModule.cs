@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using log4net;
 using Mono.Addins;
 using Nini.Config;
 using OpenMetaverse;
@@ -13,6 +14,9 @@ namespace NexVerse.RegionModules.Archives
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "OglOarManagementModule")]
     public sealed class OglOarManagementModule : ISharedRegionModule
     {
+        private static readonly ILog m_Log =
+            LogManager.GetLogger(typeof(OglOarManagementModule));
+
         private readonly ConcurrentDictionary<UUID, OglOarOperationManager> m_Managers = new();
         private bool m_Enabled;
         private string m_StorageRoot = "OGLArchives";
@@ -35,17 +39,8 @@ namespace NexVerse.RegionModules.Archives
 
         public void AddRegion(Scene scene)
         {
-            if (!m_Enabled || scene == null)
-                return;
-
-            string regionRoot = System.IO.Path.Combine(m_StorageRoot, scene.RegionInfo.RegionID.ToString());
-            OglOarOperationManager manager = new(scene, new OglOarStoragePolicy(regionRoot, m_MaximumArchiveBytes));
-            if (!m_Managers.TryAdd(scene.RegionInfo.RegionID, manager))
-            {
-                manager.Dispose();
-                throw new InvalidOperationException("OAR-Manager fuer Region ist bereits registriert.");
-            }
-            scene.RegisterModuleInterface<IOglOarOperations>(manager);
+            // The core archiver is registered by another region module. Wait
+            // until RegionLoaded so module ordering cannot abort simulator startup.
         }
 
         public void RemoveRegion(Scene scene)
@@ -60,7 +55,46 @@ namespace NexVerse.RegionModules.Archives
             }
         }
 
-        public void RegionLoaded(Scene scene) { }
+        public void RegionLoaded(Scene scene)
+        {
+            if (!m_Enabled ||
+                scene == null ||
+                m_Managers.ContainsKey(scene.RegionInfo.RegionID))
+            {
+                return;
+            }
+
+            if (scene.RequestModuleInterface<IRegionArchiverModule>() == null)
+            {
+                m_Log.WarnFormat(
+                    "[OGL-OAR]: OAR-Verwaltung fuer Region {0} bleibt deaktiviert, weil kein IRegionArchiverModule verfuegbar ist.",
+                    scene.RegionInfo.RegionName);
+                return;
+            }
+
+            string regionRoot =
+                System.IO.Path.Combine(
+                    m_StorageRoot,
+                    scene.RegionInfo.RegionID.ToString());
+
+            OglOarOperationManager manager =
+                new(
+                    scene,
+                    new OglOarStoragePolicy(
+                        regionRoot,
+                        m_MaximumArchiveBytes));
+
+            if (!m_Managers.TryAdd(
+                    scene.RegionInfo.RegionID,
+                    manager))
+            {
+                manager.Dispose();
+                return;
+            }
+
+            scene.RegisterModuleInterface<IOglOarOperations>(
+                manager);
+        }
         public void PostInitialise() { }
 
         public void Close()
