@@ -1526,6 +1526,14 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
 
         public static void SOPToXml2(XmlTextWriter writer, SceneObjectPart sop, Dictionary<string, object> options)
         {
+            if (writer == null || sop == null)
+                return;
+
+            Scene scene =
+                sop.ParentGroup?.Scene;
+            SceneObjectPartInventory inventory =
+                sop.Inventory as SceneObjectPartInventory;
+
             writer.WriteStartElement("SceneObjectPart");
             writer.WriteAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
             writer.WriteAttributeString("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
@@ -1536,17 +1544,35 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
 
             if (!string.IsNullOrEmpty(sop.CreatorData))
                 writer.WriteElementString("CreatorData", sop.CreatorData);
-            else if (options.TryGetValue("home", out object ohome))
+            else if (options.TryGetValue("home", out object ohome) &&
+                     scene != null)
             {
-                m_UserManagement ??= sop.ParentGroup.Scene.RequestModuleInterface<IUserManagement>();
-                string name = m_UserManagement.GetUserName(sop.CreatorID);
-                writer.WriteElementString("CreatorData", ExternalRepresentationUtils.CalcCreatorData((string)ohome, name));
+                m_UserManagement ??=
+                    scene.RequestModuleInterface<IUserManagement>();
+
+                if (m_UserManagement != null)
+                {
+                    string name =
+                        m_UserManagement.GetUserName(
+                            sop.CreatorID);
+                    writer.WriteElementString(
+                        "CreatorData",
+                        ExternalRepresentationUtils.CalcCreatorData(
+                            (string)ohome,
+                            name));
+                }
             }
 
             WriteUUID(writer, "FolderID", sop.FolderID, options);
-            writer.WriteElementString("InventorySerial", sop.InventorySerial.ToString());
+            writer.WriteElementString(
+                "InventorySerial",
+                (inventory?.Serial ?? 0).ToString());
 
-            WriteTaskInventory(writer, sop.TaskInventory, options, sop.ParentGroup.Scene);
+            WriteTaskInventory(
+                writer,
+                inventory?.Items,
+                options,
+                scene);
 
             WriteUUID(writer, "UUID", sop.UUID, options);
             writer.WriteElementString("LocalId", sop.LocalId.ToString());
@@ -1730,13 +1756,17 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
 
         public static void WriteTaskInventory(XmlTextWriter writer, TaskInventoryDictionary tinv, Dictionary<string, object> options, Scene scene)
         {
-            if (tinv.Count > 0) // otherwise skip this
-            {
-                writer.WriteStartElement("TaskInventory");
+            if (tinv == null || tinv.Count == 0)
+                return;
 
-                foreach (TaskInventoryItem item in tinv.Values)
-                {
-                    writer.WriteStartElement("TaskInventoryItem");
+            writer.WriteStartElement("TaskInventory");
+
+            foreach (TaskInventoryItem item in tinv.Values)
+            {
+                if (item == null)
+                    continue;
+
+                writer.WriteStartElement("TaskInventoryItem");
 
                     WriteUUID(writer, "AssetID", item.AssetID, options);
                     writer.WriteElementString("BasePermissions", item.BasePermissions.ToString());
@@ -1746,11 +1776,23 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
 
                     if (!string.IsNullOrEmpty(item.CreatorData))
                         writer.WriteElementString("CreatorData", item.CreatorData);
-                    else if (options.TryGetValue("home", out object ohome))
+                    else if (options.TryGetValue("home", out object ohome) &&
+                             scene != null)
                     {
-                        m_UserManagement ??= scene.RequestModuleInterface<IUserManagement>();
-                        string name = m_UserManagement.GetUserName(item.CreatorID);
-                        writer.WriteElementString("CreatorData", ExternalRepresentationUtils.CalcCreatorData((string)ohome, name));
+                        m_UserManagement ??=
+                            scene.RequestModuleInterface<IUserManagement>();
+
+                        if (m_UserManagement != null)
+                        {
+                            string name =
+                                m_UserManagement.GetUserName(
+                                    item.CreatorID);
+                            writer.WriteElementString(
+                                "CreatorData",
+                                ExternalRepresentationUtils.CalcCreatorData(
+                                    (string)ohome,
+                                    name));
+                        }
                     }
 
                     writer.WriteElementString("Description", item.Description);
@@ -1785,10 +1827,9 @@ namespace OpenSim.Region.Framework.Scenes.Serialization
                     writer.WriteElementString("OwnerChanged", ownerChanged.ToString().ToLower());
 
                     writer.WriteEndElement(); // TaskInventoryItem
-                }
-
-                writer.WriteEndElement(); // TaskInventory
             }
+
+            writer.WriteEndElement(); // TaskInventory
         }
 
         public static void WriteShape(XmlTextWriter writer, PrimitiveBaseShape shp, Dictionary<string, object> options)

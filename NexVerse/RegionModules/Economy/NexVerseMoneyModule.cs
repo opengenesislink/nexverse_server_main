@@ -55,6 +55,10 @@ namespace NexVerse.RegionModules.Economy
         private int m_GroupCreationCharge;
         private int m_RequestTimeoutMilliseconds =
             3000;
+        private int m_BalanceRefreshSeconds =
+            5;
+        private Timer m_BalanceRefreshTimer;
+        private int m_BalanceRefreshRunning;
 
         private const int InitialBalanceRetryDelayMilliseconds = 500;
         private const int InitialBalanceMaxAttempts = 20;
@@ -178,6 +182,14 @@ namespace NexVerse.RegionModules.Economy
                     500,
                     30000);
 
+            m_BalanceRefreshSeconds =
+                Math.Clamp(
+                    economy.GetInt(
+                        "BalanceRefreshSeconds",
+                        5),
+                    0,
+                    300);
+
             string feeWallet =
                 economy.GetString(
                         "FeeWalletId",
@@ -230,9 +242,27 @@ namespace NexVerse.RegionModules.Economy
             m_Enabled =
                 true;
 
+            if (m_BalanceRefreshSeconds > 0)
+            {
+                int refreshMilliseconds =
+                    checked(
+                        m_BalanceRefreshSeconds *
+                        1000);
+
+                m_BalanceRefreshTimer =
+                    new Timer(
+                        _ => RefreshConnectedBalances(),
+                        null,
+                        refreshMilliseconds,
+                        refreshMilliseconds);
+            }
+
             m_Log.InfoFormat(
-                "[NEX-ECONOMY-VIEWER]: Central NV$ Viewer adapter enabled for {0}.",
-                m_WorldApiBaseUrl);
+                "[NEX-ECONOMY-VIEWER]: Central NV$ Viewer adapter enabled for {0}; externer Balance-Refresh alle {1}s.",
+                m_WorldApiBaseUrl,
+                m_BalanceRefreshSeconds > 0
+                    ? m_BalanceRefreshSeconds.ToString()
+                    : "deaktiviert");
         }
 
         public void PostInitialise()
@@ -319,6 +349,13 @@ namespace NexVerse.RegionModules.Economy
 
         public void Close()
         {
+            m_Enabled =
+                false;
+
+            m_BalanceRefreshTimer?.Dispose();
+            m_BalanceRefreshTimer =
+                null;
+
             lock (m_Sync)
                 m_Scenes.Clear();
 
@@ -350,10 +387,27 @@ namespace NexVerse.RegionModules.Economy
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    string detail =
+                        ReadErrorMessage(
+                            response);
+
+                    if (response.StatusCode ==
+                            HttpStatusCode.NotFound &&
+                        detail.IndexOf(
+                            "NV$ account was not found",
+                            StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        m_Log.DebugFormat(
+                            "[NEX-ECONOMY-VIEWER]: Fuer {0} existiert noch kein NV$-Konto; Viewer-Saldo bleibt bis zur ersten Buchung 0 NV$.",
+                            agentID);
+                        return 0;
+                    }
+
                     m_Log.WarnFormat(
-                        "[NEX-ECONOMY-VIEWER]: Kontostand für {0} konnte nicht geladen werden. World API antwortete mit HTTP {1}.",
+                        "[NEX-ECONOMY-VIEWER]: Kontostand fuer {0} konnte nicht geladen werden. World API HTTP {1}: {2}",
                         agentID,
-                        (int)response.StatusCode);
+                        (int)response.StatusCode,
+                        detail);
                     return 0;
                 }
 
@@ -1499,7 +1553,7 @@ namespace NexVerse.RegionModules.Economy
             }
 
             return
-                "NV$ transfer failed (" +
+                "NV$ request failed (" +
                 (int)response.StatusCode +
                 ").";
         }
@@ -1535,8 +1589,11 @@ namespace NexVerse.RegionModules.Economy
                 LocateClient(
                     agentId);
 
-            if (client == null)
+            if (client == null ||
+                !client.IsActive)
+            {
                 return;
+            }
 
             client.SendMoneyBalance(
                 UUID.Random(),
@@ -1552,6 +1609,80 @@ namespace NexVerse.RegionModules.Economy
                 string.Empty);
         }
 
+        private void RefreshConnectedBalances()
+        {
+            if (!m_Enabled ||
+                Interlocked.Exchange(
+                    ref m_BalanceRefreshRunning,
+                    1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                Scene[] scenes;
+
+                lock (m_Sync)
+                {
+                    scenes =
+                        new List<Scene>(
+                            m_Scenes.Values)
+                            .ToArray();
+                }
+
+                HashSet<UUID> refreshed =
+                    new HashSet<UUID>();
+
+                foreach (Scene scene in scenes)
+                {
+                    if (scene == null)
+                        continue;
+
+                    foreach (ScenePresence presence in
+                             scene.GetScenePresences())
+                    {
+                        if (presence == null ||
+                            presence.IsDeleted ||
+                            presence.IsChildAgent ||
+                            presence.IsNPC)
+                        {
+                            continue;
+                        }
+
+                        IClientAPI client =
+                            presence.ControllingClient;
+
+                        if (client == null ||
+                            !client.IsActive ||
+                            !refreshed.Add(
+                                client.AgentId))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            SendBalanceRefresh(
+                                client.AgentId);
+                        }
+                        catch (Exception e)
+                        {
+                            m_Log.WarnFormat(
+                                "[NEX-ECONOMY-VIEWER]: Periodischer Kontostands-Refresh fuer {0} fehlgeschlagen: {1}",
+                                client.AgentId,
+                                e.Message);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                Volatile.Write(
+                    ref m_BalanceRefreshRunning,
+                    0);
+            }
+        }
 
 
         private bool EnsureLocalServiceWallet(
