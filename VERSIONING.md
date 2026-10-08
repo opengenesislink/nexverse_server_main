@@ -1,7 +1,7 @@
 # OpenGenesisLINK versioning
 
-Current stable release: **NexVerse 0.9.3.4**  
-Active release candidate: **OpenGenesisLINK v0.9.3.8 RC1**  
+Current stable release: **OpenGenesisLINK v0.9.3.8**  
+Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (validated and promoted)  
 Active milestone: **Search, Places, Land and Destination Guide — Chapter 12 completed**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
 Completed milestone codename: **NEXJAST**
@@ -32,8 +32,8 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `OpenGenesisLINK v0.9.3.6 Dev` — completed development line for NV$ economy, banking, commerce and land flows.
 - `OpenGenesisLINK v0.9.3.7 Dev` — completed development line for NexGroups parity, native NexExperiences and Experience LSL.
 - `OpenGenesisLINK v0.9.3.8 Dev` — completed feature implementation and development hardening for NexSearch, Places, Land Portal and Destination Guide.
-- `OpenGenesisLINK v0.9.3.8 RC1` — current release candidate; pending final RC verification. Operator reports successful cross-region and estate-wide LSL tests, including NexBus across separate simulator processes; cross-owner and log-clean checks were not separately documented.
-- `OpenGenesisLINK v0.9.3.8` — planned next stable release, conditional on RC acceptance and documented risk decision.
+- `OpenGenesisLINK v0.9.3.8 RC1` — validated prerelease. Operator reported successful cross-region and estate-wide LSL tests, including NexBus across separate simulator processes; cross-owner and log-clean checks were not separately documented.
+- `OpenGenesisLINK v0.9.3.8` — **stable release, 8 October 2026**; promoted after successful RC1 operator acceptance and green release CI. Known limitations and previously unverified edge cases remain documented in the release notes.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
 
 The product-name transition does not rewrite provenance. OpenSimulator 0.9.3.0 remains the historical source baseline, and inherited licensing remains attached to inherited code until independently replaced.
