@@ -455,10 +455,20 @@ namespace OpenSim.Region.Framework.Scenes
                 if (PhysActor != null)
                     RemoveFromPhysics();
 
-                if (m_inventory != null)
+                // Coordinate teardown with attachment/scene-object cloning.  A
+                // concurrent Copy must not clone a dictionary after its lock
+                // and item storage have been disposed.
+                SceneObjectPartInventory inventory = m_inventory;
+                if (inventory != null)
                 {
-                    m_inventory.Dispose();
-                    m_inventory = null;
+                    lock (inventory)
+                    {
+                        if (ReferenceEquals(m_inventory, inventory))
+                        {
+                            inventory.Dispose();
+                            m_inventory = null;
+                        }
+                    }
                 }
             }
         }
@@ -2135,8 +2145,30 @@ namespace OpenSim.Region.Framework.Scenes
             dupe.IgnoreUndoUpdate = false;
             dupe.Undoing = false;
 
+            // Attachments can be disposed during logout or region transfer.
+            // Take an inventory snapshot while holding the same lifetime lock
+            // used by Dispose(). Never replace a disposed inventory with an
+            // empty dictionary: that would silently drop scripts and contents.
+            SceneObjectPartInventory sourceInventory = m_inventory;
+            if (disposed || sourceInventory is null)
+                throw new ObjectDisposedException(nameof(SceneObjectPart),
+                    "Cannot copy a scene object part with disposed inventory.");
+
+            TaskInventoryDictionary copiedItems;
+            bool inventoryChanged;
+            lock (sourceInventory)
+            {
+                TaskInventoryDictionary sourceItems = sourceInventory.Items;
+                if (disposed || sourceItems is null)
+                    throw new ObjectDisposedException(nameof(SceneObjectPart),
+                        "Cannot copy a scene object part with disposed inventory.");
+
+                copiedItems = (TaskInventoryDictionary)sourceItems.Clone();
+                inventoryChanged = sourceInventory.HasInventoryChanged;
+            }
+
             dupe.m_inventory = new SceneObjectPartInventory(dupe);
-            dupe.m_inventory.Items = (TaskInventoryDictionary)m_inventory.Items.Clone();
+            dupe.m_inventory.Items = copiedItems;
 
             if (userExposed)
             {
@@ -2145,7 +2177,7 @@ namespace OpenSim.Region.Framework.Scenes
             }
             else
             {
-                dupe.m_inventory.HasInventoryChanged = m_inventory.HasInventoryChanged;
+                dupe.m_inventory.HasInventoryChanged = inventoryChanged;
             }
 
             // Move afterwards ResetIDs as it clears the localID
