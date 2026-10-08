@@ -1,6 +1,6 @@
 # OpenGenesisLINK
 
-**OpenGenesisLINK v0.9.3.8 RC1** is an independent virtual-world server platform developed by the OpenGenesisLINK project.
+**OpenGenesisLINK v0.9.3.8** is an independent virtual-world server platform developed by the OpenGenesisLINK project.
 
 This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Release** source package. It is intentionally maintained as its own repository rather than as a GitHub fork. The long-term objective is an independent OpenGenesisLINK development line whose architecture, services, protocols, modules, tooling and branding may diverge substantially from OpenSimulator.
 
@@ -21,7 +21,7 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current release candidate is **OpenGenesisLINK v0.9.3.8 RC1**. The last stable release remains **NexVerse 0.9.3.4** until 0.9.3.8 is formally released.
+The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026.
 
 OpenGenesisLINK continues the existing 0.9.3.x development line. OpenSimulator 0.9.3.0 remains the historical source baseline; upstream OpenSimulator version numbers do not automatically become OpenGenesisLINK version numbers.
 
@@ -41,7 +41,7 @@ The roadmap covers the NEXJAST legacy-cleanup milestone and the World API, ident
 
 ## Previous development milestone: OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus
 
-NexVerse 0.9.3.4 is the completed stable release of the previous product line. The **0.9.3.5 development milestone** introduced Inventory, OAR/IAR, the persistent Job Engine and NexBus; current release-candidate hardening targets **0.9.3.8 RC1**.
+NexVerse 0.9.3.4 is the completed stable release of the previous product line. The **0.9.3.5 development milestone** introduced Inventory, OAR/IAR, the persistent Job Engine and NexBus; the **0.9.3.8 RC1** validation has since passed and **0.9.3.8 Stable** is released.
 
 The 0.9.3.5 line retains viewer, Hypergrid, LSL and archive compatibility while moving operational functionality into OpenGenesisLINK-owned APIs, Job Engine workers and control-plane components. The current roadmap progress is published through the World API and kept in sync with `doc/NexVerse/ROADMAP.md` by CI.
 
