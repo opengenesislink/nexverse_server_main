@@ -52,7 +52,7 @@ namespace NexVerse.Server.Api
                 milestone_codename = NexVersePlatform.MilestoneCodename,
                 milestone_title = NexVersePlatform.MilestoneTitle,
                 language = NexVersePlatform.UiLanguage,
-                status = "development",
+                status = "release_candidate",
                 health = m_PublicBaseUrl + "/api/v1/health",
                 version = m_PublicBaseUrl + "/api/v1/version",
                 capabilities = m_PublicBaseUrl + "/api/v1/capabilities",
@@ -1280,9 +1280,9 @@ namespace NexVerse.Server.Api
                         api_version = NexVersePlatform.ApiVersion,
                         server_line = "0.9.3.8",
                         codename = NexVersePlatform.MilestoneCodename,
-                        status = "development",
-                        published = "2026-10-06",
-                        compatibility = "OpenGenesisLINK v0.9.3.8 Dev — NexSearch, Places, Land Portal und Destination Guide",
+                        status = "release_candidate",
+                        published = "2026-10-08",
+                        compatibility = "OpenGenesisLINK v0.9.3.8 RC1 — NexSearch, Places, Land Portal und Destination Guide",
                         highlights = new[]
                         {
                             "NexSearch aggregiert People, Groups, Regions, Parcels, Places, Events, Land, Classifieds, Experiences und Destinations",

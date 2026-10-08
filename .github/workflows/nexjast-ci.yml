@@ -465,7 +465,7 @@ jobs:
           grep -F 'public const string ProductName = "OpenGenesisLINK";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
           grep -F 'public const string AssemblyVersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Dev;' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.RC1;' OpenSim/Framework/VersionInfo.cs
           grep -F 'return global::OpenSim.VersionInfo.ProductName;' OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs
           grep -F 'private string m_lsl_shard = global::OpenSim.VersionInfo.ProductName;' OpenSim/Region/CoreModules/Scripting/LSLHttp/UrlModule.cs
           grep -F 'public const string MilestoneVersion = "0.9.3.8";' NexVerse/Core/NexVersePlatform.cs
@@ -518,7 +518,7 @@ jobs:
           grep -F '"status": "ok"' /tmp/nexverse-health.json
 
           curl --silent --fail --max-time 2 http://127.0.0.1:19090/api/v1/version > /tmp/nexverse-version.json
-          grep -F '"server_version": "OpenGenesisLINK 0.9.3.8 Dev"' /tmp/nexverse-version.json
+          grep -F '"server_version": "OpenGenesisLINK 0.9.3.8 RC1"' /tmp/nexverse-version.json
           grep -F '"api_version": "v1"' /tmp/nexverse-version.json
           grep -F '"language": "de-DE"' /tmp/nexverse-version.json
 
@@ -762,7 +762,7 @@ jobs:
           assert doc["x_nexverse_language"] == "de-DE"
           assert doc["x_nexverse_version_history"][0]["api_version"] == "v1"
           assert doc["x_nexverse_version_history"][0]["server_line"] == "0.9.3.8"
-          assert doc["x_nexverse_version_history"][0]["status"] == "development"
+          assert doc["x_nexverse_version_history"][0]["status"] == "release_candidate"
           assert doc["x_nexverse_version_history"][1]["server_line"] == "0.9.3.7"
           assert doc["x_nexverse_version_history"][1]["status"] == "completed"
           assert doc["x_nexverse_version_history"][2]["server_line"] == "0.9.3.6"
