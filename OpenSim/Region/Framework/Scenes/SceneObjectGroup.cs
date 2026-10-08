@@ -2507,6 +2507,8 @@ namespace OpenSim.Region.Framework.Scenes
         public SceneObjectGroup Copy(bool userExposed)
         {
             m_dupeInProgress = true;
+            try
+            {
             SceneObjectGroup dupe = (SceneObjectGroup)MemberwiseClone();
 
             dupe.m_parts = new MapAndArray<UUID, SceneObjectPart>();
@@ -2579,9 +2581,16 @@ namespace OpenSim.Region.Framework.Scenes
             }
 
             dupe.InvalidatePartsLinkMaps();
-            
-            m_dupeInProgress = false;
+
+            dupe.m_dupeInProgress = false;
             return dupe;
+            }
+            finally
+            {
+                // A failed attachment clone must not leave the source in the
+                // "duplicate in progress" state indefinitely.
+                m_dupeInProgress = false;
+            }
         }
 
         /// <summary>

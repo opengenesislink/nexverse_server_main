@@ -286,6 +286,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_attachment_scriptstate_logout.py
 
+      - name: Verify attachment teleport clone lifecycle safety
+        shell: bash
+        run: python3 tools/ci/verify_attachment_teleport_clone.py
+
       - name: Verify offline IM email notification
         shell: bash
         run: python3 tools/ci/verify_offline_im_email.py

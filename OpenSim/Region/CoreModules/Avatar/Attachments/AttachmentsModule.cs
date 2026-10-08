@@ -329,23 +329,62 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                     ad.AttachmentObjects = new List<ISceneObject>(attachments.Count);
                     ad.AttachmentObjectStates = new List<string>(attachments.Count);
                     sp.InTransitScriptStates.Clear();
+                    bool skippedAttachment = false;
 
                     foreach (SceneObjectGroup sog in attachments)
                     {
-                        // We need to make a copy and pass that copy
-                        // because of transfers with the same sim
-                        SceneObjectGroup clone = (SceneObjectGroup)sog.CloneForNewScene();
-                        // Attachment module assumes that GroupPosition holds the offsets...!
-                        clone.RootPart.GroupPosition = sog.RootPart.AttachedPos;
-                        clone.IsAttachment = false;
-                        ad.AttachmentObjects.Add(clone);
-                        string state = sog.GetStateSnapshot();
-                        ad.AttachmentObjectStates.Add(state);
-                        sp.InTransitScriptStates.Add(state);
+                        try
+                        {
+                            // Stale/deleted attachment references can remain in
+                            // the avatar list during concurrent teardown.
+                            if (sog is null || sog.IsDeleted ||
+                                sog.RootPart is null || sog.RootPart.IsDeleted ||
+                                sog.RootPart.Inventory is null)
+                            {
+                                m_log.WarnFormat(
+                                    "[ATTACHMENTS MODULE]: Skipping disposed attachment {0} during transfer of {1} from {2}; original inventory item is not modified.",
+                                    sog?.UUID, sp.Name, m_scene.Name);
+                                skippedAttachment = true;
+                                continue;
+                            }
 
-                        // Scripts of the originals will be removed when the Agent is successfully removed.
-                        // sog.RemoveScriptInstances(true);
+                            // Copy both the object and script state before
+                            // adding either to the aligned transfer lists.
+                            SceneObjectGroup clone = (SceneObjectGroup)sog.CloneForNewScene();
+                            string state = sog.GetStateSnapshot();
+                            // Attachment module assumes GroupPosition holds offsets.
+                            clone.RootPart.GroupPosition = sog.RootPart.AttachedPos;
+                            clone.IsAttachment = false;
+
+                            ad.AttachmentObjects.Add(clone);
+                            ad.AttachmentObjectStates.Add(state);
+                            sp.InTransitScriptStates.Add(state);
+
+                            // Original scripts are removed once the agent
+                            // successfully leaves this region.
+                        }
+                        catch (ObjectDisposedException e)
+                        {
+                            m_log.Warn(
+                                $"[ATTACHMENTS MODULE]: Disposed attachment {sog?.UUID} was not copied during teleport of {sp.Name} from {m_scene.Name}; no empty inventory substitute was created.",
+                                e);
+                            skippedAttachment = true;
+                        }
+                        catch (NullReferenceException e)
+                        {
+                            // Log a complete stack trace for any other race in
+                            // the inherited cloning or script-state code.
+                            m_log.Error(
+                                $"[ATTACHMENTS MODULE]: Attachment {sog?.UUID} has invalid clone/state data during teleport of {sp.Name} from {m_scene.Name}; skipping this attachment only.",
+                                e);
+                            skippedAttachment = true;
+                        }
                     }
+
+                    if (skippedAttachment)
+                        sp.ControllingClient?.SendAgentAlertMessage(
+                            "One or more attachments could not be transferred. Reattach missing items after teleport.",
+                            false);
                 }
             }
         }
