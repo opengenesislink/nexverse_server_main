@@ -1,7 +1,7 @@
 # OpenGenesisLINK versioning
 
 Current stable release: **NexVerse 0.9.3.4**  
-Active development line: **OpenGenesisLINK v0.9.3.8 Dev**  
+Active release candidate: **OpenGenesisLINK v0.9.3.8 RC1**  
 Active milestone: **Search, Places, Land and Destination Guide — Chapter 12 completed**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
 Completed milestone codename: **NEXJAST**
@@ -31,9 +31,9 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `OpenGenesisLINK v0.9.3.5 Dev` — completed development line for Inventory, OAR/IAR, persistent Job Engine and NexBus.
 - `OpenGenesisLINK v0.9.3.6 Dev` — completed development line for NV$ economy, banking, commerce and land flows.
 - `OpenGenesisLINK v0.9.3.7 Dev` — completed development line for NexGroups parity, native NexExperiences and Experience LSL.
-- `OpenGenesisLINK v0.9.3.8 Dev` — current development line; NexSearch, Places, Land Portal and Destination Guide are implemented with optional viewer discovery capabilities.
-- `OpenGenesisLINK v0.9.3.5 RC1+` — future release-candidate phase after the 0.9.3.5 definition of done is satisfied.
-- `OpenGenesisLINK v0.9.3.5` — next stable release after validation of the active milestone.
+- `OpenGenesisLINK v0.9.3.8 Dev` — completed feature implementation and development hardening for NexSearch, Places, Land Portal and Destination Guide.
+- `OpenGenesisLINK v0.9.3.8 RC1` — current release candidate; pending final RC verification. Single-process estate-wide and cross-region LSL tests passed; distinct-simulator HTTP NexBus path remains explicitly unverified.
+- `OpenGenesisLINK v0.9.3.8` — planned next stable release, conditional on RC acceptance and documented risk decision.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
 
 The product-name transition does not rewrite provenance. OpenSimulator 0.9.3.0 remains the historical source baseline, and inherited licensing remains attached to inherited code until independently replaced.
