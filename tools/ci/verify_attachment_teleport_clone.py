@@ -68,6 +68,9 @@ for marker in (
     "ad.AttachmentObjects.Add(clone);",
     "ad.AttachmentObjectStates.Add(state);",
     "sp.InTransitScriptStates.Add(state);",
+    "bool skippedAttachment = false;",
+    "if (skippedAttachment)",
+    "SendAgentAlertMessage(",
 ):
     assert marker in outbound, f"missing teleport safeguard: {marker}"
 assert outbound.index("string state = sog.GetStateSnapshot();") < outbound.index(
