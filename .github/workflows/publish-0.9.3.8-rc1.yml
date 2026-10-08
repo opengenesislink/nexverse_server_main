@@ -1,0 +1,72 @@
+name: Publish OpenGenesisLINK 0.9.3.8 RC1
+
+# Publish only the exact main commit that successfully passed NexVerse CI.
+on:
+  workflow_run:
+    workflows: ["NexVerse CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish verified RC1 prerelease
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CI-tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Validate exact revision and RC1 metadata
+        env:
+          RC_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RC_SHA"
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
+          if [ "$main_sha" != "$RC_SHA" ]; then
+            echo "::notice::main moved after this CI run; skipping stale RC1 candidate."
+            exit 0
+          fi
+          grep -F 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
+          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.RC1;' OpenSim/Framework/VersionInfo.cs
+          test -s doc/NexVerse/RELEASE_0.9.3.8_RC1.md
+
+      - name: Publish immutable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RC_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v0.9.3.8-rc1"
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
+          if [ "$main_sha" != "$RC_SHA" ]; then
+            echo "::notice::main moved; RC1 publication skipped."
+            exit 0
+          fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "RC1 release already exists; immutable release is unchanged."
+            exit 0
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::RC1 tag exists but no release; refusing to change or reuse tag."
+            exit 1
+          fi
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RC_SHA" \
+            --title "OpenGenesisLINK 0.9.3.8 RC1" \
+            --notes-file doc/NexVerse/RELEASE_0.9.3.8_RC1.md \
+            --prerelease
