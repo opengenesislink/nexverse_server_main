@@ -2109,10 +2109,34 @@ namespace OpenSim.Region.Framework.Scenes
         /// <returns></returns>
         public SceneObjectPart Copy(uint plocalID, UUID AgentID, UUID GroupID, int linkNum, bool userExposed)
         {
+            // Attachments can be disposed during logout or region transfer.
+            // Take an inventory snapshot while holding the same lifetime lock
+            // used by Dispose(). Never replace a disposed inventory with an
+            // empty dictionary: that would silently drop scripts and contents.
+            SceneObjectPartInventory sourceInventory = m_inventory;
+            if (disposed || sourceInventory is null)
+                throw new ObjectDisposedException(nameof(SceneObjectPart),
+                    "Cannot copy a scene object part with disposed inventory.");
+
+            TaskInventoryDictionary copiedItems;
+            bool inventoryChanged;
+            lock (sourceInventory)
+            {
+                TaskInventoryDictionary sourceItems = sourceInventory.Items;
+                if (disposed || sourceItems is null)
+                    throw new ObjectDisposedException(nameof(SceneObjectPart),
+                        "Cannot copy a scene object part with disposed inventory.");
+
+                copiedItems = (TaskInventoryDictionary)sourceItems.Clone();
+                inventoryChanged = sourceInventory.HasInventoryChanged;
+            }
+
             // FIXME: This is dangerous since it's easy to forget to reset some references when necessary and end up
             // with bugs that only occur in some circumstances (e.g. crossing between regions on the same simulator
             // but not between regions on different simulators).  Really, all copying should be done explicitly.
             SceneObjectPart dupe = (SceneObjectPart)MemberwiseClone();
+            // The clone must never finalize/dispose the source part's inventory.
+            dupe.m_inventory = new SceneObjectPartInventory(dupe);
 
             dupe.m_shape = m_shape.Copy();
             dupe.m_regionHandle = m_regionHandle;
@@ -2145,29 +2169,6 @@ namespace OpenSim.Region.Framework.Scenes
             dupe.IgnoreUndoUpdate = false;
             dupe.Undoing = false;
 
-            // Attachments can be disposed during logout or region transfer.
-            // Take an inventory snapshot while holding the same lifetime lock
-            // used by Dispose(). Never replace a disposed inventory with an
-            // empty dictionary: that would silently drop scripts and contents.
-            SceneObjectPartInventory sourceInventory = m_inventory;
-            if (disposed || sourceInventory is null)
-                throw new ObjectDisposedException(nameof(SceneObjectPart),
-                    "Cannot copy a scene object part with disposed inventory.");
-
-            TaskInventoryDictionary copiedItems;
-            bool inventoryChanged;
-            lock (sourceInventory)
-            {
-                TaskInventoryDictionary sourceItems = sourceInventory.Items;
-                if (disposed || sourceItems is null)
-                    throw new ObjectDisposedException(nameof(SceneObjectPart),
-                        "Cannot copy a scene object part with disposed inventory.");
-
-                copiedItems = (TaskInventoryDictionary)sourceItems.Clone();
-                inventoryChanged = sourceInventory.HasInventoryChanged;
-            }
-
-            dupe.m_inventory = new SceneObjectPartInventory(dupe);
             dupe.m_inventory.Items = copiedItems;
 
             if (userExposed)
