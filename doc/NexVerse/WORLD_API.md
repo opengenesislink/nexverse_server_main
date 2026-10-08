@@ -2,7 +2,7 @@
 
 The NexVerse World API is the Robust-hosted control-plane API for the NexVerse grid deployment running on OpenGenesisLINK.
 
-Current release candidate: **OpenGenesisLINK v0.9.3.8 RC1 — NexSearch, Places, Land Portal and Destination Guide**
+Current stable server release: **OpenGenesisLINK v0.9.3.8 — NexSearch, Places, Land Portal and Destination Guide**
 
 World API v1 was completed as the 0.9.3.2 development checkpoint on 3 October 2026 and remains the control-plane API foundation for the active OpenGenesisLINK development line. NexVerse continues as the deployment/grid identity.
 
