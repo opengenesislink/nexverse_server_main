@@ -1171,7 +1171,7 @@ Support Firestorm-visible flows including:
 
 ### 12.5 0.9.3.8 release hardening — RC1 acceptance
 
-No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented. Nine of ten operational acceptance categories were reported passed on 8 October 2026 by the grid operator; the NexBus category is accepted **for RC1 only, with a documented exception**, not as a verified multi-node pass.
+No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented. All ten operational acceptance categories were reported passed on 8 October 2026 by the grid operator, including the NexBus cross-simulator test. RC1 acceptance records the operator's live observations; it is not an independently reproduced two-node test.
 
 - [x] Operator-reported Firestorm runtime acceptance covering login, teleport, inventory, profiles, display names, friends, groups, IM, economy, land, map, search and uploads.
 - [x] Operator-reported satisfactory simulator startup and world-map/JPEG2000 runtime behavior for RC1. This records observed acceptance, **not** independent proof that all targeted startup optimizations are implemented.
@@ -1179,7 +1179,7 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [x] Operator-reported restart/deployment and backup/restore acceptance; CI independently compiles and runs its own smoke/regression suite.
 - [ ] Complete RC1 validation and decide stable promotion; do not mark 0.9.3.8 stable until release checks and known risks are reviewed.
 
-**RC1 exception — distributed NexBus:** `llRegionSayTo()` PING/PONG and `llEstateSay()` were tested successfully between regions **in the same simulator process**. HMAC transport endpoints and NodeAgent were observed online, but the end-to-end HTTP relay **between two separate simulator processes was not live-tested**. The operator explicitly declined adding a second simulator for this RC. Cross-owner messaging is enabled in the deployment configuration but **its live cross-owner test has not been explicitly confirmed**. An earlier HTTP 400 event rejection received diagnostic improvements in PR #107; absence of recurring errors has not been independently confirmed. Treat multi-node federation/object messaging as **unverified** and retest before declaring multi-node production support.
+**NexBus live acceptance:** The grid operator confirmed successful `llRegionSayTo()` PING/PONG and `llEstateSay()` tests, and subsequently confirmed a successful end-to-end NexBus test **between two separate simulator processes** on 8 October 2026. These reports close the RC1 NexBus acceptance category. However, an explicit cross-owner test result and a clean HTTP 400/500 error-log check were not separately supplied. One earlier HTTP 400 event rejection was observed; PR #107 improved its diagnostics. Multi-node communication was operator-tested, not independently observed via tool access.
 
 ---
 
