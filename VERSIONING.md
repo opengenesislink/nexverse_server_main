@@ -32,7 +32,7 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `OpenGenesisLINK v0.9.3.6 Dev` — completed development line for NV$ economy, banking, commerce and land flows.
 - `OpenGenesisLINK v0.9.3.7 Dev` — completed development line for NexGroups parity, native NexExperiences and Experience LSL.
 - `OpenGenesisLINK v0.9.3.8 Dev` — completed feature implementation and development hardening for NexSearch, Places, Land Portal and Destination Guide.
-- `OpenGenesisLINK v0.9.3.8 RC1` — current release candidate; pending final RC verification. Single-process estate-wide and cross-region LSL tests passed; distinct-simulator HTTP NexBus path remains explicitly unverified.
+- `OpenGenesisLINK v0.9.3.8 RC1` — current release candidate; pending final RC verification. Operator reports successful cross-region and estate-wide LSL tests, including NexBus across separate simulator processes; cross-owner and log-clean checks were not separately documented.
 - `OpenGenesisLINK v0.9.3.8` — planned next stable release, conditional on RC acceptance and documented risk decision.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
 
