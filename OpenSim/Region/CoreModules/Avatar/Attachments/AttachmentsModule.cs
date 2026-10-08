@@ -329,6 +329,7 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                     ad.AttachmentObjects = new List<ISceneObject>(attachments.Count);
                     ad.AttachmentObjectStates = new List<string>(attachments.Count);
                     sp.InTransitScriptStates.Clear();
+                    bool skippedAttachment = false;
 
                     foreach (SceneObjectGroup sog in attachments)
                     {
@@ -343,6 +344,7 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                                 m_log.WarnFormat(
                                     "[ATTACHMENTS MODULE]: Skipping disposed attachment {0} during transfer of {1} from {2}; original inventory item is not modified.",
                                     sog?.UUID, sp.Name, m_scene.Name);
+                                skippedAttachment = true;
                                 continue;
                             }
 
@@ -366,6 +368,7 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                             m_log.Warn(
                                 $"[ATTACHMENTS MODULE]: Disposed attachment {sog?.UUID} was not copied during teleport of {sp.Name} from {m_scene.Name}; no empty inventory substitute was created.",
                                 e);
+                            skippedAttachment = true;
                         }
                         catch (NullReferenceException e)
                         {
@@ -374,8 +377,14 @@ namespace OpenSim.Region.CoreModules.Avatar.Attachments
                             m_log.Error(
                                 $"[ATTACHMENTS MODULE]: Attachment {sog?.UUID} has invalid clone/state data during teleport of {sp.Name} from {m_scene.Name}; skipping this attachment only.",
                                 e);
+                            skippedAttachment = true;
                         }
                     }
+
+                    if (skippedAttachment)
+                        sp.ControllingClient?.SendAgentAlertMessage(
+                            "One or more attachments could not be transferred. Reattach missing items after teleport.",
+                            false);
                 }
             }
         }
