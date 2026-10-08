@@ -1,9 +1,9 @@
 # OpenGenesisLINK Roadmap
 
-> Status: Active development roadmap  
+> Status: Active release-candidate hardening  
 > Current stable release: **NexVerse 0.9.3.4**  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
-> Active development line: **OpenGenesisLINK v0.9.3.8 Dev**  
+> Active release candidate: **OpenGenesisLINK v0.9.3.8 RC1**  
 > Active milestone: **0.9.3.8 — Search, Places, Land and Destination Guide completed**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
@@ -1099,7 +1099,7 @@ Support Firestorm-visible flows including:
 
 ## 12. Search, Places, Land and Destination Guide
 
-**Status: implemented on the 0.9.3.8 development line.** OpenGenesisLINK now exposes one discovery layer for web clients and optional viewer capabilities while preserving the existing Firestorm-compatible search stack.
+**Status: feature scope implemented; 0.9.3.8 RC1 acceptance in progress.** OpenGenesisLINK now exposes one discovery layer for web clients and optional viewer capabilities while preserving the existing Firestorm-compatible search stack.
 
 ### 12.1 NexSearch
 
@@ -1169,15 +1169,17 @@ Support Firestorm-visible flows including:
 - [x] optional viewer CAPS: `NexSearch`, `NexPlaces`, `NexLandPortal`, `NexDestinationGuide`;
 - [x] standard Firestorm/SL-compatible search behavior remains untouched.
 
-### 12.5 0.9.3.8 release hardening — current focus
+### 12.5 0.9.3.8 release hardening — RC1 acceptance
 
-No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented; the remaining work is runtime quality, compatibility and release validation.
+No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented. Nine of ten operational acceptance categories were reported passed on 8 October 2026 by the grid operator; the NexBus category is accepted **for RC1 only, with a documented exception**, not as a verified multi-node pass.
 
-- [ ] complete a Firestorm runtime acceptance pass covering login, teleport, inventory, profiles, display names, friends, groups, IM, economy, land, map, search and uploads;
-- [ ] reduce simulator startup time: measure the boot phases, remove redundant/blocking world-map work, avoid repeated image-decode stalls such as `Decoded image with unhandled number of components: 0`, and defer non-essential map generation until the region is available where safe;
-- [ ] runtime-verify the Firestorm LSL Bridge bootstrap, initial NV$ status-bar balance, `nv give`/`nv balance` diagnostics with avatar notification, offline-IM mail relay and Hypergrid messaging/teleport paths;
-- [ ] perform a clean deployment-profile rebuild/restart smoke test and resolve blocking startup warnings/errors before release candidate;
-- [ ] cut and validate 0.9.3.8 RC/stable, update the roadmap release header and tag the release before starting milestone 0.9.3.9.
+- [x] Operator-reported Firestorm runtime acceptance covering login, teleport, inventory, profiles, display names, friends, groups, IM, economy, land, map, search and uploads.
+- [x] Operator-reported satisfactory simulator startup and world-map/JPEG2000 runtime behavior for RC1. This records observed acceptance, **not** independent proof that all targeted startup optimizations are implemented.
+- [x] Operator-reported LSL Bridge bootstrap, NV$ live balance and payment flows, offline-IM relay and Hypergrid messaging/teleport acceptance; console NV$ diagnostics included in operator's complete economy acceptance.
+- [x] Operator-reported restart/deployment and backup/restore acceptance; CI independently compiles and runs its own smoke/regression suite.
+- [ ] Complete RC1 validation and decide stable promotion; do not mark 0.9.3.8 stable until release checks and known risks are reviewed.
+
+**RC1 exception — distributed NexBus:** `llRegionSayTo()` PING/PONG and `llEstateSay()` were tested successfully between regions **in the same simulator process**. HMAC transport endpoints and NodeAgent were observed online, but the end-to-end HTTP relay **between two separate simulator processes was not live-tested**. The operator explicitly declined adding a second simulator for this RC. Cross-owner messaging is enabled in the deployment configuration but **its live cross-owner test has not been explicitly confirmed**. An earlier HTTP 400 event rejection received diagnostic improvements in PR #107; absence of recurring errors has not been independently confirmed. Treat multi-node federation/object messaging as **unverified** and retest before declaring multi-node production support.
 
 ---
 
