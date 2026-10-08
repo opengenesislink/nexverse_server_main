@@ -1,10 +1,10 @@
 # OpenGenesisLINK Roadmap
 
-> Status: Active release-candidate hardening  
-> Current stable release: **NexVerse 0.9.3.4**  
-> Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4**  
-> Active release candidate: **OpenGenesisLINK v0.9.3.8 RC1**  
-> Active milestone: **0.9.3.8 — Search, Places, Land and Destination Guide completed**  
+> Status: 0.9.3.8 Stable released 8 October 2026  
+> Current stable release: **OpenGenesisLINK v0.9.3.8**  
+> Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4 → 0.9.3.8**  
+> Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (successfully validated)  
+> Completed milestone: **0.9.3.8 — Search, Places, Land and Destination Guide**  
 > Completed milestone codename: **NEXJAST**  
 > Historical source baseline: OpenSimulator 0.9.3.0 ("Nessie")
 
@@ -1099,7 +1099,7 @@ Support Firestorm-visible flows including:
 
 ## 12. Search, Places, Land and Destination Guide
 
-**Status: feature scope implemented; 0.9.3.8 RC1 acceptance in progress.** OpenGenesisLINK now exposes one discovery layer for web clients and optional viewer capabilities while preserving the existing Firestorm-compatible search stack.
+**Status: stable release completed 8 October 2026 after successful RC1 validation.** OpenGenesisLINK now exposes one discovery layer for web clients and optional viewer capabilities while preserving the existing Firestorm-compatible search stack.
 
 ### 12.1 NexSearch
 
@@ -1169,7 +1169,7 @@ Support Firestorm-visible flows including:
 - [x] optional viewer CAPS: `NexSearch`, `NexPlaces`, `NexLandPortal`, `NexDestinationGuide`;
 - [x] standard Firestorm/SL-compatible search behavior remains untouched.
 
-### 12.5 0.9.3.8 release hardening — RC1 acceptance
+### 12.5 0.9.3.8 release hardening — Stable acceptance
 
 No new feature milestone should begin until this gate is closed. The 0.9.3.8 feature scope is implemented. All ten operational acceptance categories were reported passed on 8 October 2026 by the grid operator, including the NexBus cross-simulator test. RC1 acceptance records the operator's live observations; it is not an independently reproduced two-node test.
 
@@ -1177,9 +1177,9 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [x] Operator-reported satisfactory simulator startup and world-map/JPEG2000 runtime behavior for RC1. This records observed acceptance, **not** independent proof that all targeted startup optimizations are implemented.
 - [x] Operator-reported LSL Bridge bootstrap, NV$ live balance and payment flows, offline-IM relay and Hypergrid messaging/teleport acceptance; console NV$ diagnostics included in operator's complete economy acceptance.
 - [x] Operator-reported restart/deployment and backup/restore acceptance; CI independently compiles and runs its own smoke/regression suite.
-- [ ] Complete RC1 validation and decide stable promotion; do not mark 0.9.3.8 stable until release checks and known risks are reviewed.
+- [x] Grid operator confirmed successful live RC1 acceptance on 8 October 2026; version was approved for stable promotion. Release is tagged `v0.9.3.8` after the successful post-merge CI build. Unconfirmed cross-owner and historical HTTP-400 edge cases remain disclosed in the release notes.
 
-**NexBus live acceptance:** The grid operator confirmed successful `llRegionSayTo()` PING/PONG and `llEstateSay()` tests, and subsequently confirmed a successful end-to-end NexBus test **between two separate simulator processes** on 8 October 2026. These reports close the RC1 NexBus acceptance category. However, an explicit cross-owner test result and a clean HTTP 400/500 error-log check were not separately supplied. One earlier HTTP 400 event rejection was observed; PR #107 improved its diagnostics. Multi-node communication was operator-tested, not independently observed via tool access.
+**NexBus live acceptance (operator-reported):** The grid operator confirmed successful `llRegionSayTo()` PING/PONG and `llEstateSay()` tests, and subsequently confirmed a successful end-to-end NexBus test **between two separate simulator processes** on 8 October 2026. These reports close the RC1 NexBus acceptance category. However, an explicit cross-owner test result and a clean HTTP 400/500 error-log check were not separately supplied. One earlier HTTP 400 event rejection was observed; PR #107 improved its diagnostics. Multi-node communication was operator-tested, not independently observed via tool access.
 
 ---
 
