@@ -74,7 +74,19 @@ namespace NexVerse.RegionModules.Voice
                 SessionId = Guid.Parse(circuit.SessionID.ToString()),
                 IsHypergridGuest = guest,
                 HomeGridOrigin = home,
-                VoiceAllowed = true
+                VoiceAllowed = true,
+                PositionValid = float.IsFinite(sp.AbsolutePosition.X) &&
+                    float.IsFinite(sp.AbsolutePosition.Y) &&
+                    float.IsFinite(sp.AbsolutePosition.Z),
+                PositionX = sp.AbsolutePosition.X,
+                PositionY = sp.AbsolutePosition.Y,
+                PositionZ = sp.AbsolutePosition.Z,
+                // Local avatar rotation is authoritative; quaternion yaw.
+                Heading = (float)Math.Atan2(
+                    2.0 * (sp.Rotation.W * sp.Rotation.Z +
+                           sp.Rotation.X * sp.Rotation.Y),
+                    1.0 - 2.0 * (sp.Rotation.Y * sp.Rotation.Y +
+                                 sp.Rotation.Z * sp.Rotation.Z))
             };
             return true;
         }
