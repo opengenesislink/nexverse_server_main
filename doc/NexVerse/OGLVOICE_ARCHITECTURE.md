@@ -85,6 +85,22 @@ Robust/Simulator ↔ OGLVoice Control Plane nur für Identity, Raumzuordnung, Po
 - **Direktanruf, Ad-hoc und Konferenzen** unabhängig von einer einzelnen Region; explizites Anruf-Consent und Block-/Mute-Regeln.
 - **Regionwechsel ohne Gesprächsabbruch:** Raumwechsel vorbereiten, neue Berechtigung validieren und erst danach alte Raumzuordnung verlassen (make-before-break, sofern Client-/Protokollvertrag es unterstützt).
 
+### 5.1 Verbindliche Voice-Kugel über **allen** sprechfähigen Avataren
+
+**Definition of Done, keine optionale Dekoration:** In Firestorm und im künftigen OGL-Viewer soll über **jedem in der jeweiligen sichtbaren Voice-Umgebung verbundenen Avatar** (nicht nur über dem eigenen Avatar) die klassische **grau/weiße Voice-Kugel** am Kopf zu sehen sein. Sobald dieser Avatar spricht, müssen andere Viewer **an dessen Kugel** dynamisch die Sprachaktivität erkennen können. Auch fremde Hypergrid-Avatare müssen exakt gleich behandelt werden.
+
+- **Bereit/verbunden:** graue/weiße ruhige Kugel oberhalb der Kopfposition des jeweiligen Avatars; Sprech- bzw. Mikrofonberechtigung je nach Status. Keine gefälschte Kugel bei gar nicht verbundener Voice-Sitzung.
+- **Spricht:** die Kugel des **tatsächlichen Sprechers** zeigt animierte Sprachwellen (typisch grün); deren Intensität folgt einem geglätteten, wirklichen Audiopegel/VAD-Signal. Ein roter Übersteuerungsindikator ist optional und darf nicht aus unbelegten Werten abgeleitet werden.
+- **Schweigt/Push-to-Talk losgelassen/Mikrofon gemutet:** Wellen verschwinden zeitnah; die verbundene Kugel bleibt sichtbar. Eine lokale Stummschaltung durch den Zuschauer darf keine falschen Sprechdaten für andere erzeugen.
+- **Voice getrennt/Region verlassen/anderer, nicht sichtbarer oder nicht teilbarer Voice-Kanal:** veraltete Anzeige und Speaking-Signal werden zeitnah entfernt. Teilnehmer anderer privater Gespräche werden nicht irrtümlich als lokaler Region-Sprecher angezeigt.
+- **Alle Teilnehmer:** eigener Avatar, andere lokale Avatare und HG-Gäste; pro betrachterseitigem Viewer dieselbe serverbestätigte Zuordnung `voice_participant_id ↔ home_grid_identity/avatar_id ↔ aktuelle regionale Agent-ID`. Andere Viewer erhalten nicht bloß einen lokalen Self-Mikrofonpegel, sondern den **roombasierten, teilnehmerspezifischen Remote-Speaking-Status**.
+- **Datenfluss:** LiveKit-Audio-/Active-Speaker- bzw. Track-Pegel-Informationen werden von der OGLVoice-Media-/Signalisierungsebene an **alle berechtigten Zuschauer im gleichen Sprachraum** vermittelt; der Viewer zeichnet Orb/Wellen selbst an der korrekten Avatar-Kopfposition. Das ist **kein Inworld-Prim**, kein LSL-Objekt und keine durch die Region verschickte Partikeltextur.
+- **Aktualität:** kurze, begrenzte Speaking-Updates (Ziel-Latenz unter 500 ms bei normalem Netz), geglättete Pegel, automatische Silence-/Disconnect-Timeouts und Reconnect-Synchronisierung. Keine dauerhafte Speicherung von Sprachpegeln zur Profilbildung.
+- **Viewer-Präferenz:** Firestorm besitzt eine vom Anwender abschaltbare Einstellung „Show voice visualizers over avatars“. OGLVoice muss vollständige Präsenz-/Sprechdaten kompatibel liefern, **kann aber die persönliche Viewer-Einstellung nicht serverseitig erzwingen**. Im eigenen OGL-Viewer standardmäßig aktiv und benutzerseitig deaktivierbar; Barrierefreiheit berücksichtigen.
+- **Wichtiges Kompatibilitätsgate:** Wenn der unveränderte Firestorm über seine WebRTC-Schnittstelle Remote-Speaker-Zustände nicht aus dem OGLVoice-Gateway erhält, ist die Funktion **nicht erfüllt**, auch wenn Mikrofon und Audio schon funktionieren. Voice-Provisionierung, Remote-Teilnehmerliste, Pegel/Speaking und Darstellung müssen gemeinsam mit mindestens zwei getrennten Viewer-Instanzen abgenommen werden.
+
+**Abnahmetest:** A und B in derselben Region, beide Voice an: A sieht Kugeln über A **und B**, B über B **und A**. Spricht A, sehen **beide** die Wellen an **A**, aber nicht fälschlich an B; beim Wechsel der Sprecher umgekehrt. Mit C als Hypergrid-Gast erscheinen drei korrekt zugeordnete Kugeln und dessen Sprache auf den anderen beiden Viewern. Wiederholen nach Teleport, Parcel-/Regionwechsel, Reconnect und PTT/Mute; bei deaktivierter Visualizer-Präferenz ist das Nichtanzeigen ausdrücklich erwartbar.
+
 ## 6. Mandanten und Tarife
 
 ### NexVerse (systemseitig fest gebundener First-Party-Tenant)
