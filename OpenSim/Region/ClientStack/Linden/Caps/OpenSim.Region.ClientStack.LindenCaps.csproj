@@ -120,6 +120,7 @@
     <Compile Include="RegionConsoleModule.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="InventoryThumbnailUploadModule.cs" />
     <Compile Include="UploadBakedTextureModule.cs">
       <SubType>Code</SubType>
     </Compile>
