@@ -56,6 +56,11 @@ internal static class Program
             Assert(!service.CreateUserInventory(owner), "second creation should be idempotent");
             Assert(service.GetInventorySkeleton(owner).Count == before,
                 "duplicate system/outfit folder added on second create");
+            int textureFolders = service.GetInventorySkeleton(owner)
+                .Count(f => f.ParentID == service.GetRootFolder(owner).ID &&
+                    f.Type == (short)FolderType.Texture);
+            Assert(textureFolders == 1,
+                "Texture system folder (type=0) duplicated on repeat creation");
             Assert(service.GetFolderForType(owner, FolderType.MyOutfits).ID == gallery.ID,
                 "gallery root changed on repeat initialization");
             Assert(service.GetFolder(owner, saved.ID) != null,
