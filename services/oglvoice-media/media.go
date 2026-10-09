@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 		"time"
 
 	lksdk "github.com/livekit/server-sdk-go/v2"
@@ -27,6 +28,7 @@ type peerState struct {
 	downlink  *webrtc.TrackLocalStaticSample
 	mixer     *spatialMixer
 	mediaCancel context.CancelFunc
+	mixerStarted sync.Once
 	lastSeen  time.Time
 	lastUnix  atomic.Int64
 	closeOnce sync.Once
@@ -78,9 +80,6 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 			if _, _, err := sender.Read(buf); err != nil { return }
 		}
 	}()
-	mixCtx, stopMix := context.WithCancel(context.Background())
-	p.mediaCancel = stopMix
-	go p.mixer.stream(mixCtx, p.downlink.WriteSample)
 
 	pc.OnDataChannel(func(d *webrtc.DataChannel) {
 		d.OnOpen(func() {
@@ -129,6 +128,11 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 		switch s {
 		case webrtc.PeerConnectionStateConnected:
 			p.touch()
+			p.mixerStarted.Do(func() {
+				ctx, cancel := context.WithCancel(context.Background())
+				p.mediaCancel = cancel
+				go p.mixer.stream(ctx, p.downlink.WriteSample)
+			})
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
 			p.close()
 		}
