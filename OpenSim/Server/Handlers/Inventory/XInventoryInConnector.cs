@@ -690,6 +690,7 @@ namespace OpenSim.Server.Handlers.Inventory
             ret["Name"] = f.Name;
             ret["Owner"] = f.Owner.ToString();
             ret["ID"] = f.ID.ToString();
+            ret["ThumbnailID"] = f.ThumbnailID.ToString();
 
             return ret;
         }
@@ -725,6 +726,7 @@ namespace OpenSim.Server.Handlers.Inventory
             ret["Owner"] = item.Owner.ToString();
             ret["SalePrice"] = item.SalePrice.ToString();
             ret["SaleType"] = item.SaleType.ToString();
+            ret["ThumbnailID"] = item.ThumbnailID.ToString();
 
             return ret;
         }
@@ -739,6 +741,9 @@ namespace OpenSim.Server.Handlers.Inventory
             folder.Name = data["Name"].ToString();
             folder.Owner =  new UUID(data["Owner"].ToString());
             folder.ID = new UUID(data["ID"].ToString());
+            if (data.TryGetValue("ThumbnailID", out object folderThumb) &&
+                UUID.TryParse(folderThumb.ToString(), out UUID folderThumbnail))
+                folder.ThumbnailID = folderThumbnail;
 
             return folder;
         }
@@ -768,6 +773,9 @@ namespace OpenSim.Server.Handlers.Inventory
             item.SaleType = byte.Parse(data["SaleType"].ToString());
             item.Flags = uint.Parse(data["Flags"].ToString());
             item.CreationDate = int.Parse(data["CreationDate"].ToString());
+            if (data.TryGetValue("ThumbnailID", out object itemThumb) &&
+                UUID.TryParse(itemThumb.ToString(), out UUID itemThumbnail))
+                item.ThumbnailID = itemThumbnail;
 
             return item;
         }
