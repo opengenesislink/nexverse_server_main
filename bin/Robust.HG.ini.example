@@ -691,6 +691,13 @@
     EnableSessionAuthority = false
     AllowedNodes = ""
 
+    ; Firestorm voice CAPS verwenden einen separaten, protokollkompatiblen
+    ; WebRTC Media Bridge. LiveKit SFU URL / Webportal sind KEIN SDP Gateway.
+    ; Erst einschalten, wenn der Dienst SDP/ICE, SCTP Sprecher-Roster
+    ; und die LiveKit-Bruecke nachweislich bereitstellt.
+    EnableFirestormGateway = false
+    MediaGatewayUrl = ""
+
 
     ; Die eingehende interne Route ist
     ; /internal/oglvoice/v1/provider (NexBus-HMAC + Replay-Schutz).
