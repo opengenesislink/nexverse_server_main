@@ -1205,7 +1205,7 @@
 
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
-; [NexVerseNodeAgent] mit PeerUrl/SharedKey ermittelt den zentralen Provider
+; NodeAgent-Vertrauensverbindung mit PeerUrl/SharedKey ermittelt den zentralen Provider
 ; automatisch vom vertrauten Robust (wenn dieser [OGLVoice] aktiviert hat).
 ;
 ; STANDALONE: erst nach Einrichten eines eigenen OGLVoice-Mandanten aktivieren:
