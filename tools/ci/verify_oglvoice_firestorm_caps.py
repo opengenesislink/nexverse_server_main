@@ -17,7 +17,7 @@ for expected in ("OnRegisterCaps += RegisterCaps",
                  'offerType.AsString() != "offer"',
                  "OglVoiceFirestormWire.ValidateOffer",
                  "OglVoiceFirestormWire.ValidateCandidates",
-                 "OglVoiceSessionProof.Sign",
+                 "OglVoiceMediaProof.Sign",
                  "IOglVoiceSessionAdmission",
                  "TryBuildAdmission",
                  "m_Sessions", "m_Requests.Wait(0)",
@@ -28,6 +28,7 @@ for expected in ("media_gateway_url", "firestorm-webrtc-v1", "IsSafeServiceUri")
 assert "EnableFirestormGateway" in robust
 assert "EnableFirestormGateway" in node
 assert "Firestorm" in wire
+assert "oglvoice-media-v1" in (root/"NexVerse/Core/Voice/OglVoiceMediaProof.cs").read_text()
 for word in ('["jsep"]','["viewer_session"]', 'viewer_session', 'candidate'):
     assert word in region
 for word in ("p = Math.Clamp", "v = isSpeaking", "l = true", "j = new", "MaximumSdpBytes"):
