@@ -55,6 +55,8 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 - [ ] Linksets, Treppen, Türen, Off-mesh-Links und path-cost areas; keine physikalisch ungültigen Abkürzungen.
 - [ ] Agent-spezifische Navigation: Radius, Höhe, Steigung, erlaubte Bereiche und dynamische Kollisionen.
 - [ ] NPC-/Character-Komponenten und kontrollierte Bewegungssteuerung mit Tick-/CPU-Budgets.
+- [x] **Interner, experimenteller NPC-Wegpunkt-Follower:** `OglNpcPathFollowerModule` nutzt das bestehende `INPCModule.MoveToTarget`/Physik statt Teleports; prueft NPC-Eigentuemerrechte, aktive Region-Navigation, CPU-/Routenlimits, Fortschritt/Timeout und Stop bei Terraforming. Opt-in `[OGLNpcNavigation] Enabled=false`. **Noch kein LSL-Binding, kein echter Live-Test, keine Mesh-Hindernis-/NavMesh-Paritaet.**
+
 - [ ] LSL-API-`llCreateCharacter`, `llDeleteCharacter`, `llNavigateTo`, `llPursue`, `llFleeFrom`, `llWanderWithin`, `llPatrolPoints`, `llGetClosestNavPoint` und `path_update` gemäß geprüfter aktueller SL-Signaturen; keine Stubs als erledigt zählen.
 - [ ] Region-/Parzellenrechte, Script-Quota, Missbrauchsschutz und Lastgrenzen.
 - [ ] Deterministischer CI-Regressionssatz und laufende Region mit tatsächlich bewegtem NPC und Live-Viewer-Abnahme.

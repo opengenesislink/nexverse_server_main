@@ -314,6 +314,14 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglTerrainNavigationRegression/OglTerrainNavigationRegression.csproj
 
+      - name: Verify native owner-checked NPC path-following module
+        shell: bash
+        run: python3 tools/ci/verify_ogl_npc_navigation.py
+
+      - name: Regression-test OGL NPC waypoint controller
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglNpcNavigationRegression/OglNpcNavigationRegression.csproj
+
       - name: Verify OGLVoice secure provider discovery integration
         shell: bash
         run: python3 tools/ci/verify_oglvoice_discovery.py
