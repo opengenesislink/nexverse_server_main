@@ -100,4 +100,41 @@ for marker in (
 ):
     assert marker in world_api, f"missing Inventory OpenAPI marker: {marker}"
 
+# Firestorm Outfit Gallery / Current Outfit repairs are opt-in and
+# restricted to the same authenticated inventory owner as other operations.
+native = Path("OpenSim/Services/InventoryService/XInventoryService.cs").read_text()
+suitcase = Path("OpenSim/Services/HypergridService/HGSuitcaseInventoryService.cs").read_text()
+for source in (native, suitcase):
+    assert 'FolderType.MyOutfits' in source, "My Outfits system folder missing"
+    assert 'FolderType.CurrentOutfit' in source
+    assert '"My Outfits"' in source
+    assert 'Array.Exists(sysFolders, f => f.type == (int)FolderType.MyOutfits)' in source
+for symbol in (
+    '"/api/v1/inventory/outfits/health"',
+    '"/api/v1/inventory/outfits/ensure-folders"',
+    "private void OutfitHealth(",
+    "private void EnsureOutfitFolders(",
+    "FolderType.MyOutfits",
+    "FolderType.CurrentOutfit",
+    "current_outfit_broken_links",
+    "no_saved_outfits",
+    "current_outfit_link_scan",
+    "m_Inventory.GetFolderContent(owner, current.ID)",
+    "m_Inventory.GetItem(owner, link.AssetID)",
+    "m_Inventory.GetFolder(owner, link.AssetID)",
+    "m_Inventory.AddFolder(folder)",
+    "outfit_system_folder_protected",
+    "broken_link_ids",
+    "changed = false",
+    "thumbnail_id = folder.ThumbnailID.ToString()",
+    "thumbnail_id = item.ThumbnailID.ToString()",
+):
+    assert symbol in api, f"missing Outfit Gallery repair/health marker: {symbol}"
+for symbol in (
+    '["/api/v1/inventory/outfits/health"]',
+    '["/api/v1/inventory/outfits/ensure-folders"]',
+    '["InventoryOutfitHealthResponse"]',
+    '["InventoryOutfitEnsureResponse"]',
+):
+    assert symbol in world_api, f"missing Outfit health API contract: {symbol}"
 print("Inventory API contract: OK")
