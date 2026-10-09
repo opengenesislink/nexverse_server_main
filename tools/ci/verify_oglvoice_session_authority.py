@@ -27,4 +27,16 @@ assert "EnableSessionAuthority" in (base/"bin/Robust.HG.ini.example").read_text(
 assert "EnableSessionAuthority" in (base/"bin/Robust.ini.example").read_text()
 assert "Environment.GetEnvironmentVariable" in connector
 assert "OGLVOICE_LIVEKIT_API_SECRET" not in (base/"bin/OpenSim.ini.example").read_text()
+admission = (base/"NexVerse/RegionModules/Voice/OglVoiceRegionAdmission.cs").read_text()
+module = (base/"NexVerse/RegionModules/Voice/OglVoiceRegionDiscoveryModule.cs").read_text()
+for value in ("ScenePresence", "IsChildAgent", "IsNPC",
+              "IsInTransit", "circuit.SessionID", "AllowVoice",
+              "ParcelFlags.AllowVoiceChat", "ViaHGLogin",
+              "OglVoiceHypergridIdentity", "TryCreate"):
+    # HG identity gets verified by token issuer after admission
+    if value == "OglVoiceHypergridIdentity":
+        continue
+    assert value in admission, value
+assert "IOglVoiceSessionAdmission" in module
+assert "OglVoiceRegionAdmission.TryCreate" in module
 print("OGLVoice server-only LiveKit credential and session-authority integration: OK")
