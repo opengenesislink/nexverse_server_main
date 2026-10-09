@@ -245,7 +245,28 @@ namespace NexVerse.Server.Api
                 server.AddSimpleStreamHandler(new SimpleStreamHandler(
                     OglVoiceGridDiscoveryEndpoint.Route, discovery.Handle,
                     "OGLVoice signed grid provider discovery"));
-                m_Log.Info("[OGL-VOICE]: Sichere Grid-Provider-Discovery aktiv; LiveKit-/Viewer-CAPS noch nicht implementiert.");
+                m_Log.Info("[OGL-VOICE]: Sichere Grid-Provider-Discovery aktiv; Viewer-CAPS noch nicht implementiert.");
+
+                if (oglVoiceConfig.GetBoolean("EnableSessionAuthority", false))
+                {
+                    // Server-only secrets, NEVER serialized into provider
+                    // descriptors or stored in public simulator INI examples.
+                    string apiKey = Environment.GetEnvironmentVariable("OGLVOICE_LIVEKIT_API_KEY");
+                    string apiSecret = Environment.GetEnvironmentVariable("OGLVOICE_LIVEKIT_API_SECRET");
+                    OglVoiceLiveKitTokenIssuer issuer =
+                        new OglVoiceLiveKitTokenIssuer(provider.tenant_id, apiKey, apiSecret);
+
+                    string allowedNodeCsv = oglVoiceConfig.GetString("AllowedNodes", "");
+                    string[] allowedNodes = allowedNodeCsv.Split(',',
+                        StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    OglVoiceSessionAuthorityEndpoint sessions =
+                        new OglVoiceSessionAuthorityEndpoint(
+                            issuer, provider, discoveryKey, allowedNodes);
+                    server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                        OglVoiceSessionAuthorityEndpoint.Route, sessions.Handle,
+                        "OGLVoice internal LiveKit session authority"));
+                    m_Log.Info("[OGL-VOICE]: LiveKit-Session-Authority fuer explizit zugelassene Simulatoren bereit.");
+                }
             }
 
             IConfig offlineImMailRelayConfig = config.Configs["OfflineIMMailRelay"];
