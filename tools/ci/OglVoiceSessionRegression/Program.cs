@@ -76,6 +76,13 @@ OglVoiceIssuedToken guest = issuer.Issue(new OglVoiceAdmission
     IsHypergridGuest = true, HomeGridOrigin = "https://osgrid.example", VoiceAllowed = true
 }, now);
 Assert(guest.Room == token.Room, "guest participates in visiting grid");
+OglVoiceIssuedToken httpHgGuest = issuer.Issue(new OglVoiceAdmission
+{
+    TenantId = "nexverse", RegionId = region, AvatarId = avatar, SessionId = session,
+    IsHypergridGuest = true, HomeGridOrigin = "http://legacy-hg.example:8002",
+    VoiceAllowed = true
+}, now);
+Assert(httpHgGuest.Room == token.Room, "legacy HTTP Hypergrid identity does not disable voice");
 Assert(guest.ParticipantIdentity != token.ParticipantIdentity, "HG identity isolation");
 Assert(guest.ParticipantIdentity != issuer.Issue(new OglVoiceAdmission {
     TenantId = "nexverse", RegionId = region, AvatarId = avatar, SessionId = session,
