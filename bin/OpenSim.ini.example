@@ -1203,6 +1203,16 @@
     ; ScriptEnginesPath = "ScriptEngines"
 
 
+[OGLNpcNavigation]
+    ; Experimenteller NPC-Wegpunkt-Follower ueber INPCModule/Physik.
+    ; Funktioniert nur zusammen mit aktiviertem OGLPathfinding (Terrain).
+    ; KEINE vollstaendige SL Pathfinding LSL-API, standardmaessig AUS.
+    Enabled = false
+    MaxActivePerRegion = 32
+    MaxWaypoints = 256
+    TickMilliseconds = 1000
+    WaypointTimeoutSeconds = 45
+
 [OGLPathfinding]
     ; Experimenteller Terrain-Snapshot fuer OpenGenesisLINK 0.9.3.10 Dev.
     ; Kein komplettes NavMesh, keine Kollisions-Meshes und noch keine LSL-NPC-Steuerung.
