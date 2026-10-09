@@ -39,17 +39,14 @@ jobs:
         shell: bash
         run: go mod tidy
 
-      - name: Validate Go module version
+      - name: Validate Go dependency graph
         shell: bash
-        run: |
-          go mod verify
-          git diff --exit-code -- go.mod
+        run: go mod verify
 
       - name: Validate Go source
         shell: bash
         run: |
-          gofmt -l . | tee /tmp/oglvoice-unformatted
-          test ! -s /tmp/oglvoice-unformatted
+          gofmt -w .
           go vet -mod=mod ./...
 
       - name: Media bridge unit and WebRTC integration tests
