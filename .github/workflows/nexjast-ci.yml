@@ -802,7 +802,9 @@ jobs:
           assert doc["x_nexverse_version_history"][3]["server_line"] == "0.9.3.6"
           assert doc["x_nexverse_version_history"][3]["status"] == "completed"
           assert doc["x_nexverse_version_history"][4]["server_line"] == "0.9.3.5"
-          assert doc["x_nexverse_version_history"][4]["status"] == "release"
+          assert doc["x_nexverse_version_history"][4]["status"] == "completed"
+          assert doc["x_nexverse_version_history"][5]["server_line"] == "0.9.3.4"
+          assert doc["x_nexverse_version_history"][5]["status"] == "release"
           assert doc["x_nexverse_changelog"]
           assert doc["x_nexverse_changelog"][0]["version"] == "0.9.3.3"
           assert "0.9.3.1 Dev" not in json.dumps(doc, ensure_ascii=False)
