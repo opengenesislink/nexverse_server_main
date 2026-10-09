@@ -52,6 +52,9 @@ namespace OpenSim.Framework
         /// </summary>
         private ushort _version;
 
+        // Persistent Firestorm outfit/folder thumbnail asset UUID.
+        public UUID ThumbnailID { get; set; } = UUID.Zero;
+
         public virtual UUID ParentID
         {
             get { return _parentID; }
