@@ -60,7 +60,7 @@ namespace NexVerse.RegionModules.Pathfinding
                 out string reason)
             {
                 reason = "navigation_unavailable";
-                if (Disposed || npcId.IsZero() || !float.IsFinite(destination.X) ||
+                if (Disposed || npcId.IsZero() || callerId.IsZero() || !float.IsFinite(destination.X) ||
                     !float.IsFinite(destination.Y) || !float.IsFinite(destination.Z))
                     return false;
 
@@ -138,7 +138,7 @@ namespace NexVerse.RegionModules.Pathfinding
             public bool Stop(UUID npcId, UUID callerId)
             {
                 INPCModule npc = Scene.RequestModuleInterface<INPCModule>();
-                if (npc == null || !npc.CheckPermissions(npcId, callerId))
+                if (callerId.IsZero() || npc == null || !npc.CheckPermissions(npcId, callerId))
                     return false;
                 lock (m_Sync)
                 {
