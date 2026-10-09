@@ -42,6 +42,7 @@ namespace NexVerse.RegionModules.Voice
         {
             public string ViewerSession;
             public Guid AgentSessionId;
+            public OglVoiceAdmission LastAdmission;
         }
 
         private readonly ConcurrentDictionary<UUID, VoiceSession> m_Sessions = new();
@@ -50,6 +51,8 @@ namespace NexVerse.RegionModules.Voice
         private Scene m_Scene;
         private HttpClient m_Http;
         private ISimulatorFeaturesModule m_Features;
+        private Timer m_PositionTimer;
+        private int m_PositionUpdateRunning;
         private bool m_Enabled;
         private string m_NodeId;
         private string m_Key;
@@ -115,7 +118,12 @@ namespace NexVerse.RegionModules.Voice
                 m_Features.OnSimulatorFeaturesRequest += OnSimulatorFeaturesRequest;
         }
 
-        public void PostInitialise() { }
+        public void PostInitialise()
+        {
+            if (m_Enabled)
+                m_PositionTimer = new Timer(_ => _ = PushPositionsAsync(), null,
+                    TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+        }
 
         public void RemoveRegion(Scene scene)
         {
@@ -125,6 +133,8 @@ namespace NexVerse.RegionModules.Voice
             if (m_Features != null)
                 m_Features.OnSimulatorFeaturesRequest -= OnSimulatorFeaturesRequest;
             m_Features = null;
+            m_PositionTimer?.Dispose();
+            m_PositionTimer = null;
             m_Scene = null;
             m_Sessions.Clear();
         }
@@ -355,7 +365,8 @@ namespace NexVerse.RegionModules.Voice
                     m_Sessions[avatar] = new VoiceSession
                     {
                         ViewerSession = media.viewer_session,
-                        AgentSessionId = admission.SessionId
+                        AgentSessionId = admission.SessionId,
+                        LastAdmission = admission
                     };
                     response.RawBuffer = Encoding.UTF8.GetBytes(
                         OSDParser.SerializeLLSDXmlString(new OSDMap
@@ -390,6 +401,95 @@ namespace NexVerse.RegionModules.Voice
             finally
             {
                 m_Requests.Release();
+            }
+        }
+
+        private async Task PushPositionsAsync()
+        {
+            if (Interlocked.Exchange(ref m_PositionUpdateRunning, 1) != 0)
+                return;
+            try
+            {
+                OglVoiceProviderDescriptor provider = ReadyProvider();
+                Scene scene = m_Scene;
+                if (provider == null || scene == null || m_Sessions.IsEmpty)
+                    return;
+
+                // Never trust viewer-reported location: only the current root
+                // agent's ScenePresence/estate/parcel assertion is sent.
+                // Bounded concurrency avoids overwhelming simulator threads.
+                using SemaphoreSlim gate = new(8, 8);
+                List<Task> batch = new();
+                foreach (var item in m_Sessions)
+                {
+                    await gate.WaitAsync().ConfigureAwait(false);
+                    batch.Add(PushOnePositionAsync(scene, provider,
+                        item.Key, item.Value, gate));
+                }
+                await Task.WhenAll(batch).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                m_Log.Warn("[OGL-VOICE]: Spatial sync error: " + e.Message);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref m_PositionUpdateRunning, 0);
+            }
+        }
+
+        private async Task PushOnePositionAsync(Scene scene,
+            OglVoiceProviderDescriptor provider, UUID avatar, VoiceSession session,
+            SemaphoreSlim gate)
+        {
+            try
+            {
+                bool present = scene == m_Scene &&
+                    OglVoiceRegionAdmission.TryCreate(scene, avatar,
+                        provider.tenant_id, provider.hypergrid_guests,
+                        out OglVoiceAdmission current) &&
+                    current.SessionId == session.AgentSessionId;
+                OglVoiceMediaExchange exchange = new()
+                {
+                    operation = present ? "position" : "leave",
+                    admission = present ? current : session.LastAdmission,
+                    viewer_session = session.ViewerSession
+                };
+                if (!present)
+                    m_Sessions.TryRemove(avatar, out _);
+                if (present && !current.PositionValid)
+                    return;
+
+                byte[] data = JsonSerializer.SerializeToUtf8Bytes(exchange);
+                if (data.Length > OglVoiceMediaProof.MaximumPayloadBytes)
+                    return;
+                using HttpRequestMessage request =
+                    new(HttpMethod.Post, new Uri(provider.media_gateway_url));
+                request.Content = new ByteArrayContent(data);
+                request.Content.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                long stamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                string nonce = OglVoiceDiscoveryProof.NewNonce();
+                request.Headers.TryAddWithoutValidation("X-OGLVoice-Node", m_NodeId);
+                request.Headers.TryAddWithoutValidation("X-OGLVoice-Timestamp",
+                    stamp.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                request.Headers.TryAddWithoutValidation("X-OGLVoice-Nonce", nonce);
+                request.Headers.TryAddWithoutValidation("X-OGLVoice-Signature",
+                    OglVoiceMediaProof.Sign(m_Key, m_NodeId, stamp, nonce, data));
+                using HttpResponseMessage response = await m_Http.SendAsync(
+                    request, HttpCompletionOption.ResponseHeadersRead)
+                    .ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                    m_Log.DebugFormat("[OGL-VOICE]: Spatial sync rejected ({0})",
+                        (int)response.StatusCode);
+            }
+            catch (Exception e)
+            {
+                m_Log.Debug("[OGL-VOICE]: Spatial sync temporarily unavailable: " + e.Message);
+            }
+            finally
+            {
+                gate.Release();
             }
         }
 
