@@ -598,6 +598,14 @@ namespace NexVerse.Server.Api
                         auditSink,
                         teleportBaseUri);
 
+                NexCitizenWorldMapApi citizenWorldMap = new NexCitizenWorldMapApi(grid, teleportBaseUri);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/world-map",
+                        apiGate.Wrap(citizenWorldMap.Handle),
+                        "OpenGenesisLINK Citizen World Map"),
+                    true);
+
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/search",

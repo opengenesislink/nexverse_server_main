@@ -12,6 +12,16 @@ Current development endpoint:
 
 NexVerse currently runs Robust directly on TCP port 80 without a reverse proxy. Therefore `world.stadt-nexverse.de` should resolve to the same Robust host as the public grid endpoint. The World API uses its own `/api/v1` path namespace.
 
+
+#### Bürgerportal-Weltkarte
+
+Siehe [PORTAL_WORLD_MAP.md](PORTAL_WORLD_MAP.md) für den Menüpunkt „Weltkarte“, Kartenkacheln, Such-/Zoomfunktionen, Sicherheitsgrenzen und das iframe-Beispiel.
+
+- `GET /api/v1/world-map` — veröffentlichte, aktive Regionen um die Standardregion
+- `GET /api/v1/world-map?q=Freiburg` — Regionssuche
+- `GET /api/v1/world-map?min_x=1000&max_x=1011&min_y=1000&max_y=1011` — begrenzter Kartenausschnitt
+- `GET /api/v1/world-map/view` — einbettbare Kartenansicht
+
 ## Public foundation endpoints
 
 - `GET /api/v1` — service metadata

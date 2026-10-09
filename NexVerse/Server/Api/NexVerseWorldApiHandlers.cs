@@ -203,6 +203,8 @@ namespace NexVerse.Server.Api
                     ("post", "NV$-Konto sperren, freigeben oder schließen", "admin:*", "200")),
                 ["/api/v1/economy/accounts/ensure"] = AuthenticatedOperations(
                     ("post", "Vertrauenswürdiges Gruppen-, Business-, Estate- oder Objekt-Wallet provisionieren", "economy:transfer (service/admin)", "200")),
+                ["/api/v1/world-map"] = GetOperation("Oeffentliche Weltkarte: Regionen und Kartenkachel-Koordinaten in begrenztem Rasterfenster"),
+                ["/api/v1/world-map/view"] = GetOperation("Interaktive, einbettbare Weltkarte fuer das NexVerse Buergerportal"),
                 ["/api/v1/search"] = GetOperation(
                     "NexSearch über Personen, Gruppen, Regionen, Parcels, Places, Events, Land, Classifieds, Experiences und Destinations"),
                 ["/api/v1/places"] = MergeOperations(
@@ -538,6 +540,7 @@ namespace NexVerse.Server.Api
                 "EconomyAccountStateResponse",
                 "200");
             ApplyJsonContract(paths, "/api/v1/economy/accounts/ensure", "post", "EconomyWalletEnsureRequest", "EconomyBalanceResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/world-map", "get", null, "CitizenWorldMapResponse", "200");
             ApplyJsonContract(paths, "/api/v1/search", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "post", "DiscoveryPlaceRequest", "DiscoveryObjectResponse", "201");
@@ -2621,6 +2624,41 @@ namespace NexVerse.Server.Api
                             }
                         },
                         ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["CitizenWorldMapRegion"] = new
+                {
+                    type = "object",
+                    required = new[] { "region_id", "name", "grid_x", "grid_y", "cells_x", "cells_y", "size_x", "size_y", "maturity", "teleport_uri" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["region_id"] = new { type = "string", format = "uuid" },
+                        ["name"] = new { type = "string" },
+                        ["grid_x"] = new { type = "integer", minimum = 0 },
+                        ["grid_y"] = new { type = "integer", minimum = 0 },
+                        ["cells_x"] = new { type = "integer", minimum = 1 },
+                        ["cells_y"] = new { type = "integer", minimum = 1 },
+                        ["size_x"] = new { type = "integer", minimum = 1 },
+                        ["size_y"] = new { type = "integer", minimum = 1 },
+                        ["maturity"] = new { type = "integer", minimum = 0, maximum = 2 },
+                        ["teleport_uri"] = new { type = "string" }
+                    }
+                },
+                ["CitizenWorldMapResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "mode", "cell_size_meters", "regions", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["mode"] = new { type = "string", @enum = new[] { "search", "viewport" } },
+                        ["cell_size_meters"] = new { type = "integer", @enum = new[] { 256 } },
+                        ["has_default_region"] = new { type = "boolean" },
+                        ["bounds"] = new { type = "object" },
+                        ["query"] = new { type = "string" },
+                        ["count"] = new { type = "integer", minimum = 0 },
+                        ["tile_url_template"] = new { type = "string" },
+                        ["regions"] = new { type = "array", items = SchemaRef("CitizenWorldMapRegion") },
                         ["correlation_id"] = new { type = "string" }
                     }
                 },
