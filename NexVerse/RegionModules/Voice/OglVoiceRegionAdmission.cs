@@ -51,9 +51,19 @@ namespace NexVerse.RegionModules.Voice
                     rawHome == null)
                     return false;
                 home = rawHome.ToString();
-                // Identity URI is validated again by the central issuer.
-                if (!OglVoiceDiscoveryProof.IsSafeServiceUri(home))
+                // HomeURI is the verified Hypergrid identity, NOT a URL
+                // for fetching secrets or media. HG1.5 still legitimately
+                // uses HTTP origins, unlike private OGLVoice service URLs.
+                // Canonicalization/validation is shared with the JWT issuer.
+                try
+                {
+                    OglVoiceHypergridIdentity.DeriveGuestId(
+                        home, Guid.Parse(agentId.ToString()));
+                }
+                catch (ArgumentException)
+                {
                     return false;
+                }
             }
 
             admission = new OglVoiceAdmission
