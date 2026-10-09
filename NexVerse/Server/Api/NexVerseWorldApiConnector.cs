@@ -13,6 +13,7 @@ using NexVerse.Core.Messaging;
 using NexVerse.Core.Jobs;
 using NexVerse.Core.Observability;
 using NexVerse.Core.Security;
+using NexVerse.Core.Voice;
 using OpenSim.Data;
 using OpenSim.Framework.Servers.HttpServer;
 using OpenSim.Server.Base;
@@ -218,6 +219,34 @@ namespace NexVerse.Server.Api
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/version", apiGate.Wrap(handlers.Version), "NexVerse World API Version"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/capabilities", apiGate.Wrap(handlers.Capabilities), "NexVerse World API Capabilities"));
             server.AddSimpleStreamHandler(new SimpleStreamHandler("/api/v1/openapi.json", apiGate.Wrap(handlers.OpenApi), "NexVerse World API OpenAPI"));
+
+            // Central OGLVoice provider authority for trusted simulator nodes.
+            // This publishes signed public metadata only; room tokens and
+            // Firestorm/LiveKit session provisioning are not implemented here.
+            IConfig oglVoiceConfig = config.Configs["OGLVoice"];
+            if (oglVoiceConfig?.GetBoolean("Enabled", false) == true)
+            {
+                string mode = oglVoiceConfig.GetString("Mode", "GridAuthority").Trim();
+                if (!string.Equals(mode, "GridAuthority", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Robust [OGLVoice] requires Mode=GridAuthority");
+
+                OglVoiceProviderDescriptor provider = new()
+                {
+                    provider_url = oglVoiceConfig.GetString("ServiceUrl", string.Empty).Trim(),
+                    tenant_id = oglVoiceConfig.GetString("TenantId", string.Empty).Trim(),
+                    hypergrid_guests = oglVoiceConfig.GetBoolean("IncludeHypergridGuests", true)
+                };
+                provider.Validate();
+
+                string discoveryKey = nexBusConfig?.GetString("SharedKey", string.Empty);
+                OglVoiceDiscoveryProof.ValidateKey(discoveryKey);
+                OglVoiceGridDiscoveryEndpoint discovery =
+                    new OglVoiceGridDiscoveryEndpoint(provider, discoveryKey);
+                server.AddSimpleStreamHandler(new SimpleStreamHandler(
+                    OglVoiceGridDiscoveryEndpoint.Route, discovery.Handle,
+                    "OGLVoice signed grid provider discovery"));
+                m_Log.Info("[OGL-VOICE]: Sichere Grid-Provider-Discovery aktiv; LiveKit-/Viewer-CAPS noch nicht implementiert.");
+            }
 
             IConfig offlineImMailRelayConfig = config.Configs["OfflineIMMailRelay"];
             if (offlineImMailRelayConfig != null &&

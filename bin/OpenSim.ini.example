@@ -1203,6 +1203,26 @@
     ; ScriptEnginesPath = "ScriptEngines"
 
 
+; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
+; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
+; NodeAgent-Vertrauensverbindung mit PeerUrl/SharedKey ermittelt den zentralen Provider
+; automatisch vom vertrauten Robust (wenn dieser [OGLVoice] aktiviert hat).
+;
+; STANDALONE: erst nach Einrichten eines eigenen OGLVoice-Mandanten aktivieren:
+;[OGLVoice]
+;    Enabled = true
+;    Mode = "Standalone"
+;    ServiceUrl = "https://voice.stadt-nexverse.de"
+;    TenantId = "my-standalone-grid"
+;    IncludeHypergridGuests = true
+;
+; IM GRID explizit deaktivieren: [OGLVoice] Enabled = false
+; Alternativer Robust-Endpunkt nur bei Reverse-Proxy-Sonderroute:
+;[OGLVoice]
+;    Enabled = true
+;    Mode = "GridManaged"
+;    AuthorityUrl = "https://my-robust.example/internal/oglvoice/v1/provider"
+
 [NexPortalIM]
     ; Optional signed forwarding of successfully accepted viewer IMs to Robust.
     ; Configure separately in every Simulator. Default disabled.

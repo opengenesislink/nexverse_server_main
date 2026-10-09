@@ -306,6 +306,14 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglPathfindingRegression/OglPathfindingRegression.csproj
 
+      - name: Verify OGLVoice secure provider discovery integration
+        shell: bash
+        run: python3 tools/ci/verify_oglvoice_discovery.py
+
+      - name: Regression-test OGLVoice signed discovery and HG identities
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglVoiceDiscoveryRegression/OglVoiceDiscoveryRegression.csproj
+
       - name: Verify Firestorm bridge bootstrap compatibility
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py

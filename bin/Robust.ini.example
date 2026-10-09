@@ -583,6 +583,21 @@
     ; Default NodeAgent heartbeat is 30 seconds, so 90 allows three missed intervals.
     NodeStaleAfterSeconds = 90
 
+[OGLVoice]
+    ; Zentrale Voice-Provider-Discovery fuer alle mit NexBus verbundenen
+    ; Simulatoren dieses Grids. Dieser Schritt stellt NUR Provider-Metadaten
+    ; bereit, NOCH KEINE LiveKit-Voice-CAPS, Audio- oder Raum-Tokens!
+    ; Erst aktivieren, wenn HTTPS, NexBus-SharedKey und OGLVoice-Tenant stehen.
+    Enabled = false
+    Mode = "GridAuthority"
+    ServiceUrl = "https://voice.stadt-nexverse.de"
+    TenantId = "nexverse"
+    IncludeHypergridGuests = true
+
+    ; Die eingehende interne Route ist
+    ; /internal/oglvoice/v1/provider (NexBus-HMAC + Replay-Schutz).
+    ; Keine OGLVoice-LiveKit/Admin-Schluessel im Simulator verteilen.
+
 [NexPortalIM]
     ; Opt-in web chat history. Enable only after the same secret is configured
     ; in every Simulator. No IM contents are saved until a resident opts in.

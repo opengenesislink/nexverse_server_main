@@ -5,6 +5,33 @@
 **Vorhandene Grundlage:** Ein bestehender, separat betriebener NexVoice/LiveKit-Dienst kann weiterentwickelt werden; dessen tatsächliche Quellcode-/API-Kompatibilität muss vor Übernahme geprüft werden.  
 **Bestehende Webpräsenz:** https://voice.stadt-nexverse.de/ (OGLVoice-Verwaltung und späteres Mandantenportal; bestehende Seiteninhalte nicht Teil dieses Dokuments).
 
+## Implementierungsstand 0.9.3.10 Dev – OGLVoice Discovery v1
+
+Der **erste reale serverseitige OGLVoice-Integrationsschritt** ist die vertrauensbasierte Provider-Discovery. Sie hat **noch kein Sprach-Audio, keine LiveKit-Tokens, keine Firestorm-CAPS und keine Teilnehmer-/Voice-Kugeln**.
+
+**Robust (GridAuthority):**
+- Setze `[OGLVoice] Enabled = true`, `Mode = "GridAuthority"`, `ServiceUrl`, `TenantId` und `IncludeHypergridGuests` in `Robust.HG.ini` oder `Robust.ini`.
+- Der World-API-Connector schaltet nur dann `GET /internal/oglvoice/v1/provider` frei, wenn `[NexBus] SharedKey` mindestens 32 UTF-8-Bytes umfasst, die TLS-/URL-/Tenant-Validierung erfolgreich war und die Authority aktiviert wurde.
+- Dieser Endpunkt akzeptiert nur für maximal 60 Sekunden gültige, HMAC-SHA256-signierte Requests mit `X-OGLVoice-Node`, `X-OGLVoice-Timestamp`, `X-OGLVoice-Nonce` und `X-OGLVoice-Signature`. Wiederholte Nonces werden zurückgewiesen. Die JSON-Antwort ist mit `X-OGLVoice-Response-Signature` signiert und enthält **nur nicht vertrauliche Providerdaten**.
+- Der Endpunkt muss **hinter TLS und Firewall/Reverse Proxy geschützt** bleiben. Die Signatur ist keine Ersatzlösung für Netzisolation.
+
+**Simulator (GridManaged):**
+- Ohne lokale `[OGLVoice]`-Sektion sucht `OglVoiceRegionDiscoveryModule` den Robust-Provider automatisch, **aber nur** wenn der vorhandene `[NexVerseNodeAgent]`-Trust mit `Enabled=true`, vertrauenswürdigem `PeerUrl` und dem übereinstimmenden `SharedKey` aktiv ist.
+- Authority-URL: standardmäßig Ursprung von `NexVerseNodeAgent.PeerUrl` plus `/internal/oglvoice/v1/provider`; bei spezieller Reverse-Proxy-Route nur per explizitem `AuthorityUrl`. Der Provider wird periodisch in einem asynchronen Hintergrundjob abgefragt, ohne den Sim-Start auf Netzwerkantworten zu blockieren.
+- `IOglVoiceProviderLookup` stellt **ausschließlich signierte, validierte und frische (höchstens zehn Minuten alte)** Providerdaten an andere Regionmodule bereit. Bei Timeout, ungültiger Antwort oder ausgeschalteter Authority wird kein Voice-Provider als bestätigt gemeldet.
+- Ein lokales `[OGLVoice] Enabled = false` überschreibt die automatische Discovery.
+
+**Standalone:**
+- `[OGLVoice] Enabled = true`, `Mode = "Standalone"`, `ServiceUrl`, `TenantId` und optionale HG-Gast-Freigabe in `OpenSim.ini`. Keine Robust-Discovery erforderlich.
+- Der Standalone-Tenant ist **kein selbstsigniertes Unlimited-Recht**. Späteres Session-/Quota-Management muss jede Region/jeden Tenant bei OGLVoice selbst authentifizieren.
+
+**Hypergrid:**
+- `OglVoiceHypergridIdentity.DeriveGuestId(verifiedHomeUri, originalAvatarId)` bildet den kanonischen Heim-Grid-Ursprung und die **ursprüngliche Avatar-UUID** auf eine kollisionsresistente `hg:SHA256`-Identität ab. Diese Helferfunktion muss **erst nach authentifizierter HG-Agent-/Gatekeeper-Prüfung** aufgerufen werden. Sie ist noch nicht mit dem Viewer oder LiveKit verbunden.
+
+**Sicherheit:** Discovery-HMAC benutzt bereits eingerichtetes NexBus-SharedKey-Material; es gibt hier keinen neuen Tenant-Admin-Key, keine LiveKit-Signing-Secrets und keinen unverschlüsselten Zugriff von externen Simulatoren. HTTP ist ausschließlich für Loopback-Entwicklung zulässig.
+
+**Nächste zwingende Schritte:** OGLVoice-Control-Plane mit echten Tenant-/Session-Token-Regeln; serverseitig beglaubigte Region/HG-Präsenz; Firestorm-LLSD-CAPS-/Media-Adapter; LiveKit; vollständige Remote-Speaker-/Voice-Orb-Kompatibilität. **Eine erfolgreiche Provider-Discovery beweist noch keine funktionierende Sprachkommunikation.**
+
 ## 1. Produktziel
 
 **OGLVoice** ersetzt die im Server entfernten Vivox-/FreeSwitch-Implementierungen durch einen selbst betriebenen, **zentralen, mandantenfähigen WebRTC-Voice-Dienst**. Das operative Prinzip entspricht einem externen zentralen Voice-Provider: Eine ganze virtuelle Welt kann einen einzigen Voice-Provider verwenden; es wird **kein Voice-Medienserver je Simulator** verlangt.
