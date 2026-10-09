@@ -1,0 +1,71 @@
+name: OGLVoice Go Media Gateway
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/oglvoice-media/**'
+      - '.github/workflows/oglvoice-media-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/oglvoice-media/**'
+      - '.github/workflows/oglvoice-media-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  media:
+    name: Pion / LiveKit media bridge
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/oglvoice-media
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go from module
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: services/oglvoice-media/go.mod
+          cache-dependency-path: services/oglvoice-media/go.mod
+
+      - name: Resolve pinned dependencies
+        shell: bash
+        run: go mod tidy
+
+      - name: Validate Go module version
+        shell: bash
+        run: |
+          go mod verify
+          git diff --exit-code -- go.mod
+
+      - name: Validate Go source
+        shell: bash
+        run: |
+          gofmt -l . | tee /tmp/oglvoice-unformatted
+          test ! -s /tmp/oglvoice-unformatted
+          go vet -mod=mod ./...
+
+      - name: Media bridge unit and WebRTC integration tests
+        shell: bash
+        run: go test -mod=mod -race -count=1 -timeout=3m ./...
+
+      - name: Build OGLVoice media daemon
+        shell: bash
+        run: go build -mod=mod -trimpath -o /tmp/oglvoice-media .
+
+      - name: Local daemon configuration-negative smoke
+        shell: bash
+        run: |
+          set +e
+          OGLVOICE_MEDIA_ACL_JSON='' /tmp/oglvoice-media >/tmp/oglvoice-media-negative.log 2>&1
+          code=$?
+          set -e
+          test "$code" -ne 0
+          grep -F 'configuration rejected' /tmp/oglvoice-media-negative.log
