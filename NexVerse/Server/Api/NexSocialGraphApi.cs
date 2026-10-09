@@ -82,11 +82,27 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            FriendInfo current = (m_Friends.GetFriends(owner) ?? Array.Empty<FriendInfo>())
+                .FirstOrDefault(x => x.Friend == target.ToString());
+
             if (request.HttpMethod == "POST")
             {
-                // OpenSim represents a pending offer by storing -1 on the target-facing row.
-                bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), 1);
-                bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), -1);
+                if (current != null)
+                {
+                    Write(response, HttpStatusCode.Conflict, new { error = "relationship_already_exists" });
+                    return;
+                }
+
+                // The incoming viewer offers list selects TheirFlags == -1.
+                // Therefore -1 must be the SENDER-facing row. Reversing these
+                // flags would display the request on the wrong avatar.
+                bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), -1);
+                bool b = a && m_Friends.StoreFriend(target.ToString(), owner.ToString(), 1);
+                if (!a || !b)
+                {
+                    m_Friends.Delete(owner, target.ToString());
+                    m_Friends.Delete(target, owner.ToString());
+                }
                 Audit(principal, "relationship.request", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.Accepted : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "pending" : "failed", principal_id = owner.ToString(), target_id = target.ToString() });
@@ -95,9 +111,16 @@ namespace NexVerse.Server.Api
 
             if (request.HttpMethod == "PUT")
             {
+                // Only the recipient of an outstanding offer may accept it;
+                // a sender cannot accept their own request.
+                if (current == null || current.TheirFlags != -1 || current.MyFlags == -1)
+                {
+                    Write(response, HttpStatusCode.Conflict, new { error = "no_incoming_friend_request" });
+                    return;
+                }
                 int rights = ReadRights(request, 1);
                 bool a = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
-                bool b = m_Friends.StoreFriend(target.ToString(), owner.ToString(), rights);
+                bool b = a && m_Friends.StoreFriend(target.ToString(), owner.ToString(), 1);
                 Audit(principal, "relationship.accept", owner, target, a && b);
                 Write(response, a && b ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = a && b ? "accepted" : "failed", rights });
@@ -106,7 +129,12 @@ namespace NexVerse.Server.Api
 
             if (request.HttpMethod == "PATCH")
             {
-                int rights = ReadRights(request, 1);
+                if (current == null || current.MyFlags < 0 || current.TheirFlags < 0)
+                {
+                    Write(response, HttpStatusCode.Conflict, new { error = "friendship_not_accepted" });
+                    return;
+                }
+                int rights = ReadRights(request, current.MyFlags);
                 bool ok = m_Friends.StoreFriend(owner.ToString(), target.ToString(), rights);
                 Audit(principal, "relationship.rights", owner, target, ok);
                 Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
@@ -116,10 +144,10 @@ namespace NexVerse.Server.Api
 
             if (request.HttpMethod == "DELETE")
             {
+                bool pending = current != null && (current.MyFlags == -1 || current.TheirFlags == -1);
                 bool a = m_Friends.Delete(owner, target.ToString());
                 bool b = m_Friends.Delete(target, owner.ToString());
-                FriendInfo existing = (m_Friends.GetFriends(owner) ?? Array.Empty<FriendInfo>()).FirstOrDefault(x => x.Friend == target.ToString());
-                string action = existing != null && (existing.MyFlags == -1 || existing.TheirFlags == -1) ? "relationship.decline" : "relationship.remove";
+                string action = pending ? "relationship.decline" : "relationship.remove";
                 Audit(principal, action, owner, target, a || b);
                 Write(response, HttpStatusCode.OK, new { status = (a || b) ? "removed" : "absent" });
                 return;
@@ -158,6 +186,13 @@ namespace NexVerse.Server.Api
                     Stamp = Util.UnixTimeSinceEpoch()
                 };
                 bool ok = m_Mutes.UpdateMute(mute);
+                if (ok)
+                {
+                    // A blocked resident must not remain eligible for
+                    // friend-only portal messaging.
+                    m_Friends.Delete(owner, target.ToString());
+                    m_Friends.Delete(target, owner.ToString());
+                }
                 Audit(principal, "relationship.block", owner, target, ok);
                 Write(response, ok ? HttpStatusCode.OK : HttpStatusCode.InternalServerError,
                     new { status = ok ? "blocked" : "failed", target_id = target.ToString() });
@@ -203,10 +238,11 @@ namespace NexVerse.Server.Api
                 state = f.TheirFlags == -1 ? "incoming_pending" : (f.MyFlags == -1 ? "outgoing_pending" : "friends"),
                 rights = f.MyFlags,
                 their_rights = f.TheirFlags,
-                can_see_online = (f.MyFlags & 1) != 0,
-                online = (f.MyFlags & 1) != 0 && IsOnline(id),
-                can_see_on_map = (f.MyFlags & 2) != 0,
-                can_modify_objects = (f.MyFlags & 4) != 0
+                // TheirFlags describe what the friend grants this avatar.
+                can_see_online = f.MyFlags >= 0 && f.TheirFlags >= 0 && (f.TheirFlags & 1) != 0,
+                online = f.MyFlags >= 0 && f.TheirFlags >= 0 && (f.TheirFlags & 1) != 0 && IsOnline(id),
+                can_see_on_map = f.MyFlags >= 0 && f.TheirFlags >= 0 && (f.TheirFlags & 2) != 0,
+                can_modify_objects = f.MyFlags >= 0 && f.TheirFlags >= 0 && (f.TheirFlags & 4) != 0
             };
         }
 
