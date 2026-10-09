@@ -60,7 +60,13 @@ namespace NexVerse.RegionModules.Voice
                     {
                         provider_url = local.GetString("ServiceUrl", string.Empty).Trim(),
                         tenant_id = local.GetString("TenantId", string.Empty).Trim(),
-                        hypergrid_guests = local.GetBoolean("IncludeHypergridGuests", true)
+                        hypergrid_guests = local.GetBoolean("IncludeHypergridGuests", true),
+                        media_gateway_url = local.GetBoolean("EnableFirestormGateway", false)
+                            ? local.GetString("MediaGatewayUrl", "").Trim()
+                            : null,
+                        viewer_capability = local.GetBoolean("EnableFirestormGateway", false)
+                            ? "firestorm-webrtc-v1"
+                            : "not-yet-implemented"
                     };
                     standalone.Validate();
                     m_Current = standalone;
