@@ -421,6 +421,12 @@ namespace OpenSim.Framework
                 LLSDxmlEncode2.AddElem_parent_id(Folder, lsl);
                 LLSDxmlEncode2.AddElem_asset_id( AssetID, lsl);
                 LLSDxmlEncode2.AddElem_item_id( ID, lsl);
+                if (ThumbnailID != UUID.Zero)
+                {
+                    LLSDxmlEncode2.AddMap("thumbnail", lsl);
+                    LLSDxmlEncode2.AddElem("asset_id", ThumbnailID, lsl);
+                    LLSDxmlEncode2.AddEndMap(lsl);
+                }
 
                 LLSDxmlEncode2.AddMap("permissions",lsl);
                     LLSDxmlEncode2.AddElem_creator_id(CreatorIdAsUuid, lsl);
