@@ -8,7 +8,7 @@
 
 ## Umsetzung
 
-Der Server registriert `InventoryThumbnailUpload` beim CAPS Seed. Firestorm sendet zuerst eine LLSD-POST-Anfrage mit `item_id` oder `category_id` und bekommt `state=upload,uploader=<Einmal-URL>`. Anschliessend sendet der Viewer die JPEG2000-Datei an den Einmal-Uploader. Nach Besitzer-/Sitzungspruefung speichert OpenGenesisLINK eine **permanente** Texture-Asset-ID und aktualisiert das `ThumbnailID`-Feld des betroffenen Items/Outfit-Ordners. Firestorm erhaelt `state=complete,new_asset=<UUID>`.
+Der Server registriert `InventoryThumbnailUpload` beim CAPS Seed. Hypergrid-Besucher duerfen damit bewusst **keine** lokalen Assets mit ihrer fremden Home-Grid-Inventardatenbank verknuepfen; solche Uploads muessen im Heimat-Grid erfolgen. Firestorm sendet zuerst eine LLSD-POST-Anfrage mit `item_id` oder `category_id` und bekommt `state=upload,uploader=<Einmal-URL>`. Anschliessend sendet der Viewer die JPEG2000-Datei an den Einmal-Uploader. Nach Besitzer-/Sitzungspruefung speichert OpenGenesisLINK eine **permanente** Texture-Asset-ID und aktualisiert das `ThumbnailID`-Feld des betroffenen Items/Outfit-Ordners. Firestorm erhaelt `state=complete,new_asset=<UUID>`.
 
 Die neuen `thumbnailID`-Spalten und die bisher fehlende Inventar-Konvertierung werden fuer drei DB-Engines bereitgestellt:
 - MariaDB/MySQL `InventoryStore` Migration v8
