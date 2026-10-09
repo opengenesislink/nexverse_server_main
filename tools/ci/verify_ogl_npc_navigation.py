@@ -13,6 +13,7 @@ for item in ("INPCModule", "CheckPermissions(npcId, callerId)",
              "m_Timer", "Interlocked.Exchange(ref m_Ticking",
              "UnregisterModuleInterface<IOglNpcRouteService>"):
     assert item in module, item
+assert module.count("callerId.IsZero()") >= 2, "reject NPC superuser bypass"
 assert "TryNavigate(" in contract
 assert "Stalled(" in cursor and "maximumPoints" in cursor
 assert "[OGLNpcNavigation]" in config and "Enabled = false" in config
