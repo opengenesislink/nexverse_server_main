@@ -2008,6 +2008,7 @@
       <Reference name="OpenSim.Addons.Groups"/>
       <Reference name="OpenSim.Services.FriendsService"/>
       <Reference name="OpenSim.Services.MuteListService"/>
+      <Reference name="Mono.Data.Sqlite"/>
       <Reference name="Nini"/>
       <Reference name="log4net"/>
       <Reference name="MailKit"/>
