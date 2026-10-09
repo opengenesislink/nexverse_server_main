@@ -62,6 +62,11 @@ for path in [
     http=(root/path).read_text()
     assert http.count('"ThumbnailID"') >= 4, f"missing remote inventory roundtrip: {path}"
     assert "ThumbnailID" in http
+remote=(root/"OpenSim/Services/Connectors/Inventory/XInventoryServicesConnector.cs").read_text()
+assert 'METHOD=GETITEM&ID={item.ID}&PRINCIPAL={item.Owner}' in remote
+assert "storedId != item.ThumbnailID" in remote
+assert "m_ItemCache.Remove(item.ID)" in remote
+
 # Test the actual SQLite migration on an existing (populated) inventory
 # schema, not just the spelling of its columns.
 import sqlite3
