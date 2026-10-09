@@ -26,7 +26,13 @@ internal static class Program
         {
             var cfg = new IniConfigSource();
             var db = cfg.AddConfig("DatabaseService");
-            db.Set("StorageProvider", "OpenSim.Data.SQLite.dll");
+            // XInventoryService uses Assembly.LoadFrom, resolved against the
+            // process working directory rather than the .NET dependency
+            // probe directory. CI starts this runner from repository root.
+            string provider = Path.GetFullPath(
+                Path.Combine("bin", "OpenSim.Data.SQLite.dll"));
+            Assert(File.Exists(provider), "SQLite storage provider assembly missing");
+            db.Set("StorageProvider", provider);
             db.Set("ConnectionString", "URI=file:" + path +
                 ",version=3,UseUTF16Encoding=True");
             var service = new XInventoryService(cfg);
