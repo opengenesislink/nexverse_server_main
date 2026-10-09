@@ -134,7 +134,7 @@ namespace NexVerse.Server.Api
                 ? sender.Name : sender.EffectiveDisplayName;
             GridInstantMessage im = new GridInstantMessage(
                 null, sender.PrincipalID, senderName, target,
-                (byte)InstantMessageDialog.MessageFromAgent, text, true, Vector3.Zero);
+                (byte)InstantMessageDialog.MessageFromAgent, text, false, Vector3.Zero);
 
             bool accepted;
             try
