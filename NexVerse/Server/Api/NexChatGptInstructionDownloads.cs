@@ -187,6 +187,12 @@ namespace NexVerse.Server.Api
             md.AppendLine("- Transfers und Zahlungen nur mit economy:transfer und der dokumentierten Idempotenz.");
             md.AppendLine("- Economy-Kontosperren, Reversals und administrative Policies gehoeren in den Adminbereich.");
             md.AppendLine();
+            md.AppendLine("### Weltkarte");
+            md.AppendLine("- GET /world-map liefert ausschliesslich oeffentliche Regionsdaten mit begrenztem Rasterfenster.");
+            md.AppendLine("- GET /world-map/view zeigt eine eigenstaendige, im Stadtportal verlink- oder einbettbare Weltkarte.");
+            md.AppendLine("- MapImageService stellt optionale Kartenkacheln unter /map/map-1-{x}-{y}-objects.jpg bereit.");
+            md.AppendLine("- Das Stadtportal benoetigt einen eigenen Navigationspunkt Weltkarte; Simulator-Nodes und administrative /grid/layout-Daten nicht oeffentlich machen.");
+            md.AppendLine();
             md.AppendLine("### Suche, Land und Destinationen");
             md.AppendLine("- Oeffentlich: /search, /places, /events, /classifieds, /land-portal und /destinations.");
             md.AppendLine("- Destination-Einreichungen koennen mit discovery:submit angeboten werden; Moderation bleibt administrativ.");
