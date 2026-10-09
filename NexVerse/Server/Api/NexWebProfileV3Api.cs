@@ -63,7 +63,7 @@ namespace NexVerse.Server.Api
 
             if (string.Equals(httpRequest.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase))
             {
-                Get(account, httpResponse);
+                Get(account, httpRequest, httpResponse);
                 return;
             }
 
@@ -77,12 +77,29 @@ namespace NexVerse.Server.Api
             WriteJson(httpResponse, HttpStatusCode.MethodNotAllowed, new { error = "method_not_allowed" });
         }
 
-        private void Get(UserAccount account, IOSHttpResponse response)
+        private void Get(UserAccount account, IOSHttpRequest request, IOSHttpResponse response)
         {
             ProfilePrivacy privacy = LoadPrivacy(account.PrincipalID);
             UserProfileProperties profile = new UserProfileProperties { UserId = account.PrincipalID };
             string error = string.Empty;
             m_Profiles.GetAvatarProperties(ref profile, ref error);
+
+            if (!profile.PublishProfile)
+            {
+                if (!m_Authenticator.TryAuthenticate(request, NexScopes.ProfileRead,
+                        out NexPrincipal principal, out UserAccount _, out int status, out string authError))
+                {
+                    WriteJson(response, (HttpStatusCode)status, new { error = authError });
+                    return;
+                }
+                if ((!UUID.TryParse(principal.Subject, out UUID subject) ||
+                     subject != account.PrincipalID) &&
+                    !principal.HasScope(NexScopes.AdminAll))
+                {
+                    WriteJson(response, HttpStatusCode.NotFound, new { error = "profile_not_found" });
+                    return;
+                }
+            }
 
             WriteJson(response, HttpStatusCode.OK, new
             {
@@ -249,7 +266,7 @@ namespace NexVerse.Server.Api
                     }));
             }
 
-            Get(account, response);
+            Get(account, request, response);
         }
 
 
