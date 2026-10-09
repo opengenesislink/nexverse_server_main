@@ -83,6 +83,13 @@ namespace NexVerse.Server.Api
             }
 
             if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
+                path.Equals("/api/v1/inventory/outfits/ensure-folders", StringComparison.OrdinalIgnoreCase))
+            {
+                EnsureOutfitFolders(response, owner);
+                return;
+            }
+
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase) &&
                 path.Equals("/api/v1/inventory/trash/empty", StringComparison.OrdinalIgnoreCase))
             {
                 EmptyTrash(response, owner);
@@ -162,6 +169,12 @@ namespace NexVerse.Server.Api
             UUID owner,
             string path)
         {
+            if (path.Equals("/api/v1/inventory/outfits/health", StringComparison.OrdinalIgnoreCase))
+            {
+                OutfitHealth(response, owner);
+                return;
+            }
+
             if (path.Equals("/api/v1/inventory/search", StringComparison.OrdinalIgnoreCase))
             {
                 Search(request, response, owner);
@@ -211,6 +224,152 @@ namespace NexVerse.Server.Api
             }
 
             WriteError(response, HttpStatusCode.NotFound, "not_found", "Unknown inventory endpoint.");
+        }
+
+        // Outfit gallery diagnostics never create, relink, delete or modify
+        // wearables. The authenticated inventory owner (or explicit admin:*)
+        // is already resolved by Handle() before these methods are called.
+        private void OutfitHealth(IOSHttpResponse response, UUID owner)
+        {
+            InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
+            if (!Owned(root, owner))
+            {
+                WriteError(response, HttpStatusCode.NotFound,
+                    "inventory_root_missing", "This resident has no inventory root.");
+                return;
+            }
+
+            InventoryFolderBase current = m_Inventory.GetFolderForType(owner, FolderType.CurrentOutfit);
+            InventoryFolderBase myOutfits = m_Inventory.GetFolderForType(owner, FolderType.MyOutfits);
+            InventoryCollection currentContent = Owned(current, owner)
+                ? m_Inventory.GetFolderContent(owner, current.ID) : null;
+            InventoryCollection galleryContent = Owned(myOutfits, owner)
+                ? m_Inventory.GetFolderContent(owner, myOutfits.ID) : null;
+
+            const int inspectionLimit = 256;
+            int inspectedLinks = 0;
+            int brokenLinks = 0;
+            List<string> brokenLinkIds = new();
+            ICollection<InventoryItemBase> worn = currentContent?.Items;
+            if (worn != null)
+            {
+                foreach (InventoryItemBase link in worn)
+                {
+                    if (inspectedLinks >= inspectionLimit)
+                        break;
+                    inspectedLinks++;
+                    if (link == null || link.Owner != owner)
+                        continue;
+                    if (link.AssetType != (int)AssetType.Link &&
+                        link.AssetType != (int)AssetType.LinkFolder)
+                        continue;
+                    bool valid = link.AssetID != UUID.Zero &&
+                        (link.AssetType == (int)AssetType.Link
+                            ? Owned(m_Inventory.GetItem(owner, link.AssetID), owner)
+                            : Owned(m_Inventory.GetFolder(owner, link.AssetID), owner));
+                    if (!valid)
+                    {
+                        brokenLinks++;
+                        brokenLinkIds.Add(link.ID.ToString());
+                    }
+                }
+            }
+
+            int savedOutfits = 0;
+            ICollection<InventoryFolderBase> savedFolders = galleryContent?.Folders;
+            if (savedFolders != null)
+            {
+                foreach (InventoryFolderBase saved in savedFolders)
+                {
+                    if (Owned(saved, owner) &&
+                        saved.Type == (short)FolderType.Outfit)
+                        savedOutfits++;
+                }
+            }
+
+            List<string> findings = new();
+            if (!Owned(current, owner))
+                findings.Add("current_outfit_folder_missing");
+            else if (currentContent == null)
+                findings.Add("current_outfit_unavailable");
+            if (!Owned(myOutfits, owner))
+                findings.Add("my_outfits_folder_missing");
+            else if (galleryContent == null)
+                findings.Add("my_outfits_unavailable");
+            if (brokenLinks != 0)
+                findings.Add("current_outfit_broken_links");
+            if (savedOutfits == 0 && galleryContent != null)
+                findings.Add("no_saved_outfits");
+
+            WriteJson(response, new
+            {
+                owner_id = owner.ToString(),
+                current_outfit_folder = Owned(current, owner) ? FolderPayload(current) : null,
+                my_outfits_folder = Owned(myOutfits, owner) ? FolderPayload(myOutfits) : null,
+                current_outfit_item_count = worn?.Count ?? 0,
+                current_outfit_link_scan = new
+                {
+                    inspected = inspectedLinks,
+                    limit = inspectionLimit,
+                    truncated = worn != null && worn.Count > inspectionLimit,
+                    broken = brokenLinks,
+                    broken_link_ids = brokenLinkIds
+                },
+                saved_outfit_count = savedOutfits,
+                findings,
+                changed = false
+            }, HttpStatusCode.OK);
+        }
+
+        private void EnsureOutfitFolders(IOSHttpResponse response, UUID owner)
+        {
+            InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
+            if (!Owned(root, owner))
+            {
+                WriteError(response, HttpStatusCode.NotFound, "inventory_root_missing",
+                    "Cannot create My Outfits without a resident-owned inventory root.");
+                return;
+            }
+
+            // Deliberately do not touch Current Outfit, wearables, saved outfit
+            // links or any existing folder. This is an opt-in additive repair.
+            InventoryFolderBase existing =
+                m_Inventory.GetFolderForType(owner, FolderType.MyOutfits);
+            if (Owned(existing, owner))
+            {
+                WriteJson(response, new
+                {
+                    owner_id = owner.ToString(), created = false,
+                    my_outfits_folder = FolderPayload(existing)
+                }, HttpStatusCode.OK);
+                return;
+            }
+
+            InventoryFolderBase folder = new(
+                UUID.Random(), "My Outfits", owner, (short)FolderType.MyOutfits,
+                root.ID, 1);
+            if (!m_Inventory.AddFolder(folder))
+            {
+                // A concurrent request may have already created the folder.
+                existing = m_Inventory.GetFolderForType(owner, FolderType.MyOutfits);
+                if (!Owned(existing, owner))
+                {
+                    WriteError(response, HttpStatusCode.Conflict, "outfit_folder_create_failed",
+                        "Could not create the missing My Outfits system folder.");
+                    return;
+                }
+                WriteJson(response, new
+                {
+                    owner_id = owner.ToString(), created = false,
+                    my_outfits_folder = FolderPayload(existing)
+                }, HttpStatusCode.OK);
+                return;
+            }
+            WriteJson(response, new
+            {
+                owner_id = owner.ToString(), created = true,
+                my_outfits_folder = FolderPayload(folder)
+            }, HttpStatusCode.Created);
         }
 
         private void Search(
