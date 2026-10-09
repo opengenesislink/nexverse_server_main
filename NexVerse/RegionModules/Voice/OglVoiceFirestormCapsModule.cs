@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using log4net;
 using Mono.Addins;
 using NexVerse.Core.Voice;
@@ -178,8 +179,10 @@ namespace NexVerse.RegionModules.Voice
             }
 
             OglVoiceProviderDescriptor provider = ReadyProvider();
-            if (provider == null || m_Scene?.RequestModuleInterface<IOglVoiceSessionAdmission>()?
-                .TryBuildAdmission(avatar, out OglVoiceAdmission admission) != true)
+            IOglVoiceSessionAdmission admissionModule =
+                m_Scene?.RequestModuleInterface<IOglVoiceSessionAdmission>();
+            if (provider == null || admissionModule == null ||
+                !admissionModule.TryBuildAdmission(avatar, out OglVoiceAdmission admission))
             {
                 Error(response, HttpStatusCode.Forbidden);
                 return;
