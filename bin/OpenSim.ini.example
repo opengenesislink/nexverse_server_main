@@ -1202,6 +1202,15 @@
     ;; Default is ./bin/ScriptEngines
     ; ScriptEnginesPath = "ScriptEngines"
 
+
+[NexPortalIM]
+    ; Optional signed forwarding of successfully accepted viewer IMs to Robust.
+    ; Configure separately in every Simulator. Default disabled.
+    Enabled = false
+    ; Loopback HTTP only when Robust is on the same host. Otherwise use HTTPS.
+    IngestUrl = "http://127.0.0.1/internal/nexportal/im/v1"
+    SharedSecret = "${Environment|NEX_PORTAL_IM_SECRET}"
+
 [OSSL]
     ;# {Include-osslDefaultEnable} {} {Include file for enabling and permissions for OSSL functions} {}
     ;; If this INI file is not included, the OSSL functions are disabled.

@@ -254,7 +254,17 @@ namespace NexVerse.Server.Api
                     ("put", "Einwohner blockieren und bestehende Freundschaft auflösen", "relationships:write", "200"),
                     ("delete", "Einwohner-Blockierung aufheben", "relationships:write", "200")),
                 ["/api/v1/messages"] = AuthenticatedOperations(
+                    ("get", "Eigene, opt-in gespeicherte IM-Konversationen lesen", "relationships:read", "200"),
                     ("post", "Inworld-Direktnachricht an einen bestätigten lokalen Freund zustellen", "relationships:write", "202")),
+                ["/api/v1/messages/settings"] = AuthenticatedOperations(
+                    ("get", "Eigene Portalchat-Opt-in-Einstellung lesen", "relationships:read", "200"),
+                    ("patch", "Portalchat aktivieren oder deaktivieren (bei Deaktivierung wird Historie geloescht)", "relationships:write", "200")),
+                ["/api/v1/messages/events"] = AuthenticatedOperations(
+                    ("get", "Neue eigene IM-Ereignisse per Cursor abrufen (5s Polling)", "relationships:read", "200")),
+                ["/api/v1/messages/with/{peerId}"] = AuthenticatedOperations(
+                    ("get", "Eigene IM-Konversation mit einem Avatar lesen", "relationships:read", "200")),
+                ["/api/v1/messages/history"] = AuthenticatedOperations(
+                    ("delete", "Eigenen gespeicherten Portal-IM-Verlauf loeschen", "relationships:write", "200")),
                 ["/api/v1/groups"] = AuthenticatedOperations(
                     ("get", "NexGroups durchsuchen", "groups:read", "200"),
                     ("post", "NexGroup erstellen", "groups:manage", "201")),
@@ -560,6 +570,11 @@ namespace NexVerse.Server.Api
             ApplyJsonContract(paths, "/api/v1/profiles/{principalId}", "patch", "CitizenAvatarProfilePatch", "CitizenAvatarProfileResponse", "200");
             ApplyJsonContract(paths, "/api/v1/relationships/{principalId}", "get", null, "CitizenFriendListResponse", "200");
             ApplyJsonContract(paths, "/api/v1/messages", "post", "CitizenInstantMessageRequest", "CitizenInstantMessageResponse", "202");
+            ApplyJsonContract(paths, "/api/v1/messages", "get", null, "CitizenImConversationsResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/messages/events", "get", null, "CitizenImEventsResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/messages/with/{peerId}", "get", null, "CitizenImEventsResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/messages/settings", "patch", "CitizenImSettingsRequest", "CitizenImSettingsResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/messages/settings", "get", null, "CitizenImSettingsResponse", "200");
             ApplyJsonContract(paths, "/api/v1/search", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "post", "DiscoveryPlaceRequest", "DiscoveryObjectResponse", "201");
@@ -2647,6 +2662,65 @@ namespace NexVerse.Server.Api
                             }
                         },
                         ["currency"] = new { type = "object" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["CitizenImSettingsRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "enabled" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["enabled"] = new { type = "boolean" }
+                    }
+                },
+                ["CitizenImSettingsResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["enabled"] = new { type = "boolean" },
+                        ["history_deleted"] = new { type = "boolean" },
+                        ["archive"] = new { type = "string" },
+                        ["polling_interval_seconds"] = new { type = "integer" }
+                    }
+                },
+                ["CitizenImEntry"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["seq"] = new { type = "integer", format = "int64" },
+                        ["event_id"] = new { type = "string", format = "uuid" },
+                        ["from_agent_id"] = new { type = "string", format = "uuid" },
+                        ["to_agent_id"] = new { type = "string", format = "uuid" },
+                        ["peer_id"] = new { type = "string", format = "uuid" },
+                        ["sender_name"] = new { type = "string" },
+                        ["message"] = new { type = "string" },
+                        ["source"] = new { type = "string", @enum = new[] { "portal", "viewer" } },
+                        ["accepted_at"] = new { type = "string", format = "date-time" }
+                    }
+                },
+                ["CitizenImEventsResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "messages", "next_cursor", "count" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["messages"] = new { type = "array", items = SchemaRef("CitizenImEntry") },
+                        ["next_cursor"] = new { type = "integer", format = "int64" },
+                        ["count"] = new { type = "integer" },
+                        ["poll_after_seconds"] = new { type = "integer" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["CitizenImConversationsResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["conversations"] = new { type = "array", items = new { type = "object" } },
+                        ["count"] = new { type = "integer" },
                         ["correlation_id"] = new { type = "string" }
                     }
                 },

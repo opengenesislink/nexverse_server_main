@@ -57,6 +57,7 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
         protected List<Scene> m_Scenes = new List<Scene>();
 
         protected IInstantMessage m_IMService;
+        private NexCitizenImForwarder m_PortalImForwarder;
         protected Dictionary<UUID, object> m_UserLocationMap = new Dictionary<UUID, object>();
 
         public event UndeliveredMessage OnUndeliveredMessage;
@@ -83,6 +84,7 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
 
             InstantMessageServerConnector imServer = new InstantMessageServerConnector(config, MainServer.Instance, this);
             m_IMService = imServer.GetService();
+            m_PortalImForwarder = NexCitizenImForwarder.FromConfig(config);
             m_Enabled = true;
         }
 
@@ -134,6 +136,15 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
 
         public void SendInstantMessage(GridInstantMessage im, MessageResultNotification result)
         {
+            // Record only after the existing in-world route accepts the IM.
+            // Optional portal archival must not affect normal Viewer delivery.
+            int recorded = 0;
+            MessageResultNotification recordResult = successful =>
+            {
+                if (successful && System.Threading.Interlocked.Exchange(ref recorded, 1) == 0)
+                    m_PortalImForwarder?.Accepted(im);
+                result?.Invoke(successful);
+            };
             UUID toAgentID = new UUID(im.toAgentID);
             if (toAgentID.IsZero())
                 return;
@@ -154,7 +165,7 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
                     {
                         // m_log.DebugFormat("[HG INSTANT MESSAGE]: Delivering IM to root agent {0} {1}", user.Name, toAgentID);
                         sp.ControllingClient.SendInstantMessage(im);
-                        result(true);
+                        recordResult(true);
                         return;
                     }
                 }
@@ -163,7 +174,7 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
             {
                 // m_log.DebugFormat("[HG INSTANT MESSAGE]: Delivering IM to child agent {0} {1}", user.Name, toAgentID);
                 achildsp.ControllingClient.SendInstantMessage(im);
-                result(true);
+                recordResult(true);
                 return;
             }
 
@@ -200,9 +211,9 @@ namespace OpenSim.Region.CoreModules.Avatar.InstantMessage
                         success = m_IMService.OutgoingInstantMessage(im, url, foreigner);
 
                     if (!success && !foreigner)
-                        HandleUndeliverableMessage(im, result);
+                        HandleUndeliverableMessage(im, recordResult);
                     else
-                        result(success);
+                        recordResult(success);
                 }, null, "HGMessageTransferModule.SendInstantMessage");
         }
 

@@ -43,10 +43,15 @@ Zustellung fehlschlägt, meldet die API einen Fehler anstatt Erfolg
 zu behaupten. Offline-Zustellung hängt von der Installation und
 Konfiguration des vorhandenen `OfflineIMService` ab.
 
-**Wichtig:** Es gibt hier keine persistente, neue Web-Chat-Historie,
-keinen API-Endpunkt zum Lesen sämtlicher IMs und noch keinen
-Spezial-Chat für externe Hypergrid-Adressen. Audits speichern nur
-Empfänger-ID und Nachrichtengröße, **nie** Nachrichteninhalt.
+**Neu:** Eine optionale, eigentümergeschützte Portal-Chat-Historie und
+cursorbasierter Empfang sind implementiert. Vor dem ersten Empfang
+muss der Einwohner ausdrücklich zustimmen. Die Server- und
+Simulator-Konfiguration, API-Endpunkte, Datenschutzregeln und
+Abnahmetests stehen in [PORTAL_IM_CHAT.md](PORTAL_IM_CHAT.md).
+Es gibt weiterhin keinen öffentlichen/globalen IM-Verlauf,
+keinen Hypergrid-Fremdadressen-Webchat und keine Lesebestätigung.
+Audits speichern nur Empfänger-ID und Nachrichtengröße, **nie**
+Nachrichteninhalt.
 
 ## Avatarprofil
 

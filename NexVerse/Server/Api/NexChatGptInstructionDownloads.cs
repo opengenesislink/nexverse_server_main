@@ -179,7 +179,11 @@ namespace NexVerse.Server.Api
             md.AppendLine("- GET /relationships/{principalId} liest die eigene Freundesliste und ausstehende Anfragen (relationships:read).");
             md.AppendLine("- POST /relationships/{principalId}/{friendId} fordert Freundschaft an, PUT akzeptiert ausschliesslich eingegangene Anfragen, DELETE lehnt ab oder entfernt Freunde.");
             md.AppendLine("- PATCH /relationships/{principalId}/{friendId} aendert Rechte bestaetigter Freunde. /blocks/{friendId} sperrt bzw. entsperrt.");
-            md.AppendLine("- POST /messages sendet nach bestaetigter lokaler Freundschaft eine World-IM; keine Chat-Historien-API behaupten.");
+            md.AppendLine("- POST /messages sendet nach bestaetigter lokaler Freundschaft eine World-IM; 202 ist keine Lesebestaetigung.");
+            md.AppendLine("- GET /messages/settings und PATCH /messages/settings aktivieren opt-in Webchat (standardmaessig aus).");
+            md.AppendLine("- GET /messages, GET /messages/events?after=0 und GET /messages/with/{peerId}?after=0: nur eigene Konversationen und neue IMs (5s Polling).");
+            md.AppendLine("- DELETE /messages/history loescht die eigene Portal-IM-Historie, opt-out ebenfalls.");
+            md.AppendLine("- Fuer Antworten aus Firestorm muss [NexPortalIM] in Robust und Simulator mit demselben HMAC-Secret aktiviert sein.");
             md.AppendLine("- GET/PATCH /profiles/{principalId} liest/bearbeitet das OpenSim-Avatarprofil einschliesslich profile_image als existierende Asset-UUID. Ein Webupload ist noch kein Bestandteil.");
             md.AppendLine("- Display Name via PATCH /users/{principalId} mit display_name, sieben Tage Cooldown fuer Self-Service.");
             md.AppendLine("- Gruppenmitteilungen: GET/POST /groups/{groupId}/notices; Rechte des Gruppenmitglieds gelten auch mit Gruppen-Scopes.");

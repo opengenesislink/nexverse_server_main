@@ -735,9 +735,31 @@ namespace NexVerse.Server.Api
 
                 IInstantMessage citizenInstantMessages =
                     LoadOptionalService<IInstantMessage>(config, "HGInstantMessageService");
+                NexCitizenImStore citizenImStore = null;
+                IConfig portalImConfig = config.Configs["NexPortalIM"];
+                if (portalImConfig != null && portalImConfig.GetBoolean("Enabled", false))
+                {
+                    string sharedImSecret =
+                        Environment.GetEnvironmentVariable("NEX_PORTAL_IM_SECRET");
+                    if (string.IsNullOrWhiteSpace(sharedImSecret))
+                        sharedImSecret = portalImConfig.GetString("SharedSecret", "");
+                    if (System.Text.Encoding.UTF8.GetByteCount(sharedImSecret) < 32)
+                        throw new InvalidOperationException(
+                            "[NEX-PORTAL-IM]: Enabled archive requires a 32-byte shared secret.");
+                    citizenImStore = new NexCitizenImStore(
+                        portalImConfig.GetString("StorePath", "data/nexverse-portal-im.sqlite"),
+                        portalImConfig.GetInt("RetentionDays", 30));
+                    NexCitizenImIngress citizenImIngress = new NexCitizenImIngress(
+                        sharedImSecret, citizenImStore, userAccounts, friendsService);
+                    server.AddSimpleStreamHandler(
+                        new SimpleStreamHandler("/internal/nexportal/im/v1",
+                            citizenImIngress.Handle, "NexVerse Simulator Portal IM Ingest"),
+                        true);
+                    m_Log.Info("[NEX-PORTAL-IM]: Opt-in portal conversation archive enabled.");
+                }
                 NexCitizenImApi citizenImApi =
                     new NexCitizenImApi(userAccounts, friendsService, authenticator,
-                        citizenInstantMessages, auditSink);
+                        citizenInstantMessages, auditSink, citizenImStore);
                 server.AddSimpleStreamHandler(
                     new SimpleStreamHandler(
                         "/api/v1/messages",
