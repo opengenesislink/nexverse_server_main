@@ -17,6 +17,51 @@ Die neuen `thumbnailID`-Spalten und die bisher fehlende Inventar-Konvertierung w
 
 Die Zuordnung wird auch ueber die **Robust-HTTP-Inventar-Connectoren** transportiert. `FetchInventory2` und `FetchInventoryDescendents2` liefern die von Firestorm erwartete LLSD-Struktur `thumbnail: {asset_id:<UUID>}`.
 
+## Nachbesserung: Bild nach erneuter Anmeldung verschwunden
+
+**Betreiberbefund:** Die `InventoryThumbnailUpload`-Fehlermeldung ist behoben und
+der Upload funktioniert. Das Thumbnail verschwindet jedoch nach erneutem Login.
+Damit ist **INV01 nicht bestanden**.
+
+**Nachgewiesener Codepfad:** Bestehende OpenSim-Viewer-Updates (`UpdateItem`,
+`UpdateFolder`) besitzen im Legacy-Paket keine Thumbnail-UUID. Im bisherigen
+Servercode wurde das fehlende Feld beim Konvertieren als `UUID.Zero` behandelt
+und konnte den zuvor gespeicherten Wert wieder auf Null setzen. Der Fix
+behaelt bei diesen Updates die bestehende `ThumbnailID` bei und laesst
+eine explizit neue, nicht-leere Thumbnail-UUID zu.
+
+**Wichtige Grenze:** Das Legacy-Protokoll kann "kein Feld vorhanden" und
+"Vorschaubild absichtlich entfernen" nicht unterscheiden. Das Speichern einer
+Null-UUID ueber dieses alte Update entfernt nun **kein** Thumbnail; fuer ein
+explizites Loeschen ist ein eigener authentifizierter API-Endpunkt erforderlich.
+
+**Neuer Regressionstest:** Reale SQLite-Datenbank, Erstellen eines Items und
+eines gespeicherten Outfit-Ordners, Speichern beider Vorschaubilder, simulierte
+Legacy-Updates ohne Thumbnail-UUID, erneutes Oeffnen der Datenbank ueber einen
+neuen Inventardienst sowie `FetchInventory2`-LLSD mit
+`thumbnail.asset_id`. Auch der Systemordner `My Outfits` wird getestet.
+
+**Manuelle Pruefung nach Update:** Bei neuem Testthumbnail Item- bzw.
+Folder-UUID festhalten und die Datenbank als Benutzer mit Leserechten pruefen:
+
+```sql
+SELECT inventoryID, thumbnailID
+FROM inventoryitems
+WHERE inventoryID = 'ITEM-UUID';
+
+SELECT folderID, thumbnailID, version
+FROM inventoryfolders
+WHERE folderID = 'FOLDER-UUID';
+```
+
+Wenn `thumbnailID` nach dem Upload Null ist: zuerst den Schreibpfad
+(Server-/Robust-Versionsgleichheit, Migrationen und Logs) untersuchen.
+Wenn die UUID in der Datenbank erhalten ist, aber Firestorm das Bild
+nicht zeigt: `FetchInventory2` bzw. `FetchInventoryDescendents2`,
+Viewer-Inventarcache und Asset-Abfrage untersuchen. Ein Neuaufbau des
+Viewer-Caches kann den Fehler eingrenzen, **ersetzt aber keinen Serverfix**.
+Keine Loeschung und kein generelles Inventar-Reset.
+
 ## Sichere Rollout-Reihenfolge
 
 1. **Vollstaendiges Backup** der Inventar-DB und Asset-Datenbank anfertigen; DB-Datenbanktyp und exakt verwendeten Inventardienst festhalten.
