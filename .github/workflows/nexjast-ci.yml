@@ -266,6 +266,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_citizen_world_map.py
 
+      - name: Verify citizen social and profile integration
+        shell: bash
+        run: python3 tools/ci/verify_citizen_social_profile.py
+
       - name: Regression-test NexDiscovery persistence and moderation
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexDiscoveryRegression/NexDiscoveryRegression.csproj

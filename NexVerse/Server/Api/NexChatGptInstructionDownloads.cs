@@ -175,6 +175,15 @@ namespace NexVerse.Server.Api
             md.AppendLine("- GET/PATCH /users/{principalId} nur im dokumentierten Self-Kontext.");
             md.AppendLine("- POST /users/{principalId}/password nur fuer den eigenen Account, ausser eine ausdrueckliche Admin-Autorisierung liegt vor.");
             md.AppendLine();
+            md.AppendLine("### Freunde, Nachrichten und Avatarprofil");
+            md.AppendLine("- GET /relationships/{principalId} liest die eigene Freundesliste und ausstehende Anfragen (relationships:read).");
+            md.AppendLine("- POST /relationships/{principalId}/{friendId} fordert Freundschaft an, PUT akzeptiert ausschliesslich eingegangene Anfragen, DELETE lehnt ab oder entfernt Freunde.");
+            md.AppendLine("- PATCH /relationships/{principalId}/{friendId} aendert Rechte bestaetigter Freunde. /blocks/{friendId} sperrt bzw. entsperrt.");
+            md.AppendLine("- POST /messages sendet nach bestaetigter lokaler Freundschaft eine World-IM; keine Chat-Historien-API behaupten.");
+            md.AppendLine("- GET/PATCH /profiles/{principalId} liest/bearbeitet das OpenSim-Avatarprofil einschliesslich profile_image als existierende Asset-UUID. Ein Webupload ist noch kein Bestandteil.");
+            md.AppendLine("- Display Name via PATCH /users/{principalId} mit display_name, sieben Tage Cooldown fuer Self-Service.");
+            md.AppendLine("- Gruppenmitteilungen: GET/POST /groups/{groupId}/notices; Rechte des Gruppenmitglieds gelten auch mit Gruppen-Scopes.");
+            md.AppendLine();
             md.AppendLine("### Inventar");
             md.AppendLine("- Lesen ueber /inventory/tree, /inventory/search, /inventory/folders/{folderId}, /inventory/items/{itemId} und /inventory/lost-and-found.");
             md.AppendLine("- Eigene Bearbeitung nur mit inventory:write: Ordner/Items verschieben oder umbenennen, kopieren, Links, Papierkorb und Restore.");
