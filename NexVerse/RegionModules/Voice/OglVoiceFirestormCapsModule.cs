@@ -444,10 +444,11 @@ namespace NexVerse.RegionModules.Voice
         {
             try
             {
+                OglVoiceAdmission current = null;
                 bool present = scene == m_Scene &&
                     OglVoiceRegionAdmission.TryCreate(scene, avatar,
                         provider.tenant_id, provider.hypergrid_guests,
-                        out OglVoiceAdmission current) &&
+                        out current) &&
                     current.SessionId == session.AgentSessionId;
                 OglVoiceMediaExchange exchange = new()
                 {
