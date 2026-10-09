@@ -407,6 +407,10 @@ jobs:
         shell: bash
         run: dotnet build --configuration Release OpenSim.sln
 
+      - name: Regression-test Firestorm My Outfits system folder against real SQLite inventory
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglOutfitInventoryRegression/OglOutfitInventoryRegression.csproj
+
       - name: Verify NexVerse native assemblies
         shell: bash
         run: |
