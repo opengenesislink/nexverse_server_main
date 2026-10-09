@@ -294,6 +294,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_avatar_appearance_config.py
 
+      - name: Verify LLUDP incoming idle watchdog heartbeat
+        shell: bash
+        run: python3 tools/ci/verify_lludp_incoming_watchdog.py
+
       - name: Verify Firestorm bridge bootstrap compatibility
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
