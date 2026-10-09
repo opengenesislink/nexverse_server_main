@@ -306,6 +306,14 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglPathfindingRegression/OglPathfindingRegression.csproj
 
+      - name: Verify OGL terrain navigation Scene integration
+        shell: bash
+        run: python3 tools/ci/verify_ogl_terrain_navigation.py
+
+      - name: Regression-test OGL terrain heightfield navigation
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglTerrainNavigationRegression/OglTerrainNavigationRegression.csproj
+
       - name: Verify OGLVoice secure provider discovery integration
         shell: bash
         run: python3 tools/ci/verify_oglvoice_discovery.py

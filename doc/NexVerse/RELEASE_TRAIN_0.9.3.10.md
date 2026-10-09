@@ -46,6 +46,9 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
 - [x] Bounded A*-Grid-Foundation als C#-Quellcode in `NexVerse.Core`; automatisierter Runtime-Test mit Hindernissen, Eckensperre, Budget und Snapshot-Rebuild.
 - [ ] Region-NavMesh-Kacheln auf Basis von Terrain, Höhen, Neigung, Wasser, statischen Meshes und Walkability-Policies generieren.
+- [x] **Experimenteller Terrain-Navigation-Snapshot:** initialer echter `Scene.Heightmap`-Adapter mit Wasser- und Steigungsprüfung, optionalen Hindernis-Masken im C#-Kern, interner Regionsschnittstelle und `OnTerrainTainted`-Invalidierung samt zeitgesteuertem Neuaufbau. Standardmäßig deaktiviert (`[OGLPathfinding] Enabled = false`); keine Mesh-/Physik-Kollisionsgarantie.
+- [ ] Reale Region-/Avatar-Livetests und CPU-/GC-Profiling fuer Snapshot-Kopien und Rebuilds nach Terraforming; keine automatische NPC-/Script-Nutzung vor Abnahme.
+
 - [ ] Editierbares Gelände, rezzed/deleted/verschobene Hindernisse und Dirty-Tile-Rebuild.
 - [ ] Linksets, Treppen, Türen, Off-mesh-Links und path-cost areas; keine physikalisch ungültigen Abkürzungen.
 - [ ] Agent-spezifische Navigation: Radius, Höhe, Steigung, erlaubte Bereiche und dynamische Kollisionen.

@@ -1203,6 +1203,18 @@
     ; ScriptEnginesPath = "ScriptEngines"
 
 
+[OGLPathfinding]
+    ; Experimenteller Terrain-Snapshot fuer OpenGenesisLINK 0.9.3.10 Dev.
+    ; Kein komplettes NavMesh, keine Kollisions-Meshes und noch keine LSL-NPC-Steuerung.
+    ; Bei enabled wird eine begehbare Rasterkarte aus der echten Region-Heightmap
+    ; generiert. Terrain-Aenderungen machen sie ungueltig und loesen einen
+    ; asynchronen Neuaufbau aus. Erst nach separatem Live-Test aktivieren.
+    Enabled = false
+    CellMeters = 4
+    MaxSlopePerMeter = 0.65
+    MaxExpandedNodes = 20000
+    RebuildSeconds = 30
+
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
 ; NodeAgent-Vertrauensverbindung mit PeerUrl/SharedKey ermittelt den zentralen Provider
