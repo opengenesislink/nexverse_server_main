@@ -32,6 +32,32 @@ Der **erste reale serverseitige OGLVoice-Integrationsschritt** ist die vertrauen
 
 **Nächste zwingende Schritte:** OGLVoice-Control-Plane mit echten Tenant-/Session-Token-Regeln; serverseitig beglaubigte Region/HG-Präsenz; Firestorm-LLSD-CAPS-/Media-Adapter; LiveKit; vollständige Remote-Speaker-/Voice-Orb-Kompatibilität. **Eine erfolgreiche Provider-Discovery beweist noch keine funktionierende Sprachkommunikation.**
 
+## Dev-Zwischenstand – serverseitige LiveKit-Session-Authority
+
+**Implementiert (noch nicht aktiv):**
+- `OglVoiceLiveKitTokenIssuer` stellt standardkonforme **HS256-signierte LiveKit-JWT** mit ausschließlich `video.roomJoin`, `canPublish`, `canSubscribe` und `canPublishData` aus. Jeder Token ist auf `ogl.<tenant>.region.<regionUUID>` und eine Avatar-/Session-Identität beschränkt; TTL 30–300 s, Standard 120 s.
+- Fremde HG-Avatare erhalten eindeutige Identitäten aus kanonischem Herkunfts-Grid und Avatar-UUID. Der Token eines HG-Gastes gehört dem **besuchten Tenant**.
+- `POST /internal/oglvoice/v1/sessions` in Robust akzeptiert **nur explizit erlaubte Simulator-NodeIds** mit HMAC-SHA256-signiertem Body, 60-s-Timestamp, Einmal-Nonce und Replay-Abwehr. Er kann weder beliebige Tenants noch alle Räume als Wildcard autorisieren.
+- LiveKit API-Key und Secret werden ausschließlich aus geschützten Robust-Umgebungsvariablen `OGLVOICE_LIVEKIT_API_KEY` und `OGLVOICE_LIVEKIT_API_SECRET` geladen. **Keine Geheimnisse in Region-INI, Provider-Discovery, Viewer-CAPS oder GitHub.**
+- `OglVoiceRegionAdmission` validiert aktive Root-Avatar-Präsenz, nicht-NPC, übereinstimmenden Circuit-Session-Identifier, Estate-/Parcel-Voice-Berechtigung und den HG-Flag/Heim-Grid-Ursprung. Die interne Region-Schnittstelle `IOglVoiceSessionAdmission` bietet ausschließlich diese geprüfte Assertion an.
+- `EnableSessionAuthority = false` in Robust-Konfigurationen bleibt die Voreinstellung. Zum Aktivieren ist mindestens `[OGLVoice] Enabled=true`, ein gültiger Provider, `EnableSessionAuthority=true`, eine **explizite** `AllowedNodes`-Liste, bestehendes NexBus-SharedKey-Material und ein TLS-geschützter interner Endpunkt erforderlich.
+
+**Beispiel (nur nach separater Live-Abnahme):**
+```ini
+[OGLVoice]
+    Enabled = true
+    Mode = "GridAuthority"
+    ServiceUrl = "https://voice.stadt-nexverse.de"
+    TenantId = "nexverse"
+    IncludeHypergridGuests = true
+    EnableSessionAuthority = true
+    AllowedNodes = "sim-stuttgart-01,sim-freiburg-01"
+```
+
+Der Simulator muss die Admission **direkt aus seiner Scene**, nicht aus Formularfeldern eines Clients, erzeugen und intern zum Robust signieren. Die zentrale Token-Authority kann nur die Signatur des vertrauenswürdigen Nodes prüfen und benötigt langfristig zusätzlich dedizierte Node-Credentials, eine zentrale Teilnehmer-/Region-Registry sowie wirksame Revocation.
+
+**Noch ausdrücklich offen:** Die interne Admission wird noch **nicht** automatisch per Simulator-CAPS an die Token-Authority weitergeleitet. Es existiert weder ein LiveKit-Medien-/Signalisierungsadapter für den unveränderten Firestorm noch Spatial-Mischung, Avatar-Voice-Kugel, speaking roster, serverseitige Sitzungsentfernung bei Teleport/Logout, ein produktives Tenant-Abrechnungssystem oder ein Operator-Live-Test. Die **ausgestellten JWTs sind Tokenbausteine**, keine funktionierende Voice-Verbindung für den Viewer. Solange diese Komponenten fehlen, OGLVoice-Session-Authority und Viewer-CAPS deaktiviert lassen.
+
 ## 1. Produktziel
 
 **OGLVoice** ersetzt die im Server entfernten Vivox-/FreeSwitch-Implementierungen durch einen selbst betriebenen, **zentralen, mandantenfähigen WebRTC-Voice-Dienst**. Das operative Prinzip entspricht einem externen zentralen Voice-Provider: Eine ganze virtuelle Welt kann einen einzigen Voice-Provider verwenden; es wird **kein Voice-Medienserver je Simulator** verlangt.
