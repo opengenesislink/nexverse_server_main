@@ -240,6 +240,21 @@ namespace NexVerse.Server.Api
                     ("post", "Destination-Aufruf für Popularitätsranking registrieren", "200")),
                 ["/api/v1/destinations/{destinationId}/moderation"] = AuthenticatedOperations(
                     ("post", "Destination freigeben oder ablehnen", "discovery:manage", "200")),
+                ["/api/v1/profiles/{principalId}"] = MergeOperations(
+                    GetOperation("Öffentlich sichtbares Avatarprofil lesen; private Profile nur für Eigentümer oder Admin"),
+                    AuthenticatedOperations(("patch", "Eigenes Avatarprofil einschließlich Bild-Asset-UUID, Interessen und Sichtbarkeit aktualisieren", "profile:write", "200"))),
+                ["/api/v1/relationships/{principalId}"] = AuthenticatedOperations(
+                    ("get", "Eigene Freundesliste mit Anfragezustand, Online-Sichtbarkeit und Rechten lesen", "relationships:read", "200")),
+                ["/api/v1/relationships/{principalId}/{targetId}"] = AuthenticatedOperations(
+                    ("post", "Freundschaftsanfrage senden", "relationships:write", "202"),
+                    ("put", "Eingegangene Freundschaftsanfrage akzeptieren", "relationships:write", "200"),
+                    ("patch", "Freundschaftsrechte ändern", "relationships:write", "200"),
+                    ("delete", "Freundschaftsanfrage ablehnen oder Freund entfernen", "relationships:write", "200")),
+                ["/api/v1/relationships/{principalId}/blocks/{targetId}"] = AuthenticatedOperations(
+                    ("put", "Einwohner blockieren und bestehende Freundschaft auflösen", "relationships:write", "200"),
+                    ("delete", "Einwohner-Blockierung aufheben", "relationships:write", "200")),
+                ["/api/v1/messages"] = AuthenticatedOperations(
+                    ("post", "Inworld-Direktnachricht an einen bestätigten lokalen Freund zustellen", "relationships:write", "202")),
                 ["/api/v1/groups"] = AuthenticatedOperations(
                     ("get", "NexGroups durchsuchen", "groups:read", "200"),
                     ("post", "NexGroup erstellen", "groups:manage", "201")),
@@ -541,6 +556,10 @@ namespace NexVerse.Server.Api
                 "200");
             ApplyJsonContract(paths, "/api/v1/economy/accounts/ensure", "post", "EconomyWalletEnsureRequest", "EconomyBalanceResponse", "200");
             ApplyJsonContract(paths, "/api/v1/world-map", "get", null, "CitizenWorldMapResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/profiles/{principalId}", "get", null, "CitizenAvatarProfileResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/profiles/{principalId}", "patch", "CitizenAvatarProfilePatch", "CitizenAvatarProfileResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/relationships/{principalId}", "get", null, "CitizenFriendListResponse", "200");
+            ApplyJsonContract(paths, "/api/v1/messages", "post", "CitizenInstantMessageRequest", "CitizenInstantMessageResponse", "202");
             ApplyJsonContract(paths, "/api/v1/search", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "get", null, "DiscoveryObjectResponse", "200");
             ApplyJsonContract(paths, "/api/v1/places", "post", "DiscoveryPlaceRequest", "DiscoveryObjectResponse", "201");
@@ -2625,6 +2644,90 @@ namespace NexVerse.Server.Api
                         },
                         ["currency"] = new { type = "object" },
                         ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["CitizenInstantMessageRequest"] = new
+                {
+                    type = "object",
+                    required = new[] { "to_agent_id", "message" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["to_agent_id"] = new { type = "string", format = "uuid" },
+                        ["message"] = new { type = "string", minLength = 1, maxLength = 1024 }
+                    }
+                },
+                ["CitizenInstantMessageResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "status", "to_agent_id", "correlation_id" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["status"] = new { type = "string", @enum = new[] { "accepted" } },
+                        ["to_agent_id"] = new { type = "string", format = "uuid" },
+                        ["correlation_id"] = new { type = "string" }
+                    }
+                },
+                ["CitizenFriendListResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "principal_id", "relationships" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["principal_id"] = new { type = "string", format = "uuid" },
+                        ["relationships"] = new { type = "array", items = SchemaRef("CitizenFriend") }
+                    }
+                },
+                ["CitizenFriend"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["principal_id"] = new { type = "string", format = "uuid" },
+                        ["username"] = new { type = "string" },
+                        ["display_name"] = new { type = "string" },
+                        ["state"] = new { type = "string", @enum = new[] { "incoming_pending", "outgoing_pending", "friends" } },
+                        ["rights"] = new { type = "integer" },
+                        ["their_rights"] = new { type = "integer" },
+                        ["can_see_online"] = new { type = "boolean" },
+                        ["online"] = new { type = "boolean" },
+                        ["can_see_on_map"] = new { type = "boolean" },
+                        ["can_modify_objects"] = new { type = "boolean" }
+                    }
+                },
+                ["CitizenAvatarProfilePatch"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["about"] = new { type = "string", maxLength = 510 },
+                        ["web_url"] = new { type = "string", maxLength = 255 },
+                        ["profile_image"] = new { type = "string", format = "uuid" },
+                        ["visibility"] = new { type = "string", @enum = new[] { "public", "private" } },
+                        ["online_visibility"] = new { type = "string", @enum = new[] { "public", "friends", "private" } },
+                        ["groups_visibility"] = new { type = "string", @enum = new[] { "public", "friends", "private" } },
+                        ["search_visibility"] = new { type = "string", @enum = new[] { "public", "friends", "private" } },
+                        ["mature"] = new { type = "boolean" },
+                        ["interests"] = new { type = "object" }
+                    }
+                },
+                ["CitizenAvatarProfileResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["id"] = new { type = "string", format = "uuid" },
+                        ["username"] = new { type = "string" },
+                        ["display_name"] = new { type = "string" },
+                        ["profile_image"] = new { type = "string", format = "uuid" },
+                        ["about"] = new { type = "string" },
+                        ["web_url"] = new { type = "string" },
+                        ["interests"] = new { type = "object" },
+                        ["visibility"] = new { type = "string" },
+                        ["online_visibility"] = new { type = "string" },
+                        ["groups_visibility"] = new { type = "string" },
+                        ["search_visibility"] = new { type = "string" },
+                        ["picks"] = new { type = "array", items = new { type = "object" } },
+                        ["classifieds"] = new { type = "array", items = new { type = "object" } }
                     }
                 },
                 ["CitizenWorldMapRegion"] = new
