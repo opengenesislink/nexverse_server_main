@@ -13,8 +13,8 @@ Status values:
 | Component | Status | NexVerse direction |
 | --- | --- | --- |
 | XML-RPC RemoteAdmin | **REMOVED** | Replaced by the NexVerse World API/control plane. |
-| VivoxVoiceModule | **REMOVED** | Replaced by planned NexVoice WebRTC/Janus architecture. |
-| FreeSwitch voice stack | **REMOVED** | Replaced by planned NexVoice WebRTC/Janus architecture. |
+| VivoxVoiceModule | **REMOVED** | Replaced by planned centralized OGLVoice WebRTC/LiveKit architecture. |
+| FreeSwitch voice stack | **REMOVED** | Replaced by planned centralized OGLVoice WebRTC/LiveKit architecture. |
 | IRC bridge | **REMOVED** | No longer part of the NexVerse communications architecture. |
 | Generated `obj/` trees | **REMOVED** | Build intermediates are excluded through `.gitignore`. |
 | OptionalModules example modules | **REMOVED** | BareBones and WebSocket echo sample modules are not part of the production NexVerse source line. |
