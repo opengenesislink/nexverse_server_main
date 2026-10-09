@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -57,6 +58,9 @@ func sampleNonce() string { return strings.Repeat("a", 32) }
 func TestAuthenticationReplayAndNodeTenantBinding(t *testing.T) {
 	cfg := testConfig()
 	g := newMediaServer(cfg)
+	g.newPeer = func(config, admission, string, func()) (*peerState,error) {
+		return nil, errors.New("test: LiveKit offline")
+	}
 	now := time.Unix(1791568800, 0)
 	g.now = func() time.Time { return now }
 	message, _ := json.Marshal(exchange{
