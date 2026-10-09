@@ -3476,7 +3476,8 @@ namespace NexVerse.Server.Api
                         ["parent_id"] = new { type = "string", format = "uuid" },
                         ["name"] = new { type = "string" },
                         ["type"] = new { type = "integer" },
-                        ["version"] = new { type = "integer" }
+                        ["version"] = new { type = "integer" },
+                        ["thumbnail_id"] = new { type = "string", format = "uuid" }
                     }
                 },
                 ["InventoryItem"] = new
@@ -3503,6 +3504,7 @@ namespace NexVerse.Server.Api
                         ["owner_id"] = new { type = "string", format = "uuid" },
                         ["folder_id"] = new { type = "string", format = "uuid" },
                         ["asset_id"] = new { type = "string", format = "uuid" },
+                        ["thumbnail_id"] = new { type = "string", format = "uuid" },
                         ["name"] = new { type = "string" },
                         ["description"] = new { type = "string" },
                         ["asset_type"] = new { type = "integer" },
