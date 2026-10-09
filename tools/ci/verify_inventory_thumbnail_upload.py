@@ -9,6 +9,8 @@ for symbol in (
     "InventoryThumbnailUploadModule", 'RegisterSimpleHandler("InventoryThumbnailUpload"',
     '"item_id"', '"category_id"', "ownItem.Owner == agent",
     "ownFolder.Owner == agent", "sp.IsChildAgent",
+    "circuit.SessionID != sp.ControllingClient.SessionId",
+    "TeleportFlags.ViaHGLogin",
     '"uploader"', '"state"', 'OSD.FromString("upload")',
     "SimpleBinaryHandler", "MaxDataSize = m_MaxBytes",
     "m_Timer = new Timer", "TimeSpan.FromSeconds(60)",
