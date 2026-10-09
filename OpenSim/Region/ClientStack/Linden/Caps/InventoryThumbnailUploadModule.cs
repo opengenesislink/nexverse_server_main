@@ -293,6 +293,39 @@ namespace OpenSim.Region.ClientStack.Linden
                         return;
                     }
 
+                    // Persist the item/folder association centrally.
+                    // Do not return complete if the asset cannot be attached
+                    // to the verified owner's inventory record.
+                    bool linked = false;
+                    if (m_Item != UUID.Zero)
+                    {
+                        InventoryItemBase existing = scene.InventoryService.GetItem(
+                            m_Agent, m_Item);
+                        if (existing != null && existing.Owner == m_Agent &&
+                            existing.ID == m_Item)
+                        {
+                            existing.ThumbnailID = persisted;
+                            linked = scene.InventoryService.UpdateItem(existing);
+                        }
+                    }
+                    else if (m_Folder != UUID.Zero)
+                    {
+                        InventoryFolderBase existing = scene.InventoryService.GetFolder(
+                            m_Agent, m_Folder);
+                        if (existing != null && existing.Owner == m_Agent &&
+                            existing.ID == m_Folder)
+                        {
+                            existing.ThumbnailID = persisted;
+                            existing.Version++;
+                            linked = scene.InventoryService.UpdateFolder(existing);
+                        }
+                    }
+                    if (!linked)
+                    {
+                        response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+                        return;
+                    }
+
                     OSDMap success = new()
                     {
                         ["state"] = OSD.FromString("complete"),
