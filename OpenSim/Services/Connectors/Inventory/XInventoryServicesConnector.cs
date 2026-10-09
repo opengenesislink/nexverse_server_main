@@ -466,10 +466,40 @@ namespace OpenSim.Services.Connectors
                     });
 
             bool result = CheckReturn(ret);
-            if (result)
+            if (result && item.ThumbnailID != UUID.Zero)
             {
-                m_ItemCache.AddOrUpdate(item.ID, item, CACHE_EXPIRATION_SECONDS);
+                // GetItem() may hit the local cache, which makes the uploader
+                // incorrectly report success even if the central Robust
+                // inventory service never stored the thumbnail reference.
+                // Bypass that cache and validate the actual HTTP readback.
+                try
+                {
+                    Dictionary<string, object> fresh = MakeRequest(
+                        $"METHOD=GETITEM&ID={item.ID}&PRINCIPAL={item.Owner}");
+                    if (!CheckReturn(fresh) ||
+                        !fresh.TryGetValue("item", out object encoded) ||
+                        encoded is not Dictionary<string, object> wire ||
+                        !wire.TryGetValue("ThumbnailID", out object stored) ||
+                        !UUID.TryParse(stored?.ToString(), out UUID storedId) ||
+                        storedId != item.ThumbnailID)
+                    {
+                        m_log.WarnFormat(
+                            "[XINVENTORY SERVICES CONNECTOR]: Thumbnail {0} was not returned by central inventory for item {1}; check Robust deployment and migrations",
+                            item.ThumbnailID, item.ID);
+                        result = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    m_log.Warn("[XINVENTORY SERVICES CONNECTOR]: Thumbnail roundtrip verification failed: " +
+                        ex.GetType().Name);
+                    result = false;
+                }
             }
+            if (result)
+                m_ItemCache.AddOrUpdate(item.ID, item, CACHE_EXPIRATION_SECONDS);
+            else
+                m_ItemCache.Remove(item.ID);
 
             return result;
         }
