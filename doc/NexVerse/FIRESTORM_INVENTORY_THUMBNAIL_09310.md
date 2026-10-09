@@ -104,6 +104,8 @@ konkreten Fall einzeln pruefen.
 
 Ein Betreiber hat bestaetigt: Thumbnail laesst sich hochladen und erscheint sofort, ist nach Neuanmeldung jedoch weg. Damit ist INV01 bis zum erneuten Test **NICHT BESTANDEN**.
 
+Der Robust-HTTP-Connector prueft Thumbnail-Updates jetzt ueber GETITEM am zentralen Inventardienst ohne lokalen Cache. Eine lokale Cache-Bestaetigung reicht nicht mehr als Persistenznachweis.
+
 Hotfix: Gewoehnliche alte Inventarupdates ohne Thumbnail-Daten duerfen einen bereits gespeicherten `ThumbnailID` nicht auf die Null-UUID zuruecksetzen. Ausserdem bestaetigt der Upload erst dann `state=complete`, wenn die aktualisierte Thumbnail-UUID vom Inventardienst wieder gelesen wurde.
 
 Die Fehlerursache auf dem konkreten Produktivsystem ist noch zu bestaetigen. Bitte vor weiteren Updates Inventar- und Assetdatenbanken sichern. Mit einem Testobjekt dessen Item- oder Folder-UUID feststellen und in der zentralen Robust-Datenbank die Thumbnail-UUID direkt nach Upload sowie nach Logout/Login vergleichen.
