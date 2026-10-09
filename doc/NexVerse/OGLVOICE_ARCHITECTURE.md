@@ -58,6 +58,12 @@ Der Simulator muss die Admission **direkt aus seiner Scene**, nicht aus Formular
 
 **Noch ausdrücklich offen:** Die interne Admission wird noch **nicht** automatisch per Simulator-CAPS an die Token-Authority weitergeleitet. Es existiert weder ein LiveKit-Medien-/Signalisierungsadapter für den unveränderten Firestorm noch Spatial-Mischung, Avatar-Voice-Kugel, speaking roster, serverseitige Sitzungsentfernung bei Teleport/Logout, ein produktives Tenant-Abrechnungssystem oder ein Operator-Live-Test. Die **ausgestellten JWTs sind Tokenbausteine**, keine funktionierende Voice-Verbindung für den Viewer. Solange diese Komponenten fehlen, OGLVoice-Session-Authority und Viewer-CAPS deaktiviert lassen.
 
+## Neuer Firestorm LLSD-/CAPS-Adapter (0.9.3.10 Dev)
+
+Der C#-Simulatoradapter fuer `ProvisionVoiceAccountRequest` (SDP/JSEP), `VoiceSignalingRequest` (ICE-Trickle) und `VoiceServerType=webrtc` ist als opt-in Quellcode vorhanden. Die zentrale Robust-Discovery verteilt eine signierte `MediaGatewayUrl` an alle Simulatoren, sodass keine URL pro Sim konfiguriert werden muss. `OglVoiceFirestormWire` erzeugt Firestorm-konforme Datenkanalnachrichten fuer Beitritt/Sprechpegel/Abreise aller sichtbaren Avatare.
+
+**Entscheidende Grenze:** Der Adapter stellt noch keine eigene WebRTC-Medienengine dar. Ohne eine tatsaechliche separate SDP-/DTLS-/SRTP-/SCTP-Media-Bridge mit LiveKit-Anbindung gibt es weiterhin kein Firestorm-Audio und keine sichtbaren fremden Sprecher. Ausfuehrlicher Wire Contract und Abnahmekriterien: [OGLVOICE_FIRESTORM_MEDIA_BRIDGE.md](OGLVOICE_FIRESTORM_MEDIA_BRIDGE.md).
+
 ## 1. Produktziel
 
 **OGLVoice** ersetzt die im Server entfernten Vivox-/FreeSwitch-Implementierungen durch einen selbst betriebenen, **zentralen, mandantenfähigen WebRTC-Voice-Dienst**. Das operative Prinzip entspricht einem externen zentralen Voice-Provider: Eine ganze virtuelle Welt kann einen einzigen Voice-Provider verwenden; es wird **kein Voice-Medienserver je Simulator** verlangt.
