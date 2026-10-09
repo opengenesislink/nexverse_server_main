@@ -21,9 +21,11 @@ Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice un
 - [ ] OGLVoice Central Control Plane: Tenant-Registry, Auth, Räume, Tokens, Nutzungszählung, Revoke und Audit.
 - [ ] NexVerse als nicht selbst zuweisbaren First-Party-`unlimited`-Tenant, keine künstlichen User-/Sim-/Region-/Minutenlimits.
 - [ ] Dritt-Grid-Isolation und konfigurierbare, atomar durchgesetzte Plan-Limits (Abrechnung später).
-- [ ] C#-Robust-Authority und signierte authentifizierte Simulator-Discovery; kein gemeinsames Admin-Secret in Region INIs.
+- [x] **Discovery v1:** C#-Robust-Authority und signierte/authentifizierte Simulator-Provider-Discovery mit bestehendem NexBus-SharedKey, Standalone-Modus und Replay-Abwehr; **nur Provider-Metadaten**, keine LiveKit-/Viewer-Sessions.
+- [ ] **Produktivabnahme der Discovery:** gesonderter Zwei-Simulator-/TLS-/Proxy-Test im echten Grid ohne lokale Voice-Schluessel; keine Admin-Secrets im Region-INI.
 - [ ] Standalone-Modus über `OpenSim.ini` und getrennte Simulator-Service-Credentials.
 - [ ] HG-Gast-Präsenz und Home-Grid-Identität, Rechte des besuchten Grids, Session-TTL und Leave/Teleport-Revoke.
+- [x] HG-Identitaetskern: kanonische Heim-Grid-Origin + Original-Avatar-UUID (SHA-256), C#-Regressionstests. **Noch keine authentifizierte HG-Session-/Voice-Anbindung.**
 - [ ] Firestorm-WebRTC-CAPS-/Signalisierungs-/Media-Gateway mit funktionierendem Audio, nicht nur Browser-Demo.
 - [ ] Spatial-/Parcel-Voice mit Autorität des Simulators, Echtzeitpositionen und Distanz-/Richtungsmodell.
 - [ ] Eigene **graue Voice-Kugel über allen hör- und sichtbar verbundenen Avataren**; Remote-Speaking-Wellen auf dem tatsächlichen Sprecher, inklusive HG-Gästen; Viewerpräferenz respektieren.
