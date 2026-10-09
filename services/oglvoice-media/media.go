@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -280,7 +281,6 @@ func (p *peerState) sendVoiceEvent(participant lksdk.Participant) {
 }
 
 func getenv(name, fallback string) string {
-	if value := strings.TrimSpace(strings.TrimSpace(getEnv(name))); value != "" { return value }
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" { return value }
 	return fallback
 }
-var getEnv = func(s string) string { return "" } // overwritten by main at startup
