@@ -65,6 +65,22 @@ internal static class Program
                 "gallery root changed on repeat initialization");
             Assert(service.GetFolder(owner, saved.ID) != null,
                 "saved outfit was deleted by repeat initialization");
+            UUID preview = UUID.Random();
+            var folder = service.GetFolder(owner, saved.ID);
+            folder.ThumbnailID = preview;
+            folder.Version++;
+            Assert(service.UpdateFolder(folder), "failed to save thumbnail");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "folder thumbnail missing");
+            var legacy = new InventoryFolderBase(saved.ID, "Renamed Outfit",
+                owner, (short)FolderType.Outfit, gallery.ID,
+                (ushort)(service.GetFolder(owner, saved.ID).Version + 1));
+            Assert(service.UpdateFolder(legacy), "legacy folder update failed");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "legacy update removed thumbnail");
+            var fresh = new XInventoryService(cfg);
+            Assert(fresh.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "thumbnail not present after service reconnect");
             Console.WriteLine("Outfit inventory SQLite runtime regression: OK");
             return 0;
         }
