@@ -270,6 +270,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_citizen_social_profile.py
 
+      - name: Verify bidirectional opt-in portal IM inbox
+        shell: bash
+        run: python3 tools/ci/verify_portal_im_inbox.py
+
       - name: Regression-test NexDiscovery persistence and moderation
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/NexDiscoveryRegression/NexDiscoveryRegression.csproj
