@@ -322,6 +322,14 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglVoiceDiscoveryRegression/OglVoiceDiscoveryRegression.csproj
 
+      - name: Verify OGLVoice central session authority and region permission gate
+        shell: bash
+        run: python3 tools/ci/verify_oglvoice_session_authority.py
+
+      - name: Regression-test OGLVoice LiveKit token privileges and HG binding
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglVoiceSessionRegression/OglVoiceSessionRegression.csproj
+
       - name: Verify Firestorm bridge bootstrap compatibility
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
