@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceHypergridIdentity.cs" Link="OglVoiceHypergridIdentity.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceDiscoveryProof.cs" Link="OglVoiceDiscoveryProof.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceLiveKitTokenIssuer.cs" Link="OglVoiceLiveKitTokenIssuer.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceSessionProof.cs" Link="OglVoiceSessionProof.cs" />
+  </ItemGroup>
+</Project>
