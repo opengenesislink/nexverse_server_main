@@ -1,8 +1,9 @@
 # OpenGenesisLINK versioning
 
 Current stable release: **OpenGenesisLINK v0.9.3.8**  
+Current development train: **OpenGenesisLINK v0.9.3.10 Dev**, incorporating the 0.9.3.9 OGLVoice/runtime scope; no 0.9.3.9 Stable release.  
 Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (validated and promoted)  
-Active milestone: **Search, Places, Land and Destination Guide — Chapter 12 completed**  
+Active milestone: **0.9.3.10 Dev — OGLVoice, Runtime-Modernisierung und Pathfinding (gemeinsamer Release-Train)**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
 Completed milestone codename: **NEXJAST**
 
@@ -34,6 +35,7 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `OpenGenesisLINK v0.9.3.8 Dev` — completed feature implementation and development hardening for NexSearch, Places, Land Portal and Destination Guide.
 - `OpenGenesisLINK v0.9.3.8 RC1` — validated prerelease. Operator reported successful cross-region and estate-wide LSL tests, including NexBus across separate simulator processes; cross-owner and log-clean checks were not separately documented.
 - `OpenGenesisLINK v0.9.3.8` — **stable release, 8 October 2026**; promoted after successful RC1 operator acceptance and green release CI. Known limitations and previously unverified edge cases remain documented in the release notes.
+- `OpenGenesisLINK v0.9.3.10 Dev` — active combined development train for 0.9.3.9 OGLVoice/runtime plus 0.9.3.10 Pathfinding. First A* core and runtime modernization are foundations only; no RC or Stable release yet. See `doc/NexVerse/RELEASE_TRAIN_0.9.3.10.md`.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
 
 The product-name transition does not rewrite provenance. OpenSimulator 0.9.3.0 remains the historical source baseline, and inherited licensing remains attached to inherited code until independently replaced.
