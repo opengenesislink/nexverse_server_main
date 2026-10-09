@@ -273,6 +273,9 @@ namespace OpenSim.Framework
         }
         protected int m_assetType;
 
+        // Persistent Firestorm inventory preview texture (independent from AssetID).
+        public UUID ThumbnailID { get; set; } = UUID.Zero;
+
         /// <value>
         /// The UUID of the associated asset on the asset server
         /// </value>
