@@ -84,4 +84,22 @@ Rejected(() => new OglVoiceProviderDescriptor {
     media_gateway_url="http://public.example.org/gateway",
     tenant_id="nexverse", viewer_capability="firestorm-webrtc-v1"
 }.Validate(), "insecure bridge");
+const string sharedSecret = "ci-test-media-signed-key-over-32bytes";
+string challenge = OglVoiceDiscoveryProof.NewNonce();
+long now = 1791568800;
+byte[] largeSdpRequest = Encoding.UTF8.GetBytes(new string('a', 8192));
+string signedMedia = OglVoiceMediaProof.Sign(sharedSecret, "sim-freiburg", now, challenge, largeSdpRequest);
+Check(OglVoiceMediaProof.Verify(sharedSecret, "sim-freiburg", now.ToString(), challenge,
+    largeSdpRequest, signedMedia, DateTimeOffset.FromUnixTimeSeconds(now)), "large SDP envelope HMAC");
+largeSdpRequest[10] ^= 1;
+Check(!OglVoiceMediaProof.Verify(sharedSecret, "sim-freiburg", now.ToString(), challenge,
+    largeSdpRequest, signedMedia, DateTimeOffset.FromUnixTimeSeconds(now)), "media integrity");
+Check(!OglVoiceMediaProof.Verify(sharedSecret, "sim-stuttgart", now.ToString(), challenge,
+    Encoding.UTF8.GetBytes(new string('a', 8192)), signedMedia,
+    DateTimeOffset.FromUnixTimeSeconds(now)), "simulator node HMAC binding");
+Check(!OglVoiceMediaProof.Verify(sharedSecret, "sim-freiburg", now.ToString(), challenge,
+    Encoding.UTF8.GetBytes(new string('a', 8192)), signedMedia,
+    DateTimeOffset.FromUnixTimeSeconds(now + 70)), "media signature expires");
+Rejected(() => OglVoiceMediaProof.Sign(sharedSecret, "sim-freiburg", now, challenge,
+    new byte[OglVoiceMediaProof.MaximumPayloadBytes + 1]), "unbounded media request");
 Console.WriteLine("Firestorm SDP/ICE, CAPS answer, speaker data channel and secure grid provider gating: OK");
