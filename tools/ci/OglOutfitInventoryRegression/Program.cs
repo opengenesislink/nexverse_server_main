@@ -77,6 +77,8 @@ internal static class Program
                 AssetID = UUID.Random(),
                 AssetType = (int)AssetType.Object,
                 InvType = (int)InventoryType.Object,
+                CreatorId = owner.ToString(),
+                Description = "SQLite relog thumbnail regression",
                 Folder = gallery.ID,
                 Name = "Thumbnail Relog Fixture"
             };
