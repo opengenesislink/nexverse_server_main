@@ -84,7 +84,7 @@ func TestSpatialJitterBoundAndLimiting(t *testing.T) {
 		if len(m.sources[source].frames)>5 {t.Fatal("unbounded audio jitter queue")}
 	}
 	out:=m.mixFrame()
-	if out[0]>1||out[0]<-1||out[1]>1||out[1]<-1 {
+	if out[0]>1||out[0] < -1||out[1]>1||out[1] < -1 {
 		t.Fatalf("sample limiter failed: %v",out[:2])
 	}
 }
