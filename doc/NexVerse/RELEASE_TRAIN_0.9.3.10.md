@@ -19,6 +19,8 @@ Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice un
 
 - [ ] Bestehenden NexVoice-/LiveKit-Quellcode einschließlich Credentials/Signalisierung sicher prüfen; keine Produktivschlüssel kopieren.
 - [ ] OGLVoice Central Control Plane: Tenant-Registry, Auth, Räume, Tokens, Nutzungszählung, Revoke und Audit.
+- [x] **Sicherer JWT-Kern und Robust-Token-Authority:** serverseitiges LiveKit-HS256-Signing, kurzlebige raumgebundene Tokens, Explicit-Node-ACL und signierte Simulator-Anfragen; standardmaessig deaktiviert. **Noch kein automatischer Viewer-CAPS-/Region-Join, kein LiveKit-Medien-Gateway und keine Quoten-/Revocation-Control-Plane.**
+- [x] **Region-seitige lokale Pruefung:** aktuelle Root-Agent-/Circuit-Sitzung, Estate-/Parcel-Voice, Guest-Herkunft und NPC-Ausschluss; noch nicht an Firestorm/LiveKit angeschlossen.
 - [ ] NexVerse als nicht selbst zuweisbaren First-Party-`unlimited`-Tenant, keine künstlichen User-/Sim-/Region-/Minutenlimits.
 - [ ] Dritt-Grid-Isolation und konfigurierbare, atomar durchgesetzte Plan-Limits (Abrechnung später).
 - [x] **Discovery v1:** C#-Robust-Authority und signierte/authentifizierte Simulator-Provider-Discovery mit bestehendem NexBus-SharedKey, Standalone-Modus und Replay-Abwehr; **nur Provider-Metadaten**, keine LiveKit-/Viewer-Sessions.
