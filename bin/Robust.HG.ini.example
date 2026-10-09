@@ -30,6 +30,7 @@
     NEXVERSE_NATIVE_TOKEN_SIGNING_KEY = ""
     NEXVERSE_IM_RELAY_SIGNING_KEY = ""
     NEXVERSE_IM_RELAY_IMAP_PASSWORD = ""
+    NEX_PORTAL_IM_SECRET = ""
 
 [Const]
     ; The domain or IP of the Robust server.
