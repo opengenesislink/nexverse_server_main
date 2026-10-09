@@ -234,7 +234,13 @@ namespace NexVerse.Server.Api
                 {
                     provider_url = oglVoiceConfig.GetString("ServiceUrl", string.Empty).Trim(),
                     tenant_id = oglVoiceConfig.GetString("TenantId", string.Empty).Trim(),
-                    hypergrid_guests = oglVoiceConfig.GetBoolean("IncludeHypergridGuests", true)
+                    hypergrid_guests = oglVoiceConfig.GetBoolean("IncludeHypergridGuests", true),
+                    media_gateway_url = oglVoiceConfig.GetBoolean("EnableFirestormGateway", false)
+                        ? oglVoiceConfig.GetString("MediaGatewayUrl", "").Trim()
+                        : null,
+                    viewer_capability = oglVoiceConfig.GetBoolean("EnableFirestormGateway", false)
+                        ? "firestorm-webrtc-v1"
+                        : "not-yet-implemented"
                 };
                 provider.Validate();
 
