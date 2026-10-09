@@ -23,6 +23,13 @@ namespace NexVerse.Core.Voice
         public string HomeGridOrigin { get; init; }
         public bool IsHypergridGuest { get; init; }
         public bool VoiceAllowed { get; init; }
+        // Spatial coordinates are taken only from the simulator's ScenePresence.
+        // They do NOT affect JWT identity, and are never client-authorized.
+        public bool PositionValid { get; init; }
+        public float PositionX { get; init; }
+        public float PositionY { get; init; }
+        public float PositionZ { get; init; }
+        public float Heading { get; init; }
     }
 
     public sealed class OglVoiceIssuedToken
