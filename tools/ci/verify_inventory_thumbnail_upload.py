@@ -24,4 +24,29 @@ assert "InventoryThumbnailUploadModule.cs" in proj
 assert 'Cap_InventoryThumbnailUpload = "localhost"' in cfg
 assert "InventoryThumbnailUploadMaxBytes = 1048576" in cfg
 assert 'Cap_InventoryThumbnailUpload = ""' not in cfg
+models = [
+    root/"OpenSim/Framework/InventoryItemBase.cs",
+    root/"OpenSim/Framework/InventoryFolderBase.cs",
+    root/"OpenSim/Data/IXInventoryData.cs",
+]
+for path in models:
+    assert "ThumbnailID" in path.read_text() or "thumbnailID" in path.read_text(), path
+store = (root/"OpenSim/Services/InventoryService/XInventoryService.cs").read_text()
+assert store.count("ThumbnailID") >= 5
+assert "check.ThumbnailID = folder.ThumbnailID" in store
+assert "scene.InventoryService.UpdateItem(existing)" in mod
+assert "scene.InventoryService.UpdateFolder(existing)" in mod
+item = (root/"OpenSim/Framework/InventoryItemBase.cs").read_text()
+folders = (root/"OpenSim/Capabilities/Handlers/FetchInventory/FetchInvDescHandler.cs").read_text()
+for content in (item,folders):
+    assert 'AddMap("thumbnail",' in content
+    assert 'AddElem("asset_id",' in content
+for path, version in [
+    ("OpenSim/Data/MySQL/Resources/InventoryStore.migrations",8),
+    ("OpenSim/Data/PGSQL/Resources/InventoryStore.migrations",11),
+    ("OpenSim/Data/SQLite/Resources/XInventoryStore.migrations",3),
+]:
+    sql=(root/path).read_text()
+    assert f":VERSION {version}" in sql
+    assert "ADD COLUMN" in sql and "thumbnailID" in sql
 print("Firestorm InventoryThumbnailUpload two-phase JP2 upload and secure storage: OK")
