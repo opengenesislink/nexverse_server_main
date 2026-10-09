@@ -78,6 +78,14 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
 Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständige Zusage der oben genannten Funktionen.
 
+## D.1 Ausschliesslich manuelle Release-Abnahme
+
+Die Freigabe von 0.9.3.10 erfolgt **ausschliesslich nach durchgefuehrter und dokumentierter manueller Pruefung** durch den Betreiber. Es gibt **keinen** automatischen Abnahme-Workflow, keinen selbsttaetigen Statuswechsel auf Bestanden und keine automatisierte RC-/Stable-Veroeffentlichung. Bestehende Build-/CI-Workflows sind Entwicklungschecks und koennen eine manuelle Firestorm-/Voice-/HG-Pruefung nicht ersetzen.
+
+**Verbindliches Pruefprotokoll:** [MANUELLE_ABNAHME_0.9.3.10.md](MANUELLE_ABNAHME_0.9.3.10.md)
+
+**Stand 09.10.2026:** Echtes NexVerse-System weiterhin nicht remote erreichbar; alle manuellen Viewer-/Produktionspruefungen sind offen. Drei bereits aus dem Quellcode/Release-Train bekannte funktionale Blocker sind als **BLOCKIERT** benannt: vollstaendige Gruppen-/Direkt-Voice, Pathfinding-NavMesh und Pathfinding-LSL-Kommandos/Events. Daraus ergibt sich **keine Freigabe**, bis diese implementiert, manuell abgenommen und per Betreiberentscheidung geschlossen wurden.
+
 ## E. Freigabe-Gates
 
 - [ ] **Gate 1 – Functional:** OGLVoice in Robust/HG **und** Standalone; HG-Gäste in Voice; eigene/Remote-Voice-Kugeln; echter Firestorm-WebRTC-Audioverkehr; NavMesh/LSL/Character vollständig.
