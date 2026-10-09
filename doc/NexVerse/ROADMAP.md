@@ -1244,7 +1244,11 @@ Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTU
 - Region/Parcel-Voice entsprechend bestehender Voice-Estate- und Parcel-Berechtigungen;
 - echte räumliche Audiofunktion (positionale Wiedergabe, Entfernung, Richtung) durch OGLVoice/Viewer-Architektur, **nicht automatisch durch den LiveKit-SFU**;
 - Gruppen-Sprachräume anhand NexGroups-/Groups-V2-Berechtigungen, direkte und Ad-hoc-Gespräche, Konferenzen;
-- Mute/Block, Sprecheranzeige, Speaking-Orb, Gerätewahl, Push-to-Talk, individuelle Lautstärke;
+- **klassische graue/weiße Voice-Kugel über jedem Voice-verbundenen Avatar** im sichtbaren Sprachraum – eigener Avatar, lokale Mitspieler und **Hypergrid-Gäste**, nicht nur die lokale Selbstanzeige;
+- **Remote-Speaking-Anzeige für alle Zuschauer**: dynamische grüne Sprachwellen genau über dem tatsächlich sprechenden Avatar; Stille, Mute, PTT und Disconnect setzen Wellen/Präsenz zuverlässig zurück;
+- OGLVoice liefert vertrauenswürdige Teilnehmeridentität und pegel-/VAD-basierte Aktivitätsupdates an alle berechtigten Viewer des Sprachraums; Firestorm-CAPS-/Voice-Gateway muss Remote-Teilnehmer korrekt zu Viewer-Avatar-IDs zuordnen;
+- Firestorm respektiert die lokale Option „Show voice visualizers over avatars“ (serverseitig nicht erzwingbar); eigener OGL-Viewer zeigt die Kugeln standardmäßig an, mit Abschaltmöglichkeit;
+- Mute/Block, Gerätewahl, Push-to-Talk und individuelle Lautstärke;
 - unterbrechungsarme Regions-/Teleportwechsel mit getrennter Validierung des neuen Raums.
 
 ### 13.7 Firestorm-Kompatibilität und Abnahme
