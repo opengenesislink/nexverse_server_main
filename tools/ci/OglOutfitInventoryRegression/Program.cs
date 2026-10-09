@@ -65,7 +65,81 @@ internal static class Program
                 "gallery root changed on repeat initialization");
             Assert(service.GetFolder(owner, saved.ID) != null,
                 "saved outfit was deleted by repeat initialization");
-            Console.WriteLine("Outfit inventory SQLite runtime regression: OK");
+            // Simulate a Firestorm preview upload followed by a legacy
+            // viewer packet with NO thumbnail field (UUID.Zero). The old
+            // UpdateItem/UpdateFolder implementations silently erased the
+            // saved preview, which resurfaced only on the next full login.
+            UUID itemPreview = UUID.Random();
+            UUID folderPreview = UUID.Random();
+
+            var thumbnailItem = new InventoryItemBase(UUID.Random(), owner)
+            {
+                AssetID = UUID.Random(),
+                AssetType = (int)AssetType.Object,
+                InvType = (int)InventoryType.Object,
+                Folder = gallery.ID,
+                Name = "Thumbnail Relog Fixture"
+            };
+            Assert(service.AddItem(thumbnailItem), "thumbnail fixture create failed");
+            var storedItem = service.GetItem(owner, thumbnailItem.ID);
+            Assert(storedItem != null, "fixture item lost");
+            storedItem.ThumbnailID = itemPreview;
+            Assert(service.UpdateItem(storedItem), "item thumbnail save rejected");
+            Assert(service.GetItem(owner, thumbnailItem.ID).ThumbnailID == itemPreview,
+                "item thumbnail did not persist in SQLite");
+
+            var legacyItem = (InventoryItemBase)service.GetItem(owner, thumbnailItem.ID).Clone();
+            legacyItem.ThumbnailID = UUID.Zero; // absent on legacy viewer wire
+            legacyItem.Name = "Renamed after upload";
+            Assert(service.UpdateItem(legacyItem), "legacy item update rejected");
+            Assert(service.GetItem(owner, thumbnailItem.ID).ThumbnailID == itemPreview,
+                "legacy item update erased persistent thumbnail");
+
+            var storedFolder = service.GetFolder(owner, saved.ID);
+            storedFolder.ThumbnailID = folderPreview;
+            Assert(service.UpdateFolder(storedFolder), "outfit folder preview save rejected");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
+                "outfit folder thumbnail did not persist");
+
+            var legacyFolder = service.GetFolder(owner, saved.ID);
+            legacyFolder.ThumbnailID = UUID.Zero; // absent on legacy folder wire
+            legacyFolder.Version++;
+            Assert(service.UpdateFolder(legacyFolder), "legacy folder update rejected");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
+                "legacy folder update erased preview");
+
+            // Also cover system folders (different version-only update path).
+            var systemFolder = service.GetFolder(owner, gallery.ID);
+            systemFolder.ThumbnailID = folderPreview;
+            systemFolder.Version++;
+            Assert(service.UpdateFolder(systemFolder), "My Outfits preview save rejected");
+            var legacySystem = service.GetFolder(owner, gallery.ID);
+            legacySystem.ThumbnailID = UUID.Zero;
+            legacySystem.Version++;
+            Assert(service.UpdateFolder(legacySystem), "legacy My Outfits update rejected");
+            Assert(service.GetFolder(owner, gallery.ID).ThumbnailID == folderPreview,
+                "legacy system-folder update erased preview");
+
+            // A fresh inventory service represents the next viewer login:
+            // it must load all three thumbnail associations from DISK.
+            var fresh = new XInventoryService(cfg);
+            Assert(fresh.GetItem(owner, thumbnailItem.ID).ThumbnailID == itemPreview,
+                "relogin lost item thumbnail");
+            Assert(fresh.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
+                "relogin lost saved outfit thumbnail");
+            Assert(fresh.GetFolder(owner, gallery.ID).ThumbnailID == folderPreview,
+                "relogin lost My Outfits thumbnail");
+
+            var fetch = new OpenSim.Capabilities.Handlers.FetchInventory2Handler(
+                fresh, owner);
+            string itemRequest = "<llsd><map><key>items</key><array><map><key>item_id</key><uuid>" +
+                thumbnailItem.ID + "</uuid></map></array></map></llsd>";
+            string fetchedXml = fetch.FetchInventoryRequest(
+                itemRequest, "/FETCH", string.Empty, null, null);
+            Assert(fetchedXml.Contains("<key>thumbnail</key>") &&
+                fetchedXml.Contains(itemPreview.ToString()),
+                "FetchInventory2 omitted reloaded thumbnail.asset_id");
+            Console.WriteLine("Outfit and thumbnail SQLite relog + legacy update: OK");
             return 0;
         }
         finally
