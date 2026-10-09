@@ -1,0 +1,76 @@
+# OpenGenesisLINK 0.9.3.10 – gemeinsamer Release-Train
+
+**Aktive Entwicklung:** `OpenGenesisLINK 0.9.3.10 Dev`  
+**Letzte veröffentlichte Stable-Version:** `OpenGenesisLINK 0.9.3.8` (Tag `v0.9.3.8`)  
+**Freigabeziel:** `OpenGenesisLINK 0.9.3.10 Stable`; **keine separate Stable-Version 0.9.3.9**.  
+**Status:** begonnen; KEIN RC und KEINE Stable-Freigabe. Ein grüner Build ersetzt keine Live-Abnahme.
+
+Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice und Runtime) mit **0.9.3.10** (Pathfinding). 0.9.3.9 gilt erst als interner Entwicklungs-Checkpoint, wenn sein Funktionsumfang vollständig ist. Die Produktversion der gemeinsam entwickelten Branches ist `0.9.3.10 Dev`.
+
+## A. Ausgangslage und erledigte Vorarbeiten
+
+- 0.9.3.8 Stable veröffentlicht und unverändert als Downgrade-/Rollback-Basis erhalten.
+- Pull Request #114: UDP-Watchdog-Leerlauf-Korrektur in `main`.
+- Pull Request #115: zentrale OGLVoice-/LiveKit-Architektur, Robust/Standalone-Discovery, NexVerse Unlimited, HG-Gast-Voice und Anzeige der Voice-Kugeln über **allen** Teilnehmern dokumentiert; noch keine lauffähige Voice-Integration.
+- Erste 0.9.3.10-Entwicklungsänderungen: geerbte Mono-/ThreadPool-Maximalbegrenzung aus Simulator-Startup entfernt; .NET-8-Poolwerte werden protokolliert. Produktive Vergleichs-/Lastmessungen offen.
+- Pathfinding-Grundlage: testbarer deterministischer A*-Rasterpfadsucher mit begrenztem Arbeitsaufwand, Traversability-Snapshot, Hindernissen und Schutz vor diagonalem Corner-Cutting. **Noch kein NavMesh, keine Scene-/Physics-Anbindung, keine NPC-Steuerung und keine LSL-Implementierung**.
+
+## B. Arbeitspaket OGLVoice (aus 0.9.3.9)
+
+- [ ] Bestehenden NexVoice-/LiveKit-Quellcode einschließlich Credentials/Signalisierung sicher prüfen; keine Produktivschlüssel kopieren.
+- [ ] OGLVoice Central Control Plane: Tenant-Registry, Auth, Räume, Tokens, Nutzungszählung, Revoke und Audit.
+- [ ] NexVerse als nicht selbst zuweisbaren First-Party-`unlimited`-Tenant, keine künstlichen User-/Sim-/Region-/Minutenlimits.
+- [ ] Dritt-Grid-Isolation und konfigurierbare, atomar durchgesetzte Plan-Limits (Abrechnung später).
+- [ ] C#-Robust-Authority und signierte authentifizierte Simulator-Discovery; kein gemeinsames Admin-Secret in Region INIs.
+- [ ] Standalone-Modus über `OpenSim.ini` und getrennte Simulator-Service-Credentials.
+- [ ] HG-Gast-Präsenz und Home-Grid-Identität, Rechte des besuchten Grids, Session-TTL und Leave/Teleport-Revoke.
+- [ ] Firestorm-WebRTC-CAPS-/Signalisierungs-/Media-Gateway mit funktionierendem Audio, nicht nur Browser-Demo.
+- [ ] Spatial-/Parcel-Voice mit Autorität des Simulators, Echtzeitpositionen und Distanz-/Richtungsmodell.
+- [ ] Eigene **graue Voice-Kugel über allen hör- und sichtbar verbundenen Avataren**; Remote-Speaking-Wellen auf dem tatsächlichen Sprecher, inklusive HG-Gästen; Viewerpräferenz respektieren.
+- [ ] Group Voice, Direktanruf, Push-to-Talk, Mute, Moderation, Parcel-/Regionwechsel.
+- [ ] Multi-Simulator-/HG-/Firestorm-Tests, Token-Tamper-/Cross-Tenant-Tests, Last- und Ausfalltests.
+
+Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
+
+## C. Arbeitspaket Runtime (aus 0.9.3.9)
+
+- [x] Historische `MONO_THREADS_PER_CPU`-Abfrage und ihre irreführende Startmeldung entfernt.
+- [x] Feste, aus Mono-/Framework-Zeiten geerbte `ThreadPool.SetMaxThreads`-Begrenzung entfernt, .NET-8-Runtime verwaltet Worker-/IOCP-Grenzen selbst.
+- [x] Betroffene Startmeldungen mit OGL-Präfix und deutschen Konsolentexten versehen.
+- [ ] Vergleichsmessung vor/nach unter identischer Multi-Region-Last: CPU, Heap, GC-Pausen, Pool-Threads, Warteschlange, Paket-Queue, Tick-Latenz und Watchdog-Warnungen.
+- [ ] Startup, Burst-Last, Wiederverbindung, Asset- und HG-Teleport-Stress mit simulierten und echten Clients abnehmen.
+
+## D. Arbeitspaket Pathfinding (aus 0.9.3.10)
+
+- [x] Bounded A*-Grid-Foundation als C#-Quellcode in `NexVerse.Core`; automatisierter Runtime-Test mit Hindernissen, Eckensperre, Budget und Snapshot-Rebuild.
+- [ ] Region-NavMesh-Kacheln auf Basis von Terrain, Höhen, Neigung, Wasser, statischen Meshes und Walkability-Policies generieren.
+- [ ] Editierbares Gelände, rezzed/deleted/verschobene Hindernisse und Dirty-Tile-Rebuild.
+- [ ] Linksets, Treppen, Türen, Off-mesh-Links und path-cost areas; keine physikalisch ungültigen Abkürzungen.
+- [ ] Agent-spezifische Navigation: Radius, Höhe, Steigung, erlaubte Bereiche und dynamische Kollisionen.
+- [ ] NPC-/Character-Komponenten und kontrollierte Bewegungssteuerung mit Tick-/CPU-Budgets.
+- [ ] LSL-API-`llCreateCharacter`, `llDeleteCharacter`, `llNavigateTo`, `llPursue`, `llFleeFrom`, `llWanderWithin`, `llPatrolPoints`, `llGetClosestNavPoint` und `path_update` gemäß geprüfter aktueller SL-Signaturen; keine Stubs als erledigt zählen.
+- [ ] Region-/Parzellenrechte, Script-Quota, Missbrauchsschutz und Lastgrenzen.
+- [ ] Deterministischer CI-Regressionssatz und laufende Region mit tatsächlich bewegtem NPC und Live-Viewer-Abnahme.
+- [ ] Region-Crossing für Pathfinding als definierte Sicherheits-/Migrationsanforderung prüfen; bei nicht erfülltem Cross-Sim-Support ehrlich als Einschränkung dokumentieren.
+
+Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständige Zusage der oben genannten Funktionen.
+
+## E. Freigabe-Gates
+
+- [ ] **Gate 1 – Functional:** OGLVoice in Robust/HG **und** Standalone; HG-Gäste in Voice; eigene/Remote-Voice-Kugeln; echter Firestorm-WebRTC-Audioverkehr; NavMesh/LSL/Character vollständig.
+- [ ] **Gate 2 – CI:** Release-Build, bestehende Hypergrid-/Login-/NexBus-/NV$-/Inventory-Regressionen und neue Voice-/Navigationstests grün.
+- [ ] **Gate 3 – Sicherheit:** Cross-Tenant-Isolation, HG-Identität, Tokens, Permission-Revocation, LSL-Ressourcenlimits, Secrets/Audit.
+- [ ] **Gate 4 – Performance:** Messwerte gegen 0.9.3.8, keine neue relevante Speicher-/CPU-/GC-/Netzwerk-Regression, Watchdog bleibt aktiv.
+- [ ] **Gate 5 – Operator:** Multi-Simulator-Live-Test mit zwei Firestorm-Clients, HG-Gast, Parcel-Wechsel, NPC in der Region, Restart/Failover und Backup/Rollback vom Betreiber bestätigt.
+- [ ] **Gate 6 – Release:** `0.9.3.10 RC1` mit dokumentierten Einschränkungen; erst nach sämtlichen zwingenden Gates `0.9.3.10 Stable` taggen.
+
+**Nicht freigeben**, solange das reale Firestorm-OGLVoice-Gateway oder die Region-/LSL-Navigation fehlen. Weder ein grüner Quellcode-Test noch der vorhandene externe NexVoice-Webdienst beweisen diese beiden Integrationen.
+
+## F. Kompatibilität und Releasepolitik
+
+- Die stabile Referenz `v0.9.3.8` bleibt verfügbar; kein Verschieben eines Tags.
+- Der kombinierte Entwicklungszweig meldet `OpenGenesisLINK 0.9.3.10 Dev`; keine öffentliche Stable-Verwechslung.
+- Keine separate Veröffentlichung `0.9.3.9 Stable`.
+- OGLVoice standardmäßig inaktiv, bis die vollständige sichere Provider-/Viewer-Integration abgenommen ist.
+- Keine unechte Pathfinding-LSL-Kompatibilität bewerben oder unterstützte LSL-Funktionen als blind funktionierende Stubs implementieren.
+- Alle zusätzlichen Features nach 0.9.3.10 gehören zu späteren Release-Trains.

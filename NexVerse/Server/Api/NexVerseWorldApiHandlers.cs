@@ -1315,6 +1315,21 @@ namespace NexVerse.Server.Api
                     new
                     {
                         api_version = NexVersePlatform.ApiVersion,
+                        server_line = "0.9.3.10",
+                        codename = NexVersePlatform.MilestoneCodename,
+                        status = "development",
+                        published = "2026-10-09",
+                        compatibility = "OpenGenesisLINK v0.9.3.10 Dev — OGLVoice und Pathfinding gemeinsamer Release-Train",
+                        highlights = new[]
+                        {
+                            "0.9.3.9 OGLVoice und Runtime-Modernisierung sowie 0.9.3.10 Pathfinding werden gemeinsam entwickelt",
+                            "Native Pathfinding-A*-Kernkomponente und .NET-ThreadPool-Bereinigung im Entwicklungsstand; keine Voice- oder NavMesh-Produktivfreigabe",
+                            "0.9.3.8 bleibt die letzte offiziell freigegebene Stable-Version"
+                        }
+                    },
+                    new
+                    {
+                        api_version = NexVersePlatform.ApiVersion,
                         server_line = "0.9.3.8",
                         codename = NexVersePlatform.MilestoneCodename,
                         status = "release",
@@ -1748,8 +1763,8 @@ namespace NexVerse.Server.Api
                         new { version = "0.9.3.6", codename = "", title = "NV$-Wirtschaft, Bankwesen, Handel und Land", status = "completed", checklist = (object)null, summary = "Natives Kontobuch, Bankwesen, Viewer-Wirtschaftskompatibilität und Landhandel abgeschlossen.", evidence = new[] { "Doppelte Buchfuehrung und persistente Konten", "NVBAN/Banking/Commerce/Landhandel", "Live-MariaDB/PostgreSQL- und Runtime-CI gruen" } },
                         new { version = "0.9.3.7", codename = "", title = "NexGroups und NexExperiences", status = "completed", checklist = (object)null, summary = "NexGroups-Paritaetsschicht, native NexExperiences und Experience-LSL abgeschlossen.", evidence = new[] { "NexGroups Management/Moderation/API plus NV$-Gruppenkonto", "Native Experience-Permissions, Policies, Script-Bindings und persistentes K/V", "Release-Build, Hypergrid, LLLogin, World API und Chapter-11-CI gruen" } },
                         new { version = "0.9.3.8", codename = "", title = "Suche, Orte, Land und Reiseführer", status = "released", checklist = (object)null, summary = "NexSearch, Places, Land Portal und Destination Guide einschließlich optionaler Viewer-CAPS abgeschlossen.", evidence = new[] { "NexSearch aggregiert autoritative People-, Groups-, Grid-, Experience- und NV$-Landdaten", "Persistente Places, Events, Classifieds und moderierte Destinationen", "NexSearch/NexPlaces/NexLandPortal/NexDestinationGuide Viewer-CAPS sowie CI-Persistenz- und Moderationsregression" } },
-                        new { version = "0.9.3.9", codename = "", title = "OGLVoice – zentraler WebRTC-Voice-Dienst", status = "planned", checklist = (object)null, summary = "Zentraler mandantenfaehiger LiveKit-Voice-Dienst mit Robust-Auto-Discovery, Standalone-Integration, Hypergrid-Gaesten und NexVerse-Unlimited.", evidence = Array.Empty<string>() },
-                        new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "planned", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.9", codename = "", title = "OGLVoice – zentraler WebRTC-Voice-Dienst", status = "started", checklist = (object)null, summary = "Zentraler mandantenfaehiger LiveKit-Voice-Dienst mit Robust-Auto-Discovery, Standalone-Integration, Hypergrid-Gaesten und NexVerse-Unlimited.", evidence = Array.Empty<string>() },
+                        new { version = "0.9.3.10", codename = "", title = "Wegfindung", status = "started", checklist = (object)null, summary = "Wegfindungsdienst, NavMesh-Verhalten und LSL-Integration.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.11", codename = "", title = "LSL-Parität I — Kernkonformität", status = "planned", checklist = (object)null, summary = "Maschinenlesbare LSL-Matrix, Konformitätstests und Härtung der Script-Sandbox.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.12", codename = "", title = "LSL-Parität II — Erweiterte Systeme", status = "planned", checklist = (object)null, summary = "Erweiterte LSL-Systeme, Profiler und Entwicklerwerkzeuge.", evidence = Array.Empty<string>() },
                         new { version = "0.9.3.13", codename = "", title = "Assets, Darstellung, Marktplatz und Medien", status = "planned", checklist = (object)null, summary = "NexAsset, moderne Material- und Inhaltspipeline, Marktplatz und Medien.", evidence = Array.Empty<string>() },

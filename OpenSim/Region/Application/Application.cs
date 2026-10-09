@@ -94,13 +94,13 @@ namespace OpenSim
             if (!string.IsNullOrEmpty(logConfigFile))
             {
                 XmlConfigurator.Configure(new System.IO.FileInfo(logConfigFile));
-                m_log.InfoFormat("[OPENSIM MAIN]: configured log4net using \"{0}\" as configuration file",
+                m_log.InfoFormat("[OGL START]: log4net-Konfiguration: \"{0}\"",
                                  logConfigFile);
             }
             else
             {
                 XmlConfigurator.Configure(new System.IO.FileInfo("OpenSim.exe.config"));
-                m_log.Info("[OPENSIM MAIN]: configured log4net using default OpenSim.exe.config");
+                m_log.Info("[OGL START]: Standard-log4net-Konfiguration OpenSim.exe.config aktiv");
             }
 
             // temporay set the platform dependent System.Drawing.Common.dll
@@ -126,80 +126,30 @@ namespace OpenSim
             }
 
             m_log.InfoFormat(
-                "[OPENSIM MAIN]: System Locale is {0}", System.Threading.Thread.CurrentThread.CurrentCulture);
-            if(!Util.IsWindows())
-            {
-                string monoThreadsPerCpu = System.Environment.GetEnvironmentVariable("MONO_THREADS_PER_CPU");
-                m_log.InfoFormat(
-                    "[OPENSIM MAIN]: Environment variable MONO_THREADS_PER_CPU is {0}", monoThreadsPerCpu ?? "unset");
-            }
+                "[OGL RUNTIME]: Systemkultur: {0}", System.Threading.Thread.CurrentThread.CurrentCulture);
 
-            // Verify the Threadpool allocates or uses enough worker and IO completion threads
-            // .NET 2.0, workerthreads default to 50 *  numcores
-            // .NET 3.0, workerthreads defaults to 250 * numcores
-            // .NET 4.0, workerthreads are dynamic based on bitness and OS resources
-            // Max IO Completion threads are 1000 on all 3 CLRs
-            //
-            // Mono 2.10.9 to at least Mono 3.1, workerthreads default to 100 * numcores, iocp threads to 4 * numcores
-            int workerThreadsMin = 500;
-            int workerThreadsMax = 1000; // may need further adjustment to match other CLR
-            int iocpThreadsMin = 1000;
-            int iocpThreadsMax = 2000; // may need further adjustment to match other CLR
-
-            System.Threading.ThreadPool.GetMinThreads(out int currentMinWorkerThreads, out int currentMinIocpThreads);
+            // Modern .NET manages the ThreadPool according to workload and runtime limits.
+            // The inherited Mono/.NET Framework hard-coded maxima (500-1000 worker,
+            // 1000-2000 IOCP threads) can override better .NET 8 defaults. Do not
+            // change global pool limits without measured production evidence.
+            System.Threading.ThreadPool.GetMinThreads(out int minWorkerThreads, out int minIocpThreads);
+            System.Threading.ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int maxIocpThreads);
             m_log.InfoFormat(
-                "[OPENSIM MAIN]: Runtime gave us {0} min worker threads and {1} min IOCP threads",
-                currentMinWorkerThreads, currentMinIocpThreads);
-
-            System.Threading.ThreadPool.GetMaxThreads(out int workerThreads, out int iocpThreads);
-            m_log.InfoFormat("[OPENSIM MAIN]: Runtime gave us {0} max worker threads and {1} max IOCP threads", workerThreads, iocpThreads);
-
-            if (workerThreads < workerThreadsMin)
-            {
-                workerThreads = workerThreadsMin;
-                m_log.InfoFormat("[OPENSIM MAIN]: Bumping up max worker threads to {0}",workerThreads);
-            }
-            if (workerThreads > workerThreadsMax)
-            {
-                workerThreads = workerThreadsMax;
-                m_log.InfoFormat("[OPENSIM MAIN]: Limiting max worker threads to {0}",workerThreads);
-            }
-
-            // Increase the number of IOCP threads available.
-            // Mono defaults to a tragically low number (24 on 6-core / 8GB Fedora 17)
-            if (iocpThreads < iocpThreadsMin)
-            {
-                iocpThreads = iocpThreadsMin;
-                m_log.InfoFormat("[OPENSIM MAIN]: Bumping up max IOCP threads to {0}",iocpThreads);
-            }
-            // Make sure we don't overallocate IOCP threads and thrash system resources
-            if ( iocpThreads > iocpThreadsMax )
-            {
-                iocpThreads = iocpThreadsMax;
-                m_log.InfoFormat("[OPENSIM MAIN]: Limiting max IOCP completion threads to {0}",iocpThreads);
-            }
-            // set the resulting worker and IO completion thread counts back to ThreadPool
-            if ( System.Threading.ThreadPool.SetMaxThreads(workerThreads, iocpThreads) )
-            {
-                m_log.InfoFormat(
-                    "[OPENSIM MAIN]: Threadpool set to {0} max worker threads and {1} max IOCP threads",
-                    workerThreads, iocpThreads);
-            }
-            else
-            {
-                m_log.Warn("[OPENSIM MAIN]: Threadpool reconfiguration failed, runtime defaults still in effect.");
-            }
+                "[OGL RUNTIME]: .NET ThreadPool unveraendert: Worker min/max={0}/{1}, IOCP min/max={2}/{3}, aktive Threads={4}, wartende Aufgaben={5}",
+                minWorkerThreads, maxWorkerThreads, minIocpThreads, maxIocpThreads,
+                System.Threading.ThreadPool.ThreadCount,
+                System.Threading.ThreadPool.PendingWorkItemCount);
 
             // Check if the system is compatible with OpenSimulator.
             // Ensures that the minimum system requirements are met
             string supported = String.Empty;
             if (Util.IsEnvironmentSupported(ref supported))
             {
-                m_log.Info("[OPENSIM MAIN]: Environment is supported by OpenSimulator.");
+                m_log.Info("[OGL RUNTIME]: Laufzeitumgebung kompatibel");
             }
             else
             {
-                m_log.Warn("[OPENSIM MAIN]: Environment is not supported by OpenSimulator (" + supported + ")\n");
+                m_log.Warn("[OGL RUNTIME]: Laufzeitumgebung nicht kompatibel (" + supported + ")\n");
             }
 
             m_log.InfoFormat("Default culture changed to {0}",Culture.GetDefaultCurrentCulture().DisplayName);

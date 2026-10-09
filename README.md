@@ -1,6 +1,6 @@
 # OpenGenesisLINK
 
-**OpenGenesisLINK v0.9.3.8** is an independent virtual-world server platform developed by the OpenGenesisLINK project.
+**OpenGenesisLINK v0.9.3.10 Dev** is the active combined development train for OGLVoice, runtime modernization and Pathfinding. The last stable release is **v0.9.3.8**. OpenGenesisLINK is an independent virtual-world server platform developed by the OpenGenesisLINK project.
 
 This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Release** source package. It is intentionally maintained as its own repository rather than as a GitHub fork. The long-term objective is an independent OpenGenesisLINK development line whose architecture, services, protocols, modules, tooling and branding may diverge substantially from OpenSimulator.
 
@@ -21,7 +21,7 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026.
+The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026. Development now targets **0.9.3.10 Dev**, bundling 0.9.3.9 OGLVoice/runtime with 0.9.3.10 Pathfinding; neither voice nor NavMesh/LSL is ready for a stable claim.
 
 OpenGenesisLINK continues the existing 0.9.3.x development line. OpenSimulator 0.9.3.0 remains the historical source baseline; upstream OpenSimulator version numbers do not automatically become OpenGenesisLINK version numbers.
 
@@ -38,6 +38,8 @@ The active development roadmap is maintained in:
 **[`doc/NexVerse/ROADMAP.md`](doc/NexVerse/ROADMAP.md)**
 
 The roadmap covers the NEXJAST legacy-cleanup milestone and the World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, OGLVoice (centralized LiveKit/WebRTC voice), Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the OpenGenesisLINK v0.9.4.0 consolidation target.
+
+See **[`doc/NexVerse/RELEASE_TRAIN_0.9.3.10.md`](doc/NexVerse/RELEASE_TRAIN_0.9.3.10.md)** for the combined release gates and **[`doc/NexVerse/OGLVOICE_ARCHITECTURE.md`](doc/NexVerse/OGLVOICE_ARCHITECTURE.md)** for the central voice design.
 
 ## Previous development milestone: OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus
 
