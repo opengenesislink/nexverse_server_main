@@ -190,7 +190,11 @@ namespace OpenSim.Services.InventoryService
                     allFolders,
                     delegate (XInventoryFolder f)
                     {
-                        if (f.type > 0)
+                        // Texture is a valid system folder type with numeric
+                        // value 0. Excluding it produces duplicate "Textures"
+                        // folders whenever CreateUserInventory is run again.
+                        // Normal custom folders (None) have a negative type.
+                        if (f.type == (int)FolderType.Texture || f.type > 0)
                             return true;
                         return false;
                     });
