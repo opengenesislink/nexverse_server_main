@@ -210,6 +210,12 @@ namespace OpenSim.Capabilities.Handlers
                             LLSDxmlEncode2.AddElem_name(invFolder.Name, lastresponse);
                             LLSDxmlEncode2.AddElem("type_default", invFolder.Type, lastresponse);
                             LLSDxmlEncode2.AddElem_version( invFolder.Version, lastresponse);
+                            if (invFolder.ThumbnailID != UUID.Zero)
+                            {
+                                LLSDxmlEncode2.AddMap("thumbnail", lastresponse);
+                                LLSDxmlEncode2.AddElem("asset_id", invFolder.ThumbnailID, lastresponse);
+                                LLSDxmlEncode2.AddEndMap(lastresponse);
+                            }
 
                             LLSDxmlEncode2.AddEndMap(lastresponse);
                         }

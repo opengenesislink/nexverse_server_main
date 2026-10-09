@@ -418,6 +418,7 @@ namespace OpenSim.Services.InventoryService
                 }
 
                 check.Version = (ushort)xFolder.version;
+                check.ThumbnailID = folder.ThumbnailID;
                 xFolder = ConvertFromOpenSim(check);
 
 //                m_log.DebugFormat(
@@ -672,7 +673,8 @@ namespace OpenSim.Services.InventoryService
                 Version = (ushort)folder.version,
                 Name = folder.folderName,
                 Owner = folder.agentID,
-                ID = folder.folderID
+                ID = folder.folderID,
+                ThumbnailID = folder.thumbnailID
             };
         }
 
@@ -685,7 +687,8 @@ namespace OpenSim.Services.InventoryService
                 version = (int)folder.Version,
                 folderName = folder.Name,
                 agentID = folder.Owner,
-                folderID = folder.ID
+                folderID = folder.ID,
+                thumbnailID = folder.ThumbnailID
             };
         }
 
@@ -694,6 +697,7 @@ namespace OpenSim.Services.InventoryService
             return new InventoryItemBase
             {
                 AssetID = item.assetID,
+                ThumbnailID = item.thumbnailID,
                 AssetType = item.assetType,
                 Name = item.inventoryName,
                 Owner = item.avatarID,
@@ -721,6 +725,7 @@ namespace OpenSim.Services.InventoryService
             return new XInventoryItem
             {
                 assetID = item.AssetID,
+                thumbnailID = item.ThumbnailID,
                 assetType = item.AssetType,
                 inventoryName = item.Name,
                 avatarID = item.Owner,

@@ -273,6 +273,9 @@ namespace OpenSim.Framework
         }
         protected int m_assetType;
 
+        // Persistent Firestorm inventory preview texture (independent from AssetID).
+        public UUID ThumbnailID { get; set; } = UUID.Zero;
+
         /// <value>
         /// The UUID of the associated asset on the asset server
         /// </value>
@@ -418,6 +421,12 @@ namespace OpenSim.Framework
                 LLSDxmlEncode2.AddElem_parent_id(Folder, lsl);
                 LLSDxmlEncode2.AddElem_asset_id( AssetID, lsl);
                 LLSDxmlEncode2.AddElem_item_id( ID, lsl);
+                if (ThumbnailID != UUID.Zero)
+                {
+                    LLSDxmlEncode2.AddMap("thumbnail", lsl);
+                    LLSDxmlEncode2.AddElem("asset_id", ThumbnailID, lsl);
+                    LLSDxmlEncode2.AddEndMap(lsl);
+                }
 
                 LLSDxmlEncode2.AddMap("permissions",lsl);
                     LLSDxmlEncode2.AddElem_creator_id(CreatorIdAsUuid, lsl);

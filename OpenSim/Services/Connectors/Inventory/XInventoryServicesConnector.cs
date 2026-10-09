@@ -354,7 +354,8 @@ namespace OpenSim.Services.Connectors
                         { "Version", folder.Version.ToString() },
                         { "Name", folder.Name.ToString() },
                         { "Owner", folder.Owner.ToString() },
-                        { "ID", folder.ID.ToString() }
+                        { "ID", folder.ID.ToString() },
+                        { "ThumbnailID", folder.ThumbnailID.ToString() }
                     });
 
             return CheckReturn(ret);
@@ -363,7 +364,7 @@ namespace OpenSim.Services.Connectors
         public bool UpdateFolder(InventoryFolderBase folder)
         {
             Dictionary<string,object> ret = MakeRequest(
-                $"METHOD=UPDATEFOLDER&ParentID={folder.ParentID}&Type={folder.Type}&Version={folder.Version}&Name={folder.Name}&Owner={folder.Owner}&ID={folder.ID}");
+                $"METHOD=UPDATEFOLDER&ParentID={folder.ParentID}&Type={folder.Type}&Version={folder.Version}&Name={folder.Name}&Owner={folder.Owner}&ID={folder.ID}&ThumbnailID={folder.ThumbnailID}");
 
             return CheckReturn(ret);
         }
@@ -427,7 +428,8 @@ namespace OpenSim.Services.Connectors
                         { "SalePrice", item.SalePrice.ToString() },
                         { "SaleType", item.SaleType.ToString() },
                         { "Flags", item.Flags.ToString() },
-                        { "CreationDate", item.CreationDate.ToString() }
+                        { "CreationDate", item.CreationDate.ToString() },
+                        { "ThumbnailID", item.ThumbnailID.ToString() }
                     });
 
             return CheckReturn(ret);
@@ -459,7 +461,8 @@ namespace OpenSim.Services.Connectors
                         { "SalePrice", item.SalePrice.ToString() },
                         { "SaleType", item.SaleType.ToString() },
                         { "Flags", item.Flags.ToString() },
-                        { "CreationDate", item.CreationDate.ToString() }
+                        { "CreationDate", item.CreationDate.ToString() },
+                        { "ThumbnailID", item.ThumbnailID.ToString() }
                     });
 
             bool result = CheckReturn(ret);
@@ -696,7 +699,10 @@ namespace OpenSim.Services.Connectors
                     Version = ushort.Parse((string)data["Version"]),
                     Name = (string)data["Name"],
                     Owner = new UUID((string)data["Owner"]),
-                    ID = new UUID((string)data["ID"])
+                    ID = new UUID((string)data["ID"]),
+                    ThumbnailID = data.TryGetValue("ThumbnailID", out object thumbnailFolder) &&
+                        UUID.TryParse(thumbnailFolder.ToString(), out UUID folderPreview)
+                        ? folderPreview : UUID.Zero
                 };
                 return folder;
             }
@@ -733,7 +739,10 @@ namespace OpenSim.Services.Connectors
                     SaleType = byte.Parse((string)data["SaleType"]),
                     Flags = uint.Parse((string)data["Flags"]),
                     CreationDate = int.Parse((string)data["CreationDate"]),
-                    Description = (string)data["Description"]
+                    Description = (string)data["Description"],
+                    ThumbnailID = data.TryGetValue("ThumbnailID", out object thumbnailItem) &&
+                        UUID.TryParse(thumbnailItem.ToString(), out UUID itemPreview)
+                        ? itemPreview : UUID.Zero
                 };
                 if (data.TryGetValue("CreatorData", out object oCreatorData))
                     item.CreatorData = (string)oCreatorData;

@@ -40,3 +40,14 @@ CREATE TABLE IF NOT EXISTS `inventoryfolders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 COMMIT;
+
+:VERSION 8
+
+-- OpenGenesisLINK 0.9.3.10 Firestorm inventory/outfit thumbnail metadata.
+-- Backfill existing inventories with the null asset UUID.
+ALTER TABLE inventoryitems
+    ADD COLUMN thumbnailID varchar(36) NOT NULL
+    DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE inventoryfolders
+    ADD COLUMN thumbnailID varchar(36) NOT NULL
+    DEFAULT '00000000-0000-0000-0000-000000000000';

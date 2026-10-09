@@ -342,6 +342,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_oglvoice_firestorm_caps.py
 
+      - name: Verify InventoryThumbnailUpload Firestorm capability and asset persistence
+        shell: bash
+        run: python3 tools/ci/verify_inventory_thumbnail_upload.py
+
       - name: Regression-test Firestorm WebRTC media and speaker data channel wire
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglVoiceFirestormRegression/OglVoiceFirestormRegression.csproj

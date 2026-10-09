@@ -40,6 +40,7 @@ namespace OpenSim.Data
         public UUID folderID;
         public UUID agentID;
         public UUID parentFolderID;
+        public UUID thumbnailID;
 
         public XInventoryFolder Clone()
         {
@@ -69,6 +70,7 @@ namespace OpenSim.Data
         public UUID avatarID;
         public UUID parentFolderID;
         public int inventoryGroupPermissions;
+        public UUID thumbnailID;
 
         public XInventoryItem Clone()
         {
