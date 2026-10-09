@@ -298,6 +298,14 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_lludp_incoming_watchdog.py
 
+      - name: Verify OpenGenesisLINK .NET runtime threadpool modernization
+        shell: bash
+        run: python3 tools/ci/verify_ogl_runtime_threadpool.py
+
+      - name: Regression-test OGL bounded pathfinding A-star core
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglPathfindingRegression/OglPathfindingRegression.csproj
+
       - name: Verify Firestorm bridge bootstrap compatibility
         shell: bash
         run: python3 tools/ci/verify_firestorm_bridge_bootstrap.py
