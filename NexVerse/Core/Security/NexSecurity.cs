@@ -212,7 +212,15 @@ namespace NexVerse.Core.Security
                     StringComparer.OrdinalIgnoreCase)
                 {
                     NexScopes.UsersRead,
-                    NexScopes.UsersWrite
+                    NexScopes.UsersWrite,
+                    // Resident self-service: each endpoint still checks ownership
+                    // or group membership/powers in the authoritative service.
+                    NexScopes.ProfileRead,
+                    NexScopes.ProfileWrite,
+                    NexScopes.RelationshipsRead,
+                    NexScopes.RelationshipsWrite,
+                    NexScopes.GroupsRead,
+                    NexScopes.GroupsManage
                 };
 
             foreach (string role in roles ?? Array.Empty<string>())
