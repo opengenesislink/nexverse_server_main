@@ -426,7 +426,13 @@ namespace OpenSim.Services.InventoryService
                 }
 
                 check.Version = (ushort)xFolder.version;
-                check.ThumbnailID = folder.ThumbnailID;
+                // Older OpenSim inventory folder update packets have no
+                // thumbnail field. A default UUID.Zero therefore means
+                // "not supplied", NOT "delete the previously uploaded preview".
+                // Without this guard any legacy folder update erases the
+                // persistent thumbnail and Firestorm loses it after relog.
+                if (folder.ThumbnailID != UUID.Zero)
+                    check.ThumbnailID = folder.ThumbnailID;
                 xFolder = ConvertFromOpenSim(check);
 
 //                m_log.DebugFormat(
@@ -438,6 +444,8 @@ namespace OpenSim.Services.InventoryService
 
             if (xFolder.version < check.Version)
                 xFolder.version = check.Version;
+            if (xFolder.thumbnailID == UUID.Zero)
+                xFolder.thumbnailID = check.ThumbnailID;
 
             xFolder.folderID = check.ID;
 
@@ -562,6 +570,13 @@ namespace OpenSim.Services.InventoryService
                 item.CreatorIdentification = retrievedItem.CreatorIdentification;
                 item.Owner = retrievedItem.Owner;
             }
+
+            // Legacy viewer UDP UpdateInventoryItem messages do not carry a
+            // thumbnail UUID. Preserve the server-side preview unless a new
+            // explicit UUID was supplied; zero is indistinguishable from an
+            // absent field in the old wire protocol.
+            if (item.ThumbnailID == UUID.Zero)
+                item.ThumbnailID = retrievedItem.ThumbnailID;
 
             return m_Database.StoreItem(ConvertFromOpenSim(item));
         }
