@@ -81,7 +81,7 @@ func (g *mediaServer) exchange(w http.ResponseWriter, req *http.Request) {
 	switch input.Operation {
 	case "offer":
 		g.offer(w, n, node, input)
-	case "trickle", "leave":
+	case "trickle", "leave", "position":
 		g.existing(w, node, input)
 	default:
 		jsonReply(w, http.StatusBadRequest, reply{Protocol: wireProtocol, Status: "invalid_operation"})
@@ -212,6 +212,18 @@ func (g *mediaServer) existing(w http.ResponseWriter, node string, e exchange) {
 	if e.Operation == "leave" {
 		p.close()
 		jsonReply(w, http.StatusOK, reply{Protocol: wireProtocol, Status: "closed"})
+		return
+	}
+	if e.Operation == "position" {
+		if !e.Admission.PositionValid || !validPosition(admissionPosition(e.Admission)) {
+			jsonReply(w, http.StatusBadRequest, reply{Protocol:wireProtocol,Status:"invalid_spatial_position"})
+			return
+		}
+		if err := p.updatePosition(e.Admission); err != nil {
+			jsonReply(w, http.StatusServiceUnavailable, reply{Protocol:wireProtocol,Status:"position_update_failed"})
+			return
+		}
+		jsonReply(w, http.StatusOK, reply{Protocol:wireProtocol,Status:"ok"})
 		return
 	}
 	if len(e.Candidates) > 32 || (len(e.Candidates) == 0 && !e.ICECompleted) {
