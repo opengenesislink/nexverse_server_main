@@ -1777,7 +1777,10 @@ namespace OpenSim.Region.ClientStack.LindenUDP
                 Scene.ThreadAlive(1);
                 try
                 {
-                    if (packetInbox.TryTake(out IncomingPacket incomingPacket, 4500) && IsRunningInbound)
+                    // Poll frequently enough to refresh the watchdog during a quiet region.
+                    // Waiting 4500ms against a 5000ms watchdog deadline left too little
+                    // margin for scheduling/GC pauses and caused false timeout alarms.
+                    if (packetInbox.TryTake(out IncomingPacket incomingPacket, 1000) && IsRunningInbound)
                     {
                         if (incomingPacket.Client.IsActive)
                         {
