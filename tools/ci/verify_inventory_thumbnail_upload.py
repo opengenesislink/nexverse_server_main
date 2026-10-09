@@ -49,4 +49,11 @@ for path, version in [
     sql=(root/path).read_text()
     assert f":VERSION {version}" in sql
     assert "ADD COLUMN" in sql and "thumbnailID" in sql
+for path in [
+    "OpenSim/Services/Connectors/Inventory/XInventoryServicesConnector.cs",
+    "OpenSim/Server/Handlers/Inventory/XInventoryInConnector.cs",
+]:
+    http=(root/path).read_text()
+    assert http.count('"ThumbnailID"') >= 4, f"missing remote inventory roundtrip: {path}"
+    assert "ThumbnailID" in http
 print("Firestorm InventoryThumbnailUpload two-phase JP2 upload and secure storage: OK")
