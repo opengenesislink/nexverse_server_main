@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="../../../NexVerse/Core/Voice/OglVoiceFirestormWire.cs" Link="OglVoiceFirestormWire.cs" />
     <Compile Include="../../../NexVerse/Core/Voice/OglVoiceDiscoveryProof.cs" Link="OglVoiceDiscoveryProof.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceMediaProof.cs" Link="OglVoiceMediaProof.cs" />
   </ItemGroup>
 </Project>
