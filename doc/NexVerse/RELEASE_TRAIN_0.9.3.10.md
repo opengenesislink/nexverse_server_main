@@ -15,6 +15,13 @@ Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice un
 - Erste 0.9.3.10-Entwicklungsänderungen: geerbte Mono-/ThreadPool-Maximalbegrenzung aus Simulator-Startup entfernt; .NET-8-Poolwerte werden protokolliert. Produktive Vergleichs-/Lastmessungen offen.
 - Pathfinding-Grundlage: testbarer deterministischer A*-Rasterpfadsucher mit begrenztem Arbeitsaufwand, Traversability-Snapshot, Hindernissen und Schutz vor diagonalem Corner-Cutting. **Noch kein NavMesh, keine Scene-/Physics-Anbindung, keine NPC-Steuerung und keine LSL-Implementierung**.
 
+## A.1 Firestorm Viewer – Inventar-Thumbnail und Outfit-Diagnose
+
+- [x] **InventoryThumbnailUpload Dev-CAP:** Zweistufige LLSD-Upload-URL und JPEG2000-Binaerupload nach Firestorm-Vertrag, mit Owner-/Root-Agent-Pruefung, einmaligen 60-s-Uploadern, 1-MiB-Begrenzung und persistenter Textur-Asset-Speicherung. Unter `[ClientStack.LindenCaps] Cap_InventoryThumbnailUpload = "localhost"` automatisch registriert. Schließt den fehlenden CAP-Namen im Firestorm-Seed.
+- [ ] **Dauerhafte Inventar-/Outfit-Thumbnail-Verknuepfungen:** Bestand `InventoryItemBase`/`InventoryFolderBase` und Datenbank-/Fetch-Schichten haben noch kein `ThumbnailID`-Feld; die Upload-Textur ist persistent, die vom Firestorm lokal gesetzte Verknuepfung nach Neustart noch nicht verifiziert. Fuer korrekten Re-Login DB-Felder/Migration und Inventar-Serialisierung nachruesten.
+- [ ] **Firestorm Appearance "Kein Outfit"**: Current-Outfit-/My-Outfits-Ordner, enthaltene Links und Login-/Avatar-Appearance getrennt vor Ort prüfen. Kein automatischer, potentiell zerstoererischer Reset existierender Nutzeroutfits.
+- [ ] **Viewer-E2E-Livetest:** Ein Outfit-Thumbnail erstellen, Upload und Asset-Abruf verifizieren, Viewer neu starten, und pruefen, ob das Thumbnail dauerhaft erscheint. Fehlermeldung und leeres Outfit-Fenster getrennt protokollieren.
+
 ## B. Arbeitspaket OGLVoice (aus 0.9.3.9)
 
 - [ ] Bestehenden NexVoice-/LiveKit-Quellcode einschließlich Credentials/Signalisierung sicher prüfen; keine Produktivschlüssel kopieren.
