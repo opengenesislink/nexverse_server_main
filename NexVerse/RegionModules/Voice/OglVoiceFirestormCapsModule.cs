@@ -73,7 +73,7 @@ namespace NexVerse.RegionModules.Voice
                 m_Key = grid
                     ? node.GetString("SharedKey", "")
                     : Environment.GetEnvironmentVariable("OGLVOICE_MEDIA_BRIDGE_SHARED_KEY");
-                OglVoiceSessionProof.Sign(m_Key, m_NodeId,
+                OglVoiceMediaProof.Sign(m_Key, m_NodeId,
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                     OglVoiceDiscoveryProof.NewNonce(), new byte[] { 1 });
                 m_Http = new HttpClient(new HttpClientHandler
@@ -297,7 +297,7 @@ namespace NexVerse.RegionModules.Voice
                 }
 
                 byte[] payload = JsonSerializer.SerializeToUtf8Bytes(message);
-                if (payload.Length > 48 * 1024)
+                if (payload.Length > OglVoiceMediaProof.MaximumPayloadBytes)
                     throw new ArgumentException("Voice media exchange exceeds bounded request");
                 // Separate HTTPS media service verifies the authenticated
                 // node+body. No LiveKit API secret is sent through this CAP.
@@ -313,9 +313,10 @@ namespace NexVerse.RegionModules.Voice
                     stamp.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 backend.Headers.TryAddWithoutValidation("X-OGLVoice-Nonce", nonce);
                 backend.Headers.TryAddWithoutValidation("X-OGLVoice-Signature",
-                    OglVoiceSessionProof.Sign(m_Key, m_NodeId, stamp, nonce, payload));
+                    OglVoiceMediaProof.Sign(m_Key, m_NodeId, stamp, nonce, payload));
 
-                using HttpResponseMessage result = m_Http.Send(backend);
+                using HttpResponseMessage result = m_Http.Send(
+                    backend, HttpCompletionOption.ResponseHeadersRead);
                 if (!result.IsSuccessStatusCode)
                 {
                     Error(response, result.StatusCode == HttpStatusCode.Conflict
@@ -324,8 +325,20 @@ namespace NexVerse.RegionModules.Voice
                 }
                 if (result.Content.Headers.ContentLength > OglVoiceFirestormWire.MaximumResponseBytes)
                     throw new ArgumentException("Oversized media response");
-                byte[] answer = result.Content.ReadAsByteArrayAsync()
-                    .GetAwaiter().GetResult();
+                byte[] answer;
+                using (Stream incoming = result.Content.ReadAsStream())
+                using (MemoryStream bounded = new())
+                {
+                    byte[] chunk = new byte[4096];
+                    int count;
+                    while ((count = incoming.Read(chunk, 0, chunk.Length)) > 0)
+                    {
+                        if (bounded.Length + count > OglVoiceFirestormWire.MaximumResponseBytes)
+                            throw new ArgumentException("Oversized media response");
+                        bounded.Write(chunk, 0, count);
+                    }
+                    answer = bounded.ToArray();
+                }
                 OglVoiceMediaReply media =
                     OglVoiceFirestormWire.ParseAnswer(answer, message.operation == "offer");
 
