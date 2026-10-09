@@ -385,6 +385,10 @@ namespace NexVerse.Server.Api
                     ("get", "Inventarwurzel und Ordnerstruktur lesen", "inventory:read", "200")),
                 ["/api/v1/inventory/search"] = AuthenticatedOperations(
                     ("get", "Inventarordner und Items begrenzt durchsuchen", "inventory:read", "200")),
+                ["/api/v1/inventory/outfits/health"] = AuthenticatedOperations(
+                    ("get", "Current Outfit, My Outfits und defekte Outfit-Links schreibgeschuetzt diagnostizieren", "inventory:read", "200")),
+                ["/api/v1/inventory/outfits/ensure-folders"] = AuthenticatedOperations(
+                    ("post", "Fehlenden My Outfits-Systemordner einmalig und ohne Aenderung vorhandener Kleidung ergaenzen", "inventory:write", "201")),
                 ["/api/v1/inventory/folders"] = AuthenticatedOperations(
                     ("post", "Inventarordner erstellen", "inventory:write", "201")),
                 ["/api/v1/inventory/folders/{folderId}"] = AuthenticatedOperations(
@@ -3472,7 +3476,8 @@ namespace NexVerse.Server.Api
                         ["parent_id"] = new { type = "string", format = "uuid" },
                         ["name"] = new { type = "string" },
                         ["type"] = new { type = "integer" },
-                        ["version"] = new { type = "integer" }
+                        ["version"] = new { type = "integer" },
+                        ["thumbnail_id"] = new { type = "string", format = "uuid" }
                     }
                 },
                 ["InventoryItem"] = new
@@ -3499,6 +3504,7 @@ namespace NexVerse.Server.Api
                         ["owner_id"] = new { type = "string", format = "uuid" },
                         ["folder_id"] = new { type = "string", format = "uuid" },
                         ["asset_id"] = new { type = "string", format = "uuid" },
+                        ["thumbnail_id"] = new { type = "string", format = "uuid" },
                         ["name"] = new { type = "string" },
                         ["description"] = new { type = "string" },
                         ["asset_type"] = new { type = "integer" },
@@ -3590,6 +3596,46 @@ namespace NexVerse.Server.Api
                         ["scanned_folders"] = new { type = "integer", minimum = 0 },
                         ["scanned_items"] = new { type = "integer", minimum = 0 },
                         ["truncated"] = new { type = "boolean" }
+                    }
+                },
+                ["InventoryOutfitHealthResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "owner_id", "current_outfit_item_count",
+                        "current_outfit_link_scan", "saved_outfit_count", "findings", "changed" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["current_outfit_folder"] = inventoryFolderRef,
+                        ["my_outfits_folder"] = inventoryFolderRef,
+                        ["current_outfit_item_count"] = new { type = "integer", minimum = 0 },
+                        ["saved_outfit_count"] = new { type = "integer", minimum = 0 },
+                        ["current_outfit_link_scan"] = new
+                        {
+                            type = "object",
+                            properties = new Dictionary<string, object>
+                            {
+                                ["inspected"] = new { type = "integer", minimum = 0 },
+                                ["limit"] = new { type = "integer", minimum = 1 },
+                                ["truncated"] = new { type = "boolean" },
+                                ["broken"] = new { type = "integer", minimum = 0 },
+                                ["broken_link_ids"] = new { type = "array",
+                                    items = new { type = "string", format = "uuid" } }
+                            }
+                        },
+                        ["findings"] = new { type = "array", items = new { type = "string" } },
+                        ["changed"] = new { type = "boolean" }
+                    }
+                },
+                ["InventoryOutfitEnsureResponse"] = new
+                {
+                    type = "object",
+                    required = new[] { "owner_id", "created", "my_outfits_folder" },
+                    properties = new Dictionary<string, object>
+                    {
+                        ["owner_id"] = new { type = "string", format = "uuid" },
+                        ["created"] = new { type = "boolean" },
+                        ["my_outfits_folder"] = inventoryFolderRef
                     }
                 },
                 ["InventorySearchResponse"] = new

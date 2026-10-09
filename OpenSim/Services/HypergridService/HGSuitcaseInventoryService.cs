@@ -188,6 +188,10 @@ namespace OpenSim.Services.HypergridService
                 CreateFolder(principalID, rootID, (int)FolderType.Clothing, "Clothing");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.CurrentOutfit) return true; return false; }))
                 CreateFolder(principalID, rootID, (int)FolderType.CurrentOutfit, "Current Outfit");
+            // Firestorm's Outfit Gallery is backed by the separate My Outfits
+            // system folder. Current Outfit alone is not a saved outfit.
+            if (!Array.Exists(sysFolders, f => f.type == (int)FolderType.MyOutfits))
+                CreateFolder(principalID, rootID, (int)FolderType.MyOutfits, "My Outfits");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.Favorites) return true; return false; }))
                 CreateFolder(principalID, rootID, (int)FolderType.Favorites, "Favorites");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.Gesture) return true; return false; }))

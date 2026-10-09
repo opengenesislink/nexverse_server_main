@@ -129,6 +129,10 @@ namespace OpenSim.Services.InventoryService
                 CreateFolder(principalID, rootFolder.ID, (int)FolderType.Clothing, "Clothing");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.CurrentOutfit) return true; return false; }))
                 CreateFolder(principalID, rootFolder.ID, (int)FolderType.CurrentOutfit, "Current Outfit");
+            // Firestorm's Outfit Gallery is backed by the separate My Outfits
+            // system folder. Current Outfit alone is not a saved outfit.
+            if (!Array.Exists(sysFolders, f => f.type == (int)FolderType.MyOutfits))
+                CreateFolder(principalID, rootFolder.ID, (int)FolderType.MyOutfits, "My Outfits");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.Favorites) return true; return false; }))
                 CreateFolder(principalID, rootFolder.ID, (int)FolderType.Favorites, "Favorites");
             if (!Array.Exists(sysFolders, delegate(XInventoryFolder f) { if (f.type == (int)FolderType.Gesture) return true; return false; }))
@@ -186,7 +190,11 @@ namespace OpenSim.Services.InventoryService
                     allFolders,
                     delegate (XInventoryFolder f)
                     {
-                        if (f.type > 0)
+                        // Texture is a valid system folder type with numeric
+                        // value 0. Excluding it produces duplicate "Textures"
+                        // folders whenever CreateUserInventory is run again.
+                        // Normal custom folders (None) have a negative type.
+                        if (f.type == (int)FolderType.Texture || f.type > 0)
                             return true;
                         return false;
                     });

@@ -407,6 +407,10 @@ jobs:
         shell: bash
         run: dotnet build --configuration Release OpenSim.sln
 
+      - name: Regression-test Firestorm My Outfits system folder against real SQLite inventory
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglOutfitInventoryRegression/OglOutfitInventoryRegression.csproj
+
       - name: Verify NexVerse native assemblies
         shell: bash
         run: |
@@ -1006,7 +1010,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:11.4
+        image: public.ecr.aws/docker/library/mariadb:11.4
         env:
           MARIADB_ROOT_PASSWORD: ledgerroot
           MARIADB_DATABASE: ogl_ledger_ci
@@ -1021,7 +1025,7 @@ jobs:
           --health-retries=24
 
       postgres:
-        image: postgres:16
+        image: public.ecr.aws/docker/library/postgres:16
         env:
           POSTGRES_DB: ogl_ledger_ci
           POSTGRES_USER: ledger

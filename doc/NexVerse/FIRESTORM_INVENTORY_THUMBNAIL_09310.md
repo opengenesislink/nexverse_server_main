@@ -41,6 +41,58 @@ WHERE avatarID = 'AVATAR-UUID'
 ORDER BY inventoryName;
 ```
 
+## Neu: sichere Outfit-Galerie-Diagnose im Buergerportal-API
+
+Ab 0.9.3.10 Dev ist die bisher fehlende Inventar-Systemkategorie
+`My Outfits` bei der Neuanlage des Residenten-Inventars vorhanden. Bei
+bestehenden Avataren wird **nichts heimlich geloescht oder verschoben**.
+
+**1. Fehlende Ordner und defekte Links zuerst anzeigen:**
+
+```http
+GET /api/v1/inventory/outfits/health
+Authorization: Bearer <token-mit-inventory:read>
+```
+
+Die authentifizierte API prueft die beiden Systemordner, die Anzahl gespeicherter
+Outfit-Unterordner und die ersten 256 Eintraege von `Current Outfit`. Bei
+direkten Inventar-/Ordnerlinks wird das Ziel auf Existenz und Eigentuemer
+geprueft. Die Rueckgabe enthaelt `findings`, beispielsweise
+`my_outfits_folder_missing`, `current_outfit_broken_links` oder
+`no_saved_outfits`. `changed=false` garantiert einen rein lesenden Vorgang.
+Ein `no_saved_outfits` ist kein Fehler des Avatar-Aussehens, sondern kann bei
+einem neuen Konto normal sein. Der 256-Link-Check hat eine
+`truncated`-Markierung und meldet bei groesseren COFs **keine** Vollstaendigkeit.
+
+**2. Nur den fehlenden Systemordner fuer einen Bestandsavatar erzeugen:**
+
+```http
+POST /api/v1/inventory/outfits/ensure-folders
+Authorization: Bearer <token-mit-inventory:write>
+```
+
+Dieser explizite Aufruf laesst `Current Outfit` und alle Kleidungs-Links
+unangetastet. Antwort: `created=true` (HTTP 201), wenn `My Outfits` angelegt
+wurde, oder `created=false` (HTTP 200), wenn er schon existiert. Beim
+zweiten Aufruf duerfen keine zusaetzlichen Ordner entstehen.
+
+Bei explizit gewaehltem `?owner_id=<avatar-uuid>` gilt wie bei der
+bestehenden Inventar-API: Fremde Konten sind ausschliesslich mit
+`admin:*`-Scope zulaessig. Die beiden Firestorm-Systemordner
+`Current Outfit` und `My Outfits` lassen sich ueber diese API nicht mehr
+umbenennen, verschieben oder in den Papierkorb legen. Die regulare
+Inventar-API liefert jetzt auch `thumbnail_id` fuer Ordner/Items.
+
+**3. Firestorm testen:**
+
+Nach dem Aufruf **neu anmelden**, unter `Aussehen → Outfit-Galerie` einen
+neuen benannten Outfit-Eintrag speichern, den Viewer vollstaendig beenden
+und erneut anmelden. Nur wenn gespeicherte Ordner, Thumbnail und angezogene
+Kleidung wieder korrekt erscheinen, gilt der E2E-Test als bestanden. Es
+gibt keinen automatischen Kopier- oder Relink-Vorgang fuer unvollstaendige
+COFs. Wenn `Current Outfit`-Links fehlen, muss der Betreiber den
+konkreten Fall einzeln pruefen.
+
 ## "Kein Outfit" – gesondert pruefen
 
 - Im obigen Ordnerergebnis nach **Current Outfit**, **My Outfits** und den vom Benutzer gespeicherten Outfit-Ordnern suchen. Die Anzeige `Kein Outfit` bedeutet nicht zwingend, dass kein getragenes Objekt existiert.
