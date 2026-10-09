@@ -109,7 +109,7 @@ func gains(listener, speaker voicePosition) spatialGains {
 	attenuation := 1.0 / (1.0 + math.Pow(math.Max(0, distance-1)/9, 1.7))
 	// Equal-power stereo panning relative to listener orientation.
 	angle := math.Atan2(dy, dx) - listener.Heading
-	pan := math.Sin(angle)
+	pan := -math.Sin(angle)
 	left := math.Sqrt((1-pan)/2) * math.Sqrt2
 	right := math.Sqrt((1+pan)/2) * math.Sqrt2
 	return spatialGains{left: attenuation*left, right: attenuation*right}
