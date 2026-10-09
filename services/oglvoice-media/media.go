@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -11,8 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
-	"time"
+		"time"
 
 	lksdk "github.com/livekit/server-sdk-go/v2"
 	"github.com/pion/webrtc/v4"
@@ -24,8 +24,9 @@ type peerState struct {
 	admission admission
 	pc        *webrtc.PeerConnection
 	room      *lksdk.Room
-	downlink  *webrtc.TrackLocalStaticRTP
-	downlinkBusy atomic.Bool
+	downlink  *webrtc.TrackLocalStaticSample
+	mixer     *spatialMixer
+	mediaCancel context.CancelFunc
 	lastSeen  time.Time
 	lastUnix  atomic.Int64
 	closeOnce sync.Once
@@ -60,12 +61,14 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 	if err != nil { return nil, fmt.Errorf("Pion: %w", err) }
 	p.pc = pc
 
-	// One downlink transceiver matches Firestorm's unmodified audio offer.
-	// Multi-speaker *mixed* downlink is not implemented: at most one remote
-	// LiveKit Opus track is forwarded. This is NOT full spatial audio.
-	p.downlink, err = webrtc.NewTrackLocalStaticRTP(
+	// One stereo Opus transceiver is a per-listener mix of all audible
+	// subscribed LiveKit participants. Mixing runs at a bounded 20ms cadence.
+	p.mixer, err = newSpatialMixer()
+	if err != nil { _ = pc.Close(); return nil, err }
+	p.mixer.setListener(admissionPosition(a))
+	p.downlink, err = webrtc.NewTrackLocalStaticSample(
 		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus,
-			ClockRate: 48000, Channels: 2}, "oglvoice-remote", "oglvoice")
+			ClockRate: audioRate, Channels: audioChannels}, "oglvoice-spatial", "oglvoice")
 	if err != nil { _ = pc.Close(); return nil, err }
 	sender, err := pc.AddTrack(p.downlink)
 	if err != nil { _ = pc.Close(); return nil, err }
@@ -75,6 +78,9 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 			if _, _, err := sender.Read(buf); err != nil { return }
 		}
 	}()
+	mixCtx, stopMix := context.WithCancel(context.Background())
+	p.mediaCancel = stopMix
+	go p.mixer.stream(mixCtx, p.downlink.WriteSample)
 
 	pc.OnDataChannel(func(d *webrtc.DataChannel) {
 		d.OnOpen(func() {
@@ -135,26 +141,41 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 				rp *lksdk.RemoteParticipant) {
 				if track.Kind() != webrtc.RTPCodecTypeAudio ||
 					!strings.EqualFold(track.Codec().MimeType, webrtc.MimeTypeOpus) ||
-					!p.downlinkBusy.CompareAndSwap(false, true) {
-					return
-				}
+					p.mixer == nil { return }
+				identity := rp.Identity()
+				if !p.mixer.addSource(identity, parseParticipantPosition(rp.Metadata())) { return }
 				go func() {
-					defer p.downlinkBusy.Store(false)
-					for {
-						pkt, _, err := track.ReadRTP()
-						if err != nil { return }
-						if err := p.downlink.WriteRTP(pkt); err != nil { return }
-					}
+					defer p.mixer.removeSource(identity)
+					p.mixer.consumeOpus(identity, func() ([]byte, error) {
+						pkt, _, e := track.ReadRTP()
+						if e != nil { return nil, e }
+						return pkt.Payload, nil
+					})
 				}()
 			},
 			OnIsSpeakingChanged: func(participant lksdk.Participant) {
 				p.sendVoiceEvent(participant)
+			},
+			OnMetadataChanged: func(oldMetadata string, participant lksdk.Participant) {
+				if p.mixer != nil {
+					p.mixer.updateSource(participant.Identity(),
+						parseParticipantPosition(participant.Metadata()))
+				}
+			},
+			OnDataReceived: func(data []byte, params lksdk.DataReceiveParams) {
+				if p.mixer == nil || params.SenderIdentity == "" { return }
+				var pos spatialUpdate
+				if json.Unmarshal(data, &pos) == nil && pos.Protocol == spatialWire &&
+					validPosition(pos.position()) {
+					p.mixer.updateSource(params.SenderIdentity, pos.position())
+				}
 			},
 		},
 		OnParticipantConnected: func(rp *lksdk.RemoteParticipant) {
 			p.sendRoster(rp, false, true)
 		},
 		OnParticipantDisconnected: func(rp *lksdk.RemoteParticipant) {
+			if p.mixer != nil { p.mixer.removeSource(rp.Identity()) }
 			p.sendRoster(rp, true, false)
 		},
 		OnDisconnected: func() {
@@ -165,7 +186,7 @@ func startPeer(cfg config, a admission, id string, onClose func()) (*peerState, 
 	// Participant metadata is sourced from the *authenticated simulator*,
 	// never from a viewer-provided room ID. All LiveKit participant secrets
 	// stay inside this media service.
-	meta, _ := json.Marshal(map[string]string{"avatar": strings.ToLower(a.AvatarID)})
+	meta, _ := json.Marshal(participantSpatialMetadata(a))
 	room, err := lksdk.ConnectToRoom(cfg.LiveKitURL, lksdk.ConnectInfo{
 		APIKey: cfg.LiveKitKey, APISecret: cfg.LiveKitSecret,
 		RoomName: roomID(a), ParticipantIdentity: participantID(a),
@@ -227,6 +248,7 @@ func (p *peerState) close() {
 		// Trigger shutdown on a separate goroutine to avoid deadlocking a
 		// Pion PeerConnectionState callback that itself holds locks.
 		go func() {
+			if p.mediaCancel != nil { p.mediaCancel() }
 			if p.room != nil { p.room.Disconnect() }
 			if p.pc != nil { _ = p.pc.Close() }
 			if p.onClose != nil { p.onClose() }
