@@ -16,6 +16,7 @@ namespace NexVerse.Core.Voice
         public bool hypergrid_guests { get; set; }
         public string media_transport { get; set; } = "livekit-webrtc";
         public string viewer_capability { get; set; } = "not-yet-implemented";
+        public string media_gateway_url { get; set; }
 
         public void Validate()
         {
@@ -23,6 +24,16 @@ namespace NexVerse.Core.Voice
                 throw new ArgumentException("Unsupported OGLVoice provider protocol");
             if (!OglVoiceDiscoveryProof.IsSafeServiceUri(provider_url))
                 throw new ArgumentException("OGLVoice provider URL must use HTTPS or local loopback HTTP");
+            if (viewer_capability != "not-yet-implemented" &&
+                viewer_capability != "firestorm-webrtc-v1")
+                throw new ArgumentException("Unsupported OGLVoice viewer bridge contract");
+            if (!string.IsNullOrWhiteSpace(media_gateway_url) &&
+                (!OglVoiceDiscoveryProof.IsSafeServiceUri(media_gateway_url) ||
+                 media_gateway_url.Length > 1024))
+                throw new ArgumentException("Invalid OGLVoice media bridge URL");
+            if (viewer_capability == "firestorm-webrtc-v1" &&
+                string.IsNullOrWhiteSpace(media_gateway_url))
+                throw new ArgumentException("WebRTC viewer capability requires an explicit media gateway");
             if (string.IsNullOrEmpty(tenant_id) || tenant_id.Length > 96 ||
                 !Regex.IsMatch(tenant_id, @"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$"))
                 throw new ArgumentException("Invalid OGLVoice tenant ID");

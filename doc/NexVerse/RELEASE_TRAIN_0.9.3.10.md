@@ -29,6 +29,8 @@ Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice un
 - [ ] HG-Gast-Präsenz und Home-Grid-Identität, Rechte des besuchten Grids, Session-TTL und Leave/Teleport-Revoke.
 - [x] HG-Identitaetskern: kanonische Heim-Grid-Origin + Original-Avatar-UUID (SHA-256), C#-Regressionstests. **Noch keine authentifizierte HG-Session-/Voice-Anbindung.**
 - [ ] Firestorm-WebRTC-CAPS-/Signalisierungs-/Media-Gateway mit funktionierendem Audio, nicht nur Browser-Demo.
+- [x] **Firestorm-LLSD-CAPS/SDP/ICE-Adapter:** `ProvisionVoiceAccountRequest`, `VoiceSignalingRequest`, `VoiceServerType=webrtc` bei signierter und ausdruecklich freigeschalteter MediaGatewayUrl; signierte, beschraenkte JSON-Media-Exchange und .NET-Protokoll-Regressionen. Default `EnableFirestormGateway=false`. **Eine tatsaechliche kompatible SDP/DTLS/SRTP/SCTP-/LiveKit-Media-Bridge existiert dadurch noch NICHT.**
+- [x] **Remote-Speaker-Wire-Format:** Firestorm-konforme JSON-Nachrichten `j`/ `p` / `v` / `l` nach wahrer Avatar-UUID samt Tests. **Noch keine LiveKit-Mediaquelle, die diese Nachrichten in echte WebRTC-Datenkanaele sendet.**
 - [ ] Spatial-/Parcel-Voice mit Autorität des Simulators, Echtzeitpositionen und Distanz-/Richtungsmodell.
 - [ ] Eigene **graue Voice-Kugel über allen hör- und sichtbar verbundenen Avataren**; Remote-Speaking-Wellen auf dem tatsächlichen Sprecher, inklusive HG-Gästen; Viewerpräferenz respektieren.
 - [ ] Group Voice, Direktanruf, Push-to-Talk, Mute, Moderation, Parcel-/Regionwechsel.

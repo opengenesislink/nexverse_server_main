@@ -1237,6 +1237,19 @@
 ;    ServiceUrl = "https://voice.stadt-nexverse.de"
 ;    TenantId = "my-standalone-grid"
 ;    IncludeHypergridGuests = true
+;    ; Standalone: nur nach Bereitstellung eines kompatiblen Medien-Gateways.
+;    EnableFirestormGateway = true
+;    MediaGatewayUrl = "https://voice.example.org/internal/webrtc/v1/exchange"
+;
+;    ; Auf Robust-Grids erfolgt diese Provider-URL zentral ueber die
+;    ; signierte Discovery. KEIN Eintrag je Simulator erforderlich.
+;    ; Die Medienanfragen werden mit dem bestehenden NexBus SharedKey
+;    ; signiert. Standalone: OGLVOICE_MEDIA_BRIDGE_SHARED_KEY und
+;    ; optional OGLVOICE_MEDIA_BRIDGE_NODE_ID als Umgebungsvariablen.
+;
+;[OGLVoiceViewer]
+;    ; Modul bleibt ohne authentifizierten Provider/Bridge inaktiv.
+;    Enabled = true
 ;
 ; IM GRID explizit deaktivieren: [OGLVoice] Enabled = false
 ; Alternativer Robust-Endpunkt nur bei Reverse-Proxy-Sonderroute:
