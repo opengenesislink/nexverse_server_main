@@ -96,6 +96,11 @@ type admission struct {
 	HomeGridOrigin  string `json:"HomeGridOrigin"`
 	IsHypergridGuest bool  `json:"IsHypergridGuest"`
 	VoiceAllowed    bool   `json:"VoiceAllowed"`
+	PositionValid bool `json:"PositionValid"`
+	PositionX float64 `json:"PositionX"`
+	PositionY float64 `json:"PositionY"`
+	PositionZ float64 `json:"PositionZ"`
+	Heading float64 `json:"Heading"`
 }
 type iceCandidate struct {
 	Candidate     string `json:"candidate"`
@@ -134,6 +139,9 @@ func validAdmission(node nodeConfig, a admission) error {
 	}
 	if len(a.HomeGridOrigin) > 1024 {
 		return errors.New("invalid home grid")
+	}
+	if a.PositionValid && !validPosition(admissionPosition(a)) {
+		return errors.New("invalid simulator-authenticated position")
 	}
 	return nil
 }

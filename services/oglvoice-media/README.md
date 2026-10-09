@@ -15,6 +15,49 @@ Firestorm-Viewer (Audio + DataChannel)
 
 Der Dienst liegt unter `services/oglvoice-media`. Ein einziges Media-Service-Cluster kann die Nodes vieler Grids aufnehmen. Nur die **serverseitige** Node-/Tenant-Konfiguration legt Rechte fest. Der `nexverse`-Mandant bekommt `max_sessions=0,max_regions=0` fuer **keine Lizenz-Quoten**. Fuer andere Mandanten koennen Limits gesetzt werden.
 
+## 0.9.3.10 Dev: simultaner Opus-Spatial-Mixer
+
+Dieser Entwicklungszweig ersetzt den vorherigen Ein-Sprecher-Downlink durch
+**pro Zuhörer individuelle Stereo-Mischungen**. Der Media-Server decodiert
+jede empfangene LiveKit-Opus-Spur getrennt (libopus), puffert höchstens fünf
+20-ms-Frames und mischt die aktuell hörbaren Stimmen alle 20 ms als Stereo-PCM.
+Entfernung (40 m Hörgrenze), Hörerrichtung, Equal-Power-Panning, Pegelabfall
+und weiche Begrenzung werden in `spatial_mixer.go` berechnet. Die Summe wird
+als **neuer Opus-Stream** an Firestorm encodiert.
+
+**Positionsdaten stammen ausschließlich aus der authentifizierten
+`ScenePresence` im Simulator**, nicht aus Viewer-Formularen. Der Simulator
+sendet bei der Voice-Session-Einrichtung eine Positions-/Blickrichtungsprobe
+und aktualisiert sie über signierte `position`-Requests alle zwei Sekunden.
+Der Media-Server teilt bestätigte Veränderungen über den bestehenden LiveKit-
+Raum und dessen Datenkanal mit den anderen Zuhörer-Mixern. Ist die Position
+unbekannt, wird der betreffende Sprecher nicht hörbar. Bei entfallender
+Estate-/Parcel-/Root-Agent-Berechtigung wird ein `leave` gesendet.
+
+**Grenzen:** maximal 64 gleichzeitig abonnierten Quellen pro Zuhörer und
+24 stärkste Quellen pro 20-ms-Mix als CPU-Sicherungsgrenze (keine
+Lizenzbegrenzung der Avatare/Regionen). Es ist ein stereophoner
+Entfernungs-/Richtungsmixer, **keine** vollständige HRTF-Ohrsimulation,
+akustische Abschattung/Reflexion, lückenloser Regionsgrenzen-Mix oder
+professionelle adaptive Jitter-/Loss-Concealment-Engine.
+
+Für den neuen Mixer benötigt der **Build** jetzt `pkg-config` und
+`libopus-dev`; die **Laufzeit** benötigt die dynamische Systembibliothek
+`libopus.so.0` (Debian: `libopus0`). Mit dem Build-Tag
+`nolibopusfile` sind keine `libopusfile`-Header nötig:
+
+```bash
+sudo apt-get install -y pkg-config libopus-dev
+go mod tidy
+go test -tags nolibopusfile -race ./...
+go build -tags nolibopusfile -trimpath -o oglvoice-media .
+```
+
+Die automatische Go-CI installiert die libopus-Build-Abhängigkeiten und
+testet simultane Opus-Signale, Panning, Dämpfung, 40-ms-Paket-Splitting,
+Clipping, Quoten und signierte Positionsupdates. **Das ist noch kein
+Nachweis der Funktion im echten Firestorm mit drei Sprechern.**
+
 ### Bereits implementiert
 
 - Echte Pion-v4-`PeerConnection`, WebRTC Offer/Answer, ICE-Gathering, Trickle-ICE, DTLS/SRTP und SCTP-Datenkanal des Firestorm-Viewers.
@@ -26,7 +69,7 @@ Der Dienst liegt unter `services/oglvoice-media`. Ein einziges Media-Service-Clu
 
 ### Grenzen dieser Ausbaustufe (wichtige Release-Blocker)
 
-- **Noch kein Opus-Mixer:** Es kann pro Firestorm-Viewer gegenwaertig **nur ein einzelner entfernter Audiostream gleichzeitig** wiedergegeben werden; der Media-Service und LiveKit transportieren zwar mehrere publizierte Teilnehmer, mischen sie aber noch nicht zu einem raeumlichen Summensignal. Der fuer den vollstaendigen Vivox-Ersatz erforderliche Mehrsprecher-Spatial-Mixer, Sichtweitenabstand, Orientierung und Parzellengrenzen sind offen.
+- **Noch kein Opus-Mixer:** Die aktuelle Spatial-Mixer-Ausbaustufe kann mehrere entfernte Audiostreams gleichzeitig decodieren und als Stereo-Opus-Downlink mischen; ein produktionserprobtes HRTF-System mit akustischer Abschattung, Loss Concealment und Mesh-Hindernissen bleibt offen. Der fuer den vollstaendigen Vivox-Ersatz erforderliche Mehrsprecher-Spatial-Mixer, Sichtweitenabstand, Orientierung und Parzellengrenzen sind offen.
 - **Noch keine Full-E2E-Bestaetigung mit echten Firestorm-Viewern** und produktivem LiveKit sowie konkreter Firewall-/ICE-Konfiguration. Die CI uebt reale lokale Pion-WebRTC-Verbindungen aus, kein produktives Grid.
 - **Keine komplette zentrale Revoke-/Presence-Kontrollschicht:** der Go-Gateway loescht Sitzungen bei `leave`, Peer-Ausfall, Leerlauf und Shutdown. Ein plattformuebergreifender zweifelsfreier Logout-/Teleport-/Rollenwechsel-Push aus Robust zum Gateway fehlt.
 - **Voice-orb Status:** Der Code sendet Roster und LiveKit-Aktivitaetsereignisse an alle autorisierten Viewer-Datenkanaele. Ob die Viewer die graue Kugel in jeder Hypergrid-Konstellation zeigen, muss real getestet werden.

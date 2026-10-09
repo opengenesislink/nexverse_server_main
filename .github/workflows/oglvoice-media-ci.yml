@@ -35,6 +35,12 @@ jobs:
           go-version-file: services/oglvoice-media/go.mod
           cache-dependency-path: services/oglvoice-media/go.mod
 
+      - name: Install libopus build dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pkg-config libopus-dev
+
       - name: Resolve pinned dependencies
         shell: bash
         run: go mod tidy
@@ -47,15 +53,15 @@ jobs:
         shell: bash
         run: |
           gofmt -w .
-          go vet -mod=mod ./...
+          go vet -tags nolibopusfile -mod=mod ./...
 
       - name: Media bridge unit and WebRTC integration tests
         shell: bash
-        run: go test -mod=mod -race -count=1 -timeout=3m ./...
+        run: go test -tags nolibopusfile -mod=mod -race -count=1 -timeout=3m ./...
 
       - name: Build OGLVoice media daemon
         shell: bash
-        run: go build -mod=mod -trimpath -o /tmp/oglvoice-media .
+        run: go build -tags nolibopusfile -mod=mod -trimpath -o /tmp/oglvoice-media .
 
       - name: Local daemon configuration-negative smoke
         shell: bash
