@@ -143,8 +143,8 @@ namespace NexVerse.RegionModules.Pathfinding
 
                 Interlocked.Exchange(ref state.Dirty, 0);
                 ITerrainChannel copy = state.Scene.Heightmap.MakeCopy();
-                int width = state.Scene.RegionInfo.RegionSizeX;
-                int height = state.Scene.RegionInfo.RegionSizeY;
+                int width = checked((int)state.Scene.RegionInfo.RegionSizeX);
+                int height = checked((int)state.Scene.RegionInfo.RegionSizeY);
                 if (copy == null || copy.Width != width || copy.Height != height)
                     throw new InvalidOperationException("Terrain channel dimensions differ from region dimensions");
 
