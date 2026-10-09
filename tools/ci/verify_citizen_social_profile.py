@@ -38,13 +38,13 @@ for needle in (
 for needle in (
     '"/api/v1/messages"',
     "NexScopes.RelationshipsWrite",
-    "actor != sender.PrincipalID",
+    "owner != actorAccount.PrincipalID",
     "confirmed_friendship_required",
     "recipient_not_found",
-    "Encoding.UTF8.GetByteCount(text) > 1024",
+    "Encoding.UTF8.GetByteCount(body) > 1024",
     "InstantMessageDialog.MessageFromAgent",
     "IncomingInstantMessage(im)",
-    '["bytes"] = Encoding.UTF8.GetByteCount(text).ToString()',
+    '["bytes"] = Encoding.UTF8.GetByteCount(body).ToString()',
 ):
     assert needle in im, "missing citizen IM safety contract: "+needle
 
