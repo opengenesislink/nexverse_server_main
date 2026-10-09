@@ -2,6 +2,7 @@
 
 > Status: 0.9.3.8 Stable released 8 October 2026  
 > Current stable release: **OpenGenesisLINK v0.9.3.8**  
+> Active joint development train: **OpenGenesisLINK v0.9.3.10 Dev** (includes 0.9.3.9 scope; no separate 0.9.3.9 Stable)  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4 → 0.9.3.8**  
 > Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (successfully validated)  
 > Completed milestone: **0.9.3.8 — Search, Places, Land and Destination Guide**  
@@ -1185,11 +1186,13 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 
 # Milestone 0.9.3.9
 
+> Development workstream included in the **0.9.3.10 Dev → RC → Stable** train. No separate 0.9.3.9 Stable release. Release gates: [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
+
 ### 13.0 Runtime-/ThreadPool-Modernisierung
 
-- [ ] den geerbten Mono-Kompatibilitaetscheck fuer `MONO_THREADS_PER_CPU` unter der .NET-8-Laufzeit entfernen bzw. runtime-neutral ersetzen; die irrefuehrende INFO-Meldung `Environment variable MONO_THREADS_PER_CPU is unset` darf unter dem regulaeren OpenGenesisLINK-.NET-8-Profil nicht mehr erscheinen;
+- [x] den geerbten Mono-Kompatibilitaetscheck fuer `MONO_THREADS_PER_CPU` unter der .NET-8-Laufzeit entfernen bzw. runtime-neutral ersetzen; die irrefuehrende INFO-Meldung `Environment variable MONO_THREADS_PER_CPU is unset` darf unter dem regulaeren OpenGenesisLINK-.NET-8-Profil nicht mehr erscheinen;
 - [ ] die geerbte ThreadPool-Tuning-Logik und Kommentare aus .NET-2/3/4-/Mono-Zeiten gegen das aktuelle .NET-8-Verhalten pruefen, nur nach Messung anpassen und mit Startup-/Lasttests absichern;
-- [ ] die dabei beruehrten `[OPENSIM MAIN]`-Meldungen auf OpenGenesisLINK/OGL-Branding und deutsche Konsolentexte migrieren.
+- [x] die dabei beruehrten `[OPENSIM MAIN]`-Meldungen auf OpenGenesisLINK/OGL-Branding und deutsche Konsolentexte migrieren.
 
 ### 13.1 Estate-weite LSL-Kommunikation
 
@@ -1260,6 +1263,8 @@ Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTU
 - Der eigene OGL-Viewer kann zukünftig eine native LiveKit-Integration bekommen.
 
 # Milestone 0.9.3.10
+
+> **Status: active development.** Combined 0.9.3.9 + 0.9.3.10 scope; target `0.9.3.10 Stable` only after OGLVoice, runtime and complete Pathfinding pass [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md). A bounded C# A* grid core with regression tests exists, but region NavMesh/characters/LSL are NOT implemented yet.
 
 ## 14. Pathfinding
 
