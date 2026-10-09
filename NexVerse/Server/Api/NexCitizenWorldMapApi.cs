@@ -185,8 +185,8 @@ namespace NexVerse.Server.Api
             if (region.RegionFlags.HasValue)
             {
                 int flags = region.RegionFlags.Value;
-                if ((flags & (int)RegionFlags.Reservation) != 0 ||
-                    (flags & (int)RegionFlags.RegionOnline) == 0)
+                if ((flags & (int)OpenSim.Framework.RegionFlags.Reservation) != 0 ||
+                    (flags & (int)OpenSim.Framework.RegionFlags.RegionOnline) == 0)
                     return false;
             }
             return true;
