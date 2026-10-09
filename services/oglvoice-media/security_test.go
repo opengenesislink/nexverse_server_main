@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/webrtc/v4"
 )
 
 const ciKey = "only-for-ci-01234567890123456789012345678900"
