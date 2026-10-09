@@ -9,5 +9,7 @@
     <Compile Include="../../../NexVerse/Core/Voice/OglVoiceFirestormWire.cs" Link="OglVoiceFirestormWire.cs" />
     <Compile Include="../../../NexVerse/Core/Voice/OglVoiceDiscoveryProof.cs" Link="OglVoiceDiscoveryProof.cs" />
     <Compile Include="../../../NexVerse/Core/Voice/OglVoiceMediaProof.cs" Link="OglVoiceMediaProof.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceHypergridIdentity.cs" Link="OglVoiceHypergridIdentity.cs" />
+    <Compile Include="../../../NexVerse/Core/Voice/OglVoiceLiveKitTokenIssuer.cs" Link="OglVoiceLiveKitTokenIssuer.cs" />
   </ItemGroup>
 </Project>
