@@ -23,7 +23,7 @@ The target architecture is centered around:
 - full-featured NV$ economy and banking;
 - modern identity, social, profile, inventory, group and estate services;
 - Experiences and Pathfinding;
-- a native WebRTC/Janus voice platform;
+- a centralized, multi-tenant, LiveKit-based OGLVoice WebRTC platform;
 - a systematic LSL parity program;
 - search, places, land and destination services;
 - strong monitoring, auditing and operational tooling;
@@ -144,7 +144,7 @@ Planned examples:
 - LSL Compatibility Level
 - Firestorm Compatibility Profile
 - Hypergrid Compatibility Level
-- NexVoice Protocol Version
+- OGLVoice Protocol Version
 - NV$ Economy Protocol Version
 - NexBus Event Schema Version
 
@@ -190,7 +190,7 @@ Target removals include:
 - obsolete configuration sections;
 - build and solution entries.
 
-NexVoice becomes the only long-term NexVerse voice architecture.
+OGLVoice becomes the long-term centralized OpenGenesisLINK voice architecture.
 
 ### 5.3 Remove obsolete IRC bridge
 
@@ -1211,53 +1211,53 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [x] Rollen-/Scope-Aenderungen invalidieren bestehende Bearer-/Refresh-Sitzungen ueber den Security-Stamp;
 - [x] OpenAPI-/World-API-Dokumentation und CI-Vertrag fuer die Rechteverwaltung.
 
-## 13. NexVoice
+## 13. OGLVoice – zentrale Multi-Grid-WebRTC-Sprachplattform
 
-Build an independent WebRTC voice platform designed for NexVerse and optional external-grid use.
+**Status: geplant für 0.9.3.9; bisher kein produktiver OGLVoice-Serverconnector in OpenGenesisLINK.** Die bestehende, separat entwickelte NexVoice/LiveKit-Grundlage soll nach Quellcode- und Schnittstellenprüfung als Ausgangspunkt dienen. **LiveKit** ist das Ziel für die Medienebene; das veraltete Janus-Ziel wird ersetzt.
 
-Primary service:
+Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
-`voice.stadt-nexverse.de`
+### 13.3 Provider, Robust-HG und Standalone
 
-Architecture:
+- Eine externe, selbst betriebene OGLVoice-Control-Plane mit LiveKit-SFU und STUN/TURN, nicht ein Medienserver je Region oder Simulator.
+- Eine zentrale `[OGLVoice]`-Authority in `Robust.HG.ini` beziehungsweise `Robust.ini` für das ganze Grid. Ein mit OGLVoice ausgerüsteter Simulator bezieht Provider-, Grid- und Tenant-Informationen über authentifizierte Discovery; **keine pro-Region-Kopie von API-Geheimnissen**.
+- Für Standalone eine eigene `[OGLVoice]`-Konfiguration in `OpenSim.ini`; dieselbe zentrale Plattform darf genutzt werden.
+- Robuste Fallback-/Reconnect-Semantik: Voice-Ausfälle dürfen Login, Teleport und Text-IM nicht blockieren.
+- Keine Implementierungsbehauptung: Die Konfiguration und Discovery benötigen neue C#-Module sowie geschützte Backends und werden erst nach Tests aktiv geschaltet.
 
-- NexVoice control service;
-- WebRTC;
-- Janus;
-- STUN/TURN via Coturn;
-- secure short-lived credentials;
-- spatial voice;
-- parcel voice;
-- region voice;
-- group voice;
-- direct calls;
-- conferences;
-- moderation;
-- external-grid tenant support.
+### 13.4 Hypergrid-Voice und Gastidentität
 
-### 13.1 Viewer behavior
+- Reisende HG-Avatare erhalten Voice in der **besuchten** OpenGenesisLINK-Region ohne NexVerse-Bürgerkonto und ohne zweite OGLVoice-Registrierung.
+- Token-Ausgabe nur nach bestätigter Agent-/Gatekeeper-Sitzung, Estate-/Parcel-Policy und korrekter Identität aus Home-Grid und Avatar-ID.
+- Sichtbarkeit, Speaking, Mute, Positionsupdates und Revoke bei Logout, Teleport und Regionswechsel.
+- Gridübergreifende Anrufe außerhalb eines gemeinsamen besuchten Grids erfordern spätere, beidseitig autorisierte Federation; nicht mit lokaler HG-Gast-Voice verwechseln.
 
-- speaker indicator visible for every speaking avatar;
-- speaking orb above avatars;
-- spatial position updates;
-- mute;
-- volume;
-- moderation;
-- parcel/region channel transitions.
+### 13.5 Mandanten und Nutzungsregeln
 
-### 13.2 External grid service
+- **NexVerse = First-Party-Plan Unlimited**: keine künstlichen Lizenzlimits für Avatare, Simulatoren, Regionen, Voice-Räume, Verbindungszeit oder HG-Gäste.
+- Reale Hardware-/Media-Kapazität, Sicherheit, Abuse-Schutz und QoS bleiben gültig, auch für Unlimited.
+- Später Dritt-Grid-Pakete mit Limits, Metering, Admin-/Kundenportal unter `voice.stadt-nexverse.de` und mandantenisoliertem Betrieb.
+- Externe Gastnutzung wird dem **gastgebenden Voice-Tenant** zugeordnet; First-Party-Privilegien dürfen nicht durch selbst gesetzte Tenant-IDs erschlichen werden.
 
-Support isolated tenants for third-party grids with:
+### 13.6 Spatial-, Parcel-, Group- und Direct-Voice
 
-- grid registration;
-- API credentials;
-- domain configuration;
-- quotas;
-- billing plans later;
-- abuse controls;
-- metrics.
+- Region/Parcel-Voice entsprechend bestehender Voice-Estate- und Parcel-Berechtigungen;
+- echte räumliche Audiofunktion (positionale Wiedergabe, Entfernung, Richtung) durch OGLVoice/Viewer-Architektur, **nicht automatisch durch den LiveKit-SFU**;
+- Gruppen-Sprachräume anhand NexGroups-/Groups-V2-Berechtigungen, direkte und Ad-hoc-Gespräche, Konferenzen;
+- **klassische graue/weiße Voice-Kugel über jedem Voice-verbundenen Avatar** im sichtbaren Sprachraum – eigener Avatar, lokale Mitspieler und **Hypergrid-Gäste**, nicht nur die lokale Selbstanzeige;
+- **Remote-Speaking-Anzeige für alle Zuschauer**: dynamische grüne Sprachwellen genau über dem tatsächlich sprechenden Avatar; Stille, Mute, PTT und Disconnect setzen Wellen/Präsenz zuverlässig zurück;
+- OGLVoice liefert vertrauenswürdige Teilnehmeridentität und pegel-/VAD-basierte Aktivitätsupdates an alle berechtigten Viewer des Sprachraums; Firestorm-CAPS-/Voice-Gateway muss Remote-Teilnehmer korrekt zu Viewer-Avatar-IDs zuordnen;
+- Firestorm respektiert die lokale Option „Show voice visualizers over avatars“ (serverseitig nicht erzwingbar); eigener OGL-Viewer zeigt die Kugeln standardmäßig an, mit Abschaltmöglichkeit;
+- Mute/Block, Gerätewahl, Push-to-Talk und individuelle Lautstärke;
+- unterbrechungsarme Regions-/Teleportwechsel mit getrennter Validierung des neuen Raums.
 
----
+### 13.7 Firestorm-Kompatibilität und Abnahme
+
+- Viewer-seitige WebRTC-Fähigkeit ist vorhanden, aber Firestorms Second-Life-CAPS-/SDP-/ICE-Signalisierungsvertrag ist **nicht automatisch** das LiveKit-SDK-Protokoll.
+- Ein OGLVoice-CAPS-/Signalisierungs-/ggf. Media-Gateway muss reale Firestorm-Verbindungen nachweisen; ein Browser-LiveKit-Demo genügt nicht.
+- Multi-Simulator-/Hypergrid-Gast-Tests, Tenant-Isolation und Last/Fehlerfälle sind Teil der Release-Abnahme.
+- Secrets nur serverseitig; Viewer-CAPS erhalten kurzlebige, raumgebundene Token, keine OGLVoice-Admin-Schlüssel.
+- Der eigene OGL-Viewer kann zukünftig eine native LiveKit-Integration bekommen.
 
 # Milestone 0.9.3.10
 
@@ -1691,7 +1691,7 @@ Target characteristics:
 - World API is the primary administration interface.
 - RemoteAdmin no longer exists.
 - legacy Vivox/FreeSwitch voice code no longer exists.
-- NexVoice is production-capable.
+- OGLVoice is production-capable.
 - user/social/profile management is API-first.
 - simulator/region/estate management is API-first.
 - NV$ economy and banking are stable and auditable.

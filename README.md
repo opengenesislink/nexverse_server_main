@@ -37,7 +37,7 @@ The active development roadmap is maintained in:
 
 **[`doc/NexVerse/ROADMAP.md`](doc/NexVerse/ROADMAP.md)**
 
-The roadmap covers the NEXJAST legacy-cleanup milestone and the World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, NexVoice, Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the OpenGenesisLINK v0.9.4.0 consolidation target.
+The roadmap covers the NEXJAST legacy-cleanup milestone and the World API, identity/social platform, simulator/region/estate control plane, inventory/OAR/IAR, NV$ economy and banking, Groups, Experiences, Search/Places/Land/Destination services, OGLVoice (centralized LiveKit/WebRTC voice), Pathfinding, LSL parity, modern assets/rendering, marketplace, advertising, monitoring, developer platform and the OpenGenesisLINK v0.9.4.0 consolidation target.
 
 ## Previous development milestone: OpenGenesisLINK v0.9.3.5 Dev — Inventory, OAR/IAR, Job Engine und NexBus
 
