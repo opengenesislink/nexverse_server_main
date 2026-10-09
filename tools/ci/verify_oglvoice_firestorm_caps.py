@@ -18,8 +18,8 @@ for expected in ("OnRegisterCaps += RegisterCaps",
                  "OglVoiceFirestormWire.ValidateOffer",
                  "OglVoiceFirestormWire.ValidateCandidates",
                  "OglVoiceMediaProof.Sign",
-                 "IOglVoiceSessionAdmission",
-                 "TryBuildAdmission",
+                 "OglVoiceRegionAdmission.TryCreate",
+                 "AgentSessionId",
                  "m_Sessions", "m_Requests.Wait(0)",
                  "OglVoiceMediaExchange", "HttpClientHandler"):
     assert expected in region, expected
@@ -41,4 +41,6 @@ assert "EnableFirestormGateway = true" in (root/"bin/OpenSim.ini.example").read_
 assert "OGLVOICE_LIVEKIT_API_SECRET" not in region
 assert "OGLVOICE_LIVEKIT_API_KEY" not in region
 assert "ChatSessionRequest" not in region  # no false group voice support
+assert "existing.AgentSessionId != admission.SessionId" in region
+assert "OglVoiceMediaProof.Sign" in region
 print("OGLVoice Firestorm LLSD CAPS and speaking-orb security guard: OK")
