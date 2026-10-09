@@ -1097,6 +1097,14 @@ namespace NexVerse.Server.Api
             if (!Owned(folder, owner)) { NotFound(response, "inventory_folder_not_found"); return; }
             InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
             if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be renamed or moved."); return; }
+            if (folder.Type == (short)FolderType.CurrentOutfit ||
+                folder.Type == (short)FolderType.MyOutfits)
+            {
+                WriteError(response, HttpStatusCode.Conflict,
+                    "outfit_system_folder_protected",
+                    "Firestorm's Current Outfit and My Outfits system folders cannot be moved, renamed or trashed through this API.");
+                return;
+            }
             if (!TryBody(request, response, out JsonElement body)) return;
 
             bool changed = false;
@@ -1133,6 +1141,14 @@ namespace NexVerse.Server.Api
             InventoryFolderBase root = m_Inventory.GetRootFolder(owner);
             if (!Owned(folder, owner)) { NotFound(response, "inventory_folder_not_found"); return; }
             if (root != null && root.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "root_folder_protected", "The inventory root cannot be deleted."); return; }
+            if (folder.Type == (short)FolderType.CurrentOutfit ||
+                folder.Type == (short)FolderType.MyOutfits)
+            {
+                WriteError(response, HttpStatusCode.Conflict,
+                    "outfit_system_folder_protected",
+                    "Firestorm's Current Outfit and My Outfits system folders cannot be moved, renamed or trashed through this API.");
+                return;
+            }
             InventoryFolderBase trash = m_Inventory.GetFolderForType(owner, FolderType.Trash);
             if (trash == null || trash.ID == folder.ID) { WriteError(response, HttpStatusCode.Conflict, "trash_unavailable", "Trash folder is unavailable or protected."); return; }
             if (WouldCreateFolderCycle(owner, folder.ID, trash.ID))
@@ -1446,9 +1462,9 @@ namespace NexVerse.Server.Api
         private static object[] ConvertFolders(ICollection<InventoryFolderBase> values) { List<object> r = new(); foreach (var v in values) r.Add(FolderPayload(v)); return r.ToArray(); }
         private static object[] ConvertItems(ICollection<InventoryItemBase> values) { List<object> r = new(); foreach (var v in values) r.Add(ItemPayload(v)); return r.ToArray(); }
 
-        private static object FolderPayload(InventoryFolderBase folder) => new { id = folder.ID.ToString(), owner_id = folder.Owner.ToString(), parent_id = folder.ParentID.ToString(), name = folder.Name, type = folder.Type, version = folder.Version };
+        private static object FolderPayload(InventoryFolderBase folder) => new { id = folder.ID.ToString(), owner_id = folder.Owner.ToString(), parent_id = folder.ParentID.ToString(), name = folder.Name, type = folder.Type, version = folder.Version, thumbnail_id = folder.ThumbnailID.ToString() };
         private static object ItemPayload(InventoryItemBase item) => new {
-            id = item.ID.ToString(), owner_id = item.Owner.ToString(), folder_id = item.Folder.ToString(), asset_id = item.AssetID.ToString(),
+            id = item.ID.ToString(), owner_id = item.Owner.ToString(), folder_id = item.Folder.ToString(), asset_id = item.AssetID.ToString(), thumbnail_id = item.ThumbnailID.ToString(),
             name = item.Name, description = item.Description, asset_type = item.AssetType, inventory_type = item.InvType,
             creator_id = item.CreatorId, creator_data = item.CreatorData, creation_date = item.CreationDate, flags = item.Flags,
             permissions = new { base_mask = item.BasePermissions, current_mask = item.CurrentPermissions, everyone_mask = item.EveryOnePermissions, group_mask = item.GroupPermissions, next_owner_mask = item.NextPermissions }
