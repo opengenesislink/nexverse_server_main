@@ -733,6 +733,18 @@ namespace NexVerse.Server.Api
                         apiGate.Wrap(socialGraph.Handle),
                         "NexVerse Social Graph"));
 
+                IInstantMessage citizenInstantMessages =
+                    LoadOptionalService<IInstantMessage>(config, "HGInstantMessageService");
+                NexCitizenImApi citizenImApi =
+                    new NexCitizenImApi(userAccounts, friendsService, authenticator,
+                        citizenInstantMessages, auditSink);
+                server.AddSimpleStreamHandler(
+                    new SimpleStreamHandler(
+                        "/api/v1/messages",
+                        apiGate.Wrap(citizenImApi.Handle),
+                        "NexVerse Citizen Friend IM"),
+                    true);
+
                 IConfig profilesConfig = config.Configs["UserProfilesService"];
                 if (profilesConfig != null && profilesConfig.GetBoolean("Enabled", false))
                 {
