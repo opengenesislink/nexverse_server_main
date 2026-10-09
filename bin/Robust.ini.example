@@ -594,6 +594,16 @@
     TenantId = "nexverse"
     IncludeHypergridGuests = true
 
+    ; OPTIONAL/EXPERIMENTAL: Robust grants time-limited LiveKit WebRTC
+    ; session tokens ONLY to explicitly allowed, HMAC-authenticated nodes.
+    ; This does NOT activate Firestorm voice/voice balls.
+    ; Set OGLVOICE_LIVEKIT_API_KEY and OGLVOICE_LIVEKIT_API_SECRET
+    ; as protected environment variables on Robust, never in .ini.
+    ; Enable ONLY after private TLS + node ACL + actual voice-room verification.
+    EnableSessionAuthority = false
+    AllowedNodes = ""
+
+
     ; Die eingehende interne Route ist
     ; /internal/oglvoice/v1/provider (NexBus-HMAC + Replay-Schutz).
     ; Keine OGLVoice-LiveKit/Admin-Schluessel im Simulator verteilen.
