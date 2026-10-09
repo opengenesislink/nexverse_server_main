@@ -583,6 +583,15 @@
     ; Default NodeAgent heartbeat is 30 seconds, so 90 allows three missed intervals.
     NodeStaleAfterSeconds = 90
 
+[NexPortalIM]
+    ; Opt-in web chat history. Enable only after the same secret is configured
+    ; in every Simulator. No IM contents are saved until a resident opts in.
+    Enabled = false
+    StorePath = "data/nexverse-portal-im.sqlite"
+    RetentionDays = 30
+    ; Use a separate random secret, 32+ bytes. Never commit its value.
+    SharedSecret = "${Environment|NEX_PORTAL_IM_SECRET}"
+
 [NexVerseWorldApi]
     Enabled = true
     PublicBaseUrl = "http://world.stadt-nexverse.de"
