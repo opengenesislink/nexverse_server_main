@@ -20,7 +20,7 @@ namespace NexVerse.RegionModules.Voice
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule",
         Id = "OglVoiceRegionDiscoveryModule")]
     public sealed class OglVoiceRegionDiscoveryModule :
-        ISharedRegionModule, IOglVoiceProviderLookup
+        ISharedRegionModule, IOglVoiceProviderLookup, IOglVoiceSessionAdmission
     {
         private static readonly ILog m_Log = LogManager.GetLogger(typeof(OglVoiceRegionDiscoveryModule));
         private readonly ConcurrentDictionary<UUID, Scene> m_Scenes = new();
@@ -130,6 +130,22 @@ namespace NexVerse.RegionModules.Voice
                 return;
             m_Scenes[scene.RegionInfo.RegionID] = scene;
             scene.RegisterModuleInterface<IOglVoiceProviderLookup>(this);
+            scene.RegisterModuleInterface<IOglVoiceSessionAdmission>(this);
+        }
+
+        public bool TryBuildAdmission(UUID agentId, out OglVoiceAdmission assertion)
+        {
+            assertion = null;
+            OglVoiceProviderDescriptor provider = CurrentProvider;
+            if (provider == null)
+                return false;
+            foreach (Scene scene in m_Scenes.Values)
+            {
+                if (OglVoiceRegionAdmission.TryCreate(scene, agentId,
+                    provider.tenant_id, provider.hypergrid_guests, out assertion))
+                    return true;
+            }
+            return false;
         }
 
         public void RegionLoaded(Scene scene) { }
@@ -138,6 +154,7 @@ namespace NexVerse.RegionModules.Voice
         {
             if (scene == null || !m_Scenes.TryRemove(scene.RegionInfo.RegionID, out _))
                 return;
+            scene.UnregisterModuleInterface<IOglVoiceSessionAdmission>(this);
             scene.UnregisterModuleInterface<IOglVoiceProviderLookup>(this);
         }
 
