@@ -99,6 +99,14 @@ namespace OpenSim.Region.ClientStack.Linden
                 ((item == UUID.Zero) == (folder == UUID.Zero)))
                 return false;
 
+            // Guest identities must not attach local assets to a foreign
+            // home-grid inventory; route them to their home grid instead.
+            var circuit = scene.AuthenticateHandler?.GetAgentCircuitData(agent);
+            if (circuit == null || circuit.AgentID != agent ||
+                (circuit.teleportFlags & (uint)Constants.TeleportFlags.ViaHGLogin) != 0 ||
+                circuit.SessionID != sp.ControllingClient.SessionId)
+                return false;
+
             if (item != UUID.Zero)
             {
                 InventoryItemBase ownItem = scene.InventoryService.GetItem(agent, item);
