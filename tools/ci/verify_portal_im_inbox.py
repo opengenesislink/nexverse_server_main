@@ -58,7 +58,7 @@ for item in (
 ):
     assert item in ingress,item
 for item in (
-    "Encoding.UTF8.GetBytes(timestamp +",
+    "Encoding.ASCII.GetBytes(timestamp +",
     "HMACSHA256",
     "SemaphoreSlim(48, 48)",
     "if (!m_Queue.Wait(0))",
