@@ -22,9 +22,9 @@ namespace OpenSim.Region.ClientStack.Linden
     /// single-use uploader. Stage 2 persists the JPEG2000 texture asset.
     /// Unlike avatar bakes, these assets MUST NOT be temporary/local.
     ///
-    /// Inventory thumbnail associations need a separate thumbnail metadata
-    /// service/schema; without one Firestorm can display the uploaded image
-    /// immediately but the association may not survive a fresh inventory fetch.
+    /// Thumbnail UUID is persisted via the inventory service and must be
+    /// read back before the viewer receives state=complete. A stale/incomplete
+    /// Robust inventory deployment must fail visibly, not claim success.
     /// </summary>
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule",
         Id = "InventoryThumbnailUploadModule")]
@@ -328,12 +328,29 @@ namespace OpenSim.Region.ClientStack.Linden
                             linked = scene.InventoryService.UpdateFolder(existing);
                         }
                     }
+                    // Uploading an asset is not enough: a successful viewer
+                    // reply must require the persisted inventory reference.
+                    // Detect outdated/mismatched inventory connectors instead
+                    // of showing a preview that vanishes after relog.
+                    if (linked)
+                    {
+                        UUID readBack = m_Item != UUID.Zero
+                            ? scene.InventoryService.GetItem(m_Agent, m_Item)?.ThumbnailID ?? UUID.Zero
+                            : scene.InventoryService.GetFolder(m_Agent, m_Folder)?.ThumbnailID ?? UUID.Zero;
+                        linked = readBack == persisted;
+                    }
                     if (!linked)
                     {
+                        m_Log.WarnFormat(
+                            "[INVENTORY THUMBNAIL]: Asset stored but thumbnail reference not confirmed for agent {0}, item {1}, folder {2}; check Robust inventory version, database migration and connector roundtrip",
+                            m_Agent, m_Item, m_Folder);
                         response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
                         return;
                     }
 
+                    m_Log.InfoFormat(
+                        "[INVENTORY THUMBNAIL]: Thumbnail {0} linked and read back for item {1}, folder {2}",
+                        persisted, m_Item, m_Folder);
                     OSDMap success = new()
                     {
                         ["state"] = OSD.FromString("complete"),

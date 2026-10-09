@@ -35,9 +35,13 @@ for path in models:
     assert "ThumbnailID" in path.read_text() or "thumbnailID" in path.read_text(), path
 store = (root/"OpenSim/Services/InventoryService/XInventoryService.cs").read_text()
 assert store.count("ThumbnailID") >= 5
-assert "check.ThumbnailID = folder.ThumbnailID" in store
+assert "check.ThumbnailID = xFolder.thumbnailID" in store
+assert "xFolder.thumbnailID = check.ThumbnailID" in store
+assert "item.ThumbnailID = retrievedItem.ThumbnailID" in store
 assert "scene.InventoryService.UpdateItem(existing)" in mod
 assert "scene.InventoryService.UpdateFolder(existing)" in mod
+assert "readBack == persisted" in mod
+assert "thumbnail reference not confirmed" in mod
 item = (root/"OpenSim/Framework/InventoryItemBase.cs").read_text()
 folders = (root/"OpenSim/Capabilities/Handlers/FetchInventory/FetchInvDescHandler.cs").read_text()
 for content in (item,folders):
@@ -58,6 +62,11 @@ for path in [
     http=(root/path).read_text()
     assert http.count('"ThumbnailID"') >= 4, f"missing remote inventory roundtrip: {path}"
     assert "ThumbnailID" in http
+remote=(root/"OpenSim/Services/Connectors/Inventory/XInventoryServicesConnector.cs").read_text()
+assert 'METHOD=GETITEM&ID={item.ID}&PRINCIPAL={item.Owner}' in remote
+assert "storedId != item.ThumbnailID" in remote
+assert "m_ItemCache.Remove(item.ID)" in remote
+
 # Test the actual SQLite migration on an existing (populated) inventory
 # schema, not just the spelling of its columns.
 import sqlite3

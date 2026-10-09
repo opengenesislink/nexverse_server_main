@@ -416,6 +416,13 @@ namespace OpenSim.Services.InventoryService
             if (check == null)
                 return AddFolder(folder);
 
+            // Most legacy viewer/region folder updates do not carry thumbnail
+            // metadata. Their default UUID.Zero must NOT silently erase a
+            // thumbnail uploaded through InventoryThumbnailUpload.
+            // Clearing a preview needs an explicit thumbnail operation.
+            if (folder.ThumbnailID == UUID.Zero && check.ThumbnailID != UUID.Zero)
+                xFolder.thumbnailID = check.ThumbnailID;
+
             if ((check.Type != (short)FolderType.None || xFolder.type != (short)FolderType.None)
                 && (check.Type != (short)FolderType.Outfit || xFolder.type != (short)FolderType.Outfit))
             {
@@ -426,7 +433,7 @@ namespace OpenSim.Services.InventoryService
                 }
 
                 check.Version = (ushort)xFolder.version;
-                check.ThumbnailID = folder.ThumbnailID;
+                check.ThumbnailID = xFolder.thumbnailID;
                 xFolder = ConvertFromOpenSim(check);
 
 //                m_log.DebugFormat(
@@ -562,6 +569,13 @@ namespace OpenSim.Services.InventoryService
                 item.CreatorIdentification = retrievedItem.CreatorIdentification;
                 item.Owner = retrievedItem.Owner;
             }
+
+            // Legacy inventory edits (rename, permissions, flags) often send
+            // no thumbnail field. Preserve the persisted UUID instead of
+            // interpreting a default zero value as 'remove thumbnail'.
+            if (item.ThumbnailID == UUID.Zero &&
+                retrievedItem.ThumbnailID != UUID.Zero)
+                item.ThumbnailID = retrievedItem.ThumbnailID;
 
             return m_Database.StoreItem(ConvertFromOpenSim(item));
         }

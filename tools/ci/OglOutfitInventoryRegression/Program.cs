@@ -65,6 +65,44 @@ internal static class Program
                 "gallery root changed on repeat initialization");
             Assert(service.GetFolder(owner, saved.ID) != null,
                 "saved outfit was deleted by repeat initialization");
+            UUID preview = UUID.Random();
+            var folder = service.GetFolder(owner, saved.ID);
+            folder.ThumbnailID = preview;
+            folder.Version++;
+            Assert(service.UpdateFolder(folder), "failed to save thumbnail");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "folder thumbnail missing");
+            var legacy = new InventoryFolderBase(saved.ID, "Renamed Outfit",
+                owner, (short)FolderType.Outfit, gallery.ID,
+                (ushort)(service.GetFolder(owner, saved.ID).Version + 1));
+            Assert(service.UpdateFolder(legacy), "legacy folder update failed");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "legacy update removed thumbnail");
+            var fresh = new XInventoryService(cfg);
+            Assert(fresh.GetFolder(owner, saved.ID).ThumbnailID == preview,
+                "thumbnail not present after service reconnect");
+            var shirt = new InventoryItemBase(UUID.Random(), owner)
+            {
+                Name = "Thumbnail Regression Shirt",
+                AssetID = UUID.Random(),
+                Folder = saved.ID,
+                AssetType = (int)AssetType.Clothing,
+                InvType = (int)InventoryType.Wearable,
+                CreatorId = owner.ToString()
+            };
+            Assert(service.AddItem(shirt), "failed to create regression item");
+            UUID itemPreview = UUID.Random();
+            var uploaded = service.GetItem(owner, shirt.ID);
+            Assert(uploaded != null, "item fetch failed");
+            uploaded.ThumbnailID = itemPreview;
+            Assert(service.UpdateItem(uploaded), "failed to save item thumbnail");
+            var legacyItem = service.GetItem(owner, shirt.ID);
+            legacyItem.Name = "Renamed Thumbnail Shirt";
+            legacyItem.ThumbnailID = UUID.Zero;
+            Assert(service.UpdateItem(legacyItem), "legacy item edit failed");
+            var newSession = new XInventoryService(cfg);
+            Assert(newSession.GetItem(owner, shirt.ID).ThumbnailID == itemPreview,
+                "item thumbnail did not survive relog-equivalent new service");
             Console.WriteLine("Outfit inventory SQLite runtime regression: OK");
             return 0;
         }

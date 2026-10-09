@@ -100,6 +100,30 @@ konkreten Fall einzeln pruefen.
 - Bei unvollstaendigen Links die Avatar-Appearance-/Wearables-Daten und ggf. vorherige Inventory-Backups untersuchen. **Keine** pauschale Loeschung, Neuerstellung oder automatische Outfit-Ersetzung fuer vorhandene Nutzer vornehmen.
 - My Outfits ist bei frisch angelegten Konten moeglicherweise leer; ein Outfit muss im Firestorm tatsaechlich unter einem Namen gespeichert worden sein, damit die Galerie einen Eintrag zeigt.
 
+## Nach Login verschwundenes Thumbnail – erneute manuelle Abnahme
+
+Ein Betreiber hat bestaetigt: Thumbnail laesst sich hochladen und erscheint sofort, ist nach Neuanmeldung jedoch weg. Damit ist INV01 bis zum erneuten Test **NICHT BESTANDEN**.
+
+Der Robust-HTTP-Connector prueft Thumbnail-Updates jetzt ueber GETITEM am zentralen Inventardienst ohne lokalen Cache. Eine lokale Cache-Bestaetigung reicht nicht mehr als Persistenznachweis.
+
+Hotfix: Gewoehnliche alte Inventarupdates ohne Thumbnail-Daten duerfen einen bereits gespeicherten `ThumbnailID` nicht auf die Null-UUID zuruecksetzen. Ausserdem bestaetigt der Upload erst dann `state=complete`, wenn die aktualisierte Thumbnail-UUID vom Inventardienst wieder gelesen wurde.
+
+Die Fehlerursache auf dem konkreten Produktivsystem ist noch zu bestaetigen. Bitte vor weiteren Updates Inventar- und Assetdatenbanken sichern. Mit einem Testobjekt dessen Item- oder Folder-UUID feststellen und in der zentralen Robust-Datenbank die Thumbnail-UUID direkt nach Upload sowie nach Logout/Login vergleichen.
+
+Read-only MariaDB-Abfrage fuer **ein Testobjekt**:
+
+```sql
+SELECT inventoryID, inventoryName, thumbnailID FROM inventoryitems
+WHERE inventoryID = 'ITEM-UUID';
+
+SELECT folderID, folderName, thumbnailID FROM inventoryfolders
+WHERE folderID = 'FOLDER-UUID';
+```
+
+Falls `thumbnailID` schon direkt nach dem Upload Null ist, Robust, XInventory-Connector und Migrationsstatus pruefen. Falls die UUID erst nach Login verschwindet, schreibt vermutlich ein aelterer Inventarwriter die Metadaten zurueck. Bleibt die UUID dagegen korrekt, sind FetchInventory-LLSD (nested `thumbnail.asset_id`) sowie der Bildabruf aus dem Asset-Service zu pruefen.
+
+Der CI-Test liest die Referenz ueber eine neu erstellte `XInventoryService`-Instanz und prueft Legacy-Edits ohne Thumbnail-Daten. Ein erfolgreicher Test im echten Firestorm mit Neuanmeldung ist weiterhin zwingend.
+
 ## Produktionsstatus
 
 Die Funktionen und DB-Migrationen werden im Repository bereitgestellt. Ohne echten Test auf NexVerse/Robust und Firestorm (inklusive Re-Login) kann kein produktiver Erfolg behauptet werden. Der Remote-Rechner war bei der Sitzung offline. 
