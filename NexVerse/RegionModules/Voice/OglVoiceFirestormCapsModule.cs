@@ -38,7 +38,13 @@ namespace NexVerse.RegionModules.Voice
     public sealed class OglVoiceFirestormCapsModule : INonSharedRegionModule
     {
         private static readonly ILog m_Log = LogManager.GetLogger(typeof(OglVoiceFirestormCapsModule));
-        private readonly ConcurrentDictionary<UUID, string> m_Sessions = new();
+        private sealed class VoiceSession
+        {
+            public string ViewerSession;
+            public Guid AgentSessionId;
+        }
+
+        private readonly ConcurrentDictionary<UUID, VoiceSession> m_Sessions = new();
         private readonly SemaphoreSlim m_Requests = new(16, 16);
         private static readonly byte[] s_Undefined = Encoding.UTF8.GetBytes("<llsd><undef /></llsd>");
         private Scene m_Scene;
@@ -149,8 +155,8 @@ namespace NexVerse.RegionModules.Voice
             OglVoiceProviderDescriptor provider = ReadyProvider();
             if (provider == null)
                 return;
-            if (m_Scene.RequestModuleInterface<IOglVoiceSessionAdmission>()?
-                .TryBuildAdmission(avatar, out _) == true)
+            if (OglVoiceRegionAdmission.TryCreate(m_Scene, avatar,
+                provider.tenant_id, provider.hypergrid_guests, out _))
                 features["VoiceServerType"] = OSD.FromString("webrtc");
         }
 
@@ -179,10 +185,10 @@ namespace NexVerse.RegionModules.Voice
             }
 
             OglVoiceProviderDescriptor provider = ReadyProvider();
-            IOglVoiceSessionAdmission admissionModule =
-                m_Scene?.RequestModuleInterface<IOglVoiceSessionAdmission>();
-            if (provider == null || admissionModule == null ||
-                !admissionModule.TryBuildAdmission(avatar, out OglVoiceAdmission admission))
+            if (provider == null || m_Scene == null ||
+                !OglVoiceRegionAdmission.TryCreate(m_Scene, avatar,
+                    provider.tenant_id, provider.hypergrid_guests,
+                    out OglVoiceAdmission admission))
             {
                 Error(response, HttpStatusCode.Forbidden);
                 return;
@@ -228,15 +234,16 @@ namespace NexVerse.RegionModules.Voice
                 {
                     if (map.TryGetValue("logout", out OSD logout) && logout.AsBoolean())
                     {
-                        if (!m_Sessions.TryGetValue(avatar, out string existing) ||
+                        if (!m_Sessions.TryGetValue(avatar, out VoiceSession existing) ||
+                            existing.AgentSessionId != admission.SessionId ||
                             !map.TryGetValue("viewer_session", out OSD exitSession) ||
-                            exitSession.AsString() != existing)
+                            exitSession.AsString() != existing.ViewerSession)
                         {
                             Error(response, HttpStatusCode.Forbidden);
                             return;
                         }
                         message.operation = "leave";
-                        message.viewer_session = existing;
+                        message.viewer_session = existing.ViewerSession;
                         m_Sessions.TryRemove(avatar, out _);
                     }
                     else
@@ -260,14 +267,15 @@ namespace NexVerse.RegionModules.Voice
                 }
                 else
                 {
-                    if (!m_Sessions.TryGetValue(avatar, out string existing) ||
+                    if (!m_Sessions.TryGetValue(avatar, out VoiceSession existing) ||
+                        existing.AgentSessionId != admission.SessionId ||
                         !map.TryGetValue("viewer_session", out OSD viewerSession) ||
-                        viewerSession.AsString() != existing)
+                        viewerSession.AsString() != existing.ViewerSession)
                     {
                         Error(response, HttpStatusCode.Forbidden);
                         return;
                     }
-                    message.viewer_session = existing;
+                    message.viewer_session = existing.ViewerSession;
                     List<OglVoiceIceCandidate> candidates = new();
                     if (map.TryGetValue("candidates", out OSD values) && values is OSDArray ice)
                     {
@@ -344,7 +352,11 @@ namespace NexVerse.RegionModules.Voice
 
                 if (message.operation == "offer")
                 {
-                    m_Sessions[avatar] = media.viewer_session;
+                    m_Sessions[avatar] = new VoiceSession
+                    {
+                        ViewerSession = media.viewer_session,
+                        AgentSessionId = admission.SessionId
+                    };
                     response.RawBuffer = Encoding.UTF8.GetBytes(
                         OSDParser.SerializeLLSDXmlString(new OSDMap
                         {
