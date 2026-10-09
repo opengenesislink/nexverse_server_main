@@ -2208,6 +2208,10 @@ namespace NexVerse.Server.Api
         {
             string[] citizenScopes =
             {
+                NexVerse.Core.Security.NexScopes.ProfileRead,
+                NexVerse.Core.Security.NexScopes.ProfileWrite,
+                NexVerse.Core.Security.NexScopes.RelationshipsRead,
+                NexVerse.Core.Security.NexScopes.RelationshipsWrite,
                 NexVerse.Core.Security.NexScopes.InventoryRead,
                 NexVerse.Core.Security.NexScopes.InventoryWrite,
                 NexVerse.Core.Security.NexScopes.EconomyRead,
