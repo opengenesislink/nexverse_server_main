@@ -232,6 +232,11 @@ for marker in (
     assert marker in native_client, f"native Firestorm UDP prompt missing: {marker}"
 assert "ScriptQuestionPacket" in native_client
 assert "0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000" in experience_module
+assert "consentClient.OnScriptAnswer += nativeAnswerHandler" in experience_module
+assert "consentClient.OnScriptAnswer -= nativeAnswerHandler" in experience_module
+assert "answer != 0" in experience_module
+assert "CompleteRequests(m_Pending.Take(" in experience_module
+
 
 for marker in (
     "NexPendingExperienceQueue",
