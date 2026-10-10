@@ -328,6 +328,29 @@ namespace OpenSim.Region.ClientStack.Linden
                             linked = scene.InventoryService.UpdateFolder(existing);
                         }
                     }
+                    // Folder previews must survive a fresh inventory read, not
+                    // merely an accepted UpdateFolder call. In particular a
+                    // mixed Robust/simulator rollout can acknowledge the update
+                    // while losing the new thumbnail field.
+                    if (linked && m_Folder != UUID.Zero)
+                    {
+                        InventoryFolderBase verified = scene.InventoryService.GetFolder(
+                            m_Agent, m_Folder);
+                        if (verified == null || verified.Owner != m_Agent ||
+                            verified.ID != m_Folder || verified.ThumbnailID != persisted)
+                        {
+                            m_Log.WarnFormat(
+                                "[INVENTORY THUMBNAIL]: Folder {0} update acknowledged but thumbnail {1} not confirmed by inventory readback; check central Robust version, thumbnailID schema and connector",
+                                m_Folder, persisted);
+                            linked = false;
+                        }
+                        else
+                        {
+                            m_Log.InfoFormat(
+                                "[INVENTORY THUMBNAIL]: Folder {0} thumbnail {1} confirmed after inventory readback (version {2}, parent {3})",
+                                m_Folder, persisted, verified.Version, verified.ParentID);
+                        }
+                    }
                     if (!linked)
                     {
                         response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
