@@ -55,6 +55,48 @@ for mark in (
     "Nonadjacent forged verified edges rejected",
 ):
     assert mark in tests, f"missing collision graph regression: {mark}"
+clearance = (root / "NexVerse/Core/Pathfinding/OglMultiRayAgentClearance.cs").read_text()
+for marker in (
+    "IsCorridorClear(",
+    "float[] bands",
+    "float[] offsets",
+    "rayClear(Offset(from",
+    "rayClear(Offset(to",
+    "distance > 16.1f",
+):
+    assert marker in clearance, f"multi-ray corridor guard missing: {marker}"
+for marker in (
+    '"PhysicsMultiRayClearance", false',
+    '"PhysicsVerifiedTransitions", false',
+    "PhysicsVerifiedTransitions requires PhysicsMultiRayClearance.",
+    "m_AgentHeight, ClearRay",
+    "RayFilterFlags.PrimsNonPhantom",
+    "Physics clearance ray deadline or budget exceeded.",
+):
+    assert marker in module, f"physics clearance scene gate missing: {marker}"
+for marker in (
+    "verifiedTransitions && clearCorridor == null",
+    "new OglLayerNavPortal(",
+    "HasContact(Ray(borderX - dx * inset",
+    "HasContact(Ray(borderX + dx * inset",
+    "clearCorridor(",
+):
+    assert marker in builder, f"verified stair transition guard missing: {marker}"
+for marker in (
+    "Strict collision portals must join certified adjacent surfaces.",
+    "m_VerifiedPlanarEdges != null",
+):
+    assert marker in graph, f"strict link safety missing: {marker}"
+for marker in (
+    "Measured adjoining stairs transition",
+    "Detached stair treads",
+    "Impassable wall corridor",
+    "Multi-ray corridor probes both standing volumes",
+    "Strict physics graph rejects remote fabricated stair portal",
+):
+    assert marker in tests, f"missing character clearance regression: {marker}"
+assert "PhysicsMultiRayClearance = false" in config
+assert "PhysicsVerifiedTransitions = false" in config
 assert "PhysicsRaycastLayeredSurfaces = false" in config
 assert "FirestormNavMeshCaps = false" in config
 assert '<Reference name="OpenSim.Region.PhysicsModules.SharedBase"/>' in prebuild
