@@ -88,7 +88,7 @@ namespace NexVerse.Core.Pathfinding
             List<OglLayerNavNode> nodes = new();
             Dictionary<(int x,int y,int layer), VerifiedNode> lookup = new();
             int rays = 0;
-            int rayBudget = checked(w * h * (1 + 12 * MaxLayers));
+            int rayBudget = checked(w * h * (1 + 18 * MaxLayers));
 
             IReadOnlyList<OglVerifiedSurfaceContact> Ray(float x, float y)
             {
