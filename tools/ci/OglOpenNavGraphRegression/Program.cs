@@ -64,4 +64,25 @@ Check(OglOpenNavGraphCodec.TryDecode(oneWay,
     out _,out _,out _,out var arcs1) &&
     arcs1.Count(a=>a.OffMesh) == 1 && arcs1.Length == 3,
     "Unidirectional lift portal retains directionality");
+
+var gate = new OglNavGraphRateGate();
+int admitted = 0;
+// Force competing request handlers to claim the same precise interval.
+// CompareExchange must admit exactly one, even under parallel scheduling.
+System.Threading.Tasks.Parallel.For(0, 128, _ =>
+{
+    if (gate.TryAcquire(100000))
+        System.Threading.Interlocked.Increment(ref admitted);
+});
+Check(admitted == 1, "Parallel requests cannot bypass the NavGraph CAP rate gate");
+Check(!gate.TryAcquire(102999) && gate.TryAcquire(103000) &&
+    !gate.TryAcquire(103000) && gate.TryAcquire(106000),
+    "Exactly one request per monotonic three-second window");
+Check(!gate.TryAcquire(105999) && !gate.TryAcquire(-1) &&
+    !gate.TryAcquire(106001, 0) && !gate.TryAcquire(106001, 90000),
+    "Clock rollback and invalid durations cannot bypass throttling");
+var separateViewer = new OglNavGraphRateGate();
+Check(separateViewer.TryAcquire(106001),
+    "Another authorized avatar has an independent rate gate");
+
 Console.WriteLine("OGLNAVGRAPH/1 transport regression: OK");
