@@ -4,6 +4,35 @@
 
 Das ist **keine** multi-layer- oder mesh-basierte NavMesh-Engine. Dynamische Prim-Kollisionen, bewegliche Hindernisse, Charaktertyp-Routen, Pathfinding-Character-Bewegung und die Firestorm-CAPS `RetrieveNavMeshSrc` / `NavMeshGenerationStatus` bleiben offene Release-Gates. Bei nicht vorhandenem oder waehrend Terraforming invalide gewordenem Snapshot meldet `llGetStaticPath` `PU_FAILURE_NO_NAVMESH` statt erfundene Wegpunkte auszugeben.
 
+## Opt-in statische Prim-/Mesh-Kollisionsprojektion
+
+Neu kann der Simulator beim Terrain-Snapshot stationaere kollidierende Prims
+und Meshes aus `Scene.GetSceneObjectGroups()` auslesen und deren gedrehte
+3D-Welt-AABB konservativ auf *Terrain-Niveau* projizieren. Volume-Detect,
+Phantom- und physisch bewegliche Objekte sowie Attachments werden nicht
+als *statische* Kollisionsgeometrie behandelt. Niedrige Gebaeude-/Mauer-
+Collider sperren Terrainzellen; hoch ueber dem Terrain verlaufende
+Bruecken blockieren nicht den Weg darunter.
+
+```ini
+[OGLPathfinding]
+    Enabled = true
+    TrackStaticColliders = true
+    StaticAgentHeight = 1.8
+    MaxStaticPrims = 20000
+```
+
+Dies ausschliesslich auf einer Developer-Region einschalten. Rezzen,
+Derezzen und Prim-Updates invalidieren das Snapshot-Epoch und bewirken
+einen kontrollierten asynchronen Rebuild. Ueberlauf der Collider-/Raster-
+Budgets laesst Pathfinding vorsorglich *nicht bereit* statt eine
+unvollstaendige Karte anzubieten.
+
+**Grenze:** Eine gedrehte Mesh-AABB ist kein gelochertes Mesh und keine
+Physik-Shape-Rekonstruktion; Tueren, komplexe konkave Formen, dynamische
+Physik sowie begehbare zweite Stockwerke und der echte Firestorm-NavMesh-
+Payload bleiben **unimplementiert**.
+
 ## Sicherheits- und Lastgrenzen
 
 - `radius` muss zwischen 0,125 und 5 m liegen. **Neu:** Der statische Terrain-A*-Solver beruecksichtigt diesen Radius konservativ gegen gesperrte Rasterzellen und Regionsgrenzen. Agenten mit groesserem Radius duerfen nicht mehr durch enge, von Hinderniszellen begrenzte Passagen geroutet werden. Die Clearance-Pruefung wird pro begrenzter Suche zwischengespeichert, nicht als zweites vollstaendiges VAR-Grid aufgebaut. **Das ist nur eine 2D-Heightfield-Clearance**, keine Physikpruefung fuer Prim-, Mesh-, dynamische oder mehrschichtige Hindernisse.
