@@ -10,5 +10,6 @@
     <Compile Include="../../../NexVerse/Core/Pathfinding/OglTerrainNavigationSnapshot.cs" Link="OglTerrainNavigationSnapshot.cs" />
     <Compile Include="../../../NexVerse/Core/Pathfinding/OglLayeredNavGraph.cs" Link="OglLayeredNavGraph.cs" />
     <Compile Include="../../../NexVerse/Core/Pathfinding/OglVerifiedSurfaceGraphBuilder.cs" Link="OglVerifiedSurfaceGraphBuilder.cs" />
+    <Compile Include="../../../NexVerse/Core/Pathfinding/OglMultiRayAgentClearance.cs" Link="OglMultiRayAgentClearance.cs" />
   </ItemGroup>
 </Project>
