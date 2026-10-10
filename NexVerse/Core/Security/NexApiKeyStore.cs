@@ -100,7 +100,10 @@ namespace NexVerse.Core.Security
                     NexScopes.EstatesManage,
                     NexScopes.EconomyRead,
                     NexScopes.EconomyTransfer,
-                    NexScopes.ExperiencesScript
+                    NexScopes.ExperiencesScript,
+                    // Separate trusted simulator CAP transport. This is
+                    // deliberately NOT experiences:manage or admin:*.
+                    NexScopes.ExperiencesViewerPermissions
                 },
                 StringComparer.OrdinalIgnoreCase);
 
@@ -113,6 +116,19 @@ namespace NexVerse.Core.Security
                         nameof(scopes));
                 }
             }
+
+            if (normalizedScopes.Contains(
+                    NexScopes.ExperiencesViewerPermissions,
+                    StringComparer.OrdinalIgnoreCase) &&
+                normalizedScopes.Length != 1)
+                throw new ArgumentException(
+                    "Experiences viewer permission credentials must have only experiences:viewer:permissions.",
+                    nameof(scopes));
+
+            string normalizedName = string.IsNullOrWhiteSpace(name)
+                ? "NexVerse API key" : name.Trim();
+            if (normalizedName.Length > 120)
+                throw new ArgumentException("API key name is too long.", nameof(name));
 
             string keyId =
                 "nxk_" + Guid.NewGuid().ToString("N");
@@ -131,9 +147,7 @@ namespace NexVerse.Core.Security
             NexApiKeyRecord record = new NexApiKeyRecord
             {
                 KeyId = keyId,
-                Name = string.IsNullOrWhiteSpace(name)
-                    ? "NexVerse API key"
-                    : name.Trim(),
+                Name = normalizedName,
                 Scopes = normalizedScopes,
                 SecretSalt = salt,
                 SecretHash = hash,
@@ -144,6 +158,18 @@ namespace NexVerse.Core.Security
 
             lock (m_Sync)
             {
+                // A secret is only returned once. Accidentally recreating
+                // an already active *identical service identity* leaves
+                // orphaned credentials. Require explicit disable/rotation.
+                if (m_Document.Keys.Any(existing =>
+                        existing.Enabled &&
+                        string.Equals(existing.Name?.Trim(), normalizedName,
+                            StringComparison.OrdinalIgnoreCase) &&
+                        SameScopes(existing.Scopes, normalizedScopes)))
+                    throw new InvalidOperationException(
+                        "An enabled API key with this name and these scopes already exists. " +
+                        "Review and explicitly disable the old key before replacing it.");
+
                 m_Document.Keys.Add(record);
                 SaveLocked();
             }
@@ -197,7 +223,13 @@ namespace NexVerse.Core.Security
             if (string.IsNullOrWhiteSpace(keyId)) return false;
             lock (m_Sync)
             {
-                int removed = m_Document.Keys.RemoveAll(x => string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
+                // Key deletion is irreversible and is only allowed after
+                // explicitly disabling it. Never delete an active key.
+                NexApiKeyRecord record = m_Document.Keys.FirstOrDefault(x =>
+                    string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
+                if (record == null || record.Enabled) return false;
+                int removed = m_Document.Keys.RemoveAll(x =>
+                    string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
                 if (removed > 0) SaveLocked();
                 return removed > 0;
             }
@@ -284,6 +316,12 @@ namespace NexVerse.Core.Security
             File.Move(temp, m_Path, true);
         }
 
+        private static bool SameScopes(string[] left, string[] right)
+        {
+            string[] normalized = NormalizeScopes(left);
+            return normalized.SequenceEqual(right, StringComparer.OrdinalIgnoreCase);
+        }
+
         private static string[] NormalizeScopes(
             IEnumerable<string> scopes)
         {
@@ -368,7 +406,8 @@ namespace NexVerse.Core.Security
                 SecretHash = value.SecretHash,
                 Enabled = value.Enabled,
                 CreatedAt = value.CreatedAt,
-                UpdatedAt = value.UpdatedAt
+                UpdatedAt = value.UpdatedAt,
+                LastUsedAt = value.LastUsedAt
             };
         }
 
