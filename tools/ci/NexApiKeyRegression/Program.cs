@@ -184,14 +184,17 @@ internal static class Program
             Require(experiencesReloaded.SetEnabled(
                     viewerPermissions.Record.KeyId, false),
                 "Disabling permission key failed");
+            NexApiKeyRegistration replacement = experiencesReloaded.Create(
+                "NexVerse Simulator Experience Permissions",
+                new[] { NexScopes.ExperiencesViewerPermissions });
+            Require(!experiencesReloaded.SetEnabled(
+                    viewerPermissions.Record.KeyId, true),
+                "Re-enabling an old credential must not create an active duplicate");
             Require(experiencesReloaded.Delete(viewerPermissions.Record.KeyId),
                 "Deleting disabled key failed");
             Require(!experiencesReloaded.TryValidate(
                     viewerPermissions.ApiKey, out _),
                 "Deleted viewer permission credential still validated");
-            NexApiKeyRegistration replacement = experiencesReloaded.Create(
-                "NexVerse Simulator Experience Permissions",
-                new[] { NexScopes.ExperiencesViewerPermissions });
             Require(replacement.Record.KeyId != viewerPermissions.Record.KeyId &&
                 experiencesReloaded.TryValidate(replacement.ApiKey, out _),
                 "Explicit credential rotation failed");
