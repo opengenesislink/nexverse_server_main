@@ -129,6 +129,100 @@ namespace NexVerse.Core.Pathfinding
             return Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
 
+        /// <summary>
+        /// Resolve a 3D world point to a walkable surface using the full
+        /// X/Y/Z distance, not X/Y alone. This prevents a bridge query from
+        /// silently selecting the ground beneath it. Node scanning is
+        /// strictly capped by the constructor's 65,536-node budget.
+        /// </summary>
+        public bool TryFindClosestSurface(float worldX, float worldY, float worldZ,
+            float searchRadius, float agentRadius, out int nodeIndex)
+        {
+            nodeIndex = -1;
+            if (!float.IsFinite(worldX) || !float.IsFinite(worldY) ||
+                !float.IsFinite(worldZ) || !float.IsFinite(searchRadius) ||
+                searchRadius < 0.5f || searchRadius > 64f ||
+                !float.IsFinite(agentRadius) || agentRadius < 0.125f ||
+                agentRadius > 5f)
+                return false;
+
+            double bestSquared = (double)searchRadius * searchRadius;
+            for (int i = 0; i < m_Nodes.Length; ++i)
+            {
+                if (!Allowed(i, agentRadius)) continue;
+                OglLayerNavNode node = m_Nodes[i];
+                double dx = (node.X + 0.5d) * m_CellMeters - worldX;
+                double dy = (node.Y + 0.5d) * m_CellMeters - worldY;
+                double dz = (double)node.Z - worldZ;
+                double distanceSquared = dx * dx + dy * dy + dz * dz;
+                if (distanceSquared > bestSquared) continue;
+                // Deterministic tie-breaking independent of iteration order.
+                if (nodeIndex >= 0 && distanceSquared == bestSquared)
+                    continue;
+                bestSquared = distanceSquared;
+                nodeIndex = i;
+            }
+            return nodeIndex >= 0;
+        }
+
+        /// <summary>
+        /// Static world-space route for trusted, already-validated scene
+        /// surfaces and portals. Returns SL-compatible numeric PU codes.
+        /// No source provider means no layered graph and NO implicit fallbacks.
+        /// </summary>
+        public bool TryFindWorldPath(
+            float startX, float startY, float startZ,
+            float goalX, float goalY, float goalZ, float agentRadius,
+            out IReadOnlyList<OglNavigationPoint> waypoints,
+            out int status, int maxExpandedNodes = 20000)
+        {
+            waypoints = Array.Empty<OglNavigationPoint>();
+            status = 0xF4240; // PU_FAILURE_OTHER
+            if (!float.IsFinite(agentRadius) || agentRadius < 0.125f ||
+                agentRadius > 5f || !float.IsFinite(startX) ||
+                !float.IsFinite(startY) || !float.IsFinite(startZ) ||
+                !float.IsFinite(goalX) || !float.IsFinite(goalY) ||
+                !float.IsFinite(goalZ) || maxExpandedNodes <= 0 ||
+                maxExpandedNodes > 100000)
+                return false;
+
+            if (!TryFindClosestSurface(startX, startY, startZ,
+                    8f, agentRadius, out int from))
+            {
+                status = 2; // PU_FAILURE_INVALID_START
+                return false;
+            }
+            if (!TryFindClosestSurface(goalX, goalY, goalZ,
+                    8f, agentRadius, out int to))
+            {
+                status = 3; // PU_FAILURE_INVALID_GOAL
+                return false;
+            }
+            if (!TryFindPath(from, to, agentRadius, out IReadOnlyList<int> route,
+                    maxExpandedNodes))
+            {
+                status = 4; // PU_FAILURE_UNREACHABLE
+                return false;
+            }
+            // llGetStaticPath's terrain implementation is limited to
+            // 256 waypoints; keep the same externally observable limit.
+            if (route.Count == 0 || route.Count > 256)
+                return false;
+
+            List<OglNavigationPoint> result = new(route.Count);
+            foreach (int index in route)
+            {
+                OglLayerNavNode node = m_Nodes[index];
+                result.Add(new OglNavigationPoint(
+                    (node.X + 0.5f) * m_CellMeters,
+                    (node.Y + 0.5f) * m_CellMeters,
+                    node.Z));
+            }
+            waypoints = result;
+            status = 0;
+            return true;
+        }
+
         public bool TryFindPath(int start, int target, float agentRadius,
             out IReadOnlyList<int> path, int maxExpandedNodes = 20000)
         {
