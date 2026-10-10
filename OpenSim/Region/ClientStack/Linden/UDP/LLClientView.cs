@@ -12198,7 +12198,12 @@ namespace OpenSim.Region.ClientStack.LindenUDP
             scriptQuestion.Data.Questions = question;
             scriptQuestion.Data.ObjectName = Util.StringToBytes256(taskName ?? string.Empty);
             scriptQuestion.Data.ObjectOwner = Util.StringToBytes256(ownerName ?? string.Empty);
-            scriptQuestion.Experience.ExperienceID = experienceId;
+            // PacketPool may recycle an old packet, so do not assume
+            // an optional Experience block was initialized for us.
+            scriptQuestion.Experience = new ScriptQuestionPacket.ExperienceBlock
+            {
+                ExperienceID = experienceId
+            };
             OutPacket(scriptQuestion, ThrottleOutPacketType.Task);
             return true;
         }
