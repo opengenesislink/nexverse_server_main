@@ -40,6 +40,9 @@ assert "llGetClosestNavPoint" in lsl_stub and "llGetClosestNavPoint" in lsl_inte
 assert "TryGetClosestNavPoint" in native_iface
 assert "TryGetStaticTerrainPath" in native_iface
 assert "TryGetStaticTerrainPath" in module
+assert "TryFindStaticTerrainRoute" in core
+assert "TryFindStaticTerrainRoute" in module
+assert "PU_FAILURE_NO_NAVMESH" in module
 assert "llGetStaticPath" in lsl_interface and "llGetStaticPath" in lsl_stub
 for marker in (
     "public LSL_List llGetStaticPath(",
