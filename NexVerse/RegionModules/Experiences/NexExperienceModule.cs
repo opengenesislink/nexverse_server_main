@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -10,6 +11,9 @@ using log4net;
 using Mono.Addins;
 using Nini.Config;
 using OpenMetaverse;
+using OpenMetaverse.StructuredData;
+using OpenSim.Framework.Servers.HttpServer;
+using Caps = OpenSim.Framework.Capabilities.Caps;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
@@ -30,6 +34,7 @@ namespace NexVerse.RegionModules.Experiences
         private readonly List<Scene> m_Scenes = new List<Scene>();
 
         private bool m_Enabled;
+        private bool m_FirestormReadCaps;
         private string m_WorldApiBaseUrl = string.Empty;
         private string m_ApiKey = string.Empty;
         private int m_RequestTimeoutMilliseconds = 3000;
@@ -58,6 +63,9 @@ namespace NexVerse.RegionModules.Experiences
             m_ApiKey =
                 section.GetString("ApiKey", string.Empty)
                     .Trim();
+
+            m_FirestormReadCaps =
+                section.GetBoolean("FirestormReadCaps", false);
 
             m_RequestTimeoutMilliseconds =
                 Math.Clamp(
@@ -108,6 +116,8 @@ namespace NexVerse.RegionModules.Experiences
                 m_Scenes.Add(scene);
 
             scene.RegisterModuleInterface<IExperienceModule>(this);
+            if (m_FirestormReadCaps)
+                scene.EventManager.OnRegisterCaps += RegisterFirestormReadCaps;
         }
 
         public void RegionLoaded(Scene scene)
@@ -120,6 +130,7 @@ namespace NexVerse.RegionModules.Experiences
                 return;
 
             scene.UnregisterModuleInterface<IExperienceModule>(this);
+            scene.EventManager.OnRegisterCaps -= RegisterFirestormReadCaps;
 
             lock (m_Sync)
                 m_Scenes.Remove(scene);
@@ -128,10 +139,178 @@ namespace NexVerse.RegionModules.Experiences
         public void Close()
         {
             lock (m_Sync)
+            {
+                foreach (Scene scene in m_Scenes)
+                    scene.EventManager.OnRegisterCaps -= RegisterFirestormReadCaps;
                 m_Scenes.Clear();
+            }
 
             m_Http?.Dispose();
             m_Http = null;
+        }
+
+        /// <summary>
+        /// Firestorm Experience discovery. The CAPS secret is unique to the
+        /// viewer session. All remote calls stay on the trusted simulator and
+        /// use a server-side API key (never returned to the viewer).
+        ///
+        /// GetExperienceInfo requires an additional /id/ path, so it uses
+        /// the explicitly supported variable-path listener. CAPS owns the
+        /// registration and removes it when the viewer session closes.
+        /// This is intentionally read-only: the existing Experience consent
+        /// flow has not yet been verified and must not be spoofed.
+        /// </summary>
+        private void RegisterFirestormReadCaps(UUID avatar, Caps caps)
+        {
+            if (!m_Enabled || !m_FirestormReadCaps || caps == null)
+                return;
+            var info = new SimpleStreamHandler("/" + UUID.Random(),
+                (request, response) => HandleFirestormRead(request, response, avatar, false));
+            // Register with CAPS for correct per-session URL generation and
+            // destruction, then register its handler as a variable path
+            // because Firestorm appends /id/ to GetExperienceInfo.
+            caps.RegisterSimpleHandler("GetExperienceInfo", info, false);
+            caps.HttpListener.AddSimpleStreamHandler(info, true);
+            caps.RegisterSimpleHandler("FindExperienceByName",
+                new SimpleStreamHandler("/" + UUID.Random(),
+                    (request, response) => HandleFirestormRead(request, response, avatar, true)));
+        }
+
+        private bool IsCurrentViewer(UUID avatar)
+        {
+            lock (m_Sync)
+            {
+                foreach (Scene scene in m_Scenes)
+                {
+                    if (scene.TryGetScenePresence(avatar, out ScenePresence presence) &&
+                        presence != null && !presence.IsDeleted && !presence.IsNPC)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private static OSDMap ViewerExperience(JsonElement e)
+        {
+            string id = e.GetProperty("experience_id").GetString();
+            string owner = e.GetProperty("owner_id").GetString();
+            string group = e.GetProperty("group_id").GetString();
+            bool enabled = e.GetProperty("enabled").GetBoolean();
+            UUID.TryParse(id, out UUID publicId);
+            UUID.TryParse(owner, out UUID ownerId);
+            UUID.TryParse(group, out UUID groupId);
+            return new OSDMap
+            {
+                ["public_id"] = OSD.FromUUID(publicId),
+                ["agent_id"] = OSD.FromUUID(ownerId),
+                ["group_id"] = OSD.FromUUID(groupId),
+                ["name"] = OSD.FromString(e.GetProperty("name").GetString() ?? ""),
+                ["description"] = OSD.FromString(e.GetProperty("description").GetString() ?? ""),
+                ["maturity"] = OSD.FromInteger(e.GetProperty("maturity").GetInt32()),
+                ["properties"] = OSD.FromInteger(enabled ? 0 : 1 << 6),
+                ["expiration"] = OSD.FromReal(600.0),
+                ["quota"] = OSD.FromInteger(128)
+            };
+        }
+
+        private void HandleFirestormRead(IOSHttpRequest request,
+            IOSHttpResponse response, UUID avatar, bool search)
+        {
+            response.ContentType = "application/llsd+xml";
+            response.KeepAlive = false;
+            response.AddHeader("Cache-Control", "no-store");
+            if (request.HttpMethod != "GET")
+            {
+                response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                return;
+            }
+            if (!IsCurrentViewer(avatar))
+            {
+                response.StatusCode = (int)HttpStatusCode.Gone;
+                return;
+            }
+            try
+            {
+                string apiPath;
+                if (search)
+                {
+                    string query = request.QueryString?["query"] ?? "";
+                    if (query.Length > 160)
+                    {
+                        response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        return;
+                    }
+                    int page = int.TryParse(request.QueryString?["page"], out int p)
+                        ? Math.Clamp(p, 0, 1000) : 0;
+                    int size = int.TryParse(request.QueryString?["page_size"], out int count)
+                        ? Math.Clamp(count, 1, 50) : 20;
+                    apiPath = "/api/v1/experiences/script/search?q=" +
+                        Uri.EscapeDataString(query) + "&offset=" + (page * size) +
+                        "&limit=" + size;
+                }
+                else
+                {
+                    string[] ids = request.QueryString?.GetValues("public_id") ??
+                        Array.Empty<string>();
+                    if (ids.Length == 0 || ids.Length > 64)
+                    {
+                        response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        return;
+                    }
+                    foreach (string raw in ids)
+                    {
+                        if (!UUID.TryParse(raw, out UUID id) || id.IsZero())
+                        {
+                            response.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return;
+                        }
+                    }
+                    apiPath = "/api/v1/experiences/script/info?ids=" +
+                        Uri.EscapeDataString(string.Join(",", ids));
+                }
+
+                using HttpRequestMessage upstreamRequest = CreateRequest(HttpMethod.Get, apiPath);
+                using HttpResponseMessage upstream = m_Http.Send(upstreamRequest);
+                if (!upstream.IsSuccessStatusCode)
+                {
+                    response.StatusCode = (int)HttpStatusCode.BadGateway;
+                    return;
+                }
+
+                using JsonDocument body = JsonDocument.Parse(
+                    upstream.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                OSDArray entries = new();
+                if (body.RootElement.TryGetProperty("experiences", out JsonElement items))
+                {
+                    foreach (JsonElement e in items.EnumerateArray())
+                        entries.Add(ViewerExperience(e));
+                }
+                OSDMap result = new() { ["experience_keys"] = entries };
+                if (!search)
+                {
+                    OSDArray errors = new();
+                    if (body.RootElement.TryGetProperty("error_ids", out JsonElement missing))
+                    {
+                        foreach (JsonElement id in missing.EnumerateArray())
+                        {
+                            if (UUID.TryParse(id.GetString(), out UUID uuid))
+                                errors.Add(OSD.FromUUID(uuid));
+                        }
+                    }
+                    result["error_ids"] = errors;
+                }
+                response.RawBuffer = Encoding.UTF8.GetBytes(
+                    OSDParser.SerializeLLSDXmlString(result));
+                response.StatusCode = (int)HttpStatusCode.OK;
+            }
+            catch (Exception e) when (e is HttpRequestException ||
+                                      e is JsonException || e is TaskCanceledException ||
+                                      e is InvalidOperationException ||
+                                      e is ArgumentException)
+            {
+                m_Log.WarnFormat("[NEX-EXPERIENCES]: Firestorm readonly CAP failed: {0}", e.Message);
+                response.StatusCode = (int)HttpStatusCode.BadGateway;
+            }
         }
 
         public UUID ResolveExperience(UUID scriptItemId)
