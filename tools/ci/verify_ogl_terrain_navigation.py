@@ -29,7 +29,7 @@ for safety_marker in (
 assert "Interlocked.Exchange(ref state.Dirty, 0);" not in module, "stale navigation was exposed before rebuild"
 assert "TryFindNearestTerrainPoint" in iface
 assert "TryFindNearestTerrainPoint" in module
-assert "TryFindNearestTerrainPoint" in snapshot
+assert "TryFindNearestTerrainPoint" in core
 lsl = Path("OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs").read_text(encoding="utf-8")
 lsl_interface = Path("OpenSim/Region/ScriptEngine/Shared/Api/Interface/ILSL_Api.cs").read_text(encoding="utf-8")
 lsl_stub = Path("OpenSim/Region/ScriptEngine/Shared/Api/Runtime/LSL_Stub.cs").read_text(encoding="utf-8")
