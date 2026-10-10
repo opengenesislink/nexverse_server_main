@@ -962,11 +962,13 @@ namespace NexVerse.RegionModules.Experiences
                                 scene.RegionInfo.ScopeID, part.OwnerID);
                             if (owner != null)
                                 ownerName = owner.FirstName + " " + owner.LastName;
-                            // Standard Experience authorization encompasses
-                            // controls, animation, attachment, camera and TP.
-                            // Crucially, it never includes debit permission.
-                            const int experiencePermissions =
-                                0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000;
+                            // Firestorm's llscriptruntimeperms.h defines
+                            // JoinAnExperience as (0x1 << 13). Asking for
+                            // unrelated controls/attach/camera/TP permissions
+                            // would be misleading and excessively broad.
+                            // The viewer recognizes ExperienceID + this bit
+                            // and opens ScriptQuestionExperience.
+                            const int experiencePermissions = 0x2000;
                             nativePromptSent = client.SendExperienceQuestion(
                                 objectId, objectName, ownerName, scriptItemId,
                                 experienceId, experiencePermissions);
