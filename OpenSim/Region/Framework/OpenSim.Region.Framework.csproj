@@ -267,6 +267,7 @@
     <Compile Include="Interfaces\IAttachmentsModule.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Interfaces\IOglNativeTerrainQuery.cs" />
     <Compile Include="Interfaces\IMaterialsModule.cs">
       <SubType>Code</SubType>
     </Compile>
