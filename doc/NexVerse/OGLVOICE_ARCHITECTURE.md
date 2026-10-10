@@ -1,13 +1,14 @@
 # OGLVoice – zentrale WebRTC-Sprachplattform (Architekturentwurf)
 
-**Zielmeilenstein:** OpenGenesisLINK 0.9.3.9 Dev  
-**Status:** Architektur und Implementierungsplan; **noch nicht im OpenGenesisLINK-Server implementiert**.  
+**Urspruenglicher Zielmeilenstein:** OpenGenesisLINK 0.9.3.9 Dev (inzwischen geaendert)  
+**Aktuelle Entscheidung (10.10.2026):** **OGLVoice pausiert und aus dem 0.9.3.10-Release-Scope entfernt.** Fortsetzung erst in einem spaeteren, noch nicht terminierten Entwicklungs-/Release-Train.  
+**Status:** Architektur, C#-Discovery/Voice-CAPS und Go-Media-Bridge sind als Dev-Quellcode vorhanden, aber ein produktiv abgenommener, auf dem Grid betriebener WebRTC-/LiveKit-Voice-Dienst ist **nicht** nachgewiesen. Alle folgenden Beispiel-Konfigurationen sind fuer die spaetere Wiederaufnahme, nicht zur sofortigen Aktivierung bestimmt.  
 **Vorhandene Grundlage:** Ein bestehender, separat betriebener NexVoice/LiveKit-Dienst kann weiterentwickelt werden; dessen tatsächliche Quellcode-/API-Kompatibilität muss vor Übernahme geprüft werden.  
 **Bestehende Webpräsenz:** https://voice.stadt-nexverse.de/ (OGLVoice-Verwaltung und späteres Mandantenportal; bestehende Seiteninhalte nicht Teil dieses Dokuments).
 
-## Implementierungsstand 0.9.3.10 Dev – OGLVoice Discovery v1
+## Historischer Implementierungsstand waehrend 0.9.3.10 Dev – OGLVoice Discovery v1
 
-Der **erste reale serverseitige OGLVoice-Integrationsschritt** ist die vertrauensbasierte Provider-Discovery. Sie hat **noch kein Sprach-Audio, keine LiveKit-Tokens, keine Firestorm-CAPS und keine Teilnehmer-/Voice-Kugeln**.
+Die vertrauensbasierte Provider-Discovery war der **erste serverseitige Integrationsschritt**. Zusaetzlich liegen inzwischen separate JWT-/Session-, Firestorm-WebRTC-CAPS- und Go-Pion-/LiveKit-Media-Bridge-Dev-Bausteine im Repository. Keiner dieser Quellcode- oder CI-Staende beweist eine produktive Zwei-Firestorm-Audioverbindung oder vollstaendige Voice-Kugeln. **Bis zur spaeteren Wiederaufnahme bleibt die Voice-Aktivierung auf dem Grid aus.**
 
 **Robust (GridAuthority):**
 - Setze `[OGLVoice] Enabled = true`, `Mode = "GridAuthority"`, `ServiceUrl`, `TenantId` und `IncludeHypergridGuests` in `Robust.HG.ini` oder `Robust.ini`.
