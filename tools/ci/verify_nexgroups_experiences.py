@@ -207,6 +207,19 @@ for marker in (
 
 assert "[NexExperiencesViewer]" in opensim_config
 assert "FirestormReadCaps = false" in opensim_config
+assert "FirestormPermissionCaps = false" in opensim_config
+assert "ViewerPermissionsApiKey" in opensim_config
+assert "GetExperiences" in experience_module
+assert "ExperiencePreferences" in experience_module
+assert "CreateViewerPermissionRequest" in experience_module
+assert "if (!IsCurrentViewer(avatar))" in experience_module
+assert 'resident_id = avatar.ToString()' in experience_module
+assert '"experiences:viewer:permissions"' in security or "ExperiencesViewerPermissions" in security
+assert "experience.resident.consent" in experience_store
+assert "SetOwnResidentPermission" in experience_store
+assert "GetResidentLists" in experience_store
+assert '"/api/v1/experiences/viewer/permissions"' in experience_api
+assert "service_key_required" in experience_api
 for marker in (
     '"GetExperienceInfo"',
     '"FindExperienceByName"',
