@@ -1284,6 +1284,10 @@ namespace NexVerse.Server.Api
                 out UserAccount _))
                 return;
 
+            // Key inventory metadata and one-time plaintext secret responses
+            // must never be stored by shared/intermediary HTTP caches.
+            response.AddHeader("Cache-Control", "no-store");
+
             if (m_ApiKeys == null)
             {
                 WriteError(
@@ -1525,6 +1529,7 @@ namespace NexVerse.Server.Api
                     out NexPrincipal principal, out UserAccount _))
                 return;
 
+            response.AddHeader("Cache-Control", "no-store");
             if (m_ApiKeys == null)
             {
                 WriteError(response, HttpStatusCode.ServiceUnavailable,
