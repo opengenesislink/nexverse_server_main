@@ -1030,6 +1030,12 @@
     ; Requires real experiences:script service credentials and viewer E2E tests.
     ; Does NOT enable viewer permission write/consent capabilities.
     FirestormReadCaps = false
+    ; Opt-in Firestorm GetExperiences / ExperiencePreferences (Allow/Block/Forget)
+    ; Set ONLY with a separate admin-issued API key scoped exclusively to
+    ; experiences:viewer:permissions; never reuse experiences:script key.
+    ; Never enable on production before real two-avatar consent tests.
+    FirestormPermissionCaps = false
+    ViewerPermissionsApiKey = "${Environment|NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY}"
 
 [NexEconomyViewer]
     ; Central OpenGenesisLINK NV$ Viewer/IMoneyModule adapter.

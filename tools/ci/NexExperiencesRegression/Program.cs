@@ -97,6 +97,37 @@ internal static class Program
                 blocked) ==
                 NexExperiencePermissionStatus.Blocked,
             "blocked resident failed");
+        Guid viewerResident = Guid.NewGuid();
+        store.SetOwnResidentPermission(created.ExperienceId, viewerResident,
+            NexExperiencePermissionStatus.Allowed, "viewer");
+        Require(store.GetResidentLists(viewerResident).Allowed.Contains(created.ExperienceId),
+            "Firestorm GetExperiences allowed list");
+        store.SetOwnResidentPermission(created.ExperienceId, viewerResident,
+            NexExperiencePermissionStatus.Blocked, "viewer");
+        Require(store.GetResidentLists(viewerResident).Blocked.Contains(created.ExperienceId) &&
+            !store.GetResidentLists(viewerResident).Allowed.Contains(created.ExperienceId),
+            "Firestorm ExperiencePreferences block/allow isolation");
+        Require(!store.GetResidentLists(resident).Blocked.Contains(created.ExperienceId),
+            "one resident's block leaked to another");
+        NexExperienceStore reloadedViewer = new NexExperienceStore(path);
+        Require(reloadedViewer.GetResidentPermission(created.ExperienceId, viewerResident) ==
+            NexExperiencePermissionStatus.Blocked,
+            "Firestorm permission did not survive store reload");
+        store.SetOwnResidentPermission(created.ExperienceId, viewerResident,
+            NexExperiencePermissionStatus.None, "viewer");
+        Require(store.GetResidentPermission(created.ExperienceId, viewerResident) ==
+            NexExperiencePermissionStatus.None, "Firestorm Forget did not revoke consent");
+        Require(store.GetResidentLists(owner).Owned.Contains(created.ExperienceId),
+            "GetExperiences owned list");
+        bool blockOwnerRejected = false;
+        try
+        {
+            store.SetOwnResidentPermission(created.ExperienceId, owner,
+                NexExperiencePermissionStatus.Blocked, "viewer");
+        }
+        catch (InvalidOperationException) { blockOwnerRejected = true; }
+        Require(blockOwnerRejected, "owner cannot block their own Experience");
+
 
         store.SetLocationPolicy(
             created.ExperienceId,

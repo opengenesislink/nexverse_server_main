@@ -317,6 +317,72 @@ namespace NexVerse.Core.Experiences
             }
         }
 
+        /// <summary>
+        /// Resident-initiated consent/revocation via a trusted, separately
+        /// scoped simulator endpoint. Unlike administrator moderation this
+        /// never accepts an arbitrary actor or changes someone else's grant.
+        /// Callers must verify the active viewer identity before forwarding.
+        /// </summary>
+        public NexExperience SetOwnResidentPermission(Guid experienceId,
+            Guid residentId, NexExperiencePermissionStatus status, string actor)
+        {
+            if (residentId == Guid.Empty || experienceId == Guid.Empty)
+                throw new ArgumentException("Experience and resident are required.");
+            if (!Enum.IsDefined(typeof(NexExperiencePermissionStatus), status))
+                throw new ArgumentOutOfRangeException(nameof(status));
+
+            lock (m_Sync)
+            {
+                NexExperience experience = Find(experienceId);
+                if (experience == null)
+                    throw new KeyNotFoundException("Experience was not found.");
+                if (!experience.Enabled)
+                    throw new InvalidOperationException("Experience is disabled.");
+                if (experience.OwnerId == residentId &&
+                    status == NexExperiencePermissionStatus.Blocked)
+                    throw new InvalidOperationException(
+                        "Owners cannot block their own experience.");
+
+                experience.AllowedResidents.Remove(residentId);
+                experience.BlockedResidents.Remove(residentId);
+                if (status == NexExperiencePermissionStatus.Allowed)
+                    experience.AllowedResidents.Add(residentId);
+                if (status == NexExperiencePermissionStatus.Blocked)
+                    experience.BlockedResidents.Add(residentId);
+
+                experience.UpdatedAt = DateTimeOffset.UtcNow;
+                AddLog(experienceId, actor, "experience.resident.consent",
+                    residentId + ":" + status);
+                Save();
+                return Clone(experience);
+            }
+        }
+
+        /// <summary>
+        /// Return only this resident's own Experience lists. No owner lists,
+        /// other users' permissions, script bindings or keys are exposed.
+        /// </summary>
+        public (Guid[] Allowed, Guid[] Blocked, Guid[] Owned) GetResidentLists(Guid residentId)
+        {
+            if (residentId == Guid.Empty)
+                throw new ArgumentException("Resident ID is required.", nameof(residentId));
+            lock (m_Sync)
+            {
+                NexExperience[] active = m_State.Experiences
+                    .Where(x => x.Enabled).ToArray();
+                return (
+                    active.Where(x => !x.BlockedResidents.Contains(residentId) &&
+                        (x.AllowedResidents.Contains(residentId) ||
+                         x.OwnerId == residentId || x.Admins.Contains(residentId) ||
+                         x.Contributors.Contains(residentId)))
+                        .Select(x => x.ExperienceId).ToArray(),
+                    active.Where(x => x.BlockedResidents.Contains(residentId))
+                        .Select(x => x.ExperienceId).ToArray(),
+                    active.Where(x => x.OwnerId == residentId)
+                        .Select(x => x.ExperienceId).ToArray());
+            }
+        }
+
         public NexExperience SetLocationPolicy(
             Guid experienceId,
             Guid actorId,
