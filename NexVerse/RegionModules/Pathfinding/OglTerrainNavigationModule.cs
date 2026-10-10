@@ -53,6 +53,25 @@ namespace NexVerse.RegionModules.Pathfinding
                 Volatile.Read(ref Building) != 0 ||
                 Volatile.Read(ref SnapshotEpoch) != Volatile.Read(ref Epoch);
 
+            public bool TryFindNearestTerrainPoint(float x, float y, float z,
+                float radius, out OglNavigationPoint point)
+            {
+                point = default;
+                int epoch = Volatile.Read(ref Epoch);
+                OglTerrainNavigationSnapshot snapshot = Volatile.Read(ref Snapshot);
+                if (snapshot == null || IsNavigationDirty ||
+                    epoch != Volatile.Read(ref SnapshotEpoch))
+                    return false;
+                if (!snapshot.TryFindNearestTerrainPoint(x, y, z, radius, out point))
+                    return false;
+                if (IsNavigationDirty || epoch != Volatile.Read(ref Epoch))
+                {
+                    point = default;
+                    return false;
+                }
+                return true;
+            }
+
             public bool TryFindTerrainPath(float startX, float startY, float targetX, float targetY,
                 out IReadOnlyList<OglNavigationPoint> path)
             {
