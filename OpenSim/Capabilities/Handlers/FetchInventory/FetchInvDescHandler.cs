@@ -46,6 +46,10 @@ namespace OpenSim.Capabilities.Handlers
     public class FetchInvDescHandler
     {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        // Diagnostics are disabled unless the operator explicitly selects one folder.
+        private static readonly UUID s_ThumbnailTraceFolderID =
+            UUID.TryParse(Environment.GetEnvironmentVariable("OGL_THUMBNAIL_TRACE_FOLDER_ID"), out UUID traceFolder)
+                ? traceFolder : UUID.Zero;
 
         private static readonly byte[] EmptyResponse = Util.UTF8NBGetbytes("<llsd><map><key>folders</key><array /></map></llsd>");
         private readonly IInventoryService m_InventoryService;
@@ -188,6 +192,30 @@ namespace OpenSim.Capabilities.Handlers
                 {
                     thiscoll = invcollSet[i];
                     invcollSet[i] = null;
+
+                    if (s_ThumbnailTraceFolderID != UUID.Zero)
+                    {
+                        if (thiscoll.FolderID == s_ThumbnailTraceFolderID)
+                        {
+                            m_log.InfoFormat(
+                                "[INVENTORY THUMBNAIL TRACE]: FETCH_SELF folder={0} folder_version={1} children={2} items={3}",
+                                thiscoll.FolderID, thiscoll.Version,
+                                thiscoll.Folders?.Count ?? 0, thiscoll.Items?.Count ?? 0);
+                        }
+                        if (thiscoll.Folders != null)
+                        {
+                            foreach (InventoryFolderBase child in thiscoll.Folders)
+                            {
+                                if (child.ID != s_ThumbnailTraceFolderID)
+                                    continue;
+                                m_log.InfoFormat(
+                                    "[INVENTORY THUMBNAIL TRACE]: FETCH_CHILD parent={0} parent_version={1} folder={2} folder_version={3} thumbnail={4}",
+                                    thiscoll.FolderID, thiscoll.Version, child.ID,
+                                    child.Version, child.ThumbnailID);
+                                break;
+                            }
+                        }
+                    }
 
                     LLSDxmlEncode2.AddMap(lastresponse);
                     LLSDxmlEncode2.AddElem_folder_id(thiscoll.FolderID, lastresponse);
