@@ -310,6 +310,10 @@ jobs:
         shell: bash
         run: python3 tools/ci/verify_ogl_terrain_navigation.py
 
+      - name: Regression-test Voice and Pathfinding deployment preflight
+        shell: bash
+        run: python3 -m unittest discover -s tools/diagnostics -p 'test_ogl_voice_pathfinding_preflight.py' -v
+
       - name: Regression-test OGL terrain heightfield navigation
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglTerrainNavigationRegression/OglTerrainNavigationRegression.csproj
