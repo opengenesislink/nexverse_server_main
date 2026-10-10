@@ -17,14 +17,48 @@ Die C#-Regression in `tools/ci/OglTerrainNavigationRegression/Program.cs` prueft
 - Steigung, Cliffs, zu breite Agenten und blockierte diagonale Ecken
 - Begrenzung der CPU-Arbeit und Ablehnung ungueltiger bzw. doppelter Knoten oder Portale
 
-## Wichtig: Integration noch offen
+## Native Regionsabfragen: neue Anbindung (nach PR #141)
 
-Der mehrschichtige Kern **interpretiert keine Mesh-Dreiecke selbst** und ist **noch nicht** als aktiver Regions-Navigator an `Scene`, Physics oder die OpenSim-LSL-API angeschlossen. Der aktuell nutzbare `IOglNativeTerrainQuery` und `llGetStaticPath` verbleiben beim bisherigen, terrainbasierten Snapshot. Mit dieser Trennung kann der neue Kern getestet werden, ohne begehbare Stockwerke, Treppen oder Durchgaenge aus beliebigen Mesh-AABBs zu erfinden.
+Die Abfragen `TryFindClosestSurface` und `TryFindWorldPath` arbeiten jetzt
+vollstaendig in 3D und liefern fuer gepruefte Oberflaechen einen
+world-space-Pfad mit begrenzten Kosten und SL-kompatiblen Fehlercodes.
+Bei gleicher X/Y-Position waehlt der Query aufgrund des Z-Abstands
+die richtige Ebene. Getrennte Etagen werden **ausschliesslich** ueber
+bereitgestellte verifizierte Portale miteinander verbunden.
 
-### Notwendige naechste Stufe
-1. Echte begehbare Flaechen aus Physics-/Mesh-Kollisionstriangulation oder nachweislich begehbaren Kollisionsflaechen gewinnen; Ebenen/Steigung/Agentenhoehe/Randkanten validieren.
-2. Verifizierte Treppen, Tueren, Off-Mesh-Portale und vertikale Freiraeume bilden; Terraforming und Prim-/Mesh-Updates versioniert invalidieren.
-3. `OglLayeredNavGraph` an den asynchronen Regions-Snapshot, Character-Steuerung, komplette Pathfinding-LSL-Funktionen und die Firestorm-NavMesh-CAPS anbinden.
-4. Test auf `OGL Developer Gen1` mit Erdgeschoss/Bruecke/Treppe und echten Firestorm-/NPC-Kollisionen, CPU/GC/Tick-Profiling und Rechtepruefungen.
+`OglTerrainNavigationModule` kann bei aktivierter Option
+`UseVerifiedLayeredSurfaces = true` einen vertrauenswuerdigen
+`IOglVerifiedLayeredSurfaceSource`-Regionsprovider abfragen.
+Dieser erstellt einen **unveraenderlichen** `OglLayeredNavGraph` aus
+real nachgewiesenen Collision-Surfaces und geprueften Off-Mesh-Portalen.
+Der Regions-Snapshot wird zusammen mit dem Terrain-Snapshot
+epoch-gebunden veroeffentlicht. Terrain-/Objektaenderungen sperren
+alte Anfragen bis zum Neuaufbau. Bei fehlendem, fehlerhaftem oder
+regionsfremdem Provider-Graphen schlaegt die Navigation geschlossen
+fehl, statt im Viewer vermeintliche Etagenwege zu melden.
 
-**Keine Freigabe als vollstaendiges 3D-NavMesh und keine Stable-Freigabe aus dem CI-Build.**
+```ini
+[OGLPathfinding]
+    Enabled = false
+    UseVerifiedLayeredSurfaces = false
+    LayeredMaxStepMeters = 0.6
+```
+
+**Die Option nicht auf Produktion einschalten.** In diesem Schritt
+wurde die Anbindung samt 3D-Abfrage, aber noch **kein konkreter**
+Collision-Mesh-/Physics-Provider implementiert. Der normale
+Terrain-Snapshot bleibt bei Default-Konfiguration unveraendert.
+`RetrieveNavMeshSrc` wird weiterhin nicht beworben.
+
+## Weiterhin offene Release-Blocker
+
+1. Scene-/Physics-Adapter, der echte Mesh-Triangulation bzw.
+   nachweislich begehbare Kollisionsflaechen abtastet, vertikalen
+   Agenten-Freiraum sicherstellt und verifizierte Portale erstellt.
+2. Reale Character-/NPC-LSL-Lifecycle-Integration mit
+   `llCreateCharacter`, `llNavigateTo`, `path_update` usw.
+3. Korrekte Firestorm-Havok-NavMesh-CAPS und echte Viewer-Abnahme.
+4. Live-Tests auf `OGL Developer Gen1`, mehrere Etagen und
+   Regionen, Last-/Race-Profiling, Permissions und Rollback.
+
+**0.9.3.10 bleibt Dev. Keine volle 3D-NavMesh-/LSL-Paritaet und keine Stable-Freigabe.**
