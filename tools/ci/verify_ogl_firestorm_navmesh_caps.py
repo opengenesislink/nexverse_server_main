@@ -47,6 +47,11 @@ for required in (
     "SHA256.HashData",
     "m_Compressed.Clone()",
     "count > MaxExpandedBytes - read",
+    "ReadLittleUInt32",
+    "ReadBigUInt32",
+    "s_Crc32Table",
+    "actualAdler != expectedAdler",
+    "(crc ^ 0xffffffffu) != expectedCrc",
 ):
     assert required in wire, f"missing native transport cap: {required}"
 assert "FirestormNavMeshCaps = false" in config
