@@ -206,6 +206,23 @@ for marker in (
     assert marker in connector, f"missing chapter 11 API registration: {marker}"
 
 assert "[NexExperiencesViewer]" in opensim_config
+assert "FirestormReadCaps = false" in opensim_config
+for marker in (
+    '"GetExperienceInfo"',
+    '"FindExperienceByName"',
+    "RegisterFirestormReadCaps",
+    "AddSimpleStreamHandler(info, true)",
+    "IsCurrentViewer(avatar)",
+    "OSDParser.SerializeLLSDXmlString(result)",
+):
+    assert marker in experience_module, f"missing Firestorm read-only CAP contract: {marker}"
+for marker in (
+    '"/api/v1/experiences/script/info"',
+    '"/api/v1/experiences/script/search"',
+    "NexScopes.ExperiencesScript",
+    "tokens.Length > 64",
+):
+    assert marker in experience_api, f"missing bounded Experience viewer metadata contract: {marker}"
 assert "NEXVERSE_EXPERIENCES_API_KEY" in opensim_config
 assert "NexModerationStorePath" in robust_config
 assert "NexModerationStorePath" in robust_hg_config
