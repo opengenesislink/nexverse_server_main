@@ -1,5 +1,7 @@
 # OpenGenesisLINK 0.9.3.10 Dev – Firestorm Voice/Pathfinding Logabgleich (10.10.2026)
 
+**Aktuelle Priorisierung (10.10.2026):** Voice-Liveintegration und Media-Gateway-Rollout sind ausdruecklich auf einen spaeteren, noch nicht terminierten Entwicklungsabschnitt verschoben. Alle Voice-Konfigurationsanweisungen unten sind zur historischen Diagnose und spaeteren Wiederaufnahme dokumentiert, **keine Aktivierungsempfehlung fuer 0.9.3.10**. Der aktive Release-Blocker aus diesem Log ist ausschliesslich die noch nicht implementierte Firestorm-Pathfinding-/NavMesh-Kompatibilitaet. Bestehende OGLVoice-Codebasis und CI-Tests bleiben erhalten.
+
 ## Gesicherte Symptome aus dem Firestorm 7.2.4.80712-Log
 
 Region `OGL Developer Gen1`; Log-Zeiten sind UTC (13:23 = 15:23 MESZ).
@@ -109,6 +111,7 @@ Vor jedem Live-Enable:
 Das neue Diagnose-PR bietet **Betriebsdiagnose und CI-Regressionen**.
 Der Firestorm-NavMesh-Protokolladapter und eine vollstaendige
 produktiv lauffaehige Voice-Infrastruktur sind damit **nicht**
-implementiert oder freigegeben. Die Release-Gates aus
-`RELEASE_TRAIN_0.9.3.10.md` bleiben weiterhin offen. Keine Stable-
+implementiert oder freigegeben. Die revidierten **Runtime-/Pathfinding-Release-Gates** aus
+`RELEASE_TRAIN_0.9.3.10.md` bleiben weiterhin offen. OGLVoice wurde
+als Funktion vertagt und ist kein 0.9.3.10-Release-Blocker. Keine Stable-
 Freigabe aus einem grünen CI-Build ableiten.
