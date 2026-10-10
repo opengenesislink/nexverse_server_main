@@ -41,7 +41,7 @@ assert "TryGetClosestNavPoint" in native_iface
 assert "TryGetStaticTerrainPath" in native_iface
 assert "TryGetStaticTerrainPath" in module
 assert "TryFindStaticTerrainRoute" in core
-for guard in ("OglTerrainStaticObstacles.Project", "OglStaticCollisionAabb",
+for guard in ("class OglTerrainStaticObstacles", "OglStaticCollisionAabb",
               "Too many static obstacle-cell intersections"):
     assert guard in core, f"static prim collider guard missing: {guard}"
 for guard in ("TrackStaticColliders", "CaptureStaticColliders",
