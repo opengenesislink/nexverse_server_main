@@ -87,49 +87,23 @@ namespace NexVerse.RegionModules.Pathfinding
                 float radius, out Vector3[] waypoints, out int status)
             {
                 waypoints = Array.Empty<Vector3>();
-                // SL failure codes: invalid start=2, invalid goal=3,
-                // unreachable=4, missing/dirty navmesh=9, other=0xF4240.
-                status = 9;
-                if (!IsNavigationReady)
+                status = 9; // PU_FAILURE_NO_NAVMESH for missing/dirty snapshot.
+                int epoch = Volatile.Read(ref Epoch);
+                OglTerrainNavigationSnapshot snapshot = Volatile.Read(ref Snapshot);
+                if (snapshot == null || IsNavigationDirty ||
+                    epoch != Volatile.Read(ref SnapshotEpoch))
                     return false;
-                if (!float.IsFinite(radius) || radius < 0.125f || radius > 5.0f ||
-                    !float.IsFinite(start.X) || !float.IsFinite(start.Y) ||
-                    !float.IsFinite(start.Z) || !float.IsFinite(end.X) ||
-                    !float.IsFinite(end.Y) || !float.IsFinite(end.Z))
-                {
-                    status = 0xF4240;
-                    return false;
-                }
 
-                // A terrain heightfield has only one walkable surface per X/Y.
-                // Reject coordinates too far above/below it; no fabricated
-                // cross-floor/off-mesh routes. This is not Havok NavMesh.
-                if (!TryGetClosestNavPoint(start.X, start.Y, start.Z, 8f, out _))
-                {
-                    status = 2;
+                if (!snapshot.TryFindStaticTerrainRoute(
+                    start.X, start.Y, start.Z,
+                    end.X, end.Y, end.Z, radius,
+                    out IReadOnlyList<OglNavigationPoint> route,
+                    out status, m_MaxExpanded))
                     return false;
-                }
-                if (!TryGetClosestNavPoint(end.X, end.Y, end.Z, 8f, out _))
-                {
-                    status = 3;
-                    return false;
-                }
-                if (!TryFindTerrainPath(start.X, start.Y, end.X, end.Y,
-                    out IReadOnlyList<OglNavigationPoint> path))
-                {
-                    status = 4;
-                    return false;
-                }
-                if (path.Count == 0 || path.Count > 256)
-                {
-                    status = 0xF4240;
-                    return false;
-                }
-                Vector3[] result = new Vector3[path.Count];
-                for (int i = 0; i < result.Length; i++)
-                    result[i] = new Vector3(path[i].X, path[i].Y, path[i].Z);
-                // Terraforming may invalidate the route while serialising.
-                if (!IsNavigationReady)
+                Vector3[] result = new Vector3[route.Count];
+                for (int i = 0; i < result.Length; ++i)
+                    result[i] = new Vector3(route[i].X, route[i].Y, route[i].Z);
+                if (IsNavigationDirty || epoch != Volatile.Read(ref Epoch))
                 {
                     status = 9;
                     return false;
