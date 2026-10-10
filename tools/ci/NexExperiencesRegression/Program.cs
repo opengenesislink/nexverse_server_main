@@ -340,6 +340,77 @@ internal static class Program
             reopened.ResolveScript(script) == Guid.Empty,
             "Experience deletion cleanup failed");
 
+        // Pending LSL consent never itself writes central permission. The
+        // viewer has to Allow, Block or Forget through authenticated CAPS.
+        // Exercise independent residents, duplicate scripts, expiration,
+        // per-resident bounds and simulator-region cancellation.
+        var pending = new NexPendingExperienceQueue();
+        Guid pendingExperience = Guid.NewGuid();
+        Guid pendingRegion = Guid.NewGuid();
+        Guid pendingAvatar = Guid.NewGuid();
+        Guid pendingObject = Guid.NewGuid();
+        Guid pendingScript = Guid.NewGuid();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        int callbackStatus = -1;
+        NexPendingExperienceRequest consent = new()
+        {
+            ResidentId = pendingAvatar,
+            ExperienceId = pendingExperience,
+            RegionId = pendingRegion,
+            ScriptId = pendingScript,
+            ObjectId = pendingObject,
+            ParcelId = parcel,
+            Deadline = now.AddSeconds(60),
+            Completion = result => callbackStatus = result
+        };
+        Require(pending.TryAdd(consent, now), "pending first consent failed");
+        Require(!pending.TryAdd(consent, now),
+            "same script/resident must not duplicate pending consent");
+        Require(pending.Take(Guid.NewGuid(), pendingExperience).Length == 0 &&
+                pending.Count == 1,
+            "another avatar could drain resident consent");
+        var resolved = pending.Take(pendingAvatar, pendingExperience);
+        Require(resolved.Length == 1 && pending.Count == 0,
+            "viewer consent must resolve only matching resident/experience");
+        resolved[0].Completion(0);
+        Require(callbackStatus == 0, "deferred LSL success callback lost");
+        Require(pending.TryAdd(consent, now), "re-request after consent is resolved");
+        Require(pending.Expire(now.AddSeconds(61)).Length == 1 &&
+                pending.Count == 0,
+            "unanswered consent did not expire");
+
+        for (int i = 0; i < 16; i++)
+        {
+            Require(pending.TryAdd(new NexPendingExperienceRequest
+            {
+                ResidentId = pendingAvatar,
+                ExperienceId = pendingExperience,
+                RegionId = pendingRegion,
+                ObjectId = pendingObject,
+                ScriptId = Guid.NewGuid(),
+                Deadline = now.AddSeconds(60),
+                Completion = _ => { }
+            }, now), "16 pending scripts should respect per-resident bound");
+        }
+        Require(!pending.TryAdd(consent, now),
+            "resident limit must reject excessive pending requests");
+        Require(pending.CancelRegion(Guid.NewGuid()).Length == 0 &&
+                pending.Count == 16,
+            "unrelated region canceled pending requests");
+        Require(pending.CancelRegion(pendingRegion).Length == 16 &&
+                pending.Count == 0,
+            "region shutdown did not cancel its pending requests");
+        Require(!pending.TryAdd(new NexPendingExperienceRequest
+        {
+            ResidentId = pendingAvatar,
+            ExperienceId = pendingExperience,
+            RegionId = pendingRegion,
+            ObjectId = pendingObject,
+            ScriptId = pendingScript,
+            Deadline = now.AddMinutes(10),
+            Completion = _ => { }
+        }, now), "unbounded consent deadline accepted");
+
         Directory.Delete(root, true);
 
         Console.WriteLine(
