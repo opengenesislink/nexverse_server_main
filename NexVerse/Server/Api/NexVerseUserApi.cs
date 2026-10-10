@@ -1453,11 +1453,16 @@ namespace NexVerse.Server.Api
                         keyId,
                         enabled))
                     {
+                        bool exists = m_ApiKeys.List().Any(x =>
+                            string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
                         WriteError(
                             response,
-                            HttpStatusCode.NotFound,
-                            "api_key_not_found",
-                            "API key was not found.");
+                            exists && enabled ? HttpStatusCode.Conflict :
+                                HttpStatusCode.NotFound,
+                            exists && enabled ? "api_key_duplicate" : "api_key_not_found",
+                            exists && enabled ?
+                                "An enabled key with the same name and scopes exists. Re-enabling this key would create an active duplicate." :
+                                "API key was not found.");
                         return;
                     }
 
