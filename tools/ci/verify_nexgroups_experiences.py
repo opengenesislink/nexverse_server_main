@@ -208,6 +208,30 @@ for marker in (
 assert "[NexExperiencesViewer]" in opensim_config
 assert "FirestormReadCaps = false" in opensim_config
 assert "FirestormPermissionCaps = false" in opensim_config
+assert "ScriptPendingConsent = false" in opensim_config
+for marker in (
+    "NexPendingExperienceQueue",
+    "NexPendingExperienceRequest",
+    "TryAdd(",
+    "Take(Guid resident, Guid experience)",
+    "CancelRegion(",
+    "public int Count",
+):
+    assert marker in experience_store, f"missing bounded pending consent contract: {marker}"
+for marker in (
+    "QueueExperiencePermissionRequest(",
+    "ScriptPendingConsent requires FirestormPermissionCaps",
+    "FindLiveConsentContext",
+    "ResolveViewerPendingConsent",
+    "XP_ERROR_REQUEST_PERM_TIMEOUT",
+    "m_Pending.CancelRegion",
+    "m_Pending.Expire(",
+):
+    source = (lsl_constants if marker == "XP_ERROR_REQUEST_PERM_TIMEOUT" else experience_module)
+    assert marker in source or marker in lsl_api, f"missing pending consent bridge: {marker}"
+assert "QueueExperiencePermissionRequest(" in experience_interface
+assert "module.QueueExperiencePermissionRequest(" in lsl_api
+assert "Pending LSL consent never itself writes central permission" in regression
 assert "ViewerPermissionsApiKey" in opensim_config
 assert "GetExperiences" in experience_module
 for cap in (

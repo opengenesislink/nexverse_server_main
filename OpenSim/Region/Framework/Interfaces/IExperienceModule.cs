@@ -28,6 +28,19 @@ namespace OpenSim.Region.Framework.Interfaces
             out UUID experienceId,
             out string reason);
 
+        /// <summary>
+        /// Opt-in, fail-closed pending Experience consent. Only unblocked,
+        /// ungranted residents with a live viewer can be queued.
+        /// Callback: 0=granted, 4=denied, 18=timeout. Implementations must
+        /// revalidate the script, region and parcel before granting.
+        /// </summary>
+        bool QueueExperiencePermissionRequest(
+            UUID scriptItemId,
+            UUID objectId,
+            UUID residentId,
+            UUID parcelId,
+            System.Action<int> onResult);
+
         bool AgentInExperience(
             UUID scriptItemId,
             UUID residentId);

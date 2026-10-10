@@ -22,6 +22,104 @@ namespace NexVerse.Core.Experiences
         Blocked = 2
     }
 
+    /// <summary>
+    /// Simulator-local pending script consent request. No permission or
+    /// Experience K/V authority is stored here; the central service must be
+    /// rechecked after a viewer decision. Callbacks are invoked OUTSIDE locks.
+    /// </summary>
+    public sealed class NexPendingExperienceRequest
+    {
+        public Guid ExperienceId { get; init; }
+        public Guid ResidentId { get; init; }
+        public Guid RegionId { get; init; }
+        public Guid ObjectId { get; init; }
+        public Guid ScriptId { get; init; }
+        public Guid ParcelId { get; init; }
+        public DateTimeOffset Deadline { get; init; }
+        public Action<int> Completion { get; init; }
+    }
+
+    /// <summary>
+    /// Bounded, expiring consent queue. Status values use the SL
+    /// XP_ERROR_* numbers (0=granted, 4=denied, 18=timeout).
+    /// No callback is invoked from within the synchronisation lock.
+    /// </summary>
+    public sealed class NexPendingExperienceQueue
+    {
+        private readonly object m_Lock = new();
+        private readonly List<NexPendingExperienceRequest> m_Requests = new();
+
+        public bool TryAdd(NexPendingExperienceRequest request, DateTimeOffset now)
+        {
+            if (request == null || request.Completion == null ||
+                request.ResidentId == Guid.Empty ||
+                request.ExperienceId == Guid.Empty ||
+                request.RegionId == Guid.Empty ||
+                request.ScriptId == Guid.Empty ||
+                request.ObjectId == Guid.Empty ||
+                request.Deadline <= now || request.Deadline > now.AddMinutes(2))
+                return false;
+            lock (m_Lock)
+            {
+                if (m_Requests.Count >= 1024 ||
+                    m_Requests.Count(x => x.ResidentId == request.ResidentId) >= 16 ||
+                    m_Requests.Any(x => x.ResidentId == request.ResidentId &&
+                        x.ExperienceId == request.ExperienceId &&
+                        x.ScriptId == request.ScriptId))
+                    return false;
+                m_Requests.Add(request);
+                return true;
+            }
+        }
+
+        public NexPendingExperienceRequest[] Take(Guid resident, Guid experience)
+        {
+            lock (m_Lock)
+            {
+                var selected = m_Requests.Where(x =>
+                    x.ResidentId == resident && x.ExperienceId == experience).ToArray();
+                m_Requests.RemoveAll(x =>
+                    x.ResidentId == resident && x.ExperienceId == experience);
+                return selected;
+            }
+        }
+
+        public NexPendingExperienceRequest[] Expire(DateTimeOffset now)
+        {
+            lock (m_Lock)
+            {
+                var expired = m_Requests.Where(x => x.Deadline <= now).ToArray();
+                m_Requests.RemoveAll(x => x.Deadline <= now);
+                return expired;
+            }
+        }
+
+        public NexPendingExperienceRequest[] CancelRegion(Guid region)
+        {
+            lock (m_Lock)
+            {
+                var canceled = m_Requests.Where(x => x.RegionId == region).ToArray();
+                m_Requests.RemoveAll(x => x.RegionId == region);
+                return canceled;
+            }
+        }
+
+        public NexPendingExperienceRequest[] CancelAll()
+        {
+            lock (m_Lock)
+            {
+                var canceled = m_Requests.ToArray();
+                m_Requests.Clear();
+                return canceled;
+            }
+        }
+
+        public int Count
+        {
+            get { lock (m_Lock) return m_Requests.Count; }
+        }
+    }
+
     public sealed class NexExperience
     {
         public Guid ExperienceId { get; set; }
