@@ -25,6 +25,24 @@ Das Release bündelt den gesamten geplanten Meilenstein **0.9.3.9** (OGLVoice un
 - [ ] **Firestorm Appearance "Kein Outfit" live abnehmen:** Current-Outfit-/My-Outfits-Ordner, gespeicherte Outfits, vorhandene Links und Avatar-Appearance vor Ort pruefen. Kein automatischer, potentiell zerstoererischer Reset existierender Nutzeroutfits.
 - [x] **Viewer-Thumbnail-E2E mit dokumentierter Einschraenkung abgeschlossen:** Neuer Snapshot, MariaDB-Persistenz, Versionsanstieg, Anzeige nach Cache-Neuaufbau und fehlerhafte Aktualisierung nach normalem Relog reproduziert. **Kein** bestandener automatischer Cache-Refresh-Test; Fehler als Firestorm-7.2.4-OpenSim-Kompatibilitaetslimit akzeptiert. `Kein Outfit`/COF ist davon **nicht** abgenommen.
 
+## A.2 Firestorm-Log: Voice/Pathfinding fehlende Capabilities (10.10.2026)
+
+- [x] **Analyse und Debugbarkeit:** Firestorm 7.2.4.80712 meldet
+  `RetrieveNavMeshSrc` als fehlend und faellt beim Voice-Account-Setup
+  auf Legacy-Vivox mit leerer POST-URL zurueck.
+  Eigene Servermeldungen fuer ausgeschaltete/noch nicht bereite
+  OGLVoice-Provider und nativen A*-Status sowie ein schluesselfreies
+  read-only-Konfigurations-Preflight plus CI-Tests dokumentiert.
+  Details: `doc/NexVerse/FIRESTORM_VOICE_PATHFINDING_LOG_20261010.md`.
+- [ ] **Eigentliche Fehlerbeseitigung noch offen:** `RetrieveNavMeshSrc`
+  benoetigt ein echtes Firestorm-kompatibles binäres NavMesh mit
+  Versions-/Status-Endpunkt; der OGL-Terrain-A*-Snapshot leistet das
+  noch nicht. OGLVoice benoetigt einen konfigurierten, live erreichbaren
+  und mit zwei Firestorm-Clients bestaetigten Pion-/LiveKit-WebRTC-
+  Gateway. Weder Platzhalter-CAPS noch fingierte Vivox-URLs werden
+  angeboten. Diese beiden fehlenden Funktionen bleiben
+  **separate Stable-Blocker**, auch wenn der Preflight erfolgreich laeuft.
+
 ## B. Arbeitspaket OGLVoice (aus 0.9.3.9)
 
 - [ ] Bestehenden NexVoice-/LiveKit-Quellcode einschließlich Credentials/Signalisierung sicher prüfen; keine Produktivschlüssel kopieren.

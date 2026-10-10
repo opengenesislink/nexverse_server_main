@@ -71,7 +71,11 @@ namespace NexVerse.RegionModules.Pathfinding
         {
             IConfig config = source.Configs["OGLPathfinding"];
             m_Enabled = config?.GetBoolean("Enabled", false) ?? false;
-            if (!m_Enabled) return;
+            if (!m_Enabled)
+            {
+                m_Log.Info("[OGL-PATH]: Terrain A* disabled by [OGLPathfinding] (Enabled=false). Firestorm RetrieveNavMeshSrc requires a separate Second Life-compatible NavMesh implementation.");
+                return;
+            }
             m_CellMeters = Math.Clamp(config.GetInt("CellMeters", 4), 1, 32);
             m_MaxSlope = Math.Clamp(config.GetFloat("MaxSlopePerMeter", 0.65f), 0.05f, 2.0f);
             m_MaxExpanded = Math.Clamp(config.GetInt("MaxExpandedNodes", 20000), 128, 100000);
@@ -87,6 +91,9 @@ namespace NexVerse.RegionModules.Pathfinding
                 return;
             scene.EventManager.OnTerrainTainted += state.Listener;
             scene.RegisterModuleInterface<IOglTerrainNavigationRegion>(state);
+            m_Log.InfoFormat(
+                "[OGL-PATH]: Region {0} native terrain A* configured (cell={1}m, maxExpanded={2}). Firestorm RetrieveNavMeshSrc intentionally not advertised: Havok-compatible mesh payload/status not implemented.",
+                scene.Name, m_CellMeters, m_MaxExpanded);
         }
 
         public void RegionLoaded(Scene scene)
@@ -154,6 +161,9 @@ namespace NexVerse.RegionModules.Pathfinding
                 // Invalidation can arrive while building. In that case the
                 // freshly built candidate remains unavailable until next refresh.
                 Volatile.Write(ref state.Snapshot, snapshot);
+                if (Volatile.Read(ref state.Dirty) == 0)
+                    m_Log.InfoFormat("[OGL-PATH]: Terrain navigation ready for region {0} ({1}x{2}, cell {3}m). This is NOT a Firestorm NavMesh.",
+                        state.Scene.Name, width, height, m_CellMeters);
             }
             catch (Exception e)
             {

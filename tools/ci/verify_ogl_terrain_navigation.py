@@ -18,6 +18,8 @@ for word in ('Configs["OGLPathfinding"]', "Enabled", "OnTerrainTainted",
              "UnregisterModuleInterface<IOglTerrainNavigationRegion>"):
     assert word in module, word
 assert "TryFindTerrainPath" in iface
+assert "RetrieveNavMeshSrc intentionally not advertised" in module
+assert 'RegisterSimpleHandler("RetrieveNavMeshSrc"' not in module
 assert "Enabled = false" in config and "[OGLPathfinding]" in config
 assert "llNavigateTo" not in module and "new ScenePresence" not in module
 print("OGL per-region terrain navigation module wiring: OK")

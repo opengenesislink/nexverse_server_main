@@ -27,6 +27,9 @@ for expected in ("media_gateway_url", "firestorm-webrtc-v1", "IsSafeServiceUri")
     assert expected in provider, expected
 assert "EnableFirestormGateway" in robust
 assert "EnableFirestormGateway" in node
+assert "No authenticated Firestorm WebRTC media provider ready" in region
+assert "Firestorm WebRTC provider recovered" in region
+assert "Trusted Robust discovery succeeded" in node
 assert "Firestorm" in wire
 assert "oglvoice-media-v1" in (root/"NexVerse/Core/Voice/OglVoiceMediaProof.cs").read_text()
 for word in ('["jsep"]','["viewer_session"]', 'viewer_session', 'candidate'):
