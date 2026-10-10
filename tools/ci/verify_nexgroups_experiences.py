@@ -224,7 +224,8 @@ assert "if (req.HttpMethod != \"GET\")" in experience_module
 assert '"/api/v1/experiences/viewer/group"' in experience_api
 assert "NexScopes.ExperiencesViewerPermissions" in experience_api
 assert "GetGroupExperiences(groupId)" in experience_api
-assert '"admin_ids"' in experience_api and '"contributor_ids"' in experience_api
+assert "admin_ids = lists.Admin.Select" in experience_api
+assert "contributor_ids = lists.Contributor.Select" in experience_api
 assert 'm_Store.GetResidentLists(resident)' in experience_api
 for marker in (
     "adminLists.Admin.Contains",
