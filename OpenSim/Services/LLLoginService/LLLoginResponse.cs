@@ -122,6 +122,10 @@ namespace OpenSim.Services.LLLoginService
     public class LLLoginResponse : OpenSim.Services.Interfaces.LoginResponse
     {
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        // Opt-in for a single inventory folder, never log entire inventories.
+        private static readonly UUID s_ThumbnailTraceFolderID =
+            UUID.TryParse(Environment.GetEnvironmentVariable("OGL_THUMBNAIL_TRACE_FOLDER_ID"), out UUID traceFolder)
+                ? traceFolder : UUID.Zero;
         private static Hashtable globalTexturesHash;
         // Global Textures
         private static string sunTexture = "cce0f112-878f-4586-a2e2-a8f104bba271";
@@ -796,6 +800,14 @@ namespace OpenSim.Services.LLLoginService
                 TempHash["version"] = (Int32)InvFolder.Version;
                 TempHash["type_default"] = (Int32)InvFolder.Type;
                 TempHash["folder_id"] = InvFolder.ID.ToString();
+                if (s_ThumbnailTraceFolderID != UUID.Zero && InvFolder.ID == s_ThumbnailTraceFolderID)
+                {
+                    InventoryFolderBase parent = folders.Find(f => f.ID == InvFolder.ParentID);
+                    m_log.InfoFormat(
+                        "[INVENTORY THUMBNAIL TRACE]: LOGIN_SKELETON folder={0} folder_version={1} thumbnail={2} parent={3} parent_version={4} skeleton_has_thumbnail=false",
+                        InvFolder.ID, InvFolder.Version, InvFolder.ThumbnailID,
+                        InvFolder.ParentID, parent == null ? -1 : (int)parent.Version);
+                }
                 AgentInventoryArray.Add(TempHash);
             }
 
