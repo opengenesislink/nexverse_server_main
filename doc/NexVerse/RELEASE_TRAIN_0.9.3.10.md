@@ -1,11 +1,11 @@
-# OpenGenesisLINK 0.9.3.10 – Runtime- und Pathfinding-Release-Train
+# OpenGenesisLINK 0.9.3.10 – Runtime-, Pathfinding- und Experiences-Release-Train
 
 **Aktive Entwicklung:** `OpenGenesisLINK 0.9.3.10 Dev`  
 **Letzte veröffentlichte Stable-Version:** `OpenGenesisLINK 0.9.3.8` (Tag `v0.9.3.8`)  
 **Freigabeziel:** `OpenGenesisLINK 0.9.3.10 Stable`; **keine separate Stable-Version 0.9.3.9**.  
 **Status:** begonnen; KEIN RC und KEINE Stable-Freigabe. Ein grüner Build ersetzt keine Live-Abnahme.
 
-**Scope-Entscheidung vom 10.10.2026:** `0.9.3.10 Dev` konzentriert sich auf die bereits begonnenen **.NET-8-Runtime-Modernisierungen und Pathfinding (NavMesh, NPC/Character, Firestorm-Schnittstelle und LSL)**. Der frueher fuer 0.9.3.9 eingeplante **OGLVoice-Funktionsumfang ist vollstaendig in einen spaeteren, noch nicht terminierten Arbeits-/Release-Train verschoben**. Es gibt weiterhin **keine separate 0.9.3.9 Stable-Version**. Bereits entwickelter Voice-Code bleibt unveraendert im Repository, jedoch standardmaessig abgeschaltet; vorhandene CI-/Sicherheits-Regressionen bleiben erhalten. **Weder OGLVoice-Produktivabnahme noch Media-Gateway-Installation sind 0.9.3.10-Freigabebedingungen.**
+**Scope-Entscheidung vom 10.10.2026:** `0.9.3.10 Dev` konzentriert sich auf die bereits begonnenen **.NET-8-Runtime-Modernisierungen, Pathfinding (NavMesh, NPC/Character, Firestorm-Schnittstelle und LSL) und vollstaendige NexExperiences-Integration (Viewer-CAPS, Zustimmung/Revoke, LSL, zentrale Persistenz)**. Der frueher fuer 0.9.3.9 eingeplante **OGLVoice-Funktionsumfang ist vollstaendig in einen spaeteren, noch nicht terminierten Arbeits-/Release-Train verschoben**. Es gibt weiterhin **keine separate 0.9.3.9 Stable-Version**. Bereits entwickelter Voice-Code bleibt unveraendert im Repository, jedoch standardmaessig abgeschaltet; vorhandene CI-/Sicherheits-Regressionen bleiben erhalten. **Weder OGLVoice-Produktivabnahme noch Media-Gateway-Installation sind 0.9.3.10-Freigabebedingungen.**
 
 ## A. Ausgangslage und erledigte Vorarbeiten
 
@@ -101,21 +101,32 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
 Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständige Zusage der oben genannten Funktionen.
 
+## D.1 NexExperiences – volle LSL-/Firestorm-/Resident-Funktion (neu im 0.9.3.10-Scope)
+
+- [x] **Bestehende Grundlage aus 0.9.3.7:** Verwaltungs-/Berechtigungs-/Script-Binding-/K/V-Autoritaet, authentifizierte World API, Region-Adapter und wesentliche LSL-Funktionen inklusive YEngine-Events. Diese Checkliste betrifft die **zusaetzliche vollstaendige Viewer-/Live-Paritaet**, nicht eine pauschale Ruecknahme bereits implementierten Codes.
+- [x] **Sicherheits-Hardening (Dev):** Deaktivierte Experiences verweigern auch bereits gebundenen Scripts jede K/V-Operation; Service-API-Schluessel mit nur `experiences:manage` duerfen keine frei waehlbaren Resident-Owner/-Akteure imitieren. Runtime-Regression und CI-Guards vorgesehen.
+- [ ] **Firestorm-CAPS und UI:** `GetExperienceInfo`, `FindExperienceByName`, `GetExperiences`, `AgentExperiences`, `ExperiencePreferences`, `GroupExperiences`, `GetAdminExperiences`, `GetCreatorExperiences` nach realen Viewer-LLSD-Vertraegen; Owner-/Admin-/Contributor-Listen, Experience-Floater und Profile.
+- [ ] **Echte Einwilligung:** `llRequestExperiencePermissions` muss Agent-Prompt/Allow/Block/Forget und `experience_permissions(_denied)` authentifiziert, dauerhaft und widerrufbar unterstuetzen; **keine** implizite Genehmigung fuer unbekannte Residents.
+- [ ] **Vollstaendige LSL-Paritaet:** Experience-KV-`dataserver`-Events, `llGetExperienceDetails`, `llAgentInExperience`, XP_ERROR-Codes, Ratenlimits, Scriptidentitaet/-besitzer, deaktivierte Experiences, Fehler/Timeouts und Landrechte im echten YEngine-/Viewer-Test.
+- [ ] **Persistenz/Betrieb:** Der bestehende JSON-Store ist nicht als transaktionaler Multi-Robust-Cluster belegt. Migrations-/Single-Writer- oder SQL-Konzept, konsistente K/V-Updates und Restart-/Backup-/Recovery-Test fuer produktiven Grid-Betrieb.
+- [ ] **E2E-Abnahme:** Zwei Residents, eine Besitzer-Experience, ein fremdes Objekt, Allow/Block/Forget, disabled/revoked, Parcel-/Estate-Limits, gruppenbasierte Rollen, HG-Gast, Viewer-Floater, Script-Dataserver und Neustarts auf mehreren Simulatoren.
+- Referenz: `doc/NexVerse/PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md`.
+
 ## E. Freigabe-Gates
 
-- [ ] **Gate 1 – Functional:** Echtes Region-NavMesh, Firestorm-kompatible `RetrieveNavMeshSrc`-/Status-CAPS, Character-/NPC-Bewegung und die definierten Pathfinding-LSL-Funktionen samt `path_update` funktional und live geprueft. OGLVoice ist nicht Teil dieses Gates.
-- [ ] **Gate 2 – CI:** Release-Build, bestehende Hypergrid-/Login-/NexBus-/NV$-/Inventory-Regressionen und neue Pathfinding-/NavMesh-/LSL-Tests gruen. Bereits aktive Voice-CI bleibt als Regression fuer eingecheckten Code erhalten, ohne neue Voice-Features als Abnahmebedingung zu setzen.
-- [ ] **Gate 3 – Sicherheit:** Navigator-/NPC-/LSL-Region- und Estate-Berechtigungen, Ressourcen- und Missbrauchslimits sowie unveraenderte HG-/Login-/Token-/Secret-Sicherheitsgrenzen pruefen; keine neue Voice-Produktivfreigabe.
+- [ ] **Gate 1 – Functional:** Echtes Region-NavMesh, Firestorm-kompatible `RetrieveNavMeshSrc`-/Status-CAPS, Character-/NPC-Bewegung und Pathfinding-LSL samt `path_update`; **zusaetzlich NexExperiences-Viewer-CAPS, Resident-Zustimmung/Revoke, zentrale Rechte/Persistenz und Experience-LSL im Live-Firestorm-Test**. OGLVoice ist nicht Teil dieses Gates.
+- [ ] **Gate 2 – CI:** Release-Build, bestehende Hypergrid-/Login-/NexBus-/NV$-/Inventory-Regressionen und neue Pathfinding-/NavMesh-/Experience-/LSL-/Permission-Tests gruen. Bereits aktive Voice-CI bleibt als Regression fuer eingecheckten Code erhalten, ohne neue Voice-Features als Abnahmebedingung zu setzen.
+- [ ] **Gate 3 – Sicherheit:** Navigator-/NPC-/LSL-Region- und Estate-Berechtigungen sowie Experience-Resident-Zustimmung, Scriptbindung, Owner/Admin-Delegation, Land-/HG-Rechte, K/V-Quoten und Missbrauchslimits sowie unveraenderte Login-/Token-/Secret-Sicherheitsgrenzen pruefen; keine neue Voice-Produktivfreigabe.
 - [ ] **Gate 4 – Performance:** Messwerte gegen 0.9.3.8, keine neue relevante Speicher-/CPU-/GC-/Netzwerk-Regression, Watchdog bleibt aktiv.
-- [ ] **Gate 5 – Operator:** Native Pathfinding-Livetests in realer Region mit bewegtem NPC, Terraforming/Hindernissen, Firestorm-Viewer und erforderlichen Multi-Simulator-/HG-Regressionen; Restart/Failover sowie Backup/Rollback durch Betreiber bestaetigt. Keine verpflichtenden Voice-/Parcel-Audio-Tests.
+- [ ] **Gate 5 – Operator:** Native Pathfinding-Livetests in realer Region mit bewegtem NPC, Terraforming/Hindernissen sowie echte Experience-Viewer- und LSL-Zustimmungs-/Revoke-Livetests mit zwei Bewohnern; Firestorm und Multi-Simulator-/HG-Regressionen, Restart/Failover sowie Backup/Rollback durch Betreiber bestaetigt. Keine verpflichtenden Voice-/Parcel-Audio-Tests.
 - [ ] **Gate 6 – Release:** `0.9.3.10 RC1` mit dokumentierten Einschränkungen; erst nach sämtlichen zwingenden Gates `0.9.3.10 Stable` taggen.
 
-**Nicht freigeben**, solange Region-NavMesh, Firestorm-Pathfinding-Anbindung, Character-/NPC-Livebewegung und LSL-Navigation nicht gemaess Gate 1 abgenommen sind. **Das OGLVoice-Gateway ist aufgrund der ausdruecklichen Scope-Verschiebung kein 0.9.3.10-Stable-Blocker.** CI allein ersetzt die Pathfinding-Livetests nicht.
+**Nicht freigeben**, solange Region-NavMesh, Firestorm-Pathfinding-Anbindung, Character-/NPC-Livebewegung und LSL-Navigation **oder** die vollstaendige NexExperiences-Viewer-/LSL-/Einwilligungsintegration nicht gemaess Gate 1 abgenommen sind. **Das OGLVoice-Gateway ist aufgrund der ausdruecklichen Scope-Verschiebung kein 0.9.3.10-Stable-Blocker.** CI allein ersetzt die Pathfinding-Livetests nicht.
 
 ## F. Kompatibilität und Releasepolitik
 
 - Die stabile Referenz `v0.9.3.8` bleibt verfügbar; kein Verschieben eines Tags.
-- Die aktive Produktversion bleibt `OpenGenesisLINK 0.9.3.10 Dev` fuer Runtime und Pathfinding; keine oeffentliche Stable-Verwechslung.
+- Die aktive Produktversion bleibt `OpenGenesisLINK 0.9.3.10 Dev` fuer Runtime, Pathfinding und Experiences; keine oeffentliche Stable-Verwechslung.
 - Keine separate Veröffentlichung `0.9.3.9 Stable`.
 - OGLVoice bleibt standardmaessig inaktiv und ist ausdruecklich auf einen spaeteren Entwicklungsabschnitt vertagt. Vorhandenen Code, Tests und Sicherheitsgrenzen beibehalten; keine produktive Gateway-Aktivierung zur Erfuellung dieses Release-Trains.
 - Keine unechte Pathfinding-LSL-Kompatibilität bewerben oder unterstützte LSL-Funktionen als blind funktionierende Stubs implementieren.
