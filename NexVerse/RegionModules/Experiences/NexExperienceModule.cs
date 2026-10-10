@@ -850,8 +850,8 @@ namespace NexVerse.RegionModules.Experiences
                     !UUID.TryParse(id.GetString(), out UUID experienceId) ||
                     experienceId.IsZero())
                     return false;
-                if (!TryGetExperienceDetails(experienceId, out _, out _, out _,
-                        out _, out bool experienceEnabled) || !experienceEnabled)
+                if (!TryGetExperienceDetails(experienceId, out string experienceName,
+                        out _, out _, out _, out bool experienceEnabled) || !experienceEnabled)
                     return false;
 
                 // An Experience blocked at the parcel/estate layer must
@@ -893,10 +893,14 @@ namespace NexVerse.RegionModules.Experiences
                 // the viewer's Experiences settings. No implicit grant.
                 try
                 {
+                    string safeName = (experienceName ?? "Unnamed Experience")
+                        .Replace('\r', ' ').Replace('\n', ' ');
+                    if (safeName.Length > 80)
+                        safeName = safeName.Substring(0, 80);
                     presence.ControllingClient.SendAgentAlertMessage(
-                        "An Experience permission was requested. Open your " +
-                        "Experiences settings and explicitly Allow the Experience " +
-                        "within 60 seconds to continue. Otherwise it times out.",
+                        "Experience '" + safeName + "' requests access. Open " +
+                        "Experiences settings and explicitly Allow this Experience " +
+                        "within 60 seconds. Otherwise the script request times out.",
                         false);
                 }
                 catch (Exception e)
