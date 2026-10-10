@@ -1040,6 +1040,10 @@
     ; Informational notice only; NOT the native ScriptQuestionExperience UI.
     ; 60-second timeout, per-resident and total pending request quotas.
     ScriptPendingConsent = false
+    ; Real Firestorm ScriptQuestionExperience prompt via UDP Experience
+    ; extension block. Requires CAPS above + ScriptPendingConsent.
+    ; Off until controlled live test with owner and second resident.
+    NativeExperiencePrompt = false
     ViewerPermissionsApiKey = "${Environment|NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY}"
 
 [NexEconomyViewer]
