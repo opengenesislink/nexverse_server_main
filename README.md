@@ -23,6 +23,8 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026. Development now targets **0.9.3.10 Dev**, bundling 0.9.3.9 OGLVoice/runtime with 0.9.3.10 Pathfinding; neither voice nor NavMesh/LSL is ready for a stable claim.
 
+**Inventory thumbnail compatibility (0.9.3.10 Dev):** The server-side `InventoryThumbnailUpload` capability, persistent item/folder previews, and inventory fetch metadata are implemented. **Known limitation:** Firestorm 7.2.4.80712 on the tested NexVerse/OpenSim configuration does not reliably refresh a replaced outfit-folder thumbnail from its existing inventory cache after relog; rebuilding the inventory cache restores the persisted preview. INV01 is closed as an accepted compatibility limitation, **not** as a fixed viewer refresh bug. See [`doc/NexVerse/FIRESTORM_INVENTORY_THUMBNAIL_09310.md`](doc/NexVerse/FIRESTORM_INVENTORY_THUMBNAIL_09310.md). This does not change the remaining stable release gates.
+
 OpenGenesisLINK continues the existing 0.9.3.x development line. OpenSimulator 0.9.3.0 remains the historical source baseline; upstream OpenSimulator version numbers do not automatically become OpenGenesisLINK version numbers.
 
 The former product name **NexVerse Server** is retired as the server-platform name. **NexVerse remains the virtual world/grid deployment built on OpenGenesisLINK.** Existing internal `NexVerse.*` namespaces, API paths and compatibility-sensitive configuration keys may remain temporarily until they can be migrated without breaking existing deployments.
