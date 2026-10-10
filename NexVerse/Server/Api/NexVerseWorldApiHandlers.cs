@@ -149,9 +149,11 @@ namespace NexVerse.Server.Api
                     AuthenticatedOperations(
                         ("get", "Aktive Administratorsitzung und tatsächlichen UserLevel prüfen", "admin:*", "200"))),
                 ["/api/v1/auth/api-keys"] = AuthenticatedOperations(
-                    ("get", "Eingeschränkte Maschinen-API-Schlüssel auflisten", "admin:*", "200"),
-                    ("post", "Eingeschränkten Maschinen-API-Schlüssel mit Berechtigungsumfang erstellen", "admin:*", "201"),
+                    ("get", "Eingeschränkte Maschinen-API-Schlüssel inklusive letzter Verwendung auflisten", "admin:*", "200"),
+                    ("post", "Dedizierten Maschinen-API-Schlüssel ohne doppelte aktive Identität erstellen", "admin:*", "201"),
                     ("patch", "Maschinen-API-Schlüssel aktivieren oder deaktivieren", "admin:*", "200")),
+                ["/api/v1/auth/api-keys/{keyId}"] = AuthenticatedOperations(
+                    ("delete", "Nur zuvor deaktivierten Maschinen-API-Schlüssel dauerhaft entfernen", "admin:*", "200")),
                 ["/api/v1/auth/authorization-model"] = AuthenticatedOperations(
                     ("get", "Verfügbare Einwohnerrollen, Einzel-Scopes und privilegierte Zuweisungen lesen", "security:manage", "200")),
                 ["/oauth/authorize"] = AuthenticatedOperations(
@@ -750,6 +752,13 @@ namespace NexVerse.Server.Api
                 "patch",
                 "ApiKeyStateRequest",
                 null,
+                "200");
+            ApplyJsonContract(
+                paths,
+                "/api/v1/auth/api-keys/{keyId}",
+                "delete",
+                null,
+                "ApiKeyDeleteResponse",
                 "200");
             ApplyJsonContract(
                 paths,
@@ -4632,7 +4641,8 @@ namespace NexVerse.Server.Api
                         },
                         ["enabled"] = new { type = "boolean" },
                         ["created_at"] = new { type = "integer" },
-                        ["updated_at"] = new { type = "integer" }
+                        ["updated_at"] = new { type = "integer" },
+                        ["last_used_at"] = new { type = "integer" }
                     }
                 },
                 ["ApiKeyCreateRequest"] = new
@@ -4677,6 +4687,16 @@ namespace NexVerse.Server.Api
                     {
                         ["key_id"] = new { type = "string" },
                         ["enabled"] = new { type = "boolean" }
+                    }
+                },
+                ["ApiKeyDeleteResponse"] = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["deleted"] = new { type = "boolean" },
+                        ["key_id"] = new { type = "string" },
+                        ["correlation_id"] = new { type = "string" }
                     }
                 },
                 ["ApiKeyListResponse"] = new

@@ -454,7 +454,8 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <p class="sectionlead">Bereits eingerichtete Schlüssel nicht unnötig neu erzeugen. Neue API-Schlüssel bleiben zusätzlich zu bestehenden registriert, bis sie ausdrücklich deaktiviert werden.</p>
 <div class="changegrid">
 <label class="change"><input type="checkbox" id="secretEconomy" style="width:auto" /> <strong>Economy / NV$</strong><p><code>economy:read</code> und <code>economy:transfer</code>. Nur auswählen, wenn noch kein gültiger Economy-Key existiert.</p></label>
-<label class="change"><input type="checkbox" id="secretExperiences" checked style="width:auto" /> <strong>Experiences</strong><p><code>experiences:script</code>. Eigener Schlüssel für den Simulator, keine Administrationsrechte.</p></label>
+<label class="change"><input type="checkbox" id="secretExperiences" checked style="width:auto" /> <strong>Experiences / Script</strong><p><code>experiences:script</code>. Eigener Schlüssel für die Simulator-LSL-Funktionen.</p></label>
+<label class="change"><input type="checkbox" id="secretExperiencePermissions" style="width:auto" /> <strong>Experiences / Firestorm-Rechte</strong><p><code>experiences:viewer:permissions</code>. Separater Service-Schlüssel für Firestorm Allow/Block/Forget; nur für kontrolliert aktivierte Permission-CAPS.</p></label>
 <label class="change"><input type="checkbox" id="secretNexBus" checked style="width:auto" /> <strong>NexBus / NodeAgent</strong><p>Gemeinsamer zufälliger HMAC-Signaturschlüssel für Robust und alle Simulator-Nodes.</p></label>
 </div>
 <p class="authnote">Der NexBus-SharedKey ist kein World-API-Key. Er wird lokal im Browser per kryptografisch sicherem Zufall erzeugt und muss auf allen beteiligten Nodes identisch sein.</p>
@@ -476,6 +477,14 @@ input,textarea,select{width:100%;background:#08131e;color:var(--text);border:1px
 <textarea id="secretOutput" readonly autocomplete="off" spellcheck="false" style="min-height:210px" placeholder="Die einmalig angezeigten Schlüssel erscheinen nach erfolgreicher Erzeugung hier."></textarea>
 <p class="authnote">Die vollständigen API-Keys zeigt die World API nur beim Erstellen an. Eine Seite oder den Browser erst verlassen, wenn du die neuen Werte sicher übernommen hast. Sie werden weder dauerhaft im Browserspeicher noch in Cookies oder URLs abgelegt.</p>
 <p class="authnote">Setze für die Secret-Datei <code>chmod 600 /etc/nexverse/nexverse.env</code>. Starte zunächst Robust mit dem neuen NexBus-Key und dem PR-#104-Code neu, danach die Simulatoren. Bereits vorhandene Prozessvariablen haben Vorrang vor der Datei.</p>
+</div>
+<div class="section">
+<h2>4. Schlüsselbestand und Duplikate bereinigen</h2>
+<p class="sectionlead">Es erscheinen nur ID, Name, Scopes und letzte Nutzung, niemals geheime Werte. Duplikate sind gleichnamige aktive Schlüssel mit identischen Scopes. Prüfe vor der Deaktivierung alle vorhandenen <code>nexverse.env</code>-Dateien auf Robust und den Simulatoren.</p>
+<div class="row" style="margin-bottom:14px"><button class="action" id="secretLoadKeys">Schlüsselbestand aktualisieren</button></div>
+<div class="authnote" id="secretListStatus" role="status">Als Administrator anmelden, dann Schlüsselbestand laden.</div>
+<div id="secretKeyList" class="changegrid"></div>
+<p class="authnote">Bereinigung in zwei Schritten: Schlüssel einzeln deaktivieren, anschließend optional dauerhaft löschen. Aktive Schlüssel können serverseitig nicht gelöscht werden. Jede Änderung benötigt eine Bestätigung und wird auditiert.</p>
 </div>
 </section>
 
@@ -1411,9 +1420,90 @@ function secretValidateEndpoint(text) {
 }
 function secretBuildLines(values) {
   const names=['NEXVERSE_ECONOMY_API_KEY','NEXVERSE_EXPERIENCES_API_KEY',
+    'NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY',
     'NEXVERSE_NEXBUS_SHARED_KEY','NEXVERSE_NEXBUS_PEER_URL','NEXVERSE_NEXBUS_PEERS'];
   $('secretOutput').value=names.filter(name=>Object.hasOwn(values,name)).map(name=>name+'='+values[name]).join('\n')+'\n';
   $('secretCopy').disabled=!Object.keys(values).length;
+}
+/* Only metadata is available after issuance; server never re-exposes secrets. */
+function secretKeyFingerprint(key) {
+  return JSON.stringify([(key.name||'').trim().toLowerCase(),
+    [...(key.scopes||[])].map(x=>String(x).toLowerCase()).sort()]);
+}
+function secretRenderKeyInventory(keys) {
+  const host=$('secretKeyList');host.replaceChildren();
+  const activeCounts=new Map();
+  keys.filter(k=>k.enabled).forEach(k=>{
+    const fingerprint=secretKeyFingerprint(k);
+    activeCounts.set(fingerprint,(activeCounts.get(fingerprint)||0)+1);
+  });
+  const duplicates=[...activeCounts.values()].filter(count=>count>1).length;
+  $('secretListStatus').textContent=keys.length+' Schlüssel registriert. '+
+    duplicates+' aktive Duplikatgruppe(n) gefunden. Kein Schlüssel wurde automatisch verändert.';
+  for(const key of keys){
+    const card=document.createElement('div');card.className='change';
+    const title=document.createElement('strong');
+    title.textContent=(key.name||'Unbenannt')+(key.enabled?' · Aktiv':' · Deaktiviert');
+    card.append(title);
+    const fp=secretKeyFingerprint(key),repeated=key.enabled&&activeCounts.get(fp)>1;
+    if(repeated){
+      const warning=document.createElement('p');
+      warning.textContent='Duplikat: Gleicher aktiver Name und identische Scopes (Geheimwerte können abweichen).';
+      warning.className='status-bad';card.append(warning);
+    }
+    const description=document.createElement('p');
+    description.textContent='ID: '+key.key_id+' | Scopes: '+(key.scopes||[]).join(', ')+
+      ' | Letzte Nutzung: '+(key.last_used_at?
+        new Date(key.last_used_at*1000).toLocaleString('de-DE'):'noch nicht erfasst');
+    description.style.overflowWrap='anywhere';card.append(description);
+    const controls=document.createElement('div');controls.className='row';
+    const toggle=document.createElement('button');toggle.className='action';
+    toggle.textContent=key.enabled?'Deaktivieren':'Aktivieren';
+    toggle.addEventListener('click',()=>secretManageKey(key,'toggle'));
+    controls.append(toggle);
+    if(!key.enabled){
+      const remove=document.createElement('button');remove.className='action';
+      remove.textContent='Endgültig löschen';
+      remove.addEventListener('click',()=>secretManageKey(key,'delete'));
+      controls.append(remove);
+    }
+    card.append(controls);host.append(card);
+  }
+}
+async function secretLoadKeys() {
+  try{
+    if(!window.isSecureContext)throw new Error('Nur über HTTPS verfügbar.');
+    const token=await secretAdminToken();
+    const response=await secretJson('/api/v1/auth/api-keys',{
+      headers:{'Authorization':'Bearer '+token}});
+    secretRenderKeyInventory(response.keys||[]);
+  }catch(error){
+    $('secretListStatus').textContent='Schlüsselbestand konnte nicht geladen werden: '+
+      String(error.message||error);
+    $('secretKeyList').replaceChildren();
+  }
+}
+async function secretManageKey(key,action) {
+  try{
+    if(!window.isSecureContext)throw new Error('Nur über HTTPS verfügbar.');
+    const token=await secretAdminToken();
+    const verb=action==='delete'?'endgültig löschen':key.enabled?'deaktivieren':'aktivieren';
+    if(!window.confirm('Maschinen-API-Schlüssel '+key.key_id+' ('+key.name+') '+verb+
+       '? Vorher alle nexverse.env-Dateien und aktive Simulatoren prüfen.'))return;
+    if(action==='delete'){
+      if(key.enabled)throw new Error('Aktive Schlüssel zuerst deaktivieren.');
+      await secretJson('/api/v1/auth/api-keys/'+encodeURIComponent(key.key_id),{
+        method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    }else{
+      await secretJson('/api/v1/auth/api-keys',{
+        method:'PATCH',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({key_id:key.key_id,enabled:!key.enabled})});
+    }
+    await secretLoadKeys();
+  }catch(error){
+    $('secretListStatus').textContent='Aktion nicht abgeschlossen: '+String(error.message||error);
+  }
 }
 async function secretJson(url,opts) {
   const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...opts});
@@ -1430,8 +1520,9 @@ async function secretAdminToken() {
 async function secretGenerate() {
   const wantEconomy=$('secretEconomy').checked;
   const wantExperiences=$('secretExperiences').checked;
+  const wantPermissions=$('secretExperiencePermissions').checked;
   const wantBus=$('secretNexBus').checked;
-  if(!wantEconomy&&!wantExperiences&&!wantBus){
+  if(!wantEconomy&&!wantExperiences&&!wantPermissions&&!wantBus){
     secretStatus('Bitte mindestens einen Schlüssel auswählen.',false);return;
   }
   const values={};
@@ -1445,6 +1536,26 @@ async function secretGenerate() {
     }
     if(!window.isSecureContext)throw new Error('Schlüssel nur über HTTPS generieren.');
     const token=await secretAdminToken();
+    const plan=[
+      {wanted:wantEconomy,name:'NexVerse Simulator Economy',
+       scopes:['economy:read','economy:transfer'],env:'NEXVERSE_ECONOMY_API_KEY'},
+      {wanted:wantExperiences,name:'NexVerse Simulator Experiences',
+       scopes:['experiences:script'],env:'NEXVERSE_EXPERIENCES_API_KEY'},
+      {wanted:wantPermissions,name:'NexVerse Simulator Experience Permissions',
+       scopes:['experiences:viewer:permissions'],
+       env:'NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY'}
+    ].filter(item=>item.wanted);
+    if(plan.length){
+      const inventory=await secretJson('/api/v1/auth/api-keys',{
+        headers:{'Authorization':'Bearer '+token}});
+      const existing=inventory.keys||[];
+      const match=plan.find(item=>existing.some(key=>key.enabled &&
+        key.name?.trim().toLowerCase()===item.name.toLowerCase() &&
+        JSON.stringify([...(key.scopes||[])].map(s=>s.toLowerCase()).sort())===
+        JSON.stringify([...item.scopes].sort())));
+      if(match)throw new Error('Ein aktiver Schlüssel für '+match.name+
+        ' existiert bereits. Unter Abschnitt 4 prüfen und bei nötiger Rotation gezielt deaktivieren.');
+    }
     if(!window.confirm('Neue Maschinen-API-Schlüssel werden sofort serverseitig registriert. Erstellung starten?'))return;
     $('secretGenerate').disabled=true;
     $('secretCopy').disabled=true;
@@ -1456,14 +1567,8 @@ async function secretGenerate() {
       values.NEXVERSE_NEXBUS_PEERS=peers.join(',');
       secretBuildLines(values);
     }
-    if(wantEconomy||wantExperiences){
-      for(const item of [
-        {wanted:wantEconomy,name:'NexVerse Simulator Economy',
-         scopes:['economy:read','economy:transfer'],env:'NEXVERSE_ECONOMY_API_KEY'},
-        {wanted:wantExperiences,name:'NexVerse Simulator Experiences',
-         scopes:['experiences:script'],env:'NEXVERSE_EXPERIENCES_API_KEY'}
-      ]){
-        if(!item.wanted)continue;
+    if(plan.length){
+      for(const item of plan){
         const data=await secretJson('/api/v1/auth/api-keys',{
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -1476,6 +1581,7 @@ async function secretGenerate() {
       }
     }
     secretStatus('Alle ausgewählten Schlüssel erstellt. Konfigurationsblock jetzt sicher kopieren.',true);
+    if(plan.length)await secretLoadKeys();
   }catch(err){
     secretBuildLines(values);
     secretStatus('Einrichtung nicht vollständig: '+String(err.message||err)+
@@ -1529,6 +1635,7 @@ $('adminLoginTotp').addEventListener('keydown',event=>{if(event.key==='Enter'){e
 $('secretGenerate').addEventListener('click',secretGenerate);
 $('secretCopy').addEventListener('click',secretCopy);
 $('secretClear').addEventListener('click',secretClear);
+$('secretLoadKeys').addEventListener('click',secretLoadKeys);
 $('search').addEventListener('input',renderEndpointList);$('run').addEventListener('click',execute);$('clear').addEventListener('click',()=>{$('bearer').value='';$('apiKey').value='';$('idem').value=''});
 $('loadStats').addEventListener('click',loadStatistics);$('clearStats').addEventListener('click',()=>{$('statsBearer').value='';$('statsApiKey').value=''});
 $('loadGrid').addEventListener('click',loadGridLayout);$('clearGridCredentials').addEventListener('click',()=>{$('gridBearer').value='';$('gridApiKey').value='';$('gridMutationIdempotency').value=''});

@@ -890,6 +890,12 @@ namespace NexVerse.Server.Api
                 HandleApiKeys(request, response);
                 return;
             }
+            if (path.StartsWith("/api/v1/auth/api-keys/", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleApiKeyDelete(request, response,
+                    path.Substring("/api/v1/auth/api-keys/".Length));
+                return;
+            }
 
             if (string.Equals(path, "/api/v1/auth/authorization-model", StringComparison.OrdinalIgnoreCase))
             {
@@ -1278,6 +1284,10 @@ namespace NexVerse.Server.Api
                 out UserAccount _))
                 return;
 
+            // Key inventory metadata and one-time plaintext secret responses
+            // must never be stored by shared/intermediary HTTP caches.
+            response.AddHeader("Cache-Control", "no-store");
+
             if (m_ApiKeys == null)
             {
                 WriteError(
@@ -1402,6 +1412,14 @@ namespace NexVerse.Server.Api
                             "invalid_api_key_metadata",
                             e.Message);
                     }
+                    catch (InvalidOperationException)
+                    {
+                        WriteError(
+                            response,
+                            HttpStatusCode.Conflict,
+                            "api_key_duplicate",
+                            "An enabled key with this name and scope set already exists. Disable it explicitly before rotation.");
+                    }
 
                     return;
                 }
@@ -1435,11 +1453,16 @@ namespace NexVerse.Server.Api
                         keyId,
                         enabled))
                     {
+                        bool exists = m_ApiKeys.List().Any(x =>
+                            string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
                         WriteError(
                             response,
-                            HttpStatusCode.NotFound,
-                            "api_key_not_found",
-                            "API key was not found.");
+                            exists && enabled ? HttpStatusCode.Conflict :
+                                HttpStatusCode.NotFound,
+                            exists && enabled ? "api_key_duplicate" : "api_key_not_found",
+                            exists && enabled ?
+                                "An enabled key with the same name and scopes exists. Re-enabling this key would create an active duplicate." :
+                                "API key was not found.");
                         return;
                     }
 
@@ -1491,6 +1514,82 @@ namespace NexVerse.Server.Api
                 HttpStatusCode.MethodNotAllowed,
                 "method_not_allowed",
                 "GET, POST or PATCH is required.");
+        }
+
+        /// <summary>
+        /// Permanently remove one *disabled* machine credential only.
+        /// This is intentionally separate from list/create/state updates;
+        /// an active key cannot be deleted and all actions are audited.
+        /// </summary>
+        private void HandleApiKeyDelete(
+            IOSHttpRequest request, IOSHttpResponse response, string keyId)
+        {
+            if (!IsMethod(request, "DELETE"))
+            {
+                WriteError(response, HttpStatusCode.MethodNotAllowed,
+                    "method_not_allowed", "DELETE is required.");
+                return;
+            }
+            if (!Authenticate(request, response, NexScopes.AdminAll,
+                    out NexPrincipal principal, out UserAccount _))
+                return;
+
+            response.AddHeader("Cache-Control", "no-store");
+            if (m_ApiKeys == null)
+            {
+                WriteError(response, HttpStatusCode.ServiceUnavailable,
+                    "api_key_store_unavailable", "API key storage is not available.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(keyId) || keyId.Length != 36 ||
+                !keyId.StartsWith("nxk_", StringComparison.Ordinal) ||
+                !Guid.TryParseExact(keyId.Substring(4), "N", out Guid _))
+            {
+                WriteError(response, HttpStatusCode.BadRequest,
+                    "invalid_key_id", "Valid API key ID is required.");
+                return;
+            }
+            NexApiKeyRecord candidate = m_ApiKeys.List().FirstOrDefault(
+                x => string.Equals(x.KeyId, keyId, StringComparison.Ordinal));
+            if (candidate == null)
+            {
+                WriteError(response, HttpStatusCode.NotFound,
+                    "api_key_not_found", "API key was not found.");
+                return;
+            }
+            if (candidate.Enabled)
+            {
+                WriteError(response, HttpStatusCode.Conflict,
+                    "api_key_still_enabled",
+                    "Disable the key before permanent removal.");
+                return;
+            }
+            // Store.Delete rechecks enabled state under its own lock.
+            if (!m_ApiKeys.Delete(keyId))
+            {
+                WriteError(response, HttpStatusCode.Conflict,
+                    "api_key_state_changed",
+                    "API key changed during deletion; refresh and retry.");
+                return;
+            }
+            string correlationId = AddCorrelation(response);
+            m_Audit.Record(new NexAuditEvent(
+                principal.Subject, "auth.api_key.delete", keyId,
+                correlationId, new Dictionary<string, string>
+                {
+                    ["name"] = candidate.Name,
+                    ["scopes"] = string.Join(" ", candidate.Scopes)
+                }));
+            m_EventBus.Publish(new NexEvent(
+                "auth.api_key.deleted", "nexverse.world-api",
+                new Dictionary<string, string> { ["key_id"] = keyId },
+                correlationId));
+            WriteJson(response, new
+            {
+                deleted = true,
+                key_id = keyId,
+                correlation_id = correlationId
+            });
         }
 
         private void HandleAdminSessionInfo(
@@ -3017,7 +3116,8 @@ namespace NexVerse.Server.Api
                 scopes = record.Scopes,
                 enabled = record.Enabled,
                 created_at = record.CreatedAt,
-                updated_at = record.UpdatedAt
+                updated_at = record.UpdatedAt,
+                last_used_at = record.LastUsedAt
             };
         }
 

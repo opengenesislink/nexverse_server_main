@@ -59,7 +59,25 @@ assert "return new InMemoryNexEventBus();" in connector
 
 store=contents("NexVerse/Core/Security/NexApiKeyStore.cs")
 assert "NexScopes.ExperiencesScript" in store
+assert "NexScopes.ExperiencesViewerPermissions" in store
+assert "normalizedScopes.Length != 1" in store
+assert "existing.Enabled" in store and "SameScopes(existing.Scopes, normalizedScopes)" in store
+assert "record == null || record.Enabled" in store, "cannot delete enabled keys"
+assert "LastUsedAt = value.LastUsedAt" in store
+assert '"api_key_duplicate"' in user
+assert '"api_key_still_enabled"' in user
+assert "private void HandleApiKeyDelete(" in user
+assert '"auth.api_key.delete"' in user
 api=contents("NexVerse/Server/Api/NexVerseWorldApiHandlers.cs")
+assert '"/api/v1/auth/api-keys/{keyId}"' in api
+assert '"last_used_at"' in api
+assert '"ApiKeyDeleteResponse"' in api
+template=contents("bin/nexverse.env.example")
+for name in ("NEXVERSE_EXPERIENCES_API_KEY",
+             "NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY",
+             "NEXVERSE_ECONOMY_API_KEY",
+             "NEXVERSE_NEXBUS_SHARED_KEY"):
+    assert name in template, name
 assert admin_route in api
 ui=contents("NexVerse/Server/Api/NexApiDocsPage.cs")
 for marker in ('data-page="adminlogin"','id="page-adminlogin"','id="adminLoginPassword"',
@@ -70,6 +88,12 @@ for marker in ('data-page="adminlogin"','id="page-adminlogin"','id="adminLoginPa
 assert "localStorage.setItem(" not in ui
 assert "sessionStorage.setItem(" not in ui
 assert 'id="secretAdminPassword"' not in ui, "secrets must use shared admin session"
+for marker in ('id="secretExperiencePermissions"', 'id="secretLoadKeys"',
+               'id="secretKeyList"',
+               "async function secretManageKey(",
+               "function secretKeyFingerprint(",
+               "NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY"):
+    assert marker in ui, f"key inventory UI missing: {marker}"
 
 # Browser script is embedded in C# HTML raw string; parse syntax using Node.js when installed.
 match=re.search(r"<script>\s*(.*?)\s*</script>",ui,re.S)
