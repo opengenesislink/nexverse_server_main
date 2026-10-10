@@ -6,7 +6,7 @@ Das ist **keine** multi-layer- oder mesh-basierte NavMesh-Engine. Dynamische Pri
 
 ## Sicherheits- und Lastgrenzen
 
-- `radius` muss zwischen 0,125 und 5 m liegen.
+- `radius` muss zwischen 0,125 und 5 m liegen. **Neu:** Der statische Terrain-A*-Solver beruecksichtigt diesen Radius konservativ gegen gesperrte Rasterzellen und Regionsgrenzen. Agenten mit groesserem Radius duerfen nicht mehr durch enge, von Hinderniszellen begrenzte Passagen geroutet werden. Die Clearance-Pruefung wird pro begrenzter Suche zwischengespeichert, nicht als zweites vollstaendiges VAR-Grid aufgebaut. **Das ist nur eine 2D-Heightfield-Clearance**, keine Physikpruefung fuer Prim-, Mesh-, dynamische oder mehrschichtige Hindernisse.
 - `params` unterstuetzt derzeit nur `[CHARACTER_TYPE, CHARACTER_TYPE_NONE]` (oder leere Liste). Andere Character-Typen werden explizit abgelehnt.
 - Ein Weg darf hoechstens 256 Zell-Wegpunkte umfassen; der bestehende konfigurierte A*-CPU-Suchrahmen gilt.
 - Ungueltige Ziel-/Startorte geben die SL-Fehlercodes 3 bzw. 2, nicht gefundene Wege 4 und fehlerhafte Optionen `PU_FAILURE_OTHER` zurueck.
