@@ -153,7 +153,10 @@ namespace NexVerse.RegionModules.Pathfinding
                 return;
             foreach (RegionNavigation state in m_Regions.Values)
             {
-                if (Volatile.Read(ref state.Dirty) == 0)
+                // An epoch mismatch can remain after a terrain event races
+                // the final Dirty=0 publication. Always schedule a rebuild
+                // for such invalid snapshots, even if Dirty was cleared.
+                if (!state.IsNavigationDirty)
                     continue;
                 // Rebuild one region asynchronously, never overlapping its
                 // previous build. Avoid stalls in the simulator scene tick.
