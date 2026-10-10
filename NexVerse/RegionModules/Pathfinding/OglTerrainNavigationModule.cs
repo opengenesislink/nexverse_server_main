@@ -22,7 +22,7 @@ namespace NexVerse.RegionModules.Pathfinding
         Id = "OglTerrainNavigationModule")]
     public sealed class OglTerrainNavigationModule : ISharedRegionModule
     {
-        private sealed class RegionNavigation : IOglTerrainNavigationRegion
+        private sealed class RegionNavigation : IOglTerrainNavigationRegion, IOglNativeTerrainQuery
         {
             public readonly Scene Scene;
             public readonly EventManager.OnTerrainTaintedDelegate Listener;
@@ -52,6 +52,17 @@ namespace NexVerse.RegionModules.Pathfinding
                 Volatile.Read(ref Dirty) != 0 ||
                 Volatile.Read(ref Building) != 0 ||
                 Volatile.Read(ref SnapshotEpoch) != Volatile.Read(ref Epoch);
+
+            public bool TryGetClosestNavPoint(float x, float y, float z,
+                float radius, out Vector3 nearest)
+            {
+                nearest = Vector3.Zero;
+                if (!TryFindNearestTerrainPoint(x, y, z, radius,
+                    out OglNavigationPoint point))
+                    return false;
+                nearest = new Vector3(point.X, point.Y, point.Z);
+                return true;
+            }
 
             public bool TryFindNearestTerrainPoint(float x, float y, float z,
                 float radius, out OglNavigationPoint point)
@@ -132,6 +143,7 @@ namespace NexVerse.RegionModules.Pathfinding
                 return;
             scene.EventManager.OnTerrainTainted += state.Listener;
             scene.RegisterModuleInterface<IOglTerrainNavigationRegion>(state);
+            scene.RegisterModuleInterface<IOglNativeTerrainQuery>(state);
             m_Log.InfoFormat(
                 "[OGL-PATH]: Region {0} native terrain A* configured (cell={1}m, maxExpanded={2}). Firestorm RetrieveNavMeshSrc intentionally not advertised: Havok-compatible mesh payload/status not implemented.",
                 scene.Name, m_CellMeters, m_MaxExpanded);
@@ -164,6 +176,7 @@ namespace NexVerse.RegionModules.Pathfinding
             Volatile.Write(ref state.Dirty, 1);
             scene.EventManager.OnTerrainTainted -= state.Listener;
             scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
+            scene.UnregisterModuleInterface<IOglNativeTerrainQuery>(state);
         }
 
         private void RefreshDirty()
@@ -240,6 +253,7 @@ namespace NexVerse.RegionModules.Pathfinding
                 Interlocked.Exchange(ref state.Dirty, 1);
                 state.Scene.EventManager.OnTerrainTainted -= state.Listener;
                 state.Scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
+                state.Scene.UnregisterModuleInterface<IOglNativeTerrainQuery>(state);
             }
             m_Regions.Clear();
         }
