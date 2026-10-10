@@ -224,9 +224,14 @@ namespace NexVerse.RegionModules.Experiences
         /// </summary>
         private void RegisterFirestormReadCaps(Scene issuingScene, UUID avatar, Caps caps)
         {
-            if (!m_Enabled || !m_FirestormReadCaps || caps == null ||
-                !IsCurrentViewer(issuingScene, avatar))
+            // Login capability negotiation can precede full avatar arrival.
+            // Register the random per-session URLs now; validate the issuing
+            // region and live root agent on EVERY actual HTTP request.
+            if (!m_Enabled || !m_FirestormReadCaps || caps == null)
                 return;
+            lock (m_Sync)
+                if (!m_Scenes.Contains(issuingScene))
+                    return;
             var info = new SimpleStreamHandler("/" + UUID.Random(),
                 (request, response) => HandleFirestormRead(request, response, issuingScene, avatar, false));
             // Register with CAPS for correct per-session URL generation and
