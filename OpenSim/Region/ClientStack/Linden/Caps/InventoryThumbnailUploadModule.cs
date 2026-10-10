@@ -34,6 +34,10 @@ namespace OpenSim.Region.ClientStack.Linden
             LogManager.GetLogger(typeof(InventoryThumbnailUploadModule));
 
         private Scene m_Scene;
+        // Per-process, opt-in trace for the exact folder under investigation.
+        private static readonly UUID s_ThumbnailTraceFolderID =
+            UUID.TryParse(Environment.GetEnvironmentVariable("OGL_THUMBNAIL_TRACE_FOLDER_ID"), out UUID traceFolder)
+                ? traceFolder : UUID.Zero;
         private string m_Url = "localhost";
         private int m_MaxBytes = 1048576;
 
@@ -323,6 +327,16 @@ namespace OpenSim.Region.ClientStack.Linden
                         if (existing != null && existing.Owner == m_Agent &&
                             existing.ID == m_Folder)
                         {
+                            if (m_Folder == s_ThumbnailTraceFolderID)
+                            {
+                                InventoryFolderBase parent = scene.InventoryService.GetFolder(
+                                    m_Agent, existing.ParentID);
+                                m_Log.InfoFormat(
+                                    "[INVENTORY THUMBNAIL TRACE]: UPLOAD_BEFORE folder={0} folder_version={1} old_thumbnail={2} new_thumbnail={3} parent={4} parent_version={5}",
+                                    existing.ID, existing.Version, existing.ThumbnailID,
+                                    persisted, existing.ParentID,
+                                    parent == null ? -1 : (int)parent.Version);
+                            }
                             existing.ThumbnailID = persisted;
                             existing.Version++;
                             linked = scene.InventoryService.UpdateFolder(existing);
@@ -349,6 +363,16 @@ namespace OpenSim.Region.ClientStack.Linden
                             m_Log.InfoFormat(
                                 "[INVENTORY THUMBNAIL]: Folder {0} thumbnail {1} confirmed after inventory readback (version {2}, parent {3})",
                                 m_Folder, persisted, verified.Version, verified.ParentID);
+                            if (m_Folder == s_ThumbnailTraceFolderID)
+                            {
+                                InventoryFolderBase parent = scene.InventoryService.GetFolder(
+                                    m_Agent, verified.ParentID);
+                                m_Log.InfoFormat(
+                                    "[INVENTORY THUMBNAIL TRACE]: UPLOAD_AFTER folder={0} folder_version={1} thumbnail={2} parent={3} parent_version={4}",
+                                    verified.ID, verified.Version, verified.ThumbnailID,
+                                    verified.ParentID,
+                                    parent == null ? -1 : (int)parent.Version);
+                            }
                         }
                     }
                     if (!linked)
