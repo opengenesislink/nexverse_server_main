@@ -106,6 +106,7 @@ namespace NexVerse.Core.Pathfinding
             }
         }
 
+        public float CellMeters => m_CellMeters;
         public int NodeCount => m_Nodes.Length;
         public OglLayerNavNode GetNode(int index) => m_Nodes[index];
 
