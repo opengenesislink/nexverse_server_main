@@ -202,6 +202,86 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            // High-trust simulator-only route for Firestorm Experience
+            // preferences.  A separate API key with ONLY
+            // experiences:viewer:permissions is required.  It must never be
+            // reused by LSL scripts, OAuth residents or the public portal.
+            // The simulator binds resident_id to its live, CAP-authenticated
+            // avatar before calling this route. Audit every mutation.
+            if (path == "/api/v1/experiences/viewer/permissions")
+            {
+                if (!Authenticate(request, response,
+                    NexScopes.ExperiencesViewerPermissions,
+                    out NexPrincipal principal, out UserAccount account))
+                    return;
+                if (account != null)
+                {
+                    WriteError(response, HttpStatusCode.Forbidden,
+                        "service_key_required",
+                        "Viewer permission bridge requires a dedicated service credential.");
+                    return;
+                }
+                try
+                {
+                    if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Guid resident = QueryGuid(request, "resident_id");
+                        Guid id = QueryOptionalGuid(request, "experience_id");
+                        if (id != Guid.Empty)
+                        {
+                            NexExperiencePermissionStatus status =
+                                m_Store.GetResidentPermission(id, resident);
+                            WriteJson(response, new
+                            {
+                                experience_id = id.ToString("D"),
+                                status = status.ToString().ToLowerInvariant(),
+                                correlation_id = Correlation(response)
+                            });
+                        }
+                        else
+                        {
+                            var lists = m_Store.GetResidentLists(resident);
+                            WriteJson(response, new
+                            {
+                                experiences = lists.Allowed.Select(x => x.ToString("D")).ToArray(),
+                                blocked = lists.Blocked.Select(x => x.ToString("D")).ToArray(),
+                                experience_ids = lists.Owned.Select(x => x.ToString("D")).ToArray(),
+                                correlation_id = Correlation(response)
+                            });
+                        }
+                    }
+                    else if (method.Equals("PUT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!TryBody(request, response, out JsonElement body))
+                            return;
+                        Guid resident = BodyGuid(body, "resident_id");
+                        Guid id = BodyGuid(body, "experience_id");
+                        string rawStatus = BodyString(body, "status");
+                        if (!Enum.TryParse(rawStatus, true,
+                                out NexExperiencePermissionStatus status) ||
+                            !Enum.IsDefined(typeof(NexExperiencePermissionStatus), status))
+                            throw new ArgumentException("status must be allowed, blocked or none.");
+                        m_Store.SetOwnResidentPermission(id, resident,
+                            status, principal.Subject);
+                        Audit(principal, "experience.resident.consent", id, response);
+                        WriteJson(response, new {
+                            experience_id = id.ToString("D"),
+                            status = status.ToString().ToLowerInvariant(),
+                            correlation_id = Correlation(response)
+                        });
+                    }
+                    else
+                    {
+                        MethodNotAllowed(response, "GET or PUT");
+                    }
+                }
+                catch (Exception e)
+                {
+                    WriteFailure(response, e);
+                }
+                return;
+            }
+
             if (path == "/api/v1/experiences/script/search")
             {
                 if (!RequireMethod(method, "GET", response))
