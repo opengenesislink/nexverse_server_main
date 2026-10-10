@@ -43,6 +43,18 @@ assert "verified.ThumbnailID != persisted" in mod
 assert "Folder {0} update acknowledged but thumbnail {1} not confirmed" in mod
 item = (root/"OpenSim/Framework/InventoryItemBase.cs").read_text()
 folders = (root/"OpenSim/Capabilities/Handlers/FetchInventory/FetchInvDescHandler.cs").read_text()
+login = (root/"OpenSim/Services/LLLoginService/LLLoginResponse.cs").read_text()
+# All diagnostics must be opt-in for a single folder; never log full inventory
+# or dump entire LLSD responses containing private inventory details.
+for source, marker in [
+    (mod, "UPLOAD_BEFORE"),
+    (mod, "UPLOAD_AFTER"),
+    (login, "LOGIN_SKELETON"),
+    (folders, "FETCH_CHILD"),
+    (folders, "FETCH_SELF"),
+]:
+    assert "OGL_THUMBNAIL_TRACE_FOLDER_ID" in source, "unscoped thumbnail diagnostics"
+    assert marker in source, f"missing trace event: {marker}"
 for content in (item,folders):
     assert 'AddMap("thumbnail",' in content
     assert 'AddElem("asset_id",' in content
