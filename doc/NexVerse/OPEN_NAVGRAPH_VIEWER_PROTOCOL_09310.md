@@ -37,7 +37,10 @@ is **not** exportable. Epochs reject old geometry snapshots. A dirty
 or missing graph yields HTTP 503. Invalidated regions require a fresh
 read after a successful rebuild. Session-lost/child/NPC access returns
 HTTP 410; repeated calls are limited to one per three seconds and
-HTTP 429 otherwise.
+HTTP 429 otherwise. The per-avatar gate uses atomic compare-and-swap;
+two simultaneous GET requests **cannot** both pass by racing between
+the last-read check and its update. Time reversal fails closed and
+another authorized resident retains an independent quota.
 
 ## Simulator configuration
 
