@@ -808,7 +808,7 @@ namespace NexVerse.RegionModules.Experiences
                 SceneObjectPart part = current.GetSceneObjectPart(objectId);
                 if (part == null || part.ParentGroup == null ||
                     part.ParentGroup.IsDeleted || part.TaskInventory == null ||
-                    part.TaskInventory.GetInventoryItem(scriptItemId) == null)
+                    part.Inventory.GetInventoryItem(scriptItemId) == null)
                     continue;
                 if (!current.TryGetScenePresence(residentId, out ScenePresence agent) ||
                     agent == null || agent.IsDeleted || agent.IsNPC ||
