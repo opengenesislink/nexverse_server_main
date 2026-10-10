@@ -33,6 +33,8 @@ namespace NexVerse.RegionModules.Voice
         private bool m_GridManaged;
         private int m_Refreshing;
         private int m_Disposed;
+        // Log readiness transitions only, not every periodic discovery poll.
+        private int m_ViewerProviderState = -1;
         private OglVoiceProviderDescriptor m_Current;
         private DateTimeOffset m_LastRefresh;
 
@@ -196,6 +198,7 @@ namespace NexVerse.RegionModules.Voice
                 if (!response.IsSuccessStatusCode)
                 {
                     Volatile.Write(ref m_Current, null);
+                    Interlocked.Exchange(ref m_ViewerProviderState, -1);
                     m_Log.WarnFormat("[OGL-VOICE]: Provider-Discovery abgelehnt (HTTP {0}).", (int)response.StatusCode);
                     return;
                 }
@@ -219,10 +222,18 @@ namespace NexVerse.RegionModules.Voice
 
                 Volatile.Write(ref m_Current, provider);
                 m_LastRefresh = DateTimeOffset.UtcNow;
+                bool viewerReady = provider.viewer_capability == "firestorm-webrtc-v1" &&
+                    OglVoiceDiscoveryProof.IsSafeServiceUri(provider.media_gateway_url);
+                int state = viewerReady ? 1 : 0;
+                if (Interlocked.Exchange(ref m_ViewerProviderState, state) != state)
+                    m_Log.InfoFormat(
+                        "[OGL-VOICE]: Trusted Robust discovery succeeded; Firestorm WebRTC capability configured={0}. Media gateway reachability and audio are NOT verified by discovery.",
+                        viewerReady);
             }
             catch (Exception e)
             {
                 Volatile.Write(ref m_Current, null);
+                Interlocked.Exchange(ref m_ViewerProviderState, -1);
                 m_Log.Warn("[OGL-VOICE]: Provider-Discovery fehlgeschlagen; keine unbestaetigten Einstellungen verwendet. " + e.Message);
             }
             finally
