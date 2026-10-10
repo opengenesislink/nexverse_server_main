@@ -131,6 +131,55 @@ namespace NexVerse.Core.Pathfinding
             return true;
         }
 
+        /// <summary>
+        /// Return the nearest walkable cell centre on the *terrain* snapshot,
+        /// bounded by a caller-supplied 3D radius and a maximum of 64 metres.
+        /// This is not a multi-layer or Firestorm/Havok NavMesh query.
+        /// </summary>
+        public bool TryFindNearestTerrainPoint(float x, float y, float z,
+            float radius, out OglNavigationPoint nearest)
+        {
+            nearest = default;
+            if (!float.IsFinite(x) || !float.IsFinite(y) ||
+                !float.IsFinite(z) || !float.IsFinite(radius) ||
+                radius < 0.5f || radius > 64f || !InWorld(x, y))
+                return false;
+
+            int cx = (int)(x / CellMeters);
+            int cy = (int)(y / CellMeters);
+            int reach = (int)Math.Ceiling(radius / CellMeters) + 1;
+            int minX = Math.Max(0, cx - reach);
+            int maxX = Math.Min(GridWidth - 1, cx + reach);
+            int minY = Math.Max(0, cy - reach);
+            int maxY = Math.Min(GridHeight - 1, cy + reach);
+            double closest = (double)radius * radius;
+            bool found = false;
+            for (int yy = minY; yy <= maxY; ++yy)
+            {
+                for (int xx = minX; xx <= maxX; ++xx)
+                {
+                    if (!m_Routes.IsWalkable(new GridCell(xx, yy)))
+                        continue;
+                    float worldX = Math.Min(m_RegionWidth - 0.5f,
+                        xx * CellMeters + CellMeters / 2.0f);
+                    float worldY = Math.Min(m_RegionHeight - 0.5f,
+                        yy * CellMeters + CellMeters / 2.0f);
+                    float worldZ = m_Heights[yy * GridWidth + xx];
+                    double dx = worldX - x;
+                    double dy = worldY - y;
+                    double dz = worldZ - z;
+                    double distance = dx * dx + dy * dy + dz * dz;
+                    if (distance <= closest)
+                    {
+                        closest = distance;
+                        nearest = new OglNavigationPoint(worldX, worldY, worldZ);
+                        found = true;
+                    }
+                }
+            }
+            return found;
+        }
+
         private bool InWorld(float x, float y) =>
             float.IsFinite(x) && float.IsFinite(y) &&
             x >= 0 && x < m_RegionWidth && y >= 0 && y < m_RegionHeight;
