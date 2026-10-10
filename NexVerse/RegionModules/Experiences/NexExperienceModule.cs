@@ -42,6 +42,14 @@ namespace NexVerse.RegionModules.Experiences
         // merely because the same avatar is online in ANOTHER region.
         private readonly Dictionary<Scene, EventManager.RegisterCapsEvent>
             m_ViewerCapListeners = new();
+        private sealed class ConsentLifecycle
+        {
+            public EventManager.ScriptResetDelegate Reset;
+            public EventManager.RemoveScript RemoveScript;
+            public EventManager.OnRemovePresenceDelegate RemovePresence;
+            public EventManager.OnMakeChildAgentDelegate MakeChild;
+        }
+        private readonly Dictionary<Scene, ConsentLifecycle> m_Lifecycle = new();
 
         private bool m_Enabled;
         private bool m_FirestormReadCaps;
@@ -169,6 +177,28 @@ namespace NexVerse.RegionModules.Experiences
                     m_ViewerCapListeners[scene] = listener;
                     scene.EventManager.OnRegisterCaps += listener;
                 }
+                if (m_ScriptPendingConsent)
+                {
+                    Guid region = scene.RegionInfo.RegionID.Guid;
+                    ConsentLifecycle lifecycle = new();
+                    lifecycle.Reset = (_, scriptId) =>
+                        CancelPendingSilently(m_Pending.CancelScript(region, scriptId.Guid));
+                    lifecycle.RemoveScript = (_, scriptId) =>
+                        CancelPendingSilently(m_Pending.CancelScript(region, scriptId.Guid));
+                    lifecycle.RemovePresence = avatar =>
+                        CancelPendingSilently(m_Pending.CancelResident(region, avatar.Guid));
+                    lifecycle.MakeChild = presence =>
+                    {
+                        if (presence != null)
+                            CancelPendingSilently(m_Pending.CancelResident(
+                                region, presence.UUID.Guid));
+                    };
+                    scene.EventManager.OnScriptReset += lifecycle.Reset;
+                    scene.EventManager.OnRemoveScript += lifecycle.RemoveScript;
+                    scene.EventManager.OnRemovePresence += lifecycle.RemovePresence;
+                    scene.EventManager.OnMakeChildAgent += lifecycle.MakeChild;
+                    m_Lifecycle[scene] = lifecycle;
+                }
             }
             scene.RegisterModuleInterface<IExperienceModule>(this);
         }
@@ -189,21 +219,26 @@ namespace NexVerse.RegionModules.Experiences
                         out EventManager.RegisterCapsEvent listener))
                     scene.EventManager.OnRegisterCaps -= listener;
                 m_Scenes.Remove(scene);
+                if (m_Lifecycle.Remove(scene, out ConsentLifecycle lifecycle))
+                    UnsubscribeLifecycle(scene, lifecycle);
             }
-            CompleteRequests(m_Pending.CancelRegion(scene.RegionInfo.RegionID.Guid),
-                18);
+            CancelPendingSilently(
+                m_Pending.CancelRegion(scene.RegionInfo.RegionID.Guid));
         }
 
         public void Close()
         {
             m_PendingTimer?.Dispose();
             m_PendingTimer = null;
-            CompleteRequests(m_Pending.CancelAll(), 18);
+            CancelPendingSilently(m_Pending.CancelAll());
             lock (m_Sync)
             {
                 foreach (var listener in m_ViewerCapListeners)
                     listener.Key.EventManager.OnRegisterCaps -= listener.Value;
                 m_ViewerCapListeners.Clear();
+                foreach (var lifecycle in m_Lifecycle)
+                    UnsubscribeLifecycle(lifecycle.Key, lifecycle.Value);
+                m_Lifecycle.Clear();
                 m_Scenes.Clear();
             }
 
@@ -802,6 +837,32 @@ namespace NexVerse.RegionModules.Experiences
             }
         }
 
+        private static void UnsubscribeLifecycle(
+            Scene scene, ConsentLifecycle lifecycle)
+        {
+            scene.EventManager.OnScriptReset -= lifecycle.Reset;
+            scene.EventManager.OnRemoveScript -= lifecycle.RemoveScript;
+            scene.EventManager.OnRemovePresence -= lifecycle.RemovePresence;
+            scene.EventManager.OnMakeChildAgent -= lifecycle.MakeChild;
+        }
+
+        private static void CancelPendingSilently(
+            NexPendingExperienceRequest[] requests)
+        {
+            // No stale LSL events after script reset, removal, region
+            // departure or simulator shutdown. Only native callbacks detach.
+            foreach (NexPendingExperienceRequest request in requests)
+            {
+                try { request.Cancel?.Invoke(); }
+                catch (Exception e)
+                {
+                    m_Log.WarnFormat(
+                        "[NEX-EXPERIENCES]: Pending consent cleanup failed: {0}",
+                        e.Message);
+                }
+            }
+        }
+
         private static void CompleteRequests(
             NexPendingExperienceRequest[] requests, int result)
         {
@@ -925,6 +986,11 @@ namespace NexVerse.RegionModules.Experiences
                         if (nativeAnswerHandler != null)
                             consentClient.OnScriptAnswer -= nativeAnswerHandler;
                         onResult(result);
+                    },
+                    Cancel = () =>
+                    {
+                        if (nativeAnswerHandler != null)
+                            consentClient.OnScriptAnswer -= nativeAnswerHandler;
                     }
                 };
                 if (!m_Pending.TryAdd(pending, DateTimeOffset.UtcNow))
