@@ -124,7 +124,7 @@ namespace NexVerse.RegionModules.Pathfinding
                 if (result is not List<ContactResult> hits)
                     throw new InvalidOperationException(
                         "Physics backend did not return valid filtered collision hits.");
-                if (hits.Count > OglVerifiedSurfaceGraphBuilder.MaxHitsPerRay)
+                if (hits.Count >= OglVerifiedSurfaceGraphBuilder.MaxHitsPerRay)
                     throw new InvalidOperationException("Too many physics intersections.");
                 List<OglVerifiedSurfaceContact> verified = new(hits.Count);
                 foreach (ContactResult hit in hits)
