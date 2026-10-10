@@ -1256,6 +1256,13 @@
     ; Standard = aus; dies allein erzeugt KEIN 3D-NavMesh!
     UseVerifiedLayeredSurfaces = false
     LayeredMaxStepMeters = 0.6
+    ; Firestorm pathfinding viewer CAPS. ONLY advertise after a trusted
+    ; Scene/Physics adapter supplies real viewer-compatible compressed
+    ; NavMesh data, coherent RegionObjects/Terrain/Character LLSD maps,
+    ; and an up-to-date underlying OGL navigation snapshot.
+    ; With no source, even Enabled=true never advertises RetrieveNavMeshSrc.
+    ; Read-only mode: no rebake or property mutations supported yet.
+    FirestormNavMeshCaps = false
 
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
