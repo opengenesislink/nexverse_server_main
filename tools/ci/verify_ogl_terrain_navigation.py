@@ -41,6 +41,32 @@ assert "TryGetClosestNavPoint" in native_iface
 assert "TryGetStaticTerrainPath" in native_iface
 assert "TryGetStaticTerrainPath" in module
 assert "TryFindStaticTerrainRoute" in core
+layered = (root/"NexVerse/Core/Pathfinding/OglLayeredNavGraph.cs").read_text(encoding="utf-8")
+for marker in (
+    "class OglLayeredNavGraph",
+    "readonly struct OglLayerNavNode",
+    "readonly struct OglLayerNavPortal",
+    "MaxNodes = 65536",
+    "MaxPortals = 32768",
+    "MaxPathNodes = 512",
+    "TryFindPath(int start, int target, float agentRadius",
+    "m_Grid.TryAdd",
+    "MaxAgentRadius >= radius",
+    "if (dx != 0 && dy != 0)",
+    "foreach (int next in m_Portals[current])",
+):
+    assert marker in layered, f"3D multi-layer graph safety contract missing: {marker}"
+layer_regressions = (root/"tools/ci/OglTerrainNavigationRegression/Program.cs").read_text()
+for marker in (
+    "overlapping floor and bridge have no implicit vertical shortcut",
+    "verified stairs portal joins ground to elevated bridge",
+    "off-mesh portals enforce direction",
+    "multi-level A* CPU expansion budget enforced",
+    "multi-level diagonal corner cutting blocked",
+    "duplicate multi-level XY-layer cell rejected",
+):
+    assert marker in layer_regressions, f"3D multi-layer test missing: {marker}"
+
 for guard in ("class OglTerrainStaticObstacles", "OglStaticCollisionAabb",
               "Too many static obstacle-cell intersections"):
     assert guard in core, f"static prim collider guard missing: {guard}"
