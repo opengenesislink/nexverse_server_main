@@ -98,10 +98,41 @@ internal static class Program
                 "legacy item update erased persistent thumbnail");
 
             var storedFolder = service.GetFolder(owner, saved.ID);
+            ushort galleryVersionBeforeThumbnail = service.GetFolder(owner, gallery.ID).Version;
             storedFolder.ThumbnailID = folderPreview;
+            storedFolder.Version++;
             Assert(service.UpdateFolder(storedFolder), "outfit folder preview save rejected");
             Assert(service.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
                 "outfit folder thumbnail did not persist");
+            Assert(service.GetFolder(owner, gallery.ID).Version >
+                galleryVersionBeforeThumbnail,
+                "outfit preview update did not invalidate its parent folder version");
+
+            // Ordinary folders follow a different XInventoryService update branch
+            // from the protected My Outfits system folder and saved outfits.
+            var ordinaryFolder = new InventoryFolderBase(UUID.Random(),
+                "Normal inventory folder", owner, (short)FolderType.None,
+                service.GetRootFolder(owner).ID, 1);
+            Assert(service.AddFolder(ordinaryFolder),
+                "ordinary thumbnail folder creation failed");
+            UUID ordinaryPreview = UUID.Random();
+            var ordinaryStored = service.GetFolder(owner, ordinaryFolder.ID);
+            ordinaryStored.ThumbnailID = ordinaryPreview;
+            ordinaryStored.Version++;
+            ushort rootVersionBeforeThumbnail = service.GetRootFolder(owner).Version;
+            Assert(service.UpdateFolder(ordinaryStored),
+                "ordinary folder thumbnail save rejected");
+            Assert(service.GetRootFolder(owner).Version > rootVersionBeforeThumbnail,
+                "ordinary preview update did not invalidate inventory root version");
+            var ordinaryLegacy = service.GetFolder(owner, ordinaryFolder.ID);
+            ordinaryLegacy.ThumbnailID = UUID.Zero;
+            ordinaryLegacy.Version++;
+            ordinaryLegacy.Name = "Renamed normal folder";
+            Assert(service.UpdateFolder(ordinaryLegacy),
+                "ordinary legacy folder update rejected");
+            Assert(service.GetFolder(owner, ordinaryFolder.ID).ThumbnailID ==
+                ordinaryPreview,
+                "ordinary legacy update erased folder thumbnail");
 
             var legacyFolder = service.GetFolder(owner, saved.ID);
             legacyFolder.ThumbnailID = UUID.Zero; // absent on legacy folder wire
@@ -131,6 +162,17 @@ internal static class Program
                 "relogin lost saved outfit thumbnail");
             Assert(fresh.GetFolder(owner, gallery.ID).ThumbnailID == folderPreview,
                 "relogin lost My Outfits thumbnail");
+            Assert(fresh.GetFolder(owner, ordinaryFolder.ID).ThumbnailID ==
+                ordinaryPreview, "relogin lost ordinary folder thumbnail");
+            var freshChildren = fresh.GetFolderContent(owner, gallery.ID);
+            Assert(freshChildren.Folders.Any(f =>
+                f.ID == saved.ID && f.ThumbnailID == folderPreview),
+                "relogin parent fetch lost outfit child thumbnail");
+            var freshRootChildren = fresh.GetFolderContent(
+                owner, service.GetRootFolder(owner).ID);
+            Assert(freshRootChildren.Folders.Any(f =>
+                f.ID == ordinaryFolder.ID && f.ThumbnailID == ordinaryPreview),
+                "relogin parent fetch lost ordinary child thumbnail");
 
             var fetch = new OpenSim.Capabilities.Handlers.FetchInventory2Handler(
                 fresh, owner);
