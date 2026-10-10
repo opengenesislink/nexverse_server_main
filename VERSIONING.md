@@ -1,9 +1,9 @@
 # OpenGenesisLINK versioning
 
 Current stable release: **OpenGenesisLINK v0.9.3.8**  
-Current development train: **OpenGenesisLINK v0.9.3.10 Dev**, incorporating earlier .NET runtime modernization and current Pathfinding; OGLVoice deferred beyond 0.9.3.10 (future version not set). No 0.9.3.9 Stable release.  
+Current development train: **OpenGenesisLINK v0.9.3.10 Dev**, incorporating earlier .NET runtime modernization, current Pathfinding and full NexExperiences/Firestorm interoperability; OGLVoice deferred beyond 0.9.3.10 (future version not set). No 0.9.3.9 Stable release.  
 Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (validated and promoted)  
-Active milestone: **0.9.3.10 Dev — Runtime-Modernisierung und Pathfinding; OGLVoice zurueckgestellt**  
+Active milestone: **0.9.3.10 Dev — Runtime-Modernisierung, Pathfinding und NexExperiences; OGLVoice zurueckgestellt**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
 Completed milestone codename: **NEXJAST**
 
@@ -35,7 +35,7 @@ OpenGenesisLINK continues from the OpenSimulator 0.9.3.0 source baseline and the
 - `OpenGenesisLINK v0.9.3.8 Dev` — completed feature implementation and development hardening for NexSearch, Places, Land Portal and Destination Guide.
 - `OpenGenesisLINK v0.9.3.8 RC1` — validated prerelease. Operator reported successful cross-region and estate-wide LSL tests, including NexBus across separate simulator processes; cross-owner and log-clean checks were not separately documented.
 - `OpenGenesisLINK v0.9.3.8` — **stable release, 8 October 2026**; promoted after successful RC1 operator acceptance and green release CI. Known limitations and previously unverified edge cases remain documented in the release notes.
-- `OpenGenesisLINK v0.9.3.10 Dev` — active development train for earlier .NET runtime modernization plus native/Firestorm Pathfinding. Existing OGLVoice source remains disabled and its live/media-gateway work is deferred to an undated later release train; it is not a 0.9.3.10 stable gate. NavMesh/LSL/Character and operational tests remain open; no RC or Stable release yet. See `doc/NexVerse/RELEASE_TRAIN_0.9.3.10.md`.
+- `OpenGenesisLINK v0.9.3.10 Dev` — active development train for earlier .NET runtime modernization, native/Firestorm Pathfinding and full NexExperiences viewer/LSL compatibility. Existing OGLVoice source remains disabled and its live/media-gateway work is deferred to an undated later release train; it is not a 0.9.3.10 stable gate. NavMesh/Pathfinding-LSL/Character, Experience-CAPS/consent and operational tests remain open; no RC or Stable release yet. See `doc/NexVerse/RELEASE_TRAIN_0.9.3.10.md`.
 - `OpenGenesisLINK v0.9.4.0` — Generation 1 consolidation line for broader OGL branding, German administration surfaces and the native addon subsystem.
 
 The product-name transition does not rewrite provenance. OpenSimulator 0.9.3.0 remains the historical source baseline, and inherited licensing remains attached to inherited code until independently replaced.

@@ -17,6 +17,16 @@ for word in ('Configs["OGLPathfinding"]', "Enabled", "OnTerrainTainted",
              "RegisterModuleInterface<IOglTerrainNavigationRegion>",
              "UnregisterModuleInterface<IOglTerrainNavigationRegion>"):
     assert word in module, word
+for safety_marker in (
+    "internal int Epoch = 1;",
+    "internal int SnapshotEpoch;",
+    "Interlocked.Increment(ref Epoch)",
+    "Volatile.Read(ref state.Epoch) == buildEpoch",
+    "requestedEpoch != Volatile.Read(ref Epoch)",
+    "Volatile.Read(ref Building) != 0",
+):
+    assert safety_marker in module, f"terrain rebuild epoch safety lost: {safety_marker}"
+assert "Interlocked.Exchange(ref state.Dirty, 0);" not in module, "stale navigation was exposed before rebuild"
 assert "TryFindTerrainPath" in iface
 assert "RetrieveNavMeshSrc intentionally not advertised" in module
 assert 'RegisterSimpleHandler("RetrieveNavMeshSrc"' not in module

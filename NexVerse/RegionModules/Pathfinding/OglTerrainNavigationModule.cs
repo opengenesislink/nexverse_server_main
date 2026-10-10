@@ -28,6 +28,10 @@ namespace NexVerse.RegionModules.Pathfinding
             public readonly EventManager.OnTerrainTaintedDelegate Listener;
             private readonly int m_MaxExpanded;
             internal OglTerrainNavigationSnapshot Snapshot;
+            // Every terrain mutation advances the epoch, including during a
+            // build. A stale computed snapshot can NEVER become ready again.
+            internal int Epoch = 1;
+            internal int SnapshotEpoch;
             internal int Dirty = 1;
             internal int Building;
 
@@ -35,22 +39,40 @@ namespace NexVerse.RegionModules.Pathfinding
             {
                 Scene = scene;
                 m_MaxExpanded = maxExpanded;
-                Listener = () => Interlocked.Exchange(ref Dirty, 1);
+                Listener = () =>
+                {
+                    Interlocked.Increment(ref Epoch);
+                    Volatile.Write(ref Dirty, 1);
+                };
             }
 
-            public bool IsNavigationReady => Volatile.Read(ref Snapshot) != null &&
-                Volatile.Read(ref Dirty) == 0;
-            public bool IsNavigationDirty => Volatile.Read(ref Dirty) != 0;
+            public bool IsNavigationReady =>
+                Volatile.Read(ref Snapshot) != null && !IsNavigationDirty;
+            public bool IsNavigationDirty =>
+                Volatile.Read(ref Dirty) != 0 ||
+                Volatile.Read(ref Building) != 0 ||
+                Volatile.Read(ref SnapshotEpoch) != Volatile.Read(ref Epoch);
 
             public bool TryFindTerrainPath(float startX, float startY, float targetX, float targetY,
                 out IReadOnlyList<OglNavigationPoint> path)
             {
                 path = Array.Empty<OglNavigationPoint>();
-                if (IsNavigationDirty)
-                    return false;
+                int requestedEpoch = Volatile.Read(ref Epoch);
                 OglTerrainNavigationSnapshot snapshot = Volatile.Read(ref Snapshot);
-                return snapshot != null && snapshot.TryFindWorldPath(startX, startY,
-                    targetX, targetY, out path, m_MaxExpanded);
+                if (snapshot == null || IsNavigationDirty ||
+                    requestedEpoch != Volatile.Read(ref SnapshotEpoch))
+                    return false;
+                if (!snapshot.TryFindWorldPath(startX, startY,
+                    targetX, targetY, out path, m_MaxExpanded))
+                    return false;
+                // Terraforming may invalidate the route DURING the bounded A*
+                // search. Never return a path from that stale snapshot.
+                if (IsNavigationDirty || requestedEpoch != Volatile.Read(ref Epoch))
+                {
+                    path = Array.Empty<OglNavigationPoint>();
+                    return false;
+                }
+                return true;
             }
         }
 
@@ -119,7 +141,8 @@ namespace NexVerse.RegionModules.Pathfinding
             if (scene == null || !m_Regions.TryRemove(scene.RegionInfo.RegionID,
                 out RegionNavigation state))
                 return;
-            Interlocked.Exchange(ref state.Dirty, 1);
+            Interlocked.Increment(ref state.Epoch);
+            Volatile.Write(ref state.Dirty, 1);
             scene.EventManager.OnTerrainTainted -= state.Listener;
             scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
         }
@@ -130,7 +153,10 @@ namespace NexVerse.RegionModules.Pathfinding
                 return;
             foreach (RegionNavigation state in m_Regions.Values)
             {
-                if (Volatile.Read(ref state.Dirty) == 0)
+                // An epoch mismatch can remain after a terrain event races
+                // the final Dirty=0 publication. Always schedule a rebuild
+                // for such invalid snapshots, even if Dirty was cleared.
+                if (!state.IsNavigationDirty)
                     continue;
                 // Rebuild one region asynchronously, never overlapping its
                 // previous build. Avoid stalls in the simulator scene tick.
@@ -148,7 +174,11 @@ namespace NexVerse.RegionModules.Pathfinding
                 if (state.Scene.Heightmap == null)
                     return;
 
-                Interlocked.Exchange(ref state.Dirty, 0);
+                // Keep navigation non-ready throughout the entire build.
+                // The previous code cleared Dirty before MakeCopy/Build, which
+                // permitted a previously published snapshot to be reused.
+                int buildEpoch = Volatile.Read(ref state.Epoch);
+                Volatile.Write(ref state.Dirty, 1);
                 ITerrainChannel copy = state.Scene.Heightmap.MakeCopy();
                 int width = checked((int)state.Scene.RegionInfo.RegionSizeX);
                 int height = checked((int)state.Scene.RegionInfo.RegionSizeY);
@@ -161,7 +191,13 @@ namespace NexVerse.RegionModules.Pathfinding
                 // Invalidation can arrive while building. In that case the
                 // freshly built candidate remains unavailable until next refresh.
                 Volatile.Write(ref state.Snapshot, snapshot);
-                if (Volatile.Read(ref state.Dirty) == 0)
+                Volatile.Write(ref state.SnapshotEpoch, buildEpoch);
+                // An OnTerrainTainted event racing with this write still
+                // increments Epoch; readiness checks compare both epochs.
+                if (Volatile.Read(ref state.Epoch) == buildEpoch)
+                    Volatile.Write(ref state.Dirty, 0);
+                if (Volatile.Read(ref state.Epoch) == buildEpoch &&
+                    Volatile.Read(ref state.Dirty) == 0)
                     m_Log.InfoFormat("[OGL-PATH]: Terrain navigation ready for region {0} ({1}x{2}, cell {3}m). This is NOT a Firestorm NavMesh.",
                         state.Scene.Name, width, height, m_CellMeters);
             }

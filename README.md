@@ -1,6 +1,6 @@
 # OpenGenesisLINK
 
-**OpenGenesisLINK v0.9.3.10 Dev** is the active runtime-modernization and Pathfinding development train. **OGLVoice has been deferred to a later, unscheduled development train**; its existing code stays in the repository but is not a 0.9.3.10 release requirement. The last stable release is **v0.9.3.8**. OpenGenesisLINK is an independent virtual-world server platform developed by the OpenGenesisLINK project.
+**OpenGenesisLINK v0.9.3.10 Dev** is the active runtime-modernization, Pathfinding and NexExperiences compatibility development train. **OGLVoice has been deferred to a later, unscheduled development train**; its existing code stays in the repository but is not a 0.9.3.10 release requirement. The last stable release is **v0.9.3.8**. OpenGenesisLINK is an independent virtual-world server platform developed by the OpenGenesisLINK project.
 
 This repository starts from the published **OpenSimulator 0.9.3.0 ("Nessie") Release** source package. It is intentionally maintained as its own repository rather than as a GitHub fork. The long-term objective is an independent OpenGenesisLINK development line whose architecture, services, protocols, modules, tooling and branding may diverge substantially from OpenSimulator.
 
@@ -21,7 +21,9 @@ Imported OpenSimulator files do **not** lose or replace their existing BSD/third
 
 ## Versioning
 
-The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026. Development now targets **0.9.3.10 Dev** for .NET runtime modernization and Pathfinding (previously planned 0.9.3.9 runtime work is retained, but OGLVoice is postponed). **NavMesh/LSL/Character live acceptance remains open**, so 0.9.3.10 is not yet ready for a stable claim. No separate 0.9.3.9 Stable release is planned.
+The current stable release is **OpenGenesisLINK v0.9.3.8**. It was promoted after successful RC1 acceptance on 8 October 2026. Development now targets **0.9.3.10 Dev** for .NET runtime modernization, Pathfinding and complete NexExperiences/Firestorm integration (previously planned 0.9.3.9 runtime work is retained, but OGLVoice is postponed). **NavMesh/Pathfinding-LSL/Character and Experiences viewer-CAPS, consent/revoke and live acceptance remain open**; 0.9.3.10 is not ready for a stable claim. No separate 0.9.3.9 Stable release is planned.
+
+**Pathfinding & Experiences full-parity acceptance:** [`doc/NexVerse/PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md`](doc/NexVerse/PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md). The existing native A* and Experience LSL/KV code is a foundation, not proof of Firestorm NavMesh or Experience consent UI compatibility.
 
 **Inventory thumbnail compatibility (0.9.3.10 Dev):** The server-side `InventoryThumbnailUpload` capability, persistent item/folder previews, and inventory fetch metadata are implemented. **Known limitation:** Firestorm 7.2.4.80712 on the tested NexVerse/OpenSim configuration does not reliably refresh a replaced outfit-folder thumbnail from its existing inventory cache after relog; rebuilding the inventory cache restores the persisted preview. INV01 is closed as an accepted compatibility limitation, **not** as a fixed viewer refresh bug. See [`doc/NexVerse/FIRESTORM_INVENTORY_THUMBNAIL_09310.md`](doc/NexVerse/FIRESTORM_INVENTORY_THUMBNAIL_09310.md). This does not change the remaining stable release gates.
 
