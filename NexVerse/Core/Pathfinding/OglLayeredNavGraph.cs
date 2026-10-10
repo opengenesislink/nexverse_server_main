@@ -199,6 +199,21 @@ namespace NexVerse.Core.Pathfinding
                 status = 3; // PU_FAILURE_INVALID_GOAL
                 return false;
             }
+            // Do not silently route an agent standing high above/below a
+            // surface onto the ground just because it falls within the
+            // 8-metre nearest-node search sphere. LL static-path endpoints
+            // may be offset from floor height by the character centre.
+            const float endpointHeightTolerance = 2.5f;
+            if (Math.Abs(startZ - m_Nodes[from].Z) > endpointHeightTolerance)
+            {
+                status = 2;
+                return false;
+            }
+            if (Math.Abs(goalZ - m_Nodes[to].Z) > endpointHeightTolerance)
+            {
+                status = 3;
+                return false;
+            }
             if (!TryFindPath(from, to, agentRadius, out IReadOnlyList<int> route,
                     maxExpandedNodes))
             {
