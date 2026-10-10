@@ -2652,6 +2652,65 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
             }
         }
 
+        /// <summary>
+        /// Experimental terrain-only implementation of the SL nav-point
+        /// query. The opt-in region module fails closed on dirty snapshots.
+        /// This does NOT claim multi-layer Havok NavMesh compatibility.
+        /// </summary>
+        public LSL_List llGetClosestNavPoint(LSL_Vector point, LSL_List options)
+        {
+            IOglNativeTerrainQuery query =
+                World.RequestModuleInterface<IOglNativeTerrainQuery>();
+            if (query == null)
+                return new LSL_List();
+
+            float radius = 20f;
+            if (options != null)
+            {
+                if ((options.Length & 1) != 0 || options.Length > 12)
+                    return new LSL_List();
+                try
+                {
+                    for (int i = 0; i < options.Length; i += 2)
+                    {
+                        int code = options.GetIntegerItem(i);
+                        switch (code)
+                        {
+                            case ScriptBaseClass.GCNP_RADIUS:
+                                radius = options.GetFloatItem(i + 1);
+                                break;
+                            case ScriptBaseClass.GCNP_STATIC:
+                                // The current terrain snapshot is static. Its
+                                // dynamic-mesh equivalent is not yet available.
+                                if (options.GetIntegerItem(i + 1) != 1)
+                                    return new LSL_List();
+                                break;
+                            case ScriptBaseClass.CHARACTER_TYPE:
+                                if (options.GetIntegerItem(i + 1) !=
+                                    ScriptBaseClass.CHARACTER_TYPE_NONE)
+                                    return new LSL_List();
+                                break;
+                            default:
+                                return new LSL_List();
+                        }
+                    }
+                }
+                catch (Exception e) when (e is InvalidCastException ||
+                                          e is ArgumentException ||
+                                          e is FormatException ||
+                                          e is IndexOutOfRangeException)
+                {
+                    return new LSL_List();
+                }
+            }
+            if (!query.TryGetClosestNavPoint(
+                    (float)point.x, (float)point.y, (float)point.z,
+                    radius, out Vector3 nearest))
+                return new LSL_List();
+            return new LSL_List(
+                new LSL_Vector(nearest.X, nearest.Y, nearest.Z));
+        }
+
         public LSL_Vector llGetPos()
         {
             return m_host.GetWorldPosition();
