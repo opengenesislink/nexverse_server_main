@@ -72,6 +72,29 @@ internal static class Program
             store.Get(created.ExperienceId).Contributors.Contains(contributor),
             "role persistence failed");
 
+        // Firestorm read-only role tabs must derive only this resident's own
+        // roles, without leaking owner/admin lists to unrelated residents.
+        var ownerLists = store.GetResidentLists(owner);
+        var adminLists = store.GetResidentLists(admin);
+        var contributorLists = store.GetResidentLists(contributor);
+        var unrelatedLists = store.GetResidentLists(Guid.NewGuid());
+        Require(ownerLists.Owned.Contains(created.ExperienceId),
+            "AgentExperiences must include owner's experience");
+        Require(adminLists.Admin.Contains(created.ExperienceId),
+            "GetAdminExperiences must include assigned admin role");
+        Require(contributorLists.Contributor.Contains(created.ExperienceId),
+            "GetCreatorExperiences must include contributor role");
+        Require(!adminLists.Owned.Contains(created.ExperienceId) &&
+                !contributorLists.Owned.Contains(created.ExperienceId) &&
+                !unrelatedLists.Admin.Contains(created.ExperienceId) &&
+                !unrelatedLists.Contributor.Contains(created.ExperienceId),
+            "Firestorm role lists leaked another resident's authority");
+        Require(store.GetGroupExperiences(created.GroupId).Contains(created.ExperienceId),
+            "GroupExperiences must include enabled group-owned experience");
+        Require(store.GetGroupExperiences(Guid.NewGuid()).Length == 0,
+            "GroupExperiences returned experiences for unrelated group");
+
+
         store.SetResidentPermission(
             created.ExperienceId,
             admin,
@@ -278,6 +301,10 @@ internal static class Program
         reopened.UpdateProfile(created.ExperienceId, owner,
             "CI Experience", "temporarily disabled", created.GroupId,
             NexExperienceMaturity.Moderate, false, "ci");
+        Require(!reopened.GetResidentLists(admin).Admin.Contains(created.ExperienceId) &&
+                !reopened.GetResidentLists(contributor).Contributor.Contains(created.ExperienceId) &&
+                !reopened.GetGroupExperiences(created.GroupId).Contains(created.ExperienceId),
+            "Disabled experiences must disappear from Firestorm role/group lists");
         Require(reopened.GetResidentPermission(created.ExperienceId, resident) ==
             NexExperiencePermissionStatus.None,
             "disabled Experience still granted resident permissions");

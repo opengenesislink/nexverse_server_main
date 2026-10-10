@@ -246,6 +246,8 @@ namespace NexVerse.Server.Api
                                 experiences = lists.Allowed.Select(x => x.ToString("D")).ToArray(),
                                 blocked = lists.Blocked.Select(x => x.ToString("D")).ToArray(),
                                 experience_ids = lists.Owned.Select(x => x.ToString("D")).ToArray(),
+                                admin_ids = lists.Admin.Select(x => x.ToString("D")).ToArray(),
+                                contributor_ids = lists.Contributor.Select(x => x.ToString("D")).ToArray(),
                                 correlation_id = Correlation(response)
                             });
                         }
@@ -274,6 +276,42 @@ namespace NexVerse.Server.Api
                     {
                         MethodNotAllowed(response, "GET or PUT");
                     }
+                }
+                catch (Exception e)
+                {
+                    WriteFailure(response, e);
+                }
+                return;
+            }
+
+            // Group-owned Experience IDs are public metadata, not group
+            // member lists or resident permissions. Keep this endpoint on
+            // the dedicated authenticated simulator bridge; viewer CAP
+            // requests never carry a caller-selected resident identity.
+            if (path == "/api/v1/experiences/viewer/group")
+            {
+                if (!RequireMethod(method, "GET", response))
+                    return;
+                if (!Authenticate(request, response,
+                    NexScopes.ExperiencesViewerPermissions,
+                    out _, out UserAccount account))
+                    return;
+                if (account != null)
+                {
+                    WriteError(response, HttpStatusCode.Forbidden,
+                        "service_key_required",
+                        "Group Experiences bridge requires a dedicated service credential.");
+                    return;
+                }
+                try
+                {
+                    Guid groupId = QueryGuid(request, "group_id");
+                    WriteJson(response, new
+                    {
+                        experience_ids = m_Store.GetGroupExperiences(groupId)
+                            .Select(x => x.ToString("D")).ToArray(),
+                        correlation_id = Correlation(response)
+                    });
                 }
                 catch (Exception e)
                 {

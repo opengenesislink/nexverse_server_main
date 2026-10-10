@@ -362,7 +362,7 @@ namespace NexVerse.Core.Experiences
         /// Return only this resident's own Experience lists. No owner lists,
         /// other users' permissions, script bindings or keys are exposed.
         /// </summary>
-        public (Guid[] Allowed, Guid[] Blocked, Guid[] Owned) GetResidentLists(Guid residentId)
+        public (Guid[] Allowed, Guid[] Blocked, Guid[] Owned, Guid[] Admin, Guid[] Contributor) GetResidentLists(Guid residentId)
         {
             if (residentId == Guid.Empty)
                 throw new ArgumentException("Resident ID is required.", nameof(residentId));
@@ -379,8 +379,23 @@ namespace NexVerse.Core.Experiences
                     active.Where(x => x.BlockedResidents.Contains(residentId))
                         .Select(x => x.ExperienceId).ToArray(),
                     active.Where(x => x.OwnerId == residentId)
+                        .Select(x => x.ExperienceId).ToArray(),
+                    active.Where(x => x.Admins.Contains(residentId))
+                        .Select(x => x.ExperienceId).ToArray(),
+                    active.Where(x => x.Contributors.Contains(residentId))
                         .Select(x => x.ExperienceId).ToArray());
             }
+        }
+
+        /// <summary>Public enabled Experience IDs bound to a given group.</summary>
+        public Guid[] GetGroupExperiences(Guid groupId)
+        {
+            if (groupId == Guid.Empty)
+                throw new ArgumentException("Group UUID is required.", nameof(groupId));
+            lock (m_Sync)
+                return m_State.Experiences
+                    .Where(x => x.Enabled && x.GroupId == groupId)
+                    .Select(x => x.ExperienceId).ToArray();
         }
 
         public NexExperience SetLocationPolicy(

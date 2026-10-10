@@ -210,6 +210,30 @@ assert "FirestormReadCaps = false" in opensim_config
 assert "FirestormPermissionCaps = false" in opensim_config
 assert "ViewerPermissionsApiKey" in opensim_config
 assert "GetExperiences" in experience_module
+for cap in (
+    '"AgentExperiences"',
+    '"GetAdminExperiences"',
+    '"GetCreatorExperiences"',
+    '"GroupExperiences"',
+):
+    assert cap in experience_module, f"Firestorm role/group capability missing: {cap}"
+assert "HandleViewerRoleList" in experience_module
+assert 'role == "group"' in experience_module
+assert '["experience_ids"] = ids' in experience_module
+assert "if (req.HttpMethod != \"GET\")" in experience_module
+assert '"/api/v1/experiences/viewer/group"' in experience_api
+assert "NexScopes.ExperiencesViewerPermissions" in experience_api
+assert "GetGroupExperiences(groupId)" in experience_api
+assert "admin_ids = lists.Admin.Select" in experience_api
+assert "contributor_ids = lists.Contributor.Select" in experience_api
+assert 'm_Store.GetResidentLists(resident)' in experience_api
+for marker in (
+    "adminLists.Admin.Contains",
+    "contributorLists.Contributor.Contains",
+    "GetGroupExperiences(created.GroupId)",
+    "Disabled experiences must disappear from Firestorm role/group lists",
+):
+    assert marker in regression, f"role-list regression missing: {marker}"
 assert "ExperiencePreferences" in experience_module
 assert "CreateViewerPermissionRequest" in experience_module
 assert "if (!IsCurrentViewer(avatar))" in experience_module

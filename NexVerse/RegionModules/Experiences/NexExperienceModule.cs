@@ -204,6 +204,21 @@ namespace NexVerse.RegionModules.Experiences
                 caps.RegisterSimpleHandler("ExperiencePreferences",
                     new SimpleStreamHandler("/" + UUID.Random(),
                         (req, resp) => HandleViewerPermissions(req, resp, avatar, false)));
+                // Firestorm reads these three tabs separately. Each reply
+                // contains ONLY the avatar's own role IDs. Creation is
+                // deliberately unsupported (GET-only AgentExperiences).
+                caps.RegisterSimpleHandler("AgentExperiences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerRoleList(req, resp, avatar, "experience_ids")));
+                caps.RegisterSimpleHandler("GetAdminExperiences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerRoleList(req, resp, avatar, "admin_ids")));
+                caps.RegisterSimpleHandler("GetCreatorExperiences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerRoleList(req, resp, avatar, "contributor_ids")));
+                caps.RegisterSimpleHandler("GroupExperiences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerRoleList(req, resp, avatar, "group")));
             }
         }
 
@@ -230,7 +245,8 @@ namespace NexVerse.RegionModules.Experiences
             using JsonDocument doc = JsonDocument.Parse(
                 response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
             OSDMap result = new();
-            foreach (string list in new[] { "experiences", "blocked", "experience_ids" })
+            foreach (string list in new[] { "experiences", "blocked", "experience_ids",
+                "admin_ids", "contributor_ids" })
             {
                 OSDArray ids = new();
                 if (doc.RootElement.TryGetProperty(list, out JsonElement src) &&
@@ -246,6 +262,88 @@ namespace NexVerse.RegionModules.Experiences
                 result[list] = ids;
             }
             return result;
+        }
+
+        /// <summary>
+        /// Firestorm role tabs require {"experience_ids":[uuid,...]}.
+        /// The list is always derived from this CAP's authenticated avatar.
+        /// GroupExperiences instead requests public group-owned ids via its
+        /// own bridge route; never accesses another resident's role lists.
+        /// </summary>
+        private void HandleViewerRoleList(IOSHttpRequest req, IOSHttpResponse resp,
+            UUID avatar, string role)
+        {
+            resp.ContentType = "application/llsd+xml";
+            resp.KeepAlive = false;
+            resp.AddHeader("Cache-Control", "no-store");
+            if (req.HttpMethod != "GET")
+            {
+                resp.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                return;
+            }
+            if (!IsCurrentViewer(avatar))
+            {
+                resp.StatusCode = (int)HttpStatusCode.Gone;
+                return;
+            }
+            try
+            {
+                OSDArray ids;
+                if (role == "group")
+                {
+                    // Firestorm appends '?' + group UUID, without a key.
+                    string query = req.Url?.Query?.TrimStart('?') ?? "";
+                    if (query.Length > 36 ||
+                        !UUID.TryParse(query, out UUID groupId) || groupId.IsZero())
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                        return;
+                    }
+                    using HttpRequestMessage request = CreateViewerPermissionRequest(
+                        HttpMethod.Get, "/api/v1/experiences/viewer/group?group_id=" +
+                        Uri.EscapeDataString(groupId.ToString()));
+                    using HttpResponseMessage reply = m_Http.Send(request);
+                    reply.EnsureSuccessStatusCode();
+                    using JsonDocument document = JsonDocument.Parse(
+                        reply.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                    ids = new OSDArray();
+                    if (document.RootElement.TryGetProperty("experience_ids",
+                            out JsonElement list) && list.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (JsonElement item in list.EnumerateArray())
+                        {
+                            if (item.ValueKind == JsonValueKind.String &&
+                                UUID.TryParse(item.GetString(), out UUID id) && !id.IsZero())
+                                ids.Add(OSD.FromUUID(id));
+                        }
+                    }
+                }
+                else
+                {
+                    OSDMap resident = FetchViewerPermissionLists(avatar);
+                    if (!resident.TryGetValue(role, out OSD value) || value is not OSDArray array)
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.BadGateway;
+                        return;
+                    }
+                    ids = array;
+                }
+                OSDMap result = new() { ["experience_ids"] = ids };
+                resp.RawBuffer = Encoding.UTF8.GetBytes(
+                    OSDParser.SerializeLLSDXmlString(result));
+                resp.StatusCode = (int)HttpStatusCode.OK;
+            }
+            catch (Exception e) when (e is HttpRequestException ||
+                                      e is TaskCanceledException ||
+                                      e is JsonException ||
+                                      e is InvalidOperationException ||
+                                      e is ArgumentException)
+            {
+                m_Log.WarnFormat(
+                    "[NEX-EXPERIENCES]: Viewer role-list capability failed: {0}",
+                    e.Message);
+                resp.StatusCode = (int)HttpStatusCode.BadGateway;
+            }
         }
 
         private void HandleViewerPermissions(IOSHttpRequest req, IOSHttpResponse resp,
