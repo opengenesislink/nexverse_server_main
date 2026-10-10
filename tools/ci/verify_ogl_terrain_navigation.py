@@ -27,6 +27,9 @@ for safety_marker in (
 ):
     assert safety_marker in module, f"terrain rebuild epoch safety lost: {safety_marker}"
 assert "Interlocked.Exchange(ref state.Dirty, 0);" not in module, "stale navigation was exposed before rebuild"
+assert "TryFindNearestTerrainPoint" in iface
+assert "TryFindNearestTerrainPoint" in module
+assert "TryFindNearestTerrainPoint" in snapshot
 assert "TryFindTerrainPath" in iface
 assert "RetrieveNavMeshSrc intentionally not advertised" in module
 assert 'RegisterSimpleHandler("RetrieveNavMeshSrc"' not in module
