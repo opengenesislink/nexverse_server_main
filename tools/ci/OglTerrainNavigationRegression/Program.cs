@@ -145,4 +145,84 @@ try
 }
 catch (ArgumentOutOfRangeException) {}
 
-Console.WriteLine("OGL terrain navigation snapshot: slope, water, obstacles, dirty rebuild, bounds and world coordinates OK");
+// Multi-layer sample surfaces: matching X/Y at ground and bridge height
+// must NEVER be implicitly connected. Only an explicit verified portal
+// (stairs/ramp) is allowed to join them.
+OglLayerNavNode[] floors = new OglLayerNavNode[8];
+for (int layer = 0; layer < 2; layer++)
+for (int y = 0; y < 2; y++)
+for (int x = 0; x < 2; x++)
+    floors[layer * 4 + y * 2 + x] =
+        new OglLayerNavNode(x, y, layer, layer == 0 ? 0f : 8f, 1f);
+
+OglLayeredNavGraph disconnectedFloors = new(
+    floors, Array.Empty<OglLayerNavPortal>(), 4f, 0.5f);
+Check(disconnectedFloors.TryFindPath(0, 3, 0.5f, out var groundPath) &&
+    groundPath.Count == 2,
+    "ground level diagonal within same surface works");
+Check(!disconnectedFloors.TryFindPath(0, 7, 0.5f, out _),
+    "overlapping floor and bridge have no implicit vertical shortcut");
+Check(!disconnectedFloors.TryFindPath(0, 3, 1.5f, out _),
+    "agent radius must fit every multi-layer surface");
+
+OglLayeredNavGraph stairs = new(
+    floors, new[] { new OglLayerNavPortal(3, 7) }, 4f, 0.5f);
+Check(stairs.TryFindPath(0, 7, 0.5f, out var multiFloorRoute) &&
+    multiFloorRoute.Contains(3) && multiFloorRoute.Contains(7),
+    "verified stairs portal joins ground to elevated bridge");
+Check(stairs.TryFindPath(7, 0, 0.5f, out _),
+    "bidirectional stairs allow a descending route");
+OglLayeredNavGraph oneWayLift = new(
+    floors, new[] { new OglLayerNavPortal(3, 7, false) }, 4f, 0.5f);
+Check(oneWayLift.TryFindPath(0, 7, 0.5f, out _) &&
+    !oneWayLift.TryFindPath(7, 0, 0.5f, out _),
+    "off-mesh portals enforce direction");
+Check(!stairs.TryFindPath(0, 7, 0.5f, out _, 1),
+    "multi-level A* CPU expansion budget enforced");
+
+OglLayeredNavGraph missingCorners = new(
+    new[] {
+        new OglLayerNavNode(0, 0, 0, 0, 1),
+        new OglLayerNavNode(1, 1, 0, 0, 1)
+    }, Array.Empty<OglLayerNavPortal>(), 4f, 0.5f);
+Check(!missingCorners.TryFindPath(0, 1, 0.5f, out _),
+    "multi-level diagonal corner cutting blocked");
+
+OglLayeredNavGraph gentleStairs = new(
+    new[] {
+        new OglLayerNavNode(0, 0, 0, 0, 1),
+        new OglLayerNavNode(1, 0, 0, 0.4f, 1),
+        new OglLayerNavNode(2, 0, 0, 0.8f, 1),
+    }, Array.Empty<OglLayerNavPortal>(), 4f, 0.5f);
+Check(gentleStairs.TryFindPath(0, 2, 0.5f, out var slopeRoute) &&
+    slopeRoute.Count == 3, "bounded slope steps are navigable");
+Check(!new OglLayeredNavGraph(
+    new[] {
+        new OglLayerNavNode(0, 0, 0, 0, 1),
+        new OglLayerNavNode(1, 0, 0, 3, 1)
+    }, Array.Empty<OglLayerNavPortal>(), 4f, 0.5f)
+    .TryFindPath(0, 1, 0.5f, out _),
+    "cliffs remain disconnected on the same layer");
+
+bool duplicateLayerCellRejected = false;
+try
+{
+    _ = new OglLayeredNavGraph(new[] {
+        new OglLayerNavNode(0, 0, 0, 0, 1),
+        new OglLayerNavNode(0, 0, 0, 1, 1)
+    }, Array.Empty<OglLayerNavPortal>(), 4f, 0.5f);
+}
+catch (ArgumentException) { duplicateLayerCellRejected = true; }
+Check(duplicateLayerCellRejected, "duplicate multi-level XY-layer cell rejected");
+bool invalidPortalRejected = false;
+try
+{
+    _ = new OglLayeredNavGraph(floors,
+        new[] { new OglLayerNavPortal(0, 200) }, 4f, 0.5f);
+}
+catch (ArgumentException) { invalidPortalRejected = true; }
+Check(invalidPortalRejected, "invalid off-mesh portal endpoints rejected");
+Check(!stairs.TryFindPath(0, 7, float.NaN, out _),
+    "multi-layer invalid agent radius rejected");
+
+Console.WriteLine("OGL terrain and multi-layer navigation graphs: slope, water, obstacles, dirty rebuild, bounds and world coordinates OK");
