@@ -16,8 +16,21 @@ using OpenSim.Region.Framework.Scenes;
 namespace NexVerse.RegionModules.Pathfinding
 {
     /// <summary>
-    /// Experimental, opt-in terrain-only navigation. Never moves an avatar,
-    /// never overrides physics, and does not claim LSL pathfinding parity.
+    /// Contract implemented by a trusted Scene/Physics adapter. The adapter
+    /// MUST sample actual collision-backed walkable surfaces, validate every
+    /// explicit off-mesh portal and return a fresh immutable graph. AABB
+    /// extents alone do not establish floors, stairs or walkable mesh tops.
+    /// The terrain navigator does not fabricate missing geometry.
+    /// </summary>
+    public interface IOglVerifiedLayeredSurfaceSource
+    {
+        OglLayeredNavGraph CaptureVerifiedGraph(
+            Scene scene, int cellMeters, float maxStepMeters);
+    }
+
+    /// <summary>
+    /// Experimental opt-in terrain navigation, optionally backed by verified
+    /// multi-layer Scene surfaces. Never overrides avatar or NPC physics.
     /// </summary>
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule",
         Id = "OglTerrainNavigationModule")]
@@ -31,7 +44,9 @@ namespace NexVerse.RegionModules.Pathfinding
             public readonly EventManager.ObjectBeingRemovedFromScene StaticRemoved;
             public readonly EventManager.SceneObjectPartUpdated StaticUpdated;
             private readonly int m_MaxExpanded;
+            private readonly bool m_RequireLayered;
             internal OglTerrainNavigationSnapshot Snapshot;
+            internal OglLayeredNavGraph LayeredGraph;
             // Every terrain mutation advances the epoch, including during a
             // build. A stale computed snapshot can NEVER become ready again.
             internal int Epoch = 1;
@@ -39,16 +54,17 @@ namespace NexVerse.RegionModules.Pathfinding
             internal int Dirty = 1;
             internal int Building;
 
-            public RegionNavigation(Scene scene, int maxExpanded)
+            public RegionNavigation(Scene scene, int maxExpanded, bool requireLayered)
             {
                 Scene = scene;
                 m_MaxExpanded = maxExpanded;
+                m_RequireLayered = requireLayered;
                 Listener = Invalidate;
                 StaticAdded = _ => Invalidate();
                 StaticRemoved = _ => Invalidate();
                 StaticUpdated = (part, full) =>
                 {
-                    if (part?.ParentGroup != null && !part.ParentGroup.UsesPhysics)
+                    if (part?.ParentGroup != null)
                         Invalidate();
                 };
             }
@@ -60,7 +76,9 @@ namespace NexVerse.RegionModules.Pathfinding
             }
 
             public bool IsNavigationReady =>
-                Volatile.Read(ref Snapshot) != null && !IsNavigationDirty;
+                Volatile.Read(ref Snapshot) != null &&
+                (!m_RequireLayered || Volatile.Read(ref LayeredGraph) != null) &&
+                !IsNavigationDirty;
             public bool IsNavigationDirty =>
                 Volatile.Read(ref Dirty) != 0 ||
                 Volatile.Read(ref Building) != 0 ||
@@ -70,6 +88,22 @@ namespace NexVerse.RegionModules.Pathfinding
                 float radius, out Vector3 nearest)
             {
                 nearest = Vector3.Zero;
+                if (m_RequireLayered)
+                {
+                    int epoch = Volatile.Read(ref Epoch);
+                    OglLayeredNavGraph graph = Volatile.Read(ref LayeredGraph);
+                    if (graph == null || IsNavigationDirty ||
+                        epoch != Volatile.Read(ref SnapshotEpoch) ||
+                        !graph.TryFindClosestSurface(x, y, z, radius,
+                            0.5f, out int index) ||
+                        IsNavigationDirty || epoch != Volatile.Read(ref Epoch))
+                        return false;
+                    OglLayerNavNode node = graph.GetNode(index);
+                    nearest = new Vector3(
+                        (node.X + 0.5f) * graph.CellMeters,
+                        (node.Y + 0.5f) * graph.CellMeters, node.Z);
+                    return true;
+                }
                 if (!TryFindNearestTerrainPoint(x, y, z, radius,
                     out OglNavigationPoint point))
                     return false;
@@ -106,13 +140,22 @@ namespace NexVerse.RegionModules.Pathfinding
                 if (snapshot == null || IsNavigationDirty ||
                     epoch != Volatile.Read(ref SnapshotEpoch))
                     return false;
-
-                if (!snapshot.TryFindStaticTerrainRoute(
+                IReadOnlyList<OglNavigationPoint> route;
+                if (m_RequireLayered)
+                {
+                    OglLayeredNavGraph graph = Volatile.Read(ref LayeredGraph);
+                    if (graph == null ||
+                        !graph.TryFindWorldPath(
+                            start.X, start.Y, start.Z, end.X, end.Y, end.Z,
+                            radius, out route, out status, m_MaxExpanded))
+                        return false;
+                }
+                else if (!snapshot.TryFindStaticTerrainRoute(
                     start.X, start.Y, start.Z,
                     end.X, end.Y, end.Z, radius,
-                    out IReadOnlyList<OglNavigationPoint> route,
-                    out status, m_MaxExpanded))
+                    out route, out status, m_MaxExpanded))
                     return false;
+
                 Vector3[] result = new Vector3[route.Count];
                 for (int i = 0; i < result.Length; ++i)
                     result[i] = new Vector3(route[i].X, route[i].Y, route[i].Z);
@@ -157,6 +200,8 @@ namespace NexVerse.RegionModules.Pathfinding
         private int m_MaxExpanded = 20000;
         private int m_RebuildSeconds = 30;
         private bool m_TrackStaticColliders;
+        private bool m_UseLayeredSurfaces;
+        private float m_LayeredMaxStep = 0.6f;
         private float m_StaticAgentHeight = 1.8f;
         private int m_MaxStaticPrims = 20000;
         private Timer m_Timer;
@@ -179,6 +224,9 @@ namespace NexVerse.RegionModules.Pathfinding
             m_MaxExpanded = Math.Clamp(config.GetInt("MaxExpandedNodes", 20000), 128, 100000);
             m_RebuildSeconds = Math.Clamp(config.GetInt("RebuildSeconds", 30), 15, 3600);
             m_TrackStaticColliders = config.GetBoolean("TrackStaticColliders", false);
+            m_UseLayeredSurfaces = config.GetBoolean("UseVerifiedLayeredSurfaces", false);
+            m_LayeredMaxStep = Math.Clamp(
+                config.GetFloat("LayeredMaxStepMeters", 0.6f), 0.1f, 3f);
             m_StaticAgentHeight = Math.Clamp(config.GetFloat("StaticAgentHeight", 1.8f), 0.5f, 5f);
             m_MaxStaticPrims = Math.Clamp(config.GetInt("MaxStaticPrims", 20000), 1, 50000);
         }
@@ -187,11 +235,11 @@ namespace NexVerse.RegionModules.Pathfinding
         {
             if (!m_Enabled || scene == null)
                 return;
-            RegionNavigation state = new(scene, m_MaxExpanded);
+            RegionNavigation state = new(scene, m_MaxExpanded, m_UseLayeredSurfaces);
             if (!m_Regions.TryAdd(scene.RegionInfo.RegionID, state))
                 return;
             scene.EventManager.OnTerrainTainted += state.Listener;
-            if (m_TrackStaticColliders)
+            if (m_TrackStaticColliders || m_UseLayeredSurfaces)
             {
                 scene.EventManager.OnObjectAddedToScene += state.StaticAdded;
                 scene.EventManager.OnObjectBeingRemovedFromScene += state.StaticRemoved;
@@ -230,7 +278,7 @@ namespace NexVerse.RegionModules.Pathfinding
             Interlocked.Increment(ref state.Epoch);
             Volatile.Write(ref state.Dirty, 1);
             scene.EventManager.OnTerrainTainted -= state.Listener;
-            if (m_TrackStaticColliders)
+            if (m_TrackStaticColliders || m_UseLayeredSurfaces)
             {
                 scene.EventManager.OnObjectAddedToScene -= state.StaticAdded;
                 scene.EventManager.OnObjectBeingRemovedFromScene -= state.StaticRemoved;
@@ -349,9 +397,33 @@ namespace NexVerse.RegionModules.Pathfinding
                     staticBlocked == null ? null :
                         (x, y) => staticBlocked[(y / m_CellMeters) * gridWidth +
                                                x / m_CellMeters]);
+                OglLayeredNavGraph layered = null;
+                if (m_UseLayeredSurfaces)
+                {
+                    // An opt-in without a verified physics source must fail
+                    // closed; never treat AABB projections as extra floors.
+                    IOglVerifiedLayeredSurfaceSource provider =
+                        state.Scene.RequestModuleInterface<IOglVerifiedLayeredSurfaceSource>();
+                    layered = provider?.CaptureVerifiedGraph(
+                        state.Scene, m_CellMeters, m_LayeredMaxStep);
+                    if (layered == null || layered.CellMeters != m_CellMeters)
+                        throw new InvalidOperationException(
+                            "Verified layered scene provider missing or returned incompatible graph");
+                    // Reject coordinates outside this region even if a
+                    // registered provider accidentally returns bad data.
+                    for (int i = 0; i < layered.NodeCount; ++i)
+                    {
+                        OglLayerNavNode node = layered.GetNode(i);
+                        if ((node.X + 0.5f) * m_CellMeters >= width ||
+                            (node.Y + 0.5f) * m_CellMeters >= height)
+                            throw new InvalidOperationException(
+                                "Verified layered source contains out-of-region cells");
+                    }
+                }
                 // Invalidation can arrive while building. In that case the
                 // freshly built candidate remains unavailable until next refresh.
                 Volatile.Write(ref state.Snapshot, snapshot);
+                Volatile.Write(ref state.LayeredGraph, layered);
                 Volatile.Write(ref state.SnapshotEpoch, buildEpoch);
                 // An OnTerrainTainted event racing with this write still
                 // increments Epoch; readiness checks compare both epochs.
@@ -381,7 +453,7 @@ namespace NexVerse.RegionModules.Pathfinding
             {
                 Interlocked.Exchange(ref state.Dirty, 1);
                 state.Scene.EventManager.OnTerrainTainted -= state.Listener;
-                if (m_TrackStaticColliders)
+                if (m_TrackStaticColliders || m_UseLayeredSurfaces)
                 {
                     state.Scene.EventManager.OnObjectAddedToScene -= state.StaticAdded;
                     state.Scene.EventManager.OnObjectBeingRemovedFromScene -= state.StaticRemoved;

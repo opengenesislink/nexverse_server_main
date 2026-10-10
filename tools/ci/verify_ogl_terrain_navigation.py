@@ -103,6 +103,35 @@ assert "UnregisterModuleInterface<IOglNativeTerrainQuery>" in module
 assert "TryFindTerrainPath" in iface
 assert "RetrieveNavMeshSrc intentionally not advertised" in module
 assert 'RegisterSimpleHandler("RetrieveNavMeshSrc"' not in module
+# The optional layered source may only be offered by a trusted Scene/Physics
+# adapter. It is not a fabricated NavMesh and must never silently fall back
+# when explicitly enabled but unavailable.
+for marker in (
+    "IOglVerifiedLayeredSurfaceSource",
+    "UseVerifiedLayeredSurfaces",
+    "CaptureVerifiedGraph(",
+    "provider?.CaptureVerifiedGraph(",
+    "layered == null || layered.CellMeters != m_CellMeters",
+    "Volatile.Write(ref state.LayeredGraph, layered)",
+    "epoch != Volatile.Read(ref Epoch)",
+):
+    assert marker in module, f"layered scene/native query guard missing: {marker}"
+for marker in (
+    "TryFindClosestSurface(",
+    "TryFindWorldPath(",
+    "endpointHeightTolerance",
+    "route.Count > 256",
+):
+    assert marker in layered, f"layered query safety missing: {marker}"
+for marker in (
+    "3D world query snaps onto bridge, not underlying terrain",
+    "world-space path never invents a vertical portal",
+    "world-space path refuses to snap floating start onto distant floor",
+):
+    assert marker in layer_regressions, f"layered world regression missing: {marker}"
+assert "UseVerifiedLayeredSurfaces = false" in config
+assert "LayeredMaxStepMeters = 0.6" in config
+
 assert "Enabled = false" in config and "[OGLPathfinding]" in config
 assert "llNavigateTo" not in module and "new ScenePresence" not in module
 print("OGL per-region terrain navigation module wiring: OK")

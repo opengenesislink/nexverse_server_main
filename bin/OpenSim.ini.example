@@ -1245,6 +1245,13 @@
     TrackStaticColliders = false
     StaticAgentHeight = 1.8
     MaxStaticPrims = 20000
+    ; Optional nur MIT echtem, registriertem Scene-/Physics-Provider:
+    ; IOglVerifiedLayeredSurfaceSource liefert verifizierte begehbare
+    ; Collision-Surfaces UND gepruefte Off-Mesh-Portale. Ohne Provider
+    ; bleibt der Regions-Navigator bei Aktivierung fail-closed.
+    ; Standard = aus; dies allein erzeugt KEIN 3D-NavMesh!
+    UseVerifiedLayeredSurfaces = false
+    LayeredMaxStepMeters = 0.6
 
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
