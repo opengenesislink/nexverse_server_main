@@ -140,6 +140,21 @@ namespace NexVerse.Core.Pathfinding
                     (uint)portal.To >= (uint)m_Nodes.Length ||
                     portal.From == portal.To)
                     throw new ArgumentException("Invalid navigation portal endpoint.");
+                if (m_VerifiedPlanarEdges != null)
+                {
+                    // When backed by a physics-certified planar edge set,
+                    // cross-layer portals are only permitted between two
+                    // cardinal neighbours with a physically climbable step.
+                    // The legacy explicit portal graph retains its original
+                    // unconstrained off-mesh links (ladders/lifts).
+                    OglLayerNavNode a = m_Nodes[portal.From];
+                    OglLayerNavNode b = m_Nodes[portal.To];
+                    if (Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y) != 1 ||
+                        Math.Abs(a.Z - b.Z) > maxStepMeters ||
+                        !a.Walkable || !b.Walkable)
+                        throw new ArgumentException(
+                            "Strict collision portals must join certified adjacent surfaces.");
+                }
                 m_Portals[portal.From].Add(portal.To);
                 if (portal.Bidirectional)
                     m_Portals[portal.To].Add(portal.From);

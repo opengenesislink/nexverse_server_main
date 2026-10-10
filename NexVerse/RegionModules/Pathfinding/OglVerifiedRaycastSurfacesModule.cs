@@ -31,6 +31,10 @@ namespace NexVerse.RegionModules.Pathfinding
             LogManager.GetLogger(typeof(OglVerifiedRaycastSurfacesModule));
         private readonly ConcurrentDictionary<UUID, Scene> m_Regions = new();
         private bool m_Enabled;
+        private bool m_MultiRayClearance;
+        private bool m_VerifiedTransitions;
+        private float m_AgentHeight = 1.8f;
+        private float m_AgentRadius = 0.5f;
         private int m_MaxSeconds = 30;
 
         public string Name => "OGL Verified Physics Surface Sampler (experimental)";
@@ -43,8 +47,21 @@ namespace NexVerse.RegionModules.Pathfinding
                 config.GetBoolean("UseVerifiedLayeredSurfaces", false) &&
                 config.GetBoolean("PhysicsRaycastLayeredSurfaces", false);
             if (m_Enabled)
+            {
                 m_MaxSeconds = Math.Clamp(
                     config.GetInt("PhysicsRaycastMaxBuildSeconds", 30), 5, 120);
+                m_MultiRayClearance = config.GetBoolean(
+                    "PhysicsMultiRayClearance", false);
+                m_VerifiedTransitions = config.GetBoolean(
+                    "PhysicsVerifiedTransitions", false);
+                m_AgentHeight = Math.Clamp(
+                    config.GetFloat("PhysicsAgentHeight", 1.8f), 1f, 3f);
+                m_AgentRadius = Math.Clamp(
+                    config.GetFloat("PhysicsAgentRadius", 0.5f), 0.125f, 0.6f);
+                if (m_VerifiedTransitions && !m_MultiRayClearance)
+                    throw new InvalidOperationException(
+                        "PhysicsVerifiedTransitions requires PhysicsMultiRayClearance.");
+            }
         }
 
         public void PostInitialise() { }
@@ -103,7 +120,9 @@ namespace NexVerse.RegionModules.Pathfinding
 
             Stopwatch elapsed = Stopwatch.StartNew();
             int queries = 0;
-            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 19;
+            // Includes surface sampling plus bounded multi-ray checks per
+            // cell and transition. Exceeding this limit fails the build.
+            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 700;
             IReadOnlyList<OglVerifiedSurfaceContact> Sample(float x, float y)
             {
                 if (++queries > MaxQueries || elapsed.Elapsed.TotalSeconds >
@@ -167,10 +186,58 @@ namespace NexVerse.RegionModules.Pathfinding
                 return verified;
             }
 
-            // No GPU mesh, guessed prim bounding-box floors or inferred
-            // vertical connections: only actual physics ray contacts.
+            // A grid of rays checks commonly obstructed standing volumes
+            // and corridors. This is NOT a true capsule sweep; the physics
+            // APIs expose no implemented sphere/box sweep in current engines.
+            bool ClearRay(OglClearancePoint start, OglClearancePoint end)
+            {
+                if (++queries > MaxQueries ||
+                    elapsed.Elapsed.TotalSeconds > m_MaxSeconds)
+                    throw new InvalidOperationException(
+                        "Physics clearance ray deadline or budget exceeded.");
+                if (start.X < 0f || start.X >= width ||
+                    start.Y < 0f || start.Y >= height ||
+                    end.X < 0f || end.X >= width ||
+                    end.Y < 0f || end.Y >= height)
+                    return false;
+                Vector3 delta = new(
+                    end.X - start.X, end.Y - start.Y, end.Z - start.Z);
+                float length = delta.Length();
+                if (!float.IsFinite(length) || length < 0.01f ||
+                    length > 16.5f)
+                    return false;
+                Vector3 direction = delta / length;
+                object result = scene.RayCastFiltered(
+                    new Vector3(start.X, start.Y, start.Z), direction,
+                    length, 16, RayFilterFlags.PrimsNonPhantom);
+                if (result is not List<ContactResult> hits ||
+                    hits.Count >= OglVerifiedSurfaceGraphBuilder.MaxHitsPerRay)
+                    throw new InvalidOperationException(
+                        "Physics clearance ray unavailable or saturated.");
+                foreach (ContactResult hit in hits)
+                {
+                    if (!float.IsFinite(hit.Depth) ||
+                        !float.IsFinite(hit.Pos.X) ||
+                        !float.IsFinite(hit.Pos.Y) ||
+                        !float.IsFinite(hit.Pos.Z))
+                        throw new InvalidOperationException(
+                            "Invalid physics clearance ray hit.");
+                }
+                return hits.Count == 0;
+            }
+
+            bool ClearCorridor(OglClearancePoint from, OglClearancePoint to) =>
+                OglMultiRayAgentClearance.IsCorridorClear(
+                    from, to, m_AgentRadius, m_AgentHeight, ClearRay);
+
+            Func<OglClearancePoint, OglClearancePoint, bool> clearance =
+                m_MultiRayClearance ? ClearCorridor : null;
+
+            // A transition between stair/ramp steps requires separate
+            // border contact proofs plus a free-space multi-ray corridor.
             OglLayeredNavGraph graph = OglVerifiedSurfaceGraphBuilder.Build(
-                width, height, cellMeters, maxStepMeters, Sample);
+                width, height, cellMeters, maxStepMeters, Sample,
+                m_AgentRadius, 0.75f, clearance, m_VerifiedTransitions);
             m_Log.InfoFormat(
                 "[OGL-PATH]: {0}: {1} verified ray-backed nodes after {2} " +
                 "physics queries ({3:0.0}s). Explicit portals not generated.",

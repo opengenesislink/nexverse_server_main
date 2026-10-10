@@ -25,10 +25,12 @@ namespace NexVerse.Core.Pathfinding
 
     /// <summary>
     /// Experimental, fail-closed collision surface sampler for verified
-    /// horizontal-only navigation. It cannot infer stairs or create portals.
-    /// Five ray samples confirm each local patch; one extra ray at the
-    /// shared border validates each cardinal edge. Even matching heights
-    /// cannot connect unrelated actors. All ray counts are bounded.
+    /// navigation with optional strictly measured lateral transitions.
+    /// Five ray samples confirm each local patch; an additional shared
+    /// border sample validates each cardinal edge. Stair/ramp adjacency
+    /// is opt-in and needs proven contact on both sides plus a separate
+    /// agent clearance test; no arbitrary vertical teleport links.
+    /// Ray counts are bounded.
     /// This is NOT a Havok or Detour polygon NavMesh.
     /// </summary>
     public static class OglVerifiedSurfaceGraphBuilder
@@ -59,9 +61,12 @@ namespace NexVerse.Core.Pathfinding
         public static OglLayeredNavGraph Build(
             int width, int height, int cellMeters, float maxStepMeters,
             Func<float, float, IReadOnlyList<OglVerifiedSurfaceContact>> sample,
-            float agentRadius = 0.5f, float maxSlopeNormalZ = 0.75f)
+            float agentRadius = 0.5f, float maxSlopeNormalZ = 0.75f,
+            Func<OglClearancePoint, OglClearancePoint, bool> clearCorridor = null,
+            bool verifiedTransitions = false)
         {
-            if (sample == null || width <= 0 || height <= 0 ||
+            if ((verifiedTransitions && clearCorridor == null) ||
+                sample == null || width <= 0 || height <= 0 ||
                 cellMeters < 1 || cellMeters > 16 ||
                 !float.IsFinite(maxStepMeters) || maxStepMeters <= 0 ||
                 maxStepMeters > 1.5f ||
@@ -83,7 +88,7 @@ namespace NexVerse.Core.Pathfinding
             List<OglLayerNavNode> nodes = new();
             Dictionary<(int x,int y,int layer), VerifiedNode> lookup = new();
             int rays = 0;
-            int rayBudget = checked(w * h * (1 + 6 * MaxLayers));
+            int rayBudget = checked(w * h * (1 + 18 * MaxLayers));
 
             IReadOnlyList<OglVerifiedSurfaceContact> Ray(float x, float y)
             {
@@ -163,6 +168,11 @@ namespace NexVerse.Core.Pathfinding
                         }
                     }
                     if (!verified) continue;
+                    if (clearCorridor != null &&
+                        !clearCorridor(
+                            new OglClearancePoint(cx, cy, hit.Height),
+                            new OglClearancePoint(cx, cy, hit.Height)))
+                        continue;
                     int index = nodes.Count;
                     nodes.Add(new OglLayerNavNode(x, y, layer, hit.Height,
                         agentRadius, true));
@@ -175,34 +185,81 @@ namespace NexVerse.Core.Pathfinding
                 throw new InvalidOperationException(
                     "No collision-backed walkable surfaces confirmed.");
 
-            // Only explicit, measured links may be traversed. Side sampling
-            // refuses walls, gaps or disjoint physics actors. This first
-            // implementation intentionally has NO diagonal edges.
+            // Link *only* cardinal neighbours. A source-aware verified
+            // midpoint permits gradients of the same physical ramp. Cross-
+            // source steps additionally require proof on EACH side of the
+            // border; a disconnected hovering prim never creates a portal.
+            // Diagonal shortcuts remain disabled in strict graph mode.
             List<OglLayerNavEdge> edges = new();
+            List<OglLayerNavPortal> portals = new();
+            int transitions = 0;
+            int transitionBudget = checked(w * h * MaxLayers * MaxLayers * 2);
             foreach (var pair in lookup)
             {
                 var (x, y, layer) = pair.Key;
                 VerifiedNode from = pair.Value;
                 foreach (var (dx, dy) in new (int, int)[] { (1, 0), (0, 1) })
                 {
-                    if (!lookup.TryGetValue((x + dx, y + dy, layer),
-                            out VerifiedNode to) ||
-                        from.SourceId != to.SourceId ||
-                        Math.Abs(from.Height - to.Height) > maxStepMeters)
-                        continue;
-                    float borderX = (x + 0.5f + dx * 0.5f) * cellMeters;
-                    float borderY = (y + 0.5f + dy * 0.5f) * cellMeters;
-                    if (borderX >= width || borderY >= height) continue;
-                    if (!HasContact(Ray(borderX, borderY), from.SourceId,
-                            (from.Height + to.Height) * 0.5f))
-                        continue;
-                    edges.Add(new OglLayerNavEdge(from.Index, to.Index));
+                    for (int targetLayer = 0;
+                        targetLayer < (verifiedTransitions ? MaxLayers : 1);
+                        ++targetLayer)
+                    {
+                        int candidateLayer = verifiedTransitions ? targetLayer : layer;
+                        if (!lookup.TryGetValue((x + dx, y + dy, candidateLayer),
+                                out VerifiedNode to) ||
+                            (!verifiedTransitions &&
+                                from.SourceId != to.SourceId) ||
+                            Math.Abs(from.Height - to.Height) > maxStepMeters)
+                            continue;
+                        if (++transitions > transitionBudget)
+                            throw new InvalidOperationException(
+                                "Too many candidate physics surface transitions.");
+                        float borderX = (x + 0.5f + dx * 0.5f) * cellMeters;
+                        float borderY = (y + 0.5f + dy * 0.5f) * cellMeters;
+                        if (borderX >= width || borderY >= height) continue;
+
+                        if (from.SourceId == to.SourceId)
+                        {
+                            if (!HasContact(Ray(borderX, borderY), from.SourceId,
+                                    (from.Height + to.Height) * 0.5f))
+                                continue;
+                        }
+                        else
+                        {
+                            if (!verifiedTransitions) continue;
+                            // Both collision actors must reach their own
+                            // side of the shared border, without a gap.
+                            float inset = Math.Min(0.1f, cellMeters * 0.05f);
+                            if (!HasContact(Ray(borderX - dx * inset,
+                                                borderY - dy * inset),
+                                    from.SourceId, from.Height) ||
+                                !HasContact(Ray(borderX + dx * inset,
+                                                borderY + dy * inset),
+                                    to.SourceId, to.Height))
+                                continue;
+                        }
+
+                        if (clearCorridor != null &&
+                            !clearCorridor(
+                                new OglClearancePoint(
+                                    (x + 0.5f) * cellMeters,
+                                    (y + 0.5f) * cellMeters, from.Height),
+                                new OglClearancePoint(
+                                    (x + dx + 0.5f) * cellMeters,
+                                    (y + dy + 0.5f) * cellMeters, to.Height)))
+                            continue;
+
+                        if (layer == candidateLayer)
+                            edges.Add(new OglLayerNavEdge(from.Index, to.Index));
+                        else
+                            portals.Add(new OglLayerNavPortal(
+                                from.Index, to.Index, true));
+                    }
                 }
             }
 
-            return new OglLayeredNavGraph(nodes,
-                Array.Empty<OglLayerNavPortal>(), cellMeters, maxStepMeters,
-                edges);
+            return new OglLayeredNavGraph(nodes, portals,
+                cellMeters, maxStepMeters, edges);
         }
     }
 }

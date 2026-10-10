@@ -82,8 +82,52 @@ unverbundene statische Physikobjekte, beschädigte Ray-Daten,
 zu viele Stockwerke, VAR-Sampling-Budget und nicht
 angrenzende fingierte Nachbarverbindungen.
 
-Der nächste Entwicklungsschritt ist ein konfigurierbarer
-**Avatar-/NPC-Capsule-Sweep** mit sicherer Abfrage pro Wegsegment,
-anschließend geprüftes Hinzufügen echter Treppen-/Rampenkontakte
-und schließlich ein offenes Detour-NavMesh für den
-OpenGenesisLINK-Viewer. OGL Voice bleibt zurückgestellt.
+## PR #148: Experimentelle Freiraum- und Rampen/Stufenprüfung
+
+`OglMultiRayAgentClearance` überprüft pro möglicher Bewegung zehn
+vertikale Strahlen an Start- und Zielposition und neun gerichtete
+Strahlen entlang des Korridors (drei Höhen, drei Querabstände).
+Nur vollständig freie Ergebnislisten gelten als bestanden.
+Ein abgebrochener/ungültiger Physics-Call gilt als gesperrt.
+Ausdrücklich **keine exakte Kapsel- oder Box-Sweep-Prüfung**:
+Sehr dünne Hindernisse zwischen den Strahlen, konkave
+Mesh-Geometrie und Bewegung während der Snapshot-Erstellung
+bleiben mögliche Einschränkungen. Deshalb ist die Funktion
+noch nicht als Freigabe für produktives NPC-/Character-Movement
+zu verwenden.
+
+Zwei weitere Opt-in-Werte unter `[OGLPathfinding]`:
+
+```ini
+    PhysicsMultiRayClearance = false
+    PhysicsVerifiedTransitions = false
+    PhysicsAgentHeight = 1.8
+    PhysicsAgentRadius = 0.5
+```
+
+`PhysicsVerifiedTransitions=true` setzt MultiRayClearance voraus.
+Verbindungen zwischen unterschiedlichen statischen Stufenobjekten
+werden nur nach zwei nachgewiesenen angrenzenden Kollisionsflächen
+und einer freien Mehrfach-Ray-Korridorprüfung erzeugt.
+Für Rampen, die beim Wegfall einer tieferen Etage den Layer-Index
+wechseln, wird ein streng begrenztes diagonalfreies
+`OglLayerNavPortal` zwischen horizontal benachbarten Zellen erzeugt.
+Die Höhenänderung zwischen den Zellen darf `LayeredMaxStepMeters`
+nicht überschreiten. Lücken, entfernte Etagen und gesperrte
+Korridore erhalten niemals automatisch eine Verbindung.
+
+Bei großen Regionen, dichten Gebäuden oder langsamen Physikcalls
+kann das auf 30 Sekunden begrenzte Sampling absichtlich fehlschlagen.
+Dies ist aktuell ein Entwicklungsfeature, kein optimierter
+Recast/Detour-NavMesh-Bake. Es muss auf einer kleinen isolierten
+Entwicklerregion beginnen und danach mit Tile-Building, echter
+Collision-Sweep-Implementierung und Build-Invalidierung erweitert
+werden.
+
+**Weiter offen:** exakter durchgehender Capsule-Sweep,
+gewährleisteter Headroom bei beliebiger Polygonform,
+kontrolliertes Auf-/Absteigen dynamischer Stufen,
+Recast/Detour-Polygonisierung und das echte Firestorm-kompatible
+`RetrieveNavMeshSrc`-Binärformat (Havok/PathingLib).
+Das Firestorm-Menü bleibt deshalb grau. OGL Voice bleibt
+zurückgestellt.
