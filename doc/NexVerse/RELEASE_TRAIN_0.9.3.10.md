@@ -90,6 +90,7 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
 - [ ] Editierbares Gelände, rezzed/deleted/verschobene Hindernisse und Dirty-Tile-Rebuild.
 - [ ] Linksets, Treppen, Türen, Off-mesh-Links und path-cost areas; keine physikalisch ungültigen Abkürzungen.
+- [x] **Mehrschichtiger Graphkern als Dev-Teilbaustein:** `OglLayeredNavGraph` unterstuetzt voneinander getrennte Hoehenebenen und ausschliesslich explizite Portal-Verbindungen zwischen Ebenen, Hoehen-/Radius-/Diagonalkantenkontrollen und bounded deterministisches A*. Separate CI-Tests fuer Bruecke ueber Boden, Treppen und Einbahn-Links. **Nicht** an Scene/Physics/Firestorm-CAPS/LSL angebunden; realer Mesh-NavMesh-Generator und Linksets/Tueren weiterhin offen. Dokumentation: `doc/NexVerse/LAYERED_NAVIGATION_CORE_09310.md`.
 - [ ] Agent-spezifische Navigation: Radius, Höhe, Steigung, erlaubte Bereiche und dynamische Kollisionen.
 - [ ] NPC-/Character-Komponenten und kontrollierte Bewegungssteuerung mit Tick-/CPU-Budgets.
 - [x] **Interner, experimenteller NPC-Wegpunkt-Follower:** `OglNpcPathFollowerModule` nutzt das bestehende `INPCModule.MoveToTarget`/Physik statt Teleports; prueft NPC-Eigentuemerrechte, aktive Region-Navigation, CPU-/Routenlimits, Fortschritt/Timeout und Stop bei Terraforming. Opt-in `[OGLNpcNavigation] Enabled=false`. **Noch kein LSL-Binding, kein echter Live-Test, keine Mesh-Hindernis-/NavMesh-Paritaet.**
