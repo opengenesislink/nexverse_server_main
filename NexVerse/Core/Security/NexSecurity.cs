@@ -193,6 +193,10 @@ namespace NexVerse.Core.Security
                      string.Equals(
                          scope,
                          NexScopes.SecurityManage,
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(
+                         scope,
+                         NexScopes.ExperiencesViewerPermissions,
                          StringComparison.OrdinalIgnoreCase)))
                 {
                     error = "privileged_scope_requires_admin";
