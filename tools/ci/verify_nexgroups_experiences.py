@@ -92,6 +92,7 @@ for marker in (
     "UpdateKeyValue(",
     "checkOriginal",
     "retryMismatch",
+    'throw new InvalidOperationException("Experience is disabled.");',
 ):
     assert marker in experience_store, f"missing Experience core marker: {marker}"
 
