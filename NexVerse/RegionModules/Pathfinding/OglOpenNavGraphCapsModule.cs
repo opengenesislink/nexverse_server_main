@@ -41,16 +41,10 @@ namespace NexVerse.RegionModules.Pathfinding
         private sealed class Session
         {
             public readonly UUID Avatar;
-            private long m_LastRead;
+            private readonly OglNavGraphRateGate m_ReadGate = new();
             public Session(UUID avatar) { Avatar = avatar; }
-            public bool TryAcquire()
-            {
-                long now = Environment.TickCount64;
-                long previous = Interlocked.Read(ref m_LastRead);
-                if (previous != 0 && now - previous < 3000) return false;
-                Interlocked.Exchange(ref m_LastRead, now);
-                return true;
-            }
+            public bool TryAcquire() =>
+                m_ReadGate.TryAcquire(Environment.TickCount64, 3000);
         }
 
         private static readonly ILog Log =
