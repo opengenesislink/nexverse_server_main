@@ -41,6 +41,16 @@ assert "TryGetClosestNavPoint" in native_iface
 assert "TryGetStaticTerrainPath" in native_iface
 assert "TryGetStaticTerrainPath" in module
 assert "TryFindStaticTerrainRoute" in core
+for guard in ("OglTerrainStaticObstacles.Project", "OglStaticCollisionAabb",
+              "Too many static obstacle-cell intersections"):
+    assert guard in core, f"static prim collider guard missing: {guard}"
+for guard in ("TrackStaticColliders", "CaptureStaticColliders",
+              "OnObjectAddedToScene", "OnObjectBeingRemovedFromScene",
+              "OnSceneObjectPartUpdated", "PhysicsShapeType.None",
+              "OglTerrainStaticObstacles.Project"):
+    assert guard in module, f"static Scene collision integration missing: {guard}"
+assert "TrackStaticColliders = false" in config
+assert "static prim collision across a region must block" in (root/"tools/ci/OglTerrainNavigationRegression/Program.cs").read_text()
 grid = (root/"NexVerse/Core/Pathfinding/OglGridPathfinder.cs").read_text()
 terrain_regression = (root/"tools/ci/OglTerrainNavigationRegression/Program.cs").read_text()
 assert "Func<GridCell, bool> additionalWalkability" in grid
