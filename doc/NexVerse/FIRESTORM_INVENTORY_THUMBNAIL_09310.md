@@ -62,6 +62,169 @@ Viewer-Inventarcache und Asset-Abfrage untersuchen. Ein Neuaufbau des
 Viewer-Caches kann den Fehler eingrenzen, **ersetzt aber keinen Serverfix**.
 Keine Loeschung und kein generelles Inventar-Reset.
 
+## Live-Regression am 10.10.2026 – Cache-Neuaufbau als Workaround
+
+Bestaetigter reproduzierbarer Ablauf mit Firestorm 7.2.4.80712:
+1. Ordner `Avatar von Sleimer` erhaelt Snapshot-Vorschaubild ueber
+   `InventoryThumbnailUpload`. Asset/Ordner-UUID persistieren in MariaDB.
+2. Nach normalem Viewer-Neustart zeigt die Outfit-Galerie das leere
+   Standard-Ordnersymbol, obwohl `inventoryfolders.thumbnailID` gesetzt bleibt.
+3. Nach `Netzwerk & Dateien -> Verzeichnisse -> Inventar-Cache loeschen`
+   und erneutem Firestorm-Start erscheint die erwartete Textur.
+4. Ein weiterer normaler Neustart **ohne** Cache-Loeschung zeigt die
+   vorhandene Textur weiterhin.
+5. Ersetzt der Betreiber die Ordner-Vorschau durch einen **neuen Snapshot**,
+   ist die neue UUID serverseitig gespeichert und der Ordner steigt von
+   Version 22 auf 24, aber nach normalem Neustart fehlt das Bild wieder.
+   Im SQL-Join steht die Parent-Version bei 6; ihr vorheriger Wert wurde
+   nicht separat gemessen.
+6. Ein erneuter einmaliger Inventar-Cache-Neuaufbau stellt auch den zweiten,
+   neuen Snapshot in der Outfit-Galerie sichtbar wieder her.
+
+**Bewertung:** Persistenz und erneuter Bild-/Ordner-Abruf funktionieren
+nach Cache-Neuaufbau, **Cache-Aktualisierung bei Thumbnail-Austausch
+bleibt FEHLGESCHLAGEN**. INV01 nicht abgenommen. Ein automatischer
+Cache-Neuaufbau fuer jeden Login, Datenbank-Version-Hacks oder eine
+pauschale Cache-Loeschung werden nicht als Fix eingesetzt.
+
+Relevante Firestorm-Quellen (Bestands-Codeanalyse):
+- `LLInventoryModel::loadSkeleton` uebernimmt im Login nur
+  `name/folder_id/parent_id/version/type_default`; Thumbnail-ID
+  stammt aus lokalem Cache, sofern Folder-Versionen uebereinstimmen.
+- `BGFolderHttpHandler::processData` fuehrt `gInventory.updateCategory`
+  fuer per `FetchInventoryDescendents2` gelieferte Kindordner nur aus,
+  wenn `!gInventory.isCategoryComplete(id)`. Dadurch koennen
+  Cache-Zustaende Aktualisierungen blockieren; der konkrete Client-Zustand
+  beim Fehler ist noch nicht direkt geloggt.
+- `LLFloaterSimpleSnapshot` setzt nach HTTP-`state=complete`
+  `setThumbnailUUID` lokal und markiert `LLInventoryObserver::INTERNAL`.
+  Live-End-to-End-Zustellung/Cache-Speicherung ist dadurch nicht bewiesen.
+
+**Naechste zielgerichtete Diagnose:** Bei weiterem Screenshot-Update
+protokollieren, ob `FetchInventoryDescendents2` den Parent-Folder
+anfordert, mit welcher Version, und ob
+`categories[*].thumbnail.asset_id` die aktuelle DB-UUID enthaelt.
+Parallel Viewer-Cache-Version und `isCategoryComplete` im Debug-Log
+kontrollieren. Erst dann entscheiden, ob serverseitig ein kompatibles
+Refresh-Signal moeglich ist oder ein Viewer-Fix benoetigt wird.
+`PR #128` liefert nur Upload-Readback und Regressionen,
+**keinen nachgewiesenen Cache-Fix**.
+
+## Opt-in Server-Diagnose fuer INV01: Login / Upload / Descendants (PR #128)
+
+Die Log-Analyse des **normalen** Firestorm-Neustarts vom 10.10.2026
+(15:23 MESZ) zeigt `69 categories and 252 items from cache`, danach
+`Validate ... valid: 1`. Nach Cache-Loeschung wurden zuvor keine
+Inventardaten aus dem lokalen Cache uebernommen und die neue
+Snapshot-Vorschau erschien korrekt. Das beweist den Unterschied im
+Viewer-Cache-Verhalten, aber nicht, welche Versionsnummer Firestorm
+fuer den einzelnen Ordner empfaengt.
+
+Fuer den naechsten Live-Test gibt es daher eine **standardmaessig
+deaktivierte**, nur fuer **eine** Ordner-ID aktivierbare Tracefunktion.
+Die Environment-Variable vor dem Start der jeweiligen Prozesse setzen:
+
+```bash
+export OGL_THUMBNAIL_TRACE_FOLDER_ID=329b83dc-f53e-167f-17c3-ce52d9af98ca
+```
+
+Beim Systemd-Dienst stattdessen `Environment=OGL_THUMBNAIL_TRACE_FOLDER_ID=...`
+ueber ein lokales Drop-in konfigurieren; keinen produktiven Dienst
+unbeabsichtigt stoppen. Damit die Werte ankommen, muessen **Robust und
+betroffener Simulator jeweils mit der Variable starten**. Die Variable
+nicht als globale Dauer-Konfiguration uebernehmen und nach dem Test
+wieder entfernen. Es werden weder Sitzungs-Token noch komplette
+Inventory-LLSD-Antworten in den Trace geschrieben.
+
+Die Ereignisse sind an `[INVENTORY THUMBNAIL TRACE]` erkennbar:
+
+- `UPLOAD_BEFORE` (Simulator): alte UUID / Ordner- und Elternversion.
+- `UPLOAD_AFTER` (Simulator): nach serverseitigem Readback gespeicherte
+  neue UUID / Ordner- und Elternversion.
+- `LOGIN_SKELETON` (Robust/LoginService): Ordner-/Elternversion, UUID
+  aus Inventardienst; das aktuell ausgelieferte Login-Skeleton
+  enthaelt **kein** Thumbnail-Feld.
+- `FETCH_CHILD` (Simulator): Version und `thumbnail.asset_id` des
+  Zielordners, wenn sein Elternordner ueber
+  `FetchInventoryDescendents2` angefordert wurde.
+- `FETCH_SELF` (Simulator): ein Abruf des Zielordnerinhalts.
+  **Achtung:** Dieser Self-Fetch liefert nicht zwangslaeufig
+  Thumbnail-Metadaten der Kategorie selbst; dafuer ist der
+  `FETCH_CHILD` beim Parent relevant.
+
+Geordneter Test:
+1. Trace fuer dieselbe bestehende Ordner-ID aktivieren und Dienste
+   kontrolliert mit neuem Build starten.
+2. Neues Snapshot-Vorschaubild zuweisen; `UPLOAD_BEFORE/AFTER`
+   im Simulator-Protokoll sichern.
+3. Viewer normal **ohne Inventar-Cache-Loeschung** neu starten;
+   `LOGIN_SKELETON` aus Robust-Log sichern.
+4. Outfit-Galerie oeffnen und `FETCH_CHILD` bzw. `FETCH_SELF` im
+   Simulator-Protokoll sichern; notieren, ob die Vorschau erscheint.
+5. **Kein** Reset, keine Datenbankmodifikation. Danach Trace abschalten.
+
+Diagnose-Entscheidung:
+- `LOGIN_SKELETON` hat keine oder alte Version/UUID: Robust-
+  Inventarconnector, Login-Skeleton-Datenquelle und DB-Auslieferung pruefen.
+- `LOGIN_SKELETON` aktuell, aber **kein `FETCH_CHILD`**: Firestorm
+  verzichtet auf Parent-Refresh; Cache-Versionssemantik untersuchen.
+- `FETCH_CHILD` sendet **alte UUID**: Simulator-/Robust-Fetch oder
+  inkonsistente Inventar-Readbacks untersuchen.
+- `FETCH_CHILD` sendet **aktuelle UUID**, Viewer zeigt trotzdem
+  Standardicon: Viewer-`updateCategory`, Thumbnail-Zuordnung und
+  lokales Inventarcache-Speichern diagnostizieren; serverseitiges
+  `UpdateFolder` allein ist dann nicht die Loesung.
+
+Die SQLite-Regression verifiziert jetzt auch das **zweite** Ersetzen
+eines Outfit-Snapshots (UUID, Child-Version, Parent-Version, neuer
+Inventardienst). Die Regression simuliert **keinen Firestorm-Cache**.
+
+## Zusatzbefund vom 10.10.2026: Item funktioniert, Ordner verliert Thumbnail
+
+Der Betreiber hat ein Inventargegenstand-Vorschaubild nach vollstaendigem
+Firestorm-Neustart positiv bestaetigt. Beim Inventarordner funktioniert
+der Upload, das Vorschaubild fehlt jedoch nach vollstaendigem Firestorm-Neustart.
+Die Console-Meldung `[AVFACTORY]: Received texture update` ist eine Avatar-
+Texture-Meldung, **kein** Thumbnail-Upload-/Persistenznachweis.
+
+Der Upload-CAP verifiziert bei Ordnern nun vor `state=complete` ueber einen
+zweiten `InventoryService.GetFolder(owner, folderID)`, ob die exakt hochgeladene
+Thumbnail-Asset-UUID gespeichert und wieder abrufbar ist. Bei fehlender
+Referenz: HTTP 503 und gezielte `[INVENTORY THUMBNAIL]`-Warnung;
+**kein** falsches `complete`. Bei Erfolg: INFO mit Ordner-UUID,
+Thumbnail-UUID, Version und Parent-ID. Die neue Pruefung beweist nur den
+synchronen Inventar-Readback, **keinen** erfolgreichen Relog oder
+Asset-Download. Ordner-/Item-Tests bleiben separat.
+
+Read-only-SQL-Diagnose auf der tatsaechlich vom zentralen Robust verwendeten
+Inventardatenbank (Ordner-UUID aus Inventar-API oder Serverlog einsetzen):
+
+```sql
+SELECT folderName, folderID, parentFolderID, type, version, thumbnailID
+FROM inventoryfolders
+WHERE folderID = 'ECHTE-ORDNER-UUID';
+```
+
+Befundmatrix:
+
+- `thumbnailID` ist Null/leer: Schreibpfad, Robust-Build, Migration und
+  Folge-Updates untersuchen; Viewer-Cache ist noch keine Erklaerung.
+- `thumbnailID` ist gesetzt, aber bereits nach Relog wieder Null:
+  Nachtraegliche Updates/abweichender Inventardienst ueberschreiben Daten.
+- `thumbnailID` bleibt gesetzt: Elternordner-Version sowie
+  `FetchInventoryDescendents2` `categories[*].thumbnail.asset_id`
+  kontrollieren. Firestorm uebernimmt Kategorien aus dem Fetch und kann
+  veraltete Inventarcaches verwenden. Gezielter Viewer-Cache-Neuaufbau
+  ist **nur ein Diagnoseschritt**, keine Loeschung der Serverdaten.
+- LLSD enthaelt die richtige UUID, aber Bild bleibt leer: Bild-Asset
+  (`AssetType.Texture`, JP2/J2C) ueber den Asset-Dienst pruefen.
+
+Die Firestorm-Login-`inventory-skeleton` dient dem anfänglichen
+Ordnermodell; der untersuchte Firestorm-Code uebernimmt dort kein
+`thumbnail`-Feld. Deshalb wird die Login-Antwort hier **nicht**
+blind um ein solches Feld erweitert. Der Ordner-Child-Fetch liefert
+die Zuordnung bereits unter `thumbnail.asset_id`.
+
 ## Sichere Rollout-Reihenfolge
 
 1. **Vollstaendiges Backup** der Inventar-DB und Asset-Datenbank anfertigen; DB-Datenbanktyp und exakt verwendeten Inventardienst festhalten.
