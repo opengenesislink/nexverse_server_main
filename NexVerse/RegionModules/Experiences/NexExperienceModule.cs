@@ -468,6 +468,12 @@ namespace NexVerse.RegionModules.Experiences
                         resp.StatusCode = (int)changed.StatusCode;
                         return;
                     }
+                    // Only the successfully persisted viewer-side decision
+                    // may settle script requests. A re-check of binding and
+                    // parcel policy follows before signaling success.
+                    if (m_ScriptPendingConsent)
+                        ResolveViewerPendingConsent(avatar, id,
+                            status == "allowed");
                 }
                 OSDMap lists = FetchViewerPermissionLists(avatar);
                 resp.RawBuffer = Encoding.UTF8.GetBytes(
