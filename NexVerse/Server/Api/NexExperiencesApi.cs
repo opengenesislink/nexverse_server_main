@@ -141,6 +141,43 @@ namespace NexVerse.Server.Api
                 return;
             }
 
+            // Internal viewer discovery, reached through the simulator's
+            // authenticated API key, never directly advertised to Firestorm.
+            // Exposes only public metadata (NOT resident ACLs, staff roles,
+            // K/V data or administrative service credentials).
+            if (path == "/api/v1/experiences/script/search")
+            {
+                if (!RequireMethod(method, "GET", response))
+                    return;
+                if (!Authenticate(request, response, NexScopes.ExperiencesScript, out _, out _))
+                    return;
+                try
+                {
+                    string query = request?.QueryString?["q"] ?? string.Empty;
+                    int offset = QueryInt(request, "offset", 0, 0, 1000000);
+                    int limit = QueryInt(request, "limit", 20, 1, 50);
+                    WriteJson(response, new
+                    {
+                        experiences = m_Store.Search(query, offset, limit).Select(e => new
+                        {
+                            experience_id = e.ExperienceId.ToString("D"),
+                            name = e.Name,
+                            description = e.Description,
+                            owner_id = e.OwnerId.ToString("D"),
+                            group_id = e.GroupId.ToString("D"),
+                            maturity = (int)e.Maturity,
+                            enabled = e.Enabled
+                        }).ToArray(),
+                        correlation_id = Correlation(response)
+                    });
+                }
+                catch (Exception e)
+                {
+                    WriteFailure(response, e);
+                }
+                return;
+            }
+
             if (path == "/api/v1/experiences/script/resolve")
             {
                 if (!RequireMethod(method, "GET", response))
