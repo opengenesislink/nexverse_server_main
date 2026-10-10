@@ -880,6 +880,13 @@ namespace NexVerse.RegionModules.Experiences
                         return false;
                 }
 
+                IClientAPI consentClient = presence.ControllingClient;
+                // ScriptAnswerYes with zero questions is the resident's
+                // immediate "Deny" response to the native dialog. Firestorm
+                // sends the "Allow" decision separately through the authenticated
+                // ExperiencePreferences capability. Never convert a nonzero
+                // ScriptAnswerYes mask into a persistent grant.
+                ScriptAnswer nativeAnswerHandler = null;
                 NexPendingExperienceRequest pending = new()
                 {
                     ExperienceId = experienceId.Guid,
@@ -889,7 +896,12 @@ namespace NexVerse.RegionModules.Experiences
                     ScriptId = scriptItemId.Guid,
                     ParcelId = parcelId.Guid,
                     Deadline = DateTimeOffset.UtcNow.AddSeconds(60),
-                    Completion = onResult
+                    Completion = result =>
+                    {
+                        if (nativeAnswerHandler != null)
+                            consentClient.OnScriptAnswer -= nativeAnswerHandler;
+                        onResult(result);
+                    }
                 };
                 if (!m_Pending.TryAdd(pending, DateTimeOffset.UtcNow))
                     return false;
@@ -902,8 +914,17 @@ namespace NexVerse.RegionModules.Experiences
                 // can persist Allow/Block and resolve this pending LSL event.
                 bool nativePromptSent = false;
                 if (m_NativeExperiencePrompt &&
-                    presence.ControllingClient is IExperienceQuestionClient client)
+                    consentClient is IExperienceQuestionClient client)
                 {
+                    nativeAnswerHandler = (source, task, item, answer) =>
+                    {
+                        if (source != consentClient || task != objectId ||
+                            item != scriptItemId || answer != 0)
+                            return;
+                        CompleteRequests(m_Pending.Take(
+                            residentId.Guid, experienceId.Guid), 4);
+                    };
+                    consentClient.OnScriptAnswer += nativeAnswerHandler;
                     try
                     {
                         SceneObjectPart part = scene.GetSceneObjectPart(objectId);
@@ -936,6 +957,11 @@ namespace NexVerse.RegionModules.Experiences
 
                 if (!nativePromptSent)
                 {
+                    if (nativeAnswerHandler != null)
+                    {
+                        consentClient.OnScriptAnswer -= nativeAnswerHandler;
+                        nativeAnswerHandler = null;
+                    }
                     // Fallback is explicitly informational, not an implicit
                     // grant. It also supports non-Firestorm client transports.
                     try
