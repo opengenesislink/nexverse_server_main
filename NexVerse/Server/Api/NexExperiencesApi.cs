@@ -82,6 +82,13 @@ namespace NexVerse.Server.Api
 
                     try
                     {
+                        // The experiences:manage scope alone must not turn
+                        // a service API key into an arbitrary resident identity.
+                        // Only admin:* service principals may supply owner_id.
+                        if (account == null && !principal.HasScope(NexScopes.AdminAll))
+                            throw new UnauthorizedAccessException(
+                                "Only admin:* service principals may create experiences for a resident.");
+
                         Guid owner =
                             account != null
                                 ? account.PrincipalID.Guid
@@ -488,6 +495,9 @@ namespace NexVerse.Server.Api
 
                     try
                     {
+                        if (account == null && !principal.HasScope(NexScopes.AdminAll))
+                            throw new UnauthorizedAccessException(
+                                "Only admin:* service principals may delete experiences as a resident.");
                         Guid actor =
                             account != null
                                 ? account.PrincipalID.Guid
@@ -707,9 +717,16 @@ namespace NexVerse.Server.Api
             if (account != null)
                 return account.PrincipalID.Guid;
 
+            // A scoped service key has no resident identity. Do not allow an
+            // arbitrary client-supplied actor_id to impersonate the Experience
+            // owner. Explicit admin:* credentials are required for delegation.
+            if (!principal.HasScope(NexScopes.AdminAll))
+                throw new UnauthorizedAccessException(
+                    "Experience management as another resident requires admin:*.");
             Guid actor = BodyOptionalGuid(body, "actor_id");
-            if (actor == Guid.Empty && principal.HasScope(NexScopes.AdminAll))
-                throw new ArgumentException("actor_id is required for administrator/service management calls.");
+            if (actor == Guid.Empty)
+                throw new ArgumentException(
+                    "actor_id is required for administrator/service management calls.");
             return actor;
         }
 
