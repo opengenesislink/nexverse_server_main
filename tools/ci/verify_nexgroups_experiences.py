@@ -227,8 +227,8 @@ assert "GetGroupExperiences(groupId)" in experience_api
 assert '"admin_ids"' in experience_api and '"contributor_ids"' in experience_api
 assert 'm_Store.GetResidentLists(resident)' in experience_api
 for marker in (
-    "GetResidentLists(admin).Admin",
-    "GetResidentLists(contributor).Contributor",
+    "adminLists.Admin.Contains",
+    "contributorLists.Contributor.Contains",
     "GetGroupExperiences(created.GroupId)",
     "Disabled experiences must disappear from Firestorm role/group lists",
 ):
