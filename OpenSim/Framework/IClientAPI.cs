@@ -656,6 +656,20 @@ namespace OpenSim.Framework
         Kill =          0x80000000 // 1 << 31
     }
 
+    /// <summary>
+    /// Optional client transport for actual Firestorm/SL Experience permission
+    /// dialogs. This is not part of IClientAPI: unsupported client transports
+    /// must fail closed rather than silently send an ordinary permission dialog.
+    /// The simulator is responsible for checking script, resident and parcel
+    /// authorization before invoking this method.
+    /// </summary>
+    public interface IExperienceQuestionClient
+    {
+        bool SendExperienceQuestion(UUID taskId, string objectName,
+            string ownerName, UUID scriptItemId, UUID experienceId,
+            int permissionBits);
+    }
+
     public interface IClientAPI
     {
         Vector3 StartPos { get; set; }
