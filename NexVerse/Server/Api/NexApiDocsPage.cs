@@ -1425,6 +1425,86 @@ function secretBuildLines(values) {
   $('secretOutput').value=names.filter(name=>Object.hasOwn(values,name)).map(name=>name+'='+values[name]).join('\n')+'\n';
   $('secretCopy').disabled=!Object.keys(values).length;
 }
+/* Only metadata is available after issuance; server never re-exposes secrets. */
+function secretKeyFingerprint(key) {
+  return JSON.stringify([(key.name||'').trim().toLowerCase(),
+    [...(key.scopes||[])].map(x=>String(x).toLowerCase()).sort()]);
+}
+function secretRenderKeyInventory(keys) {
+  const host=$('secretKeyList');host.replaceChildren();
+  const activeCounts=new Map();
+  keys.filter(k=>k.enabled).forEach(k=>{
+    const fingerprint=secretKeyFingerprint(k);
+    activeCounts.set(fingerprint,(activeCounts.get(fingerprint)||0)+1);
+  });
+  const duplicates=[...activeCounts.values()].filter(count=>count>1).length;
+  $('secretListStatus').textContent=keys.length+' Schlüssel registriert. '+
+    duplicates+' aktive Duplikatgruppe(n) gefunden. Kein Schlüssel wurde automatisch verändert.';
+  for(const key of keys){
+    const card=document.createElement('div');card.className='change';
+    const title=document.createElement('strong');
+    title.textContent=(key.name||'Unbenannt')+(key.enabled?' · Aktiv':' · Deaktiviert');
+    card.append(title);
+    const fp=secretKeyFingerprint(key),repeated=key.enabled&&activeCounts.get(fp)>1;
+    if(repeated){
+      const warning=document.createElement('p');
+      warning.textContent='Duplikat: Gleicher aktiver Name und identische Scopes (Geheimwerte können abweichen).';
+      warning.className='status-bad';card.append(warning);
+    }
+    const description=document.createElement('p');
+    description.textContent='ID: '+key.key_id+' | Scopes: '+(key.scopes||[]).join(', ')+
+      ' | Letzte Nutzung: '+(key.last_used_at?
+        new Date(key.last_used_at*1000).toLocaleString('de-DE'):'noch nicht erfasst');
+    description.style.overflowWrap='anywhere';card.append(description);
+    const controls=document.createElement('div');controls.className='row';
+    const toggle=document.createElement('button');toggle.className='action';
+    toggle.textContent=key.enabled?'Deaktivieren':'Aktivieren';
+    toggle.addEventListener('click',()=>secretManageKey(key,'toggle'));
+    controls.append(toggle);
+    if(!key.enabled){
+      const remove=document.createElement('button');remove.className='action';
+      remove.textContent='Endgültig löschen';
+      remove.addEventListener('click',()=>secretManageKey(key,'delete'));
+      controls.append(remove);
+    }
+    card.append(controls);host.append(card);
+  }
+}
+async function secretLoadKeys() {
+  try{
+    if(!window.isSecureContext)throw new Error('Nur über HTTPS verfügbar.');
+    const token=await secretAdminToken();
+    const response=await secretJson('/api/v1/auth/api-keys',{
+      headers:{'Authorization':'Bearer '+token}});
+    secretRenderKeyInventory(response.keys||[]);
+  }catch(error){
+    $('secretListStatus').textContent='Schlüsselbestand konnte nicht geladen werden: '+
+      String(error.message||error);
+    $('secretKeyList').replaceChildren();
+  }
+}
+async function secretManageKey(key,action) {
+  try{
+    if(!window.isSecureContext)throw new Error('Nur über HTTPS verfügbar.');
+    const token=await secretAdminToken();
+    const verb=action==='delete'?'endgültig löschen':key.enabled?'deaktivieren':'aktivieren';
+    if(!window.confirm('Maschinen-API-Schlüssel '+key.key_id+' ('+key.name+') '+verb+
+       '? Vorher alle nexverse.env-Dateien und aktive Simulatoren prüfen.'))return;
+    if(action==='delete'){
+      if(key.enabled)throw new Error('Aktive Schlüssel zuerst deaktivieren.');
+      await secretJson('/api/v1/auth/api-keys/'+encodeURIComponent(key.key_id),{
+        method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    }else{
+      await secretJson('/api/v1/auth/api-keys',{
+        method:'PATCH',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({key_id:key.key_id,enabled:!key.enabled})});
+    }
+    await secretLoadKeys();
+  }catch(error){
+    $('secretListStatus').textContent='Aktion nicht abgeschlossen: '+String(error.message||error);
+  }
+}
 async function secretJson(url,opts) {
   const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...opts});
   let data={};
