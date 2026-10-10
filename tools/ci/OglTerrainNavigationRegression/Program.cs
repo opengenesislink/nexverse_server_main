@@ -180,6 +180,49 @@ Check(oneWayLift.TryFindPath(0, 7, 0.5f, out _) &&
 Check(!stairs.TryFindPath(0, 7, 0.5f, out _, 1),
     "multi-level A* CPU expansion budget enforced");
 
+// World-space layer selection must respect the height coordinate; a
+// high bridge never aliases the walkable ground directly beneath it.
+Check(stairs.TryFindClosestSurface(2, 2, 7.9f, 1f, 0.5f,
+    out int bridgeNode) && bridgeNode == 4,
+    "3D world query snaps onto bridge, not underlying terrain");
+Check(stairs.TryFindClosestSurface(2, 2, 0.1f, 1f, 0.5f,
+    out int groundNode) && groundNode == 0,
+    "3D world query snaps onto ground, not raised bridge");
+Check(!stairs.TryFindClosestSurface(2, 2, 40f, 8f, 0.5f, out _),
+    "closest surface does not snap across unrelated elevations");
+Check(!stairs.TryFindClosestSurface(float.NaN, 2, 0, 8f, 0.5f, out _),
+    "world query rejects nonfinite origin");
+Check(!stairs.TryFindClosestSurface(2, 2, 8, 65f, 0.5f, out _),
+    "world query rejects excessive scan radius");
+Check(!stairs.TryFindClosestSurface(2, 2, 8, 8f, 1.5f, out _),
+    "world query checks radius clearance");
+
+Check(stairs.TryFindWorldPath(2, 2, 0, 6, 6, 8, 0.5f,
+    out var layeredWaypoints, out int successCode) && successCode == 0 &&
+    layeredWaypoints.Count >= 3 &&
+    layeredWaypoints[0].Z == 0 && layeredWaypoints[^1].Z == 8,
+    "native layered world path reaches bridge via explicit portal");
+Check(!disconnectedFloors.TryFindWorldPath(2, 2, 0, 6, 6, 8, 0.5f,
+    out _, out int disconnectedCode) && disconnectedCode == 4,
+    "world-space path never invents a vertical portal");
+Check(!oneWayLift.TryFindWorldPath(6, 6, 8, 2, 2, 0, 0.5f,
+    out _, out int reverseCode) && reverseCode == 4,
+    "world-space path respects one-way elevator direction");
+Check(!stairs.TryFindWorldPath(2, 2, 40, 6, 6, 8, 0.5f,
+    out _, out int invalidStartCode) && invalidStartCode == 2,
+    "world-space path reports invalid start height");
+Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 40, 0.5f,
+    out _, out int invalidGoalCode) && invalidGoalCode == 3,
+    "world-space path reports invalid destination height");
+Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 8, 6f,
+    out _, out int invalidRadiusCode) && invalidRadiusCode == 0xF4240,
+    "world-space path validates agent radius");
+Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 8, 0.5f,
+    out _, out int budgetStatus, maxExpandedNodes: 1) &&
+    budgetStatus == 4,
+    "world-space path honours A-star expansion budget");
+
+
 OglLayeredNavGraph missingCorners = new(
     new[] {
         new OglLayerNavNode(0, 0, 0, 0, 1),
