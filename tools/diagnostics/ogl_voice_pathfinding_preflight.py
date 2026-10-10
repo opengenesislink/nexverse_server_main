@@ -56,7 +56,7 @@ def enabled(cfg, section, name="Enabled", fallback=False):
 
 def configured(value):
     return bool(value and value.strip() and "${" not in value and
-                not re.search(r"(REPLACE|EXAMPLE|DEIN-|VOICE-MEDIA-BRIDGE-HOST|YOUR_)", value, flags=re.I))
+                not re.search(r"(REPLACE|DEIN-|VOICE-MEDIA-BRIDGE-HOST|YOUR_)", value, flags=re.I))
 
 
 def media_url_valid(value):
