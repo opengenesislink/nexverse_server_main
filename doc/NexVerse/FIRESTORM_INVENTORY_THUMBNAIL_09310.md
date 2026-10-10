@@ -1,5 +1,45 @@
 # OpenGenesisLINK 0.9.3.10 – Firestorm Thumbnail/Outfit Fehlerbehebung
 
+## Offizielle Projektentscheidung: INV01 als bekannte Einschraenkung geschlossen (10.10.2026)
+
+**Status: OpenGenesisLINK Dev-Feature offiziell implementiert; INV01 administrativ
+abgeschlossen als `known limitation`, NICHT als behobener Firestorm-Cache-Bug.**
+
+- Serverseitig vorhanden: `InventoryThumbnailUpload`, persistente JPEG2000-
+  Assets und `ThumbnailID` fuer Inventaritems und -ordner, MariaDB-/SQL-
+  Schema, Robust-Connectoren sowie `FetchInventory2` und
+  `FetchInventoryDescendents2` mit `thumbnail.asset_id`.
+- Live in Firestorm 7.2.4.80712 auf dem NexVerse-OpenSim-Grid bestaetigt:
+  Snapshot-Upload, gespeicherte Thumbnail-UUID in MariaDB,
+  Versionserhoehung und korrekte Anzeige nach Neuaufbau des Inventarcaches.
+- **Bekannte Viewer-Kompatibilitaetseinschraenkung:** Wird ein bereits
+  gespeichertes Outfit-Ordner-Thumbnail durch einen neuen Snapshot ersetzt,
+  erscheint nach einem normalen Firestorm-Neustart mit bestehendem
+  Inventarcache gelegentlich nur das Standardsymbol. Loeschen **nur des
+  Inventarcaches** und erneutes Anmelden stellt die neue Vorschau wieder her.
+  Die persistenten Daten gehen dabei nicht verloren.
+- Der genaue technische Fehlerort (Server-Versionsauslieferung,
+  Viewer-Invalidierung oder deren Zusammenspiel) ist nicht endgueltig
+  bewiesen. Die Einstufung **bezieht sich auf die getestete
+  Firestorm-Version in dieser Grid-/OpenSim-Konfiguration**; sie ist keine
+  Aussage, dass jede Firestorm-Version generell inkompatibel sei.
+- **Entscheidung:** Diese Aktualisierungsgrenze wird bewusst akzeptiert.
+  Keine verpflichtende weitere Implementierung fuer INV01; die optionale
+  Trace-Diagnose aus PR #128 bleibt fuer eine spaetere Wiederaufnahme
+  verfuegbar. Weder ein permanentes Auto-Leeren des Inventarcaches noch
+  DB-Versions-Hacks werden eingefuehrt.
+- **Release-Abgrenzung:** Feature-Code ist in der laufenden
+  `0.9.3.10 Dev`-Entwicklung integriert. Das ist **keine**
+  `0.9.3.10 Stable`-Freigabe. OGLVoice, Navigation, COF/Appearance
+  und allgemeine Release-Gates bleiben unabhaengig offen.
+
+### Historischer Fehlerverlauf und Diagnose (archiviert)
+
+Die nachstehenden Abschnitte dokumentieren den damals noch offenen
+Cache-Fehler und die durchgefuehrten Diagnosen. Aussagen wie
+`nicht bestanden` beschreiben den damaligen Testzustand; die oben
+festgehaltene Entscheidung ist der **aktuell gueltige Projektstatus**.
+
 ## Screenshot-Befund (Firestorm Release x64 7.2.4.80712)
 
 **Fehler:** `Regionsfähigkeit "InventoryThumbnailUpload" konnte nicht abgerufen werden.`
@@ -21,7 +61,7 @@ Die Zuordnung wird auch ueber die **Robust-HTTP-Inventar-Connectoren** transport
 
 **Betreiberbefund:** Die `InventoryThumbnailUpload`-Fehlermeldung ist behoben und
 der Upload funktioniert. Das Thumbnail verschwindet jedoch nach erneutem Login.
-Damit ist **INV01 nicht bestanden**.
+Der damalige automatische Viewer-Refresh-Test war **nicht bestanden**; der Projektfall wurde spaeter mit dokumentierter Einschraenkung abgeschlossen.
 
 **Nachgewiesener Codepfad:** Bestehende OpenSim-Viewer-Updates (`UpdateItem`,
 `UpdateFolder`) besitzen im Legacy-Paket keine Thumbnail-UUID. Im bisherigen
@@ -83,7 +123,7 @@ Bestaetigter reproduzierbarer Ablauf mit Firestorm 7.2.4.80712:
 
 **Bewertung:** Persistenz und erneuter Bild-/Ordner-Abruf funktionieren
 nach Cache-Neuaufbau, **Cache-Aktualisierung bei Thumbnail-Austausch
-bleibt FEHLGESCHLAGEN**. INV01 nicht abgenommen. Ein automatischer
+bleibt FEHLGESCHLAGEN**. Diese Einschränkung ist inzwischen offiziell akzeptiert und INV01 administrativ geschlossen. Ein automatischer
 Cache-Neuaufbau fuer jeden Login, Datenbank-Version-Hacks oder eine
 pauschale Cache-Loeschung werden nicht als Fix eingesetzt.
 
@@ -100,7 +140,7 @@ Relevante Firestorm-Quellen (Bestands-Codeanalyse):
   `setThumbnailUUID` lokal und markiert `LLInventoryObserver::INTERNAL`.
   Live-End-to-End-Zustellung/Cache-Speicherung ist dadurch nicht bewiesen.
 
-**Naechste zielgerichtete Diagnose:** Bei weiterem Screenshot-Update
+**Optionale weiterfuehrende Diagnose bei Wiederaufnahme:** Bei weiterem Screenshot-Update
 protokollieren, ob `FetchInventoryDescendents2` den Parent-Folder
 anfordert, mit welcher Version, und ob
 `categories[*].thumbnail.asset_id` die aktuelle DB-UUID enthaelt.
@@ -125,7 +165,7 @@ deaktivierte**, nur fuer **eine** Ordner-ID aktivierbare Tracefunktion.
 Die Environment-Variable vor dem Start der jeweiligen Prozesse setzen:
 
 ```bash
-export OGL_THUMBNAIL_TRACE_FOLDER_ID=329b83dc-f53e-167f-17c3-ce52d9af98ca
+export OGL_THUMBNAIL_TRACE_FOLDER_ID="<ECHTE-ORDNER-UUID-AUS-DER-DATENBANK>"
 ```
 
 Beim Systemd-Dienst stattdessen `Environment=OGL_THUMBNAIL_TRACE_FOLDER_ID=...`
@@ -310,4 +350,4 @@ konkreten Fall einzeln pruefen.
 
 ## Produktionsstatus
 
-Die Funktionen und DB-Migrationen werden im Repository bereitgestellt. Ohne echten Test auf NexVerse/Robust und Firestorm (inklusive Re-Login) kann kein produktiver Erfolg behauptet werden. Der Remote-Rechner war bei der Sitzung offline. 
+Serverseitige Thumbnail-Funktionen und Datenbankmigrationen sind im Repository implementiert. Der dokumentierte NexVerse-/Firestorm-7.2.4-Livetest belegt Upload und Persistenz, aber **keine** zuverlaessige automatische Aktualisierung bereits zwischengespeicherter Outfit-Ordner-Thumbnails. Die Abweichung ist als bekannte Viewer-Kompatibilitaetseinschraenkung akzeptiert. Andere produktive Rollout-, Backup- und Stable-Pruefungen sind separat zu erbringen.
