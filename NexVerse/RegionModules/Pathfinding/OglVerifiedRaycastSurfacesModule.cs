@@ -103,7 +103,7 @@ namespace NexVerse.RegionModules.Pathfinding
 
             Stopwatch elapsed = Stopwatch.StartNew();
             int queries = 0;
-            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 11;
+            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 19;
             IReadOnlyList<OglVerifiedSurfaceContact> Sample(float x, float y)
             {
                 if (++queries > MaxQueries || elapsed.Elapsed.TotalSeconds >
