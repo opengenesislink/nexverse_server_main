@@ -48,6 +48,21 @@ namespace NexVerse.Core.Pathfinding
     }
 
     /// <summary>
+    /// Positively validated planar edge between adjacent collision-backed
+    /// surfaces. The physics adapter must prove support at the shared border.
+    /// </summary>
+    public readonly struct OglLayerNavEdge
+    {
+        public readonly int From;
+        public readonly int To;
+        public OglLayerNavEdge(int from, int to)
+        {
+            From = from;
+            To = to;
+        }
+    }
+
+    /// <summary>
     /// Immutable queryable multi-level navigation graph with radius-aware
     /// nodes and explicit cross-layer links. Neighbour search never reads
     /// mutable Scene/Physics data and is bounded for VAR-region safety.
@@ -60,12 +75,14 @@ namespace NexVerse.Core.Pathfinding
         private readonly OglLayerNavNode[] m_Nodes;
         private readonly Dictionary<(int x, int y, int layer), int> m_Grid = new();
         private readonly List<int>[] m_Portals;
+        private readonly HashSet<ulong> m_VerifiedPlanarEdges;
         private readonly float m_CellMeters;
         private readonly float m_MaxStepMeters;
 
         public OglLayeredNavGraph(IReadOnlyList<OglLayerNavNode> nodes,
             IReadOnlyList<OglLayerNavPortal> portals,
-            float cellMeters, float maxStepMeters)
+            float cellMeters, float maxStepMeters,
+            IReadOnlyList<OglLayerNavEdge> verifiedPlanarEdges = null)
         {
             if (nodes == null || nodes.Count == 0 || nodes.Count > MaxNodes)
                 throw new ArgumentOutOfRangeException(nameof(nodes));
@@ -94,6 +111,29 @@ namespace NexVerse.Core.Pathfinding
                 m_Nodes[i] = node;
                 m_Portals[i] = new List<int>();
             }
+            if (verifiedPlanarEdges != null)
+            {
+                if (verifiedPlanarEdges.Count > MaxNodes * 4)
+                    throw new ArgumentOutOfRangeException(nameof(verifiedPlanarEdges));
+                m_VerifiedPlanarEdges = new HashSet<ulong>();
+                foreach (OglLayerNavEdge edge in verifiedPlanarEdges)
+                {
+                    if ((uint)edge.From >= (uint)m_Nodes.Length ||
+                        (uint)edge.To >= (uint)m_Nodes.Length ||
+                        edge.From == edge.To)
+                        throw new ArgumentException("Invalid verified planar edge.");
+                    OglLayerNavNode a = m_Nodes[edge.From];
+                    OglLayerNavNode b = m_Nodes[edge.To];
+                    int dx = Math.Abs(a.X - b.X);
+                    int dy = Math.Abs(a.Y - b.Y);
+                    if (a.Layer != b.Layer || dx + dy != 1 ||
+                        Math.Abs(a.Z - b.Z) > maxStepMeters ||
+                        !a.Walkable || !b.Walkable)
+                        throw new ArgumentException(
+                            "Planar edge must join adjacent, reachable nodes on the same layer.");
+                    m_VerifiedPlanarEdges.Add(PairKey(edge.From, edge.To));
+                }
+            }
             foreach (OglLayerNavPortal portal in portals)
             {
                 if ((uint)portal.From >= (uint)m_Nodes.Length ||
@@ -117,9 +157,18 @@ namespace NexVerse.Core.Pathfinding
             out int index) =>
             m_Grid.TryGetValue((x, y, layer), out index) && Allowed(index, radius);
 
+        private static ulong PairKey(int a, int b)
+        {
+            uint low = (uint)Math.Min(a, b);
+            uint high = (uint)Math.Max(a, b);
+            return ((ulong)low << 32) | high;
+        }
+
         private bool StepAllowed(int a, int b, float radius) =>
             Allowed(b, radius) &&
-            Math.Abs(m_Nodes[a].Z - m_Nodes[b].Z) <= m_MaxStepMeters;
+            Math.Abs(m_Nodes[a].Z - m_Nodes[b].Z) <= m_MaxStepMeters &&
+            (m_VerifiedPlanarEdges == null ||
+                m_VerifiedPlanarEdges.Contains(PairKey(a, b)));
 
         private double Distance(int from, int to)
         {
