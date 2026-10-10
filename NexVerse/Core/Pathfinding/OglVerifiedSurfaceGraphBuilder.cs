@@ -92,7 +92,7 @@ namespace NexVerse.Core.Pathfinding
                     throw new InvalidOperationException(
                         "Verified collision ray budget or region bounds exceeded.");
                 IReadOnlyList<OglVerifiedSurfaceContact> hits = sample(x, y);
-                if (hits == null || hits.Count > MaxHitsPerRay)
+                if (hits == null || hits.Count >= MaxHitsPerRay)
                     throw new InvalidOperationException(
                         "Physics raycast unavailable, invalid or saturated.");
                 foreach (var hit in hits)
