@@ -2,7 +2,7 @@
 
 > Status: 0.9.3.8 Stable released 8 October 2026  
 > Current stable release: **OpenGenesisLINK v0.9.3.8**  
-> Active development train: **OpenGenesisLINK v0.9.3.10 Dev** (Runtime + Pathfinding; OGLVoice deferred to an undated later train; no separate 0.9.3.9 Stable)  
+> Active development train: **OpenGenesisLINK v0.9.3.10 Dev** (Runtime + Pathfinding + full NexExperiences viewer integration; OGLVoice deferred to an undated later train; no separate 0.9.3.9 Stable)  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4 → 0.9.3.8**  
 > Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (successfully validated)  
 > Completed milestone: **0.9.3.8 — Search, Places, Land and Destination Guide**  
@@ -1264,7 +1264,7 @@ Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTU
 
 # Milestone 0.9.3.10
 
-> **Status: active development.** `0.9.3.10 Dev` concentrates on .NET-8 runtime modernisation and complete Pathfinding (native NavMesh, Firestorm capability, NPC/Character, LSL). **OGLVoice is deferred and is not a stable release gate.** The C# A* core, experimental Scene.Heightmap navigation adapter and internal NPC waypoint follower exist, but a real viewer-compatible NavMesh, full LSL Pathfinding and live operator acceptance are not implemented/verified yet. See [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
+> **Status: active development.** `0.9.3.10 Dev` concentrates on .NET-8 runtime modernisation, complete Pathfinding (native NavMesh, Firestorm capability, NPC/Character, LSL) **and full NexExperiences Firestorm/LSL integration** (viewer CAPS, authentic resident consent/revoke, multi-node persistence and Live acceptance). **OGLVoice is deferred and is not a stable release gate.** The C# A* core, experimental Scene.Heightmap navigation adapter and internal NPC waypoint follower exist; the earlier NexExperiences central service and LSL/KV API also exist. A real viewer-compatible NavMesh, full LSL Pathfinding, Firestorm Experience CAPS/consent and live operator acceptance are not implemented/verified yet. See [PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md](PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md). See [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
 
 ## 14. Pathfinding
 
