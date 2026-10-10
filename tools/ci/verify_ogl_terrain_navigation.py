@@ -41,6 +41,13 @@ assert "TryGetClosestNavPoint" in native_iface
 assert "TryGetStaticTerrainPath" in native_iface
 assert "TryGetStaticTerrainPath" in module
 assert "TryFindStaticTerrainRoute" in core
+grid = (root/"NexVerse/Core/Pathfinding/OglGridPathfinder.cs").read_text()
+terrain_regression = (root/"tools/ci/OglTerrainNavigationRegression/Program.cs").read_text()
+assert "Func<GridCell, bool> additionalWalkability" in grid
+assert "CanWalk(new GridCell(x + dx, y))" in grid
+assert "CellHasTerrainClearance" in core
+assert "out IReadOnlyList<GridCell> route, maxExpanded, HasClearance" in core
+assert "large avatar clearance rejects corridor touching obstacles" in terrain_regression
 assert "TryFindStaticTerrainRoute" in module
 assert "PU_FAILURE_NO_NAVMESH" in module
 assert "llGetStaticPath" in lsl_interface and "llGetStaticPath" in lsl_stub
