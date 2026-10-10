@@ -16,6 +16,7 @@ using Mono.Addins;
 using Nini.Config;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
+using OpenSim.Framework;
 using OpenSim.Framework.Servers.HttpServer;
 using Caps = OpenSim.Framework.Capabilities.Caps;
 using OpenSim.Region.Framework.Interfaces;
@@ -41,6 +42,7 @@ namespace NexVerse.RegionModules.Experiences
         private bool m_FirestormReadCaps;
         private bool m_FirestormPermissionCaps;
         private bool m_ScriptPendingConsent;
+        private bool m_NativeExperiencePrompt;
         private readonly NexPendingExperienceQueue m_Pending = new();
         private Timer m_PendingTimer;
         private string m_ViewerPermissionsApiKey = string.Empty;
@@ -79,6 +81,11 @@ namespace NexVerse.RegionModules.Experiences
                 section.GetBoolean("FirestormPermissionCaps", false);
             m_ScriptPendingConsent =
                 section.GetBoolean("ScriptPendingConsent", false);
+            m_NativeExperiencePrompt =
+                section.GetBoolean("NativeExperiencePrompt", false);
+            if (m_NativeExperiencePrompt && !m_ScriptPendingConsent)
+                throw new InvalidOperationException(
+                    "[NEX-EXPERIENCES]: NativeExperiencePrompt requires ScriptPendingConsent.");
             if (m_ScriptPendingConsent && !m_FirestormPermissionCaps)
                 throw new InvalidOperationException(
                     "[NEX-EXPERIENCES]: ScriptPendingConsent requires FirestormPermissionCaps.");
@@ -887,22 +894,64 @@ namespace NexVerse.RegionModules.Experiences
                 if (!m_Pending.TryAdd(pending, DateTimeOffset.UtcNow))
                     return false;
 
-                // A native zero-bit ScriptQuestion is NOT a Firestorm
-                // Experience approval prompt. Instead display an honest
-                // informational notice and wait for an explicit Allow in
-                // the viewer's Experiences settings. No implicit grant.
-                try
+                // Native Firestorm/SL uses ScriptQuestion with the optional
+                // Experience block AND a nonzero standard-permissions mask.
+                // The zero-bit ordinary ScriptQuestion is not a valid native
+                // Experience prompt. Never treat ScriptAnswerYes as a grant:
+                // only the dedicated authenticated ExperiencePreferences CAP
+                // can persist Allow/Block and resolve this pending LSL event.
+                bool nativePromptSent = false;
+                if (m_NativeExperiencePrompt &&
+                    presence.ControllingClient is IExperienceQuestionClient client)
                 {
-                    presence.ControllingClient.SendAgentAlertMessage(
-                        "An Experience permission was requested. Open your " +
-                        "Experiences settings and explicitly Allow the Experience " +
-                        "within 60 seconds to continue. Otherwise it times out.",
-                        false);
+                    try
+                    {
+                        SceneObjectPart part = scene.GetSceneObjectPart(objectId);
+                        if (part != null && part.ParentGroup != null &&
+                            !part.ParentGroup.IsDeleted)
+                        {
+                            string objectName = part.ParentGroup.RootPart.Name;
+                            string ownerName = part.OwnerID.ToString();
+                            var owner = scene.UserAccountService?.GetUserAccount(
+                                scene.RegionInfo.ScopeID, part.OwnerID);
+                            if (owner != null)
+                                ownerName = owner.FirstName + " " + owner.LastName;
+                            // Standard Experience authorization encompasses
+                            // controls, animation, attachment, camera and TP.
+                            // Crucially, it never includes debit permission.
+                            const int experiencePermissions =
+                                0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000;
+                            nativePromptSent = client.SendExperienceQuestion(
+                                objectId, objectName, ownerName, scriptItemId,
+                                experienceId, experiencePermissions);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        m_Log.WarnFormat(
+                            "[NEX-EXPERIENCES]: Native Experience prompt unavailable: {0}",
+                            e.Message);
+                    }
                 }
-                catch (Exception e)
+
+                if (!nativePromptSent)
                 {
-                    m_Log.WarnFormat(
-                        "[NEX-EXPERIENCES]: Pending consent notice failed: {0}", e.Message);
+                    // Fallback is explicitly informational, not an implicit
+                    // grant. It also supports non-Firestorm client transports.
+                    try
+                    {
+                        presence.ControllingClient.SendAgentAlertMessage(
+                            "Experience permission requested. Open Experiences " +
+                            "settings and explicitly Allow or Block it within " +
+                            "60 seconds. No permission is granted automatically.",
+                            false);
+                    }
+                    catch (Exception e)
+                    {
+                        m_Log.WarnFormat(
+                            "[NEX-EXPERIENCES]: Pending consent notice failed: {0}",
+                            e.Message);
+                    }
                 }
                 return true;
             }
