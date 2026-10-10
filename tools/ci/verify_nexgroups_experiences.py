@@ -314,7 +314,19 @@ for marker in (
     assert marker in regression, f"role-list regression missing: {marker}"
 assert "ExperiencePreferences" in experience_module
 assert "CreateViewerPermissionRequest" in experience_module
-assert "if (!IsCurrentViewer(issuingScene, avatar))" in experience_module
+assert "if (!IsCurrentViewer(issuingScene, avatar, lease))" in experience_module
+assert "m_CapLeases.IsCurrent(lease)" in experience_module
+assert "m_CapLeases.Issue(" in experience_module
+assert "m_CapLeases.InvalidateResident(" in experience_module
+assert "m_CapLeases.InvalidateRegion(" in experience_module
+assert "m_CapLeases.InvalidateAll()" in experience_module
+lease_store = Path("NexVerse/Core/Experiences/NexExperienceCapLeaseRegistry.cs").read_text(encoding="utf-8")
+for marker in ("public sealed class NexExperienceCapLeaseRegistry",
+               "old.Revoke()", "current.Revoke()", "m_Active.Clear()",
+               "ReferenceEquals(current, lease)", "lock (m_Sync)"):
+    assert marker in lease_store, f"cap lease lifetime guard missing: {marker}"
+assert "new login to same region must revoke original URL" in regression
+assert "returning resident must never revive old URL" in regression
 assert "RegisterFirestormReadCaps(Scene issuingScene, UUID avatar, Caps caps)" in experience_module
 assert "TryGetScenePresence(avatar" in experience_module
 assert "m_ViewerCapListeners[scene] = listener" in experience_module
@@ -333,7 +345,7 @@ for marker in (
     '"FindExperienceByName"',
     "RegisterFirestormReadCaps",
     "AddSimpleStreamHandler(info, true)",
-    "IsCurrentViewer(issuingScene, avatar)",
+    "IsCurrentViewer(issuingScene, avatar, lease)",
     "OSDParser.SerializeLLSDXmlString(result)",
 ):
     assert marker in experience_module, f"missing Firestorm read-only CAP contract: {marker}"

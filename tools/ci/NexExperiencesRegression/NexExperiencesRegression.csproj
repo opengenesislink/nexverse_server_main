@@ -8,5 +8,6 @@
 
   <ItemGroup>
     <Compile Include="../../../NexVerse/Core/Experiences/NexExperienceStore.cs" Link="NexExperienceStore.cs" />
+    <Compile Include="../../../NexVerse/Core/Experiences/NexExperienceCapLeaseRegistry.cs" Link="NexExperienceCapLeaseRegistry.cs" />
   </ItemGroup>
 </Project>

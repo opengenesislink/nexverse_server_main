@@ -485,6 +485,43 @@ internal static class Program
             "invalid cancellation keys must not drain queue");
 
 
+        // Old bearer URLs MUST NOT gain access if an avatar logs out and
+        // returns to the exact same region using a new session.
+        NexExperienceCapLeaseRegistry leases = new();
+        Guid capRegion = Guid.NewGuid(), capResident = Guid.NewGuid();
+        Guid capOtherRegion = Guid.NewGuid(), capOtherResident = Guid.NewGuid();
+        var originalCap = leases.Issue(capRegion, capResident);
+        var otherAvatarCap = leases.Issue(capRegion, capOtherResident);
+        var otherRegionCap = leases.Issue(capOtherRegion, capResident);
+        Require(leases.IsCurrent(originalCap) && leases.Count == 3,
+            "new viewer bearer capability leases must be active");
+        var nextLoginCap = leases.Issue(capRegion, capResident);
+        Require(!leases.IsCurrent(originalCap) && originalCap.IsRevoked &&
+                leases.IsCurrent(nextLoginCap) && leases.Count == 3,
+            "new login to same region must revoke original URL without growing inventory");
+        leases.InvalidateResident(capRegion, capResident);
+        Require(!leases.IsCurrent(nextLoginCap) &&
+                leases.IsCurrent(otherAvatarCap) &&
+                leases.IsCurrent(otherRegionCap) && leases.Count == 2,
+            "logout or root-to-child transition only revokes matching resident and region");
+        var thirdLogin = leases.Issue(capRegion, capResident);
+        Require(leases.IsCurrent(thirdLogin) &&
+                !leases.IsCurrent(originalCap),
+            "returning resident must never revive old URL");
+        leases.InvalidateRegion(capRegion);
+        Require(!leases.IsCurrent(thirdLogin) &&
+                !leases.IsCurrent(otherAvatarCap) &&
+                leases.IsCurrent(otherRegionCap) && leases.Count == 1,
+            "region shutdown revokes all region URLs without touching another region");
+        leases.InvalidateAll();
+        Require(leases.Count == 0 && !leases.IsCurrent(otherRegionCap) &&
+                !leases.IsCurrent(null),
+            "simulator shutdown revokes every remaining URL");
+        bool invalidLeaseRejected = false;
+        try { leases.Issue(Guid.Empty, capResident); }
+        catch (ArgumentException) { invalidLeaseRejected = true; }
+        Require(invalidLeaseRejected, "empty region must not issue a capability");
+
         Directory.Delete(root, true);
 
         Console.WriteLine(

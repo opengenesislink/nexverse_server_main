@@ -39,6 +39,26 @@
 5. **Zentrale Persistenz:** Revisions-/Migrations-/Recoverystrategie fuer den heutigen JSON-Store; bei Multi-Robust-Betrieb echte transaktionale zentrale SQL-Autoritaet und CAS-/Audit-/Backup-/Restore-Pruefung statt Dateikonflikte.
 6. **Sicherheit & Live:** Zwei Bewohner und zwei Simulatoren, ein Owner und ein unberechtigter Avatar, Allow/Block/Revoke, Experience-Profilsuche/-pflege, K/V-CAS-Races, Neustart, berechtigtes und missbraeuchliches Script, HG-Gast, Logs/Quoten; danach Firestorm-UI + Live-LSL mit dokumentierten Logs.
 
+## Login replay safety for Experience CAPS
+
+The new `NexExperienceCapLeaseRegistry` creates a fresh region+resident
+lease whenever Firestorm negotiates Experiences capabilities. Every
+Experience read/permission/role HTTP request checks this lease **and**
+the current root avatar in the issuing region. Negotiating a second
+session in the same region immediately revokes the old lease, even
+before the HTTP framework has retired its old random bearer URLs.
+Removal of the presence, root-to-child transfer, region shutdown and
+simulator shutdown revoke associated leases. Consequently an old
+`ExperiencePreferences` URL cannot regain authority after a logout
+and later return to the same simulator.
+
+The registry retains at most one active lease per region/resident.
+This protects against accidental unbounded lifetime of historical
+session capabilities and never sends any machine API key to the viewer.
+Unit regression covers same-region relogin, independent avatars and
+other-region isolation. Full real-Firestorm login/relogin tests are
+still required before declaring release readiness.
+
 ## Experience CAP session and script lifecycle hardening (0.9.3.10 Dev)
 
 - A random Experience CAP belongs to its *issuing scene*, not only an

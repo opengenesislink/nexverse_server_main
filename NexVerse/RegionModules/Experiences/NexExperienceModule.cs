@@ -57,6 +57,7 @@ namespace NexVerse.RegionModules.Experiences
         private bool m_ScriptPendingConsent;
         private bool m_NativeExperiencePrompt;
         private readonly NexPendingExperienceQueue m_Pending = new();
+        private readonly NexExperienceCapLeaseRegistry m_CapLeases = new();
         private Timer m_PendingTimer;
         private string m_ViewerPermissionsApiKey = string.Empty;
         private string m_WorldApiBaseUrl = string.Empty;
@@ -177,7 +178,7 @@ namespace NexVerse.RegionModules.Experiences
                     m_ViewerCapListeners[scene] = listener;
                     scene.EventManager.OnRegisterCaps += listener;
                 }
-                if (m_ScriptPendingConsent)
+                if (m_ScriptPendingConsent || m_FirestormReadCaps)
                 {
                     Guid region = scene.RegionInfo.RegionID.Guid;
                     ConsentLifecycle lifecycle = new();
@@ -186,12 +187,18 @@ namespace NexVerse.RegionModules.Experiences
                     lifecycle.RemoveScript = (_, scriptId) =>
                         CancelPendingSilently(m_Pending.CancelScript(region, scriptId.Guid));
                     lifecycle.RemovePresence = avatar =>
+                    {
+                        m_CapLeases.InvalidateResident(region, avatar.Guid);
                         CancelPendingSilently(m_Pending.CancelResident(region, avatar.Guid));
+                    };
                     lifecycle.MakeChild = presence =>
                     {
                         if (presence != null)
+                        {
+                            m_CapLeases.InvalidateResident(region, presence.UUID.Guid);
                             CancelPendingSilently(m_Pending.CancelResident(
                                 region, presence.UUID.Guid));
+                        }
                     };
                     scene.EventManager.OnScriptReset += lifecycle.Reset;
                     scene.EventManager.OnRemoveScript += lifecycle.RemoveScript;
@@ -222,6 +229,7 @@ namespace NexVerse.RegionModules.Experiences
                 if (m_Lifecycle.Remove(scene, out ConsentLifecycle lifecycle))
                     UnsubscribeLifecycle(scene, lifecycle);
             }
+            m_CapLeases.InvalidateRegion(scene.RegionInfo.RegionID.Guid);
             CancelPendingSilently(
                 m_Pending.CancelRegion(scene.RegionInfo.RegionID.Guid));
         }
@@ -230,6 +238,7 @@ namespace NexVerse.RegionModules.Experiences
         {
             m_PendingTimer?.Dispose();
             m_PendingTimer = null;
+            m_CapLeases.InvalidateAll();
             CancelPendingSilently(m_Pending.CancelAll());
             lock (m_Sync)
             {
@@ -267,8 +276,14 @@ namespace NexVerse.RegionModules.Experiences
             lock (m_Sync)
                 if (!m_Scenes.Contains(issuingScene))
                     return;
+            // Every CAPS negotiation gets a fresh bearer lease. If this
+            // resident returns to the SAME region, old secret URLs are
+            // revoked even if an old HTTP handler still exists.
+            NexExperienceCapLeaseRegistry.Lease lease = m_CapLeases.Issue(
+                issuingScene.RegionInfo.RegionID.Guid, avatar.Guid);
             var info = new SimpleStreamHandler("/" + UUID.Random(),
-                (request, response) => HandleFirestormRead(request, response, issuingScene, avatar, false));
+                (request, response) => HandleFirestormRead(
+                    request, response, issuingScene, avatar, lease, false));
             // Register with CAPS for correct per-session URL generation and
             // destruction, then register its handler as a variable path
             // because Firestorm appends /id/ to GetExperienceInfo.
@@ -276,32 +291,32 @@ namespace NexVerse.RegionModules.Experiences
             caps.HttpListener.AddSimpleStreamHandler(info, true);
             caps.RegisterSimpleHandler("FindExperienceByName",
                 new SimpleStreamHandler("/" + UUID.Random(),
-                    (request, response) => HandleFirestormRead(request, response, issuingScene, avatar, true)));
+                    (request, response) => HandleFirestormRead(request, response, issuingScene, avatar, lease, true)));
             // Mutating capabilities require an explicitly configured and
             // distinct high-trust simulator key. They are off by default.
             if (m_FirestormPermissionCaps)
             {
                 caps.RegisterSimpleHandler("GetExperiences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerPermissions(req, resp, issuingScene, avatar, true)));
+                        (req, resp) => HandleViewerPermissions(req, resp, issuingScene, avatar, lease, true)));
                 caps.RegisterSimpleHandler("ExperiencePreferences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerPermissions(req, resp, issuingScene, avatar, false)));
+                        (req, resp) => HandleViewerPermissions(req, resp, issuingScene, avatar, lease, false)));
                 // Firestorm reads these three tabs separately. Each reply
                 // contains ONLY the avatar's own role IDs. Creation is
                 // deliberately unsupported (GET-only AgentExperiences).
                 caps.RegisterSimpleHandler("AgentExperiences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, "experience_ids")));
+                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, lease, "experience_ids")));
                 caps.RegisterSimpleHandler("GetAdminExperiences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, "admin_ids")));
+                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, lease, "admin_ids")));
                 caps.RegisterSimpleHandler("GetCreatorExperiences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, "contributor_ids")));
+                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, lease, "contributor_ids")));
                 caps.RegisterSimpleHandler("GroupExperiences",
                     new SimpleStreamHandler("/" + UUID.Random(),
-                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, "group")));
+                        (req, resp) => HandleViewerRoleList(req, resp, issuingScene, avatar, lease, "group")));
             }
         }
 
@@ -354,7 +369,8 @@ namespace NexVerse.RegionModules.Experiences
         /// own bridge route; never accesses another resident's role lists.
         /// </summary>
         private void HandleViewerRoleList(IOSHttpRequest req, IOSHttpResponse resp,
-            Scene issuingScene, UUID avatar, string role)
+            Scene issuingScene, UUID avatar,
+            NexExperienceCapLeaseRegistry.Lease lease, string role)
         {
             resp.ContentType = "application/llsd+xml";
             resp.KeepAlive = false;
@@ -364,7 +380,7 @@ namespace NexVerse.RegionModules.Experiences
                 resp.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
                 return;
             }
-            if (!IsCurrentViewer(issuingScene, avatar))
+            if (!IsCurrentViewer(issuingScene, avatar, lease))
             {
                 resp.StatusCode = (int)HttpStatusCode.Gone;
                 return;
@@ -430,12 +446,13 @@ namespace NexVerse.RegionModules.Experiences
         }
 
         private void HandleViewerPermissions(IOSHttpRequest req, IOSHttpResponse resp,
-            Scene issuingScene, UUID avatar, bool listOnly)
+            Scene issuingScene, UUID avatar,
+            NexExperienceCapLeaseRegistry.Lease lease, bool listOnly)
         {
             resp.ContentType = "application/llsd+xml";
             resp.KeepAlive = false;
             resp.AddHeader("Cache-Control", "no-store");
-            if (!IsCurrentViewer(issuingScene, avatar))
+            if (!IsCurrentViewer(issuingScene, avatar, lease))
             {
                 resp.StatusCode = (int)HttpStatusCode.Gone;
                 return;
@@ -559,9 +576,14 @@ namespace NexVerse.RegionModules.Experiences
             }
         }
 
-        private bool IsCurrentViewer(Scene issuingScene, UUID avatar)
+        private bool IsCurrentViewer(Scene issuingScene, UUID avatar,
+            NexExperienceCapLeaseRegistry.Lease lease)
         {
-            if (issuingScene == null || avatar.IsZero()) return false;
+            if (issuingScene == null || avatar.IsZero() ||
+                !m_CapLeases.IsCurrent(lease) ||
+                lease.Region != issuingScene.RegionInfo.RegionID.Guid ||
+                lease.Resident != avatar.Guid)
+                return false;
             lock (m_Sync)
             {
                 if (!m_Scenes.Contains(issuingScene))
@@ -598,7 +620,8 @@ namespace NexVerse.RegionModules.Experiences
         }
 
         private void HandleFirestormRead(IOSHttpRequest request,
-            IOSHttpResponse response, Scene issuingScene, UUID avatar, bool search)
+            IOSHttpResponse response, Scene issuingScene, UUID avatar,
+            NexExperienceCapLeaseRegistry.Lease lease, bool search)
         {
             response.ContentType = "application/llsd+xml";
             response.KeepAlive = false;
@@ -608,7 +631,7 @@ namespace NexVerse.RegionModules.Experiences
                 response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
                 return;
             }
-            if (!IsCurrentViewer(issuingScene, avatar))
+            if (!IsCurrentViewer(issuingScene, avatar, lease))
             {
                 response.StatusCode = (int)HttpStatusCode.Gone;
                 return;
