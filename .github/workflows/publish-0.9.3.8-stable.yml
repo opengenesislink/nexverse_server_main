@@ -26,20 +26,31 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
-      - name: Verify exact stable commit
+      - name: Check stable release eligibility
+        id: stable_check
         env:
           STABLE_SHA: ${{ github.event.workflow_run.head_sha }}
-          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+          # The runner must be on the EXACT commit that passed NexVerse CI.
           test "$(git rev-parse HEAD)" = "$STABLE_SHA"
-          grep -F 'public const string ProductName = "OpenGenesisLINK";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs
-          grep -F 'public const Flavour VERSION_FLAVOUR = Flavour.Release;' OpenSim/Framework/VersionInfo.cs
-          test -s doc/NexVerse/RELEASE_0.9.3.8.md
+
+          # Stable 0.9.3.8 publishing is a release gate, not a gate for
+          # every later 0.9.3.10 Dev commit pushed to main. Keep the
+          # existing exact stable checks; simply skip non-release SHA.
+          if grep -Fq 'public const string ProductName = "OpenGenesisLINK";' OpenSim/Framework/VersionInfo.cs &&
+             grep -Fq 'public const string VersionNumber = "0.9.3.8";' OpenSim/Framework/VersionInfo.cs &&
+             grep -Fq 'public const Flavour VERSION_FLAVOUR = Flavour.Release;' OpenSim/Framework/VersionInfo.cs &&
+             test -s doc/NexVerse/RELEASE_0.9.3.8.md; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not OpenGenesisLINK 0.9.3.8 Release; stable publishing skipped for this Dev/main commit."
+          fi
 
       - name: Publish immutable stable release
+        if: steps.stable_check.outputs.eligible == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           STABLE_SHA: ${{ github.event.workflow_run.head_sha }}
