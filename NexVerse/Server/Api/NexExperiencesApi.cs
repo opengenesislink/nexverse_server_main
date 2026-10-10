@@ -145,6 +145,63 @@ namespace NexVerse.Server.Api
             // authenticated API key, never directly advertised to Firestorm.
             // Exposes only public metadata (NOT resident ACLs, staff roles,
             // K/V data or administrative service credentials).
+            // Bounded bulk metadata endpoint for a trusted simulator. The
+            // Firestorm viewer receives only the safe subset constructed by
+            // its per-agent capability, never the API key or full ACL payload.
+            if (path == "/api/v1/experiences/script/info")
+            {
+                if (!RequireMethod(method, "GET", response))
+                    return;
+                if (!Authenticate(request, response, NexScopes.ExperiencesScript, out _, out _))
+                    return;
+                try
+                {
+                    string ids = request?.QueryString?["ids"] ?? string.Empty;
+                    if (ids.Length > 4000)
+                        throw new ArgumentException("Experience id list is too long.");
+                    string[] tokens = ids.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    if (tokens.Length == 0 || tokens.Length > 64)
+                        throw new ArgumentException("A bounded list of experience IDs is required.");
+                    List<object> found = new();
+                    List<string> missing = new();
+                    HashSet<Guid> seen = new();
+                    foreach (string token in tokens)
+                    {
+                        if (!Guid.TryParse(token, out Guid id) || id == Guid.Empty)
+                            throw new ArgumentException("Invalid experience UUID.");
+                        if (!seen.Add(id))
+                            continue;
+                        NexExperience e = m_Store.Get(id);
+                        if (e == null)
+                        {
+                            missing.Add(id.ToString("D"));
+                            continue;
+                        }
+                        found.Add(new
+                        {
+                            experience_id = e.ExperienceId.ToString("D"),
+                            name = e.Name,
+                            description = e.Description,
+                            owner_id = e.OwnerId.ToString("D"),
+                            group_id = e.GroupId.ToString("D"),
+                            maturity = (int)e.Maturity,
+                            enabled = e.Enabled
+                        });
+                    }
+                    WriteJson(response, new
+                    {
+                        experiences = found,
+                        error_ids = missing,
+                        correlation_id = Correlation(response)
+                    });
+                }
+                catch (Exception e)
+                {
+                    WriteFailure(response, e);
+                }
+                return;
+            }
+
             if (path == "/api/v1/experiences/script/search")
             {
                 if (!RequireMethod(method, "GET", response))
