@@ -110,6 +110,12 @@ for marker in (
 ):
     assert marker in experience_api, f"missing Experience API marker: {marker}"
 
+# User-supplied owner/actor IDs must never let scoped service credentials
+# impersonate residents without the admin:* authority.
+assert experience_api.count("account == null && !principal.HasScope(NexScopes.AdminAll)") >= 2
+assert "if (!principal.HasScope(NexScopes.AdminAll))" in experience_api
+assert "Experience management as another resident requires admin:*." in experience_api
+
 for forbidden in (
     "DbConnection",
     "MySql",
