@@ -891,6 +891,12 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_List llGetClosestNavPoint(LSL_Vector point, LSL_List options)
+        {
+            return m_LSL_Functions.llGetClosestNavPoint(point, options);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LSL_Vector llGetPos()
         {
             return m_LSL_Functions.llGetPos();
