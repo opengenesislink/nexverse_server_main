@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using NexVerse.Core.Security;
 
 internal static class Program
@@ -138,6 +139,72 @@ internal static class Program
             Require(
                 rejectedExperienceManagement,
                 "Machine API keys must not receive experiences:manage");
+
+            // Firestorm viewer-permission CAPS use a *separate* machine
+            // credential; it must never carry administrator or script rights.
+            NexApiKeyRegistration viewerPermissions =
+                experiencesReloaded.Create(
+                    "NexVerse Simulator Experience Permissions",
+                    new[] { NexScopes.ExperiencesViewerPermissions });
+            Require(experiencesReloaded.TryValidate(
+                    viewerPermissions.ApiKey, out NexApiKeyRecord scopedViewer) &&
+                scopedViewer.Scopes.Length == 1 &&
+                scopedViewer.Scopes[0] == NexScopes.ExperiencesViewerPermissions,
+                "Dedicated Firestorm permissions machine key failed");
+
+            bool rejectedMixedPermissions = false;
+            try
+            {
+                experiencesReloaded.Create("unsafe mixed permissions",
+                    new[] { NexScopes.ExperiencesViewerPermissions,
+                            NexScopes.ExperiencesScript });
+            }
+            catch (ArgumentException) { rejectedMixedPermissions = true; }
+            Require(rejectedMixedPermissions,
+                "Viewer permission credentials must not be mixed with script rights");
+
+            // Duplicate detection is scoped to the exact service identity,
+            // case-insensitive name and normalized set of scopes. It must
+            // never reveal or silently replace the existing plaintext secret.
+            bool rejectedDuplicate = false;
+            try
+            {
+                experiencesReloaded.Create(
+                    " nexverse simulator experience permissions ",
+                    new[] { NexScopes.ExperiencesViewerPermissions });
+            }
+            catch (InvalidOperationException) { rejectedDuplicate = true; }
+            Require(rejectedDuplicate, "Duplicate enabled service key accepted");
+            Require(experiencesReloaded.List().Count == 3,
+                "Duplicate rejection modified the persistent key inventory");
+
+            // Deletion is an irreversible second step after explicit disable.
+            Require(!experiencesReloaded.Delete(viewerPermissions.Record.KeyId),
+                "Deleting an active machine key must be forbidden");
+            Require(experiencesReloaded.SetEnabled(
+                    viewerPermissions.Record.KeyId, false),
+                "Disabling permission key failed");
+            Require(experiencesReloaded.Delete(viewerPermissions.Record.KeyId),
+                "Deleting disabled key failed");
+            Require(!experiencesReloaded.TryValidate(
+                    viewerPermissions.ApiKey, out _),
+                "Deleted viewer permission credential still validated");
+            NexApiKeyRegistration replacement = experiencesReloaded.Create(
+                "NexVerse Simulator Experience Permissions",
+                new[] { NexScopes.ExperiencesViewerPermissions });
+            Require(replacement.Record.KeyId != viewerPermissions.Record.KeyId &&
+                experiencesReloaded.TryValidate(replacement.ApiKey, out _),
+                "Explicit credential rotation failed");
+
+            NexApiKeyRecord metadata = experiencesReloaded.List()
+                .First(x => x.KeyId == replacement.Record.KeyId);
+            Require(metadata.LastUsedAt > 0,
+                "Last-used metadata lost when cloning records");
+            PersistentNexApiKeyStore afterCleanup =
+                new PersistentNexApiKeyStore(path);
+            Require(afterCleanup.List().Count == 3 &&
+                    afterCleanup.TryValidate(replacement.ApiKey, out _),
+                "Key cleanup or replacement did not survive restart");
 
             Console.WriteLine(
                 "NexVerse scoped API key regression: OK");
