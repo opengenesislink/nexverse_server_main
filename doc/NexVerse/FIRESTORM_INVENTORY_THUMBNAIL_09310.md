@@ -110,6 +110,75 @@ Refresh-Signal moeglich ist oder ein Viewer-Fix benoetigt wird.
 `PR #128` liefert nur Upload-Readback und Regressionen,
 **keinen nachgewiesenen Cache-Fix**.
 
+## Opt-in Server-Diagnose fuer INV01: Login / Upload / Descendants (PR #128)
+
+Die Log-Analyse des **normalen** Firestorm-Neustarts vom 10.10.2026
+(15:23 MESZ) zeigt `69 categories and 252 items from cache`, danach
+`Validate ... valid: 1`. Nach Cache-Loeschung wurden zuvor keine
+Inventardaten aus dem lokalen Cache uebernommen und die neue
+Snapshot-Vorschau erschien korrekt. Das beweist den Unterschied im
+Viewer-Cache-Verhalten, aber nicht, welche Versionsnummer Firestorm
+fuer den einzelnen Ordner empfaengt.
+
+Fuer den naechsten Live-Test gibt es daher eine **standardmaessig
+deaktivierte**, nur fuer **eine** Ordner-ID aktivierbare Tracefunktion.
+Die Environment-Variable vor dem Start der jeweiligen Prozesse setzen:
+
+```bash
+export OGL_THUMBNAIL_TRACE_FOLDER_ID=329b83dc-f53e-167f-17c3-ce52d9af98ca
+```
+
+Beim Systemd-Dienst stattdessen `Environment=OGL_THUMBNAIL_TRACE_FOLDER_ID=...`
+ueber ein lokales Drop-in konfigurieren; keinen produktiven Dienst
+unbeabsichtigt stoppen. Damit die Werte ankommen, muessen **Robust und
+betroffener Simulator jeweils mit der Variable starten**. Die Variable
+nicht als globale Dauer-Konfiguration uebernehmen und nach dem Test
+wieder entfernen. Es werden weder Sitzungs-Token noch komplette
+Inventory-LLSD-Antworten in den Trace geschrieben.
+
+Die Ereignisse sind an `[INVENTORY THUMBNAIL TRACE]` erkennbar:
+
+- `UPLOAD_BEFORE` (Simulator): alte UUID / Ordner- und Elternversion.
+- `UPLOAD_AFTER` (Simulator): nach serverseitigem Readback gespeicherte
+  neue UUID / Ordner- und Elternversion.
+- `LOGIN_SKELETON` (Robust/LoginService): Ordner-/Elternversion, UUID
+  aus Inventardienst; das aktuell ausgelieferte Login-Skeleton
+  enthaelt **kein** Thumbnail-Feld.
+- `FETCH_CHILD` (Simulator): Version und `thumbnail.asset_id` des
+  Zielordners, wenn sein Elternordner ueber
+  `FetchInventoryDescendents2` angefordert wurde.
+- `FETCH_SELF` (Simulator): ein Abruf des Zielordnerinhalts.
+  **Achtung:** Dieser Self-Fetch liefert nicht zwangslaeufig
+  Thumbnail-Metadaten der Kategorie selbst; dafuer ist der
+  `FETCH_CHILD` beim Parent relevant.
+
+Geordneter Test:
+1. Trace fuer dieselbe bestehende Ordner-ID aktivieren und Dienste
+   kontrolliert mit neuem Build starten.
+2. Neues Snapshot-Vorschaubild zuweisen; `UPLOAD_BEFORE/AFTER`
+   im Simulator-Protokoll sichern.
+3. Viewer normal **ohne Inventar-Cache-Loeschung** neu starten;
+   `LOGIN_SKELETON` aus Robust-Log sichern.
+4. Outfit-Galerie oeffnen und `FETCH_CHILD` bzw. `FETCH_SELF` im
+   Simulator-Protokoll sichern; notieren, ob die Vorschau erscheint.
+5. **Kein** Reset, keine Datenbankmodifikation. Danach Trace abschalten.
+
+Diagnose-Entscheidung:
+- `LOGIN_SKELETON` hat keine oder alte Version/UUID: Robust-
+  Inventarconnector, Login-Skeleton-Datenquelle und DB-Auslieferung pruefen.
+- `LOGIN_SKELETON` aktuell, aber **kein `FETCH_CHILD`**: Firestorm
+  verzichtet auf Parent-Refresh; Cache-Versionssemantik untersuchen.
+- `FETCH_CHILD` sendet **alte UUID**: Simulator-/Robust-Fetch oder
+  inkonsistente Inventar-Readbacks untersuchen.
+- `FETCH_CHILD` sendet **aktuelle UUID**, Viewer zeigt trotzdem
+  Standardicon: Viewer-`updateCategory`, Thumbnail-Zuordnung und
+  lokales Inventarcache-Speichern diagnostizieren; serverseitiges
+  `UpdateFolder` allein ist dann nicht die Loesung.
+
+Die SQLite-Regression verifiziert jetzt auch das **zweite** Ersetzen
+eines Outfit-Snapshots (UUID, Child-Version, Parent-Version, neuer
+Inventardienst). Die Regression simuliert **keinen Firestorm-Cache**.
+
 ## Zusatzbefund vom 10.10.2026: Item funktioniert, Ordner verliert Thumbnail
 
 Der Betreiber hat ein Inventargegenstand-Vorschaubild nach vollstaendigem
