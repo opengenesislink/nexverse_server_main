@@ -62,6 +62,54 @@ Viewer-Inventarcache und Asset-Abfrage untersuchen. Ein Neuaufbau des
 Viewer-Caches kann den Fehler eingrenzen, **ersetzt aber keinen Serverfix**.
 Keine Loeschung und kein generelles Inventar-Reset.
 
+## Live-Regression am 10.10.2026 – Cache-Neuaufbau als Workaround
+
+Bestaetigter reproduzierbarer Ablauf mit Firestorm 7.2.4.80712:
+1. Ordner `Avatar von Sleimer` erhaelt Snapshot-Vorschaubild ueber
+   `InventoryThumbnailUpload`. Asset/Ordner-UUID persistieren in MariaDB.
+2. Nach normalem Viewer-Neustart zeigt die Outfit-Galerie das leere
+   Standard-Ordnersymbol, obwohl `inventoryfolders.thumbnailID` gesetzt bleibt.
+3. Nach `Netzwerk & Dateien -> Verzeichnisse -> Inventar-Cache loeschen`
+   und erneutem Firestorm-Start erscheint die erwartete Textur.
+4. Ein weiterer normaler Neustart **ohne** Cache-Loeschung zeigt die
+   vorhandene Textur weiterhin.
+5. Ersetzt der Betreiber die Ordner-Vorschau durch einen **neuen Snapshot**,
+   ist die neue UUID serverseitig gespeichert und der Ordner steigt von
+   Version 22 auf 24, aber nach normalem Neustart fehlt das Bild wieder.
+   Im SQL-Join steht die Parent-Version bei 6; ihr vorheriger Wert wurde
+   nicht separat gemessen.
+6. Ein erneuter einmaliger Inventar-Cache-Neuaufbau stellt auch den zweiten,
+   neuen Snapshot in der Outfit-Galerie sichtbar wieder her.
+
+**Bewertung:** Persistenz und erneuter Bild-/Ordner-Abruf funktionieren
+nach Cache-Neuaufbau, **Cache-Aktualisierung bei Thumbnail-Austausch
+bleibt FEHLGESCHLAGEN**. INV01 nicht abgenommen. Ein automatischer
+Cache-Neuaufbau fuer jeden Login, Datenbank-Version-Hacks oder eine
+pauschale Cache-Loeschung werden nicht als Fix eingesetzt.
+
+Relevante Firestorm-Quellen (Bestands-Codeanalyse):
+- `LLInventoryModel::loadSkeleton` uebernimmt im Login nur
+  `name/folder_id/parent_id/version/type_default`; Thumbnail-ID
+  stammt aus lokalem Cache, sofern Folder-Versionen uebereinstimmen.
+- `BGFolderHttpHandler::processData` fuehrt `gInventory.updateCategory`
+  fuer per `FetchInventoryDescendents2` gelieferte Kindordner nur aus,
+  wenn `!gInventory.isCategoryComplete(id)`. Dadurch koennen
+  Cache-Zustaende Aktualisierungen blockieren; der konkrete Client-Zustand
+  beim Fehler ist noch nicht direkt geloggt.
+- `LLFloaterSimpleSnapshot` setzt nach HTTP-`state=complete`
+  `setThumbnailUUID` lokal und markiert `LLInventoryObserver::INTERNAL`.
+  Live-End-to-End-Zustellung/Cache-Speicherung ist dadurch nicht bewiesen.
+
+**Naechste zielgerichtete Diagnose:** Bei weiterem Screenshot-Update
+protokollieren, ob `FetchInventoryDescendents2` den Parent-Folder
+anfordert, mit welcher Version, und ob
+`categories[*].thumbnail.asset_id` die aktuelle DB-UUID enthaelt.
+Parallel Viewer-Cache-Version und `isCategoryComplete` im Debug-Log
+kontrollieren. Erst dann entscheiden, ob serverseitig ein kompatibles
+Refresh-Signal moeglich ist oder ein Viewer-Fix benoetigt wird.
+`PR #128` liefert nur Upload-Readback und Regressionen,
+**keinen nachgewiesenen Cache-Fix**.
+
 ## Zusatzbefund vom 10.10.2026: Item funktioniert, Ordner verliert Thumbnail
 
 Der Betreiber hat ein Inventargegenstand-Vorschaubild nach vollstaendigem
