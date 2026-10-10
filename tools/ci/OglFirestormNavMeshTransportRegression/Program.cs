@@ -61,6 +61,18 @@ Check(Reject(() => new OglFirestormNavMeshTransport(1,
     zlib[..^9])),
     "truncated compressed transport rejected");
 Check(Reject(() => new OglFirestormNavMeshTransport(1,
+    gzip[..^9])),
+    "truncated gzip transport rejected");
+byte[] badZlibFooter = (byte[])zlib.Clone();
+badZlibFooter[^1] ^= 0xff;
+Check(Reject(() => new OglFirestormNavMeshTransport(1, badZlibFooter)),
+    "zlib checksum tampering rejected");
+byte[] badGzipFooter = (byte[])g.CopyCompressedBytes();
+badGzipFooter[^8] ^= 0xff;
+Check(Reject(() => new OglFirestormNavMeshTransport(1, badGzipFooter)),
+    "gzip CRC tampering rejected");
+
+Check(Reject(() => new OglFirestormNavMeshTransport(1,
     Deflate(new byte[OglFirestormNavMeshTransport.MaxExpandedBytes + 1], false))),
     "decompression bomb rejected by expanded-byte limit");
 Check(Reject(() => new OglFirestormNavMeshTransport(1,
