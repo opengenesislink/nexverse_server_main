@@ -1035,6 +1035,11 @@
     ; experiences:viewer:permissions; never reuse experiences:script key.
     ; Never enable on production before real two-avatar consent tests.
     FirestormPermissionCaps = false
+    ; Optional: pending LSL llRequestExperiencePermissions requests wait
+    ; for an EXPLICIT Allow/Block in Firestorm ExperiencePreferences.
+    ; Informational notice only; NOT the native ScriptQuestionExperience UI.
+    ; 60-second timeout, per-resident and total pending request quotas.
+    ScriptPendingConsent = false
     ViewerPermissionsApiKey = "${Environment|NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY}"
 
 [NexEconomyViewer]
