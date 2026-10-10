@@ -645,8 +645,14 @@ namespace NexVerse.Core.Experiences
 
         private void RequireBoundScript(Guid experienceId, Guid scriptItemId)
         {
-            if (Find(experienceId) == null)
+            NexExperience experience = Find(experienceId);
+            if (experience == null)
                 throw new KeyNotFoundException("Experience was not found.");
+
+            // Disabled Experiences must not keep executing K/V operations
+            // through previously issued script bindings. Fail closed.
+            if (!experience.Enabled)
+                throw new InvalidOperationException("Experience is disabled.");
 
             if (!m_State.ScriptBindings.TryGetValue(scriptItemId, out Guid bound) ||
                 bound != experienceId)
