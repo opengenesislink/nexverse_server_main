@@ -1256,6 +1256,14 @@
     ; Standard = aus; dies allein erzeugt KEIN 3D-NavMesh!
     UseVerifiedLayeredSurfaces = false
     LayeredMaxStepMeters = 0.6
+    ; Echte gefilterte Physics-Raycast-Kontakte: Terrain und statische
+    ; Prim-/Mesh-Kollisionsflaechen, maximal drei Ebenen/Zelle.
+    ; Erfordert UseVerifiedLayeredSurfaces=true, einen Physik-Backend
+    ; mit gefiltertem Raycast und einen kontrollierten Entwicklertest.
+    ; Keine automatisch erzeugten Treppen-/Aufzugs-Portale; grosse
+    ; Regionen und unklare Physikergebnisse bleiben fail-closed.
+    PhysicsRaycastLayeredSurfaces = false
+    PhysicsRaycastMaxBuildSeconds = 30
     ; Firestorm pathfinding viewer CAPS. ONLY advertise after a trusted
     ; Scene/Physics adapter supplies real viewer-compatible compressed
     ; NavMesh data, coherent RegionObjects/Terrain/Character LLSD maps,
