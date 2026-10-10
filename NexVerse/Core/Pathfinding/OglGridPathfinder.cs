@@ -66,10 +66,31 @@ namespace NexVerse.Core.Pathfinding
             out IReadOnlyList<GridCell> path,
             int maxExpandedNodes = 100_000)
         {
+            return TryFindPath(start, target, out path, maxExpandedNodes, null);
+        }
+
+        /// <summary>
+        /// Query-specific extra walkability predicate. This may enforce an
+        /// agent's collision radius without changing the immutable grid for
+        /// ordinary region/NPC routes. The same predicate is used for
+        /// diagonals and endpoints to prevent squeezing through corners.
+        /// </summary>
+        public bool TryFindPath(
+            GridCell start,
+            GridCell target,
+            out IReadOnlyList<GridCell> path,
+            int maxExpandedNodes,
+            Func<GridCell, bool> additionalWalkability)
+        {
             path = Array.Empty<GridCell>();
             if (maxExpandedNodes <= 0)
                 throw new ArgumentOutOfRangeException(nameof(maxExpandedNodes));
-            if (!IsWalkable(start) || !IsWalkable(target))
+
+            bool CanWalk(GridCell c) =>
+                IsWalkable(c) && (additionalWalkability == null ||
+                    additionalWalkability(c));
+
+            if (!CanWalk(start) || !CanWalk(target))
                 return false;
 
             if (start.Equals(target))
@@ -123,14 +144,14 @@ namespace NexVerse.Core.Pathfinding
                         if (dx == 0 && dy == 0)
                             continue;
                         int nx = x + dx, ny = y + dy;
-                        if (!IsWalkableInternal(nx, ny))
+                        if (!CanWalk(new GridCell(nx, ny)))
                             continue;
 
                         // Prevent diagonal corner clipping between blocked tiles.
                         bool diagonal = dx != 0 && dy != 0;
                         if (diagonal &&
-                            (!IsWalkableInternal(x + dx, y) ||
-                             !IsWalkableInternal(x, y + dy)))
+                            (!CanWalk(new GridCell(x + dx, y)) ||
+                             !CanWalk(new GridCell(x, y + dy))))
                             continue;
 
                         int neighbor = Offset(nx, ny);
