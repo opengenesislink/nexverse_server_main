@@ -217,6 +217,7 @@ for marker in (
     "missing-key update did not create",
     "Experience persistence/reopen failed",
     "Experience deletion cleanup failed",
+    "disabled Experience still allowed script K/V access",
 ):
     assert marker in regression, f"missing Experience regression marker: {marker}"
 
