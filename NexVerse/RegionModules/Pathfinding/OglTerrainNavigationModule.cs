@@ -36,7 +36,8 @@ namespace NexVerse.RegionModules.Pathfinding
         Id = "OglTerrainNavigationModule")]
     public sealed class OglTerrainNavigationModule : ISharedRegionModule
     {
-        private sealed class RegionNavigation : IOglTerrainNavigationRegion, IOglNativeTerrainQuery
+        private sealed class RegionNavigation : IOglTerrainNavigationRegion,
+            IOglNativeTerrainQuery, IOglCertifiedNavGraphRegion
         {
             public readonly Scene Scene;
             public readonly EventManager.OnTerrainTaintedDelegate Listener;
@@ -73,6 +74,24 @@ namespace NexVerse.RegionModules.Pathfinding
             {
                 Interlocked.Increment(ref Epoch);
                 Volatile.Write(ref Dirty, 1);
+            }
+
+            public bool TryCaptureCertifiedGraph(
+                out OglLayeredNavGraph graph, out int revision)
+            {
+                graph = null;
+                revision = 0;
+                if (!m_RequireLayered) return false;
+                int epoch = Volatile.Read(ref Epoch);
+                OglLayeredNavGraph candidate = Volatile.Read(ref LayeredGraph);
+                if (candidate == null || IsNavigationDirty ||
+                    Volatile.Read(ref SnapshotEpoch) != epoch ||
+                    !candidate.TryCaptureCertifiedArcs(out _) ||
+                    IsNavigationDirty || Volatile.Read(ref Epoch) != epoch)
+                    return false;
+                graph = candidate;
+                revision = epoch;
+                return true;
             }
 
             public bool IsNavigationReady =>
@@ -247,6 +266,8 @@ namespace NexVerse.RegionModules.Pathfinding
             }
             scene.RegisterModuleInterface<IOglTerrainNavigationRegion>(state);
             scene.RegisterModuleInterface<IOglNativeTerrainQuery>(state);
+            if (m_UseLayeredSurfaces)
+                scene.RegisterModuleInterface<IOglCertifiedNavGraphRegion>(state);
             m_Log.InfoFormat(
                 "[OGL-PATH]: Region {0} native terrain A* configured (cell={1}m, maxExpanded={2}). Firestorm RetrieveNavMeshSrc intentionally not advertised: Havok-compatible mesh payload/status not implemented.",
                 scene.Name, m_CellMeters, m_MaxExpanded);
@@ -286,6 +307,8 @@ namespace NexVerse.RegionModules.Pathfinding
             }
             scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
             scene.UnregisterModuleInterface<IOglNativeTerrainQuery>(state);
+            if (m_UseLayeredSurfaces)
+                scene.UnregisterModuleInterface<IOglCertifiedNavGraphRegion>(state);
         }
 
         private static IReadOnlyList<OglStaticCollisionAabb> CaptureStaticColliders(

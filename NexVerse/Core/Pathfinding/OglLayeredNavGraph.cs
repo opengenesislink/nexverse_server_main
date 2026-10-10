@@ -51,6 +51,19 @@ namespace NexVerse.Core.Pathfinding
     /// Positively validated planar edge between adjacent collision-backed
     /// surfaces. The physics adapter must prove support at the shared border.
     /// </summary>
+    /// <summary>Directed certified segment for open viewer transport.</summary>
+    public readonly struct OglOpenNavArc
+    {
+        public readonly int From, To;
+        public readonly bool OffMesh;
+        public OglOpenNavArc(int from, int to, bool offMesh = false)
+        {
+            From = from;
+            To = to;
+            OffMesh = offMesh;
+        }
+    }
+
     public readonly struct OglLayerNavEdge
     {
         public readonly int From;
@@ -159,6 +172,38 @@ namespace NexVerse.Core.Pathfinding
                 if (portal.Bidirectional)
                     m_Portals[portal.To].Add(portal.From);
             }
+        }
+
+        /// <summary>
+        /// Publish ONLY strictly verified topology; legacy terrain A* may
+        /// infer edges that have not passed 3D-physics clearance checking.
+        /// Portals are already direction-resolved by the constructor.
+        /// </summary>
+        public bool TryCaptureCertifiedArcs(out OglOpenNavArc[] arcs)
+        {
+            arcs = Array.Empty<OglOpenNavArc>();
+            if (m_VerifiedPlanarEdges == null) return false;
+            List<OglOpenNavArc> result = new();
+            foreach (ulong key in m_VerifiedPlanarEdges)
+            {
+                int from = (int)(key >> 32);
+                int to = (int)(key & 0xffffffffu);
+                result.Add(new OglOpenNavArc(from, to));
+                result.Add(new OglOpenNavArc(to, from));
+            }
+            for (int from = 0; from < m_Portals.Length; ++from)
+                foreach (int to in m_Portals[from])
+                    result.Add(new OglOpenNavArc(from, to, true));
+            result.Sort((a,b) =>
+            {
+                int first = a.From.CompareTo(b.From);
+                if (first != 0) return first;
+                int second = a.To.CompareTo(b.To);
+                if (second != 0) return second;
+                return a.OffMesh.CompareTo(b.OffMesh);
+            });
+            arcs = result.ToArray();
+            return true;
         }
 
         public float CellMeters => m_CellMeters;
