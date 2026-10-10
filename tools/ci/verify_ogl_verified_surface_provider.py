@@ -37,7 +37,7 @@ for mark in (
     "Ray(cx + sx * patch, cy + sy * patch)",
     "HasContact(Ray(borderX, borderY)",
     "from.SourceId != to.SourceId",
-    "Array.Empty<OglLayerNavPortal>()",
+    "new OglLayerNavPortal(",
     "new OglLayerNavEdge(from.Index, to.Index)",
 ):
     assert mark in builder, f"unsafe verified graph generation: {mark}"
