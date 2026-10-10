@@ -54,6 +54,8 @@ namespace NexVerse.RegionModules.Voice
         private Timer m_PositionTimer;
         private int m_PositionUpdateRunning;
         private bool m_Enabled;
+        // Only one operational warning per region until discovery recovers.
+        private int m_ProviderUnavailableLogged;
         private string m_NodeId;
         private string m_Key;
 
@@ -64,7 +66,10 @@ namespace NexVerse.RegionModules.Voice
         {
             IConfig options = source.Configs["OGLVoiceViewer"];
             if (options?.GetBoolean("Enabled", true) == false)
+            {
+                m_Log.Info("[OGL-VOICE]: Firestorm WebRTC adapter explicitly disabled by [OGLVoiceViewer].");
                 return;
+            }
             IConfig node = source.Configs["NexVerseNodeAgent"];
             IConfig ogl = source.Configs["OGLVoice"];
             bool grid = node?.GetBoolean("Enabled", false) == true;
@@ -72,7 +77,10 @@ namespace NexVerse.RegionModules.Voice
                 string.Equals(ogl.GetString("Mode", ""), "Standalone",
                     StringComparison.OrdinalIgnoreCase);
             if (!grid && !standalone)
+            {
+                m_Log.Info("[OGL-VOICE]: Firestorm WebRTC not enabled: no active NexVerseNodeAgent or standalone OGLVoice. Firestorm can fall back to Vivox; an empty Vivox provision URL is not an OGLVoice media connection.");
                 return;
+            }
             try
             {
                 m_NodeId = grid
@@ -173,7 +181,17 @@ namespace NexVerse.RegionModules.Voice
         private void RegisterCaps(UUID avatar, Caps caps)
         {
             if (ReadyProvider() == null)
+            {
+                if (Interlocked.Exchange(ref m_ProviderUnavailableLogged, 1) == 0)
+                {
+                    m_Log.WarnFormat(
+                        "[OGL-VOICE]: No authenticated Firestorm WebRTC media provider ready for region {0}; voice CAPS and VoiceServerType cannot be advertised. Check Robust [OGLVoice] EnableFirestormGateway/MediaGatewayUrl, NodeAgent trusted discovery, and actual Pion/LiveKit bridge. Firestorm may try legacy Vivox with an empty provision URL.",
+                        m_Scene?.Name ?? "<unknown>");
+                }
                 return;
+            }
+            if (Interlocked.Exchange(ref m_ProviderUnavailableLogged, 0) != 0)
+                m_Log.Info("[OGL-VOICE]: Firestorm WebRTC provider recovered. Existing viewer sessions may need relog to receive the newly advertised CAPS.");
             caps.RegisterSimpleHandler("ProvisionVoiceAccountRequest",
                 new SimpleStreamHandler("/" + UUID.Random(),
                     (req, resp) => Handle(req, resp, avatar, "provision")));
