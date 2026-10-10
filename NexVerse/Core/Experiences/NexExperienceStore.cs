@@ -84,6 +84,31 @@ namespace NexVerse.Core.Experiences
             }
         }
 
+        /// <summary>
+        /// A ScriptAnswerYes reply belongs to one concrete object/script.
+        /// Denying one script MUST NOT drain another script's pending
+        /// consent just because both reference the same Experience.
+        /// The broader Take(resident,experience) is intentionally retained
+        /// for a persisted viewer CAP Allow/Block decision.
+        /// </summary>
+        public NexPendingExperienceRequest[] TakeSpecific(
+            Guid resident, Guid experience, Guid objectId, Guid scriptId)
+        {
+            if (resident == Guid.Empty || experience == Guid.Empty ||
+                objectId == Guid.Empty || scriptId == Guid.Empty)
+                return Array.Empty<NexPendingExperienceRequest>();
+            lock (m_Lock)
+            {
+                var selected = m_Requests.Where(x =>
+                    x.ResidentId == resident && x.ExperienceId == experience &&
+                    x.ObjectId == objectId && x.ScriptId == scriptId).ToArray();
+                m_Requests.RemoveAll(x =>
+                    x.ResidentId == resident && x.ExperienceId == experience &&
+                    x.ObjectId == objectId && x.ScriptId == scriptId);
+                return selected;
+            }
+        }
+
         public NexPendingExperienceRequest[] Expire(DateTimeOffset now)
         {
             lock (m_Lock)

@@ -379,6 +379,37 @@ internal static class Program
                 pending.Count == 0,
             "unanswered consent did not expire");
 
+        // Two independent scripts requesting the same Experience for one
+        // resident must not both be denied by one native ScriptAnswerYes.
+        Guid secondScript = Guid.NewGuid();
+        Guid secondObject = Guid.NewGuid();
+        Require(pending.TryAdd(consent, now), "first parallel consent failed");
+        Require(pending.TryAdd(new NexPendingExperienceRequest
+        {
+            ResidentId = pendingAvatar,
+            ExperienceId = pendingExperience,
+            RegionId = pendingRegion,
+            ObjectId = secondObject,
+            ScriptId = secondScript,
+            Deadline = now.AddSeconds(60),
+            Completion = _ => { }
+        }, now), "second parallel consent failed");
+        Require(pending.TakeSpecific(pendingAvatar, pendingExperience,
+                pendingObject, pendingScript).Length == 1 &&
+                pending.Count == 1,
+            "one script Deny drained another script's request");
+        Require(pending.TakeSpecific(pendingAvatar, pendingExperience,
+                pendingObject, pendingScript).Length == 0 &&
+                pending.Count == 1,
+            "duplicate native Deny should not resolve a second request");
+        Require(pending.TakeSpecific(pendingAvatar, pendingExperience,
+                secondObject, pendingScript).Length == 0 &&
+                pending.Count == 1,
+            "mismatched object and script must never resolve consent");
+        Require(pending.Take(pendingAvatar, pendingExperience).Length == 1 &&
+                pending.Count == 0,
+            "central viewer CAP decision still resolves remaining requests");
+
         for (int i = 0; i < 16; i++)
         {
             Require(pending.TryAdd(new NexPendingExperienceRequest

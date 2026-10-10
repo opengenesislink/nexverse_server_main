@@ -235,7 +235,9 @@ assert "0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000" in experience_module
 assert "consentClient.OnScriptAnswer += nativeAnswerHandler" in experience_module
 assert "consentClient.OnScriptAnswer -= nativeAnswerHandler" in experience_module
 assert "answer != 0" in experience_module
-assert "CompleteRequests(m_Pending.Take(" in experience_module
+assert "CompleteRequests(m_Pending.TakeSpecific(" in experience_module
+assert "public NexPendingExperienceRequest[] TakeSpecific(" in experience_store
+assert '"one script Deny drained another script\'s request"' in regression
 
 
 for marker in (

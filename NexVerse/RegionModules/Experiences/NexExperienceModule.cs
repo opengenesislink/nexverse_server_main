@@ -921,8 +921,9 @@ namespace NexVerse.RegionModules.Experiences
                         if (source != consentClient || task != objectId ||
                             item != scriptItemId || answer != 0)
                             return;
-                        CompleteRequests(m_Pending.Take(
-                            residentId.Guid, experienceId.Guid), 4);
+                        CompleteRequests(m_Pending.TakeSpecific(
+                            residentId.Guid, experienceId.Guid,
+                            objectId.Guid, scriptItemId.Guid), 4);
                     };
                     consentClient.OnScriptAnswer += nativeAnswerHandler;
                     try
