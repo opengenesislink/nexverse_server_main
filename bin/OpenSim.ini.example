@@ -1280,6 +1280,11 @@
     ; With no source, even Enabled=true never advertises RetrieveNavMeshSrc.
     ; Read-only mode: no rebake or property mutations supported yet.
     FirestormNavMeshCaps = false
+    ; OpenGenesisLINK Viewer-Fork: Read-only OGLNAVGRAPH/1 CAPS.
+    ; Liefert nur echte, aktuelle, physikzertifizierte A*-Topologie.
+    ; Der unveraenderte Firestorm kennt OGLRetrieveNavGraph NICHT.
+    ; Daher standardmaessig deaktiviert: kein Havok-/PathingLib-Ersatz.
+    OpenNavGraphCaps = false
 
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende
