@@ -242,6 +242,36 @@ internal static class Program
                 script) == 1,
             "Experience persistence/reopen failed");
 
+        // A disabled Experience must immediately lose *all* script K/V
+        // authority even if its script binding and stored data remain.
+        reopened.UpdateProfile(created.ExperienceId, owner,
+            "CI Experience", "temporarily disabled", created.GroupId,
+            NexExperienceMaturity.Moderate, false, "ci");
+        Require(reopened.GetResidentPermission(created.ExperienceId, resident) ==
+            NexExperiencePermissionStatus.None,
+            "disabled Experience still granted resident permissions");
+        bool disabledReadRejected = false;
+        bool disabledWriteRejected = false;
+        try
+        {
+            reopened.TryReadKeyValue(created.ExperienceId, script,
+                "created-by-update", out _);
+        }
+        catch (InvalidOperationException) { disabledReadRejected = true; }
+        try
+        {
+            reopened.CreateKeyValue(created.ExperienceId, script, "blocked", "write");
+        }
+        catch (InvalidOperationException) { disabledWriteRejected = true; }
+        Require(disabledReadRejected && disabledWriteRejected,
+            "disabled Experience still allowed script K/V access");
+        reopened.UpdateProfile(created.ExperienceId, owner,
+            "CI Experience", "reenabled", created.GroupId,
+            NexExperienceMaturity.Moderate, true, "ci");
+        Require(reopened.TryReadKeyValue(created.ExperienceId, script,
+            "created-by-update", out string resumedValue) && resumedValue == "value",
+            "Experience enable should restore previously stored script data");
+
         reopened.Delete(
             created.ExperienceId,
             owner,
