@@ -57,6 +57,10 @@ jobs:
           test -f OpenSim/Region/CoreModules/Scripting/XMLRPC/XMLRPCModule.cs
           test -f OpenSim/Region/OptionalModules/Scripting/XmlRpcRouterModule/XmlRpcRouterModule.cs
 
+      - name: Verify immutable stable release gating on development main
+        shell: bash
+        run: python3 tools/ci/verify_stable_release_gate.py
+
       - name: Verify runtime secrets are not committed
         shell: bash
         run: python3 tools/ci/verify_no_plaintext_runtime_secrets.py
