@@ -214,6 +214,13 @@ Check(!stairs.TryFindWorldPath(2, 2, 40, 6, 6, 8, 0.5f,
 Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 40, 0.5f,
     out _, out int invalidGoalCode) && invalidGoalCode == 3,
     "world-space path reports invalid destination height");
+Check(!stairs.TryFindWorldPath(2, 2, 3f, 6, 6, 8, 0.5f,
+    out _, out int floatingStartCode) && floatingStartCode == 2,
+    "world-space path refuses to snap floating start onto distant floor");
+Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 5f, 0.5f,
+    out _, out int floatingGoalCode) && floatingGoalCode == 3,
+    "world-space path refuses to snap floating destination onto bridge");
+
 Check(!stairs.TryFindWorldPath(2, 2, 0, 6, 6, 8, 6f,
     out _, out int invalidRadiusCode) && invalidRadiusCode == 0xF4240,
     "world-space path validates agent radius");
