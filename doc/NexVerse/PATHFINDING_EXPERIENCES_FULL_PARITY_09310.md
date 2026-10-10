@@ -39,6 +39,59 @@
 5. **Zentrale Persistenz:** Revisions-/Migrations-/Recoverystrategie fuer den heutigen JSON-Store; bei Multi-Robust-Betrieb echte transaktionale zentrale SQL-Autoritaet und CAS-/Audit-/Backup-/Restore-Pruefung statt Dateikonflikte.
 6. **Sicherheit & Live:** Zwei Bewohner und zwei Simulatoren, ein Owner und ein unberechtigter Avatar, Allow/Block/Revoke, Experience-Profilsuche/-pflege, K/V-CAS-Races, Neustart, berechtigtes und missbraeuchliches Script, HG-Gast, Logs/Quoten; danach Firestorm-UI + Live-LSL mit dokumentierten Logs.
 
+## Native Firestorm Experience consent – Testimplementierung
+
+Der Client-Adapter unterstuetzt jetzt optional das tatsaechliche UDP-
+`ScriptQuestion` mit `Experience.ExperienceID` und den sechs standardisierten
+Experience-Permissions-Bits. Anders als die fruehere reine Agentenmeldung
+kann Firestorm daraus den nativen `ScriptQuestionExperience`-Dialog
+erzeugen. Ein einfaches `ScriptAnswerYes` reicht *nicht* fuer die
+Dauerberechtigung: Nur ein durch die CAPS gebundener Bewohner gesendetes
+`ExperiencePreferences`-Allow bzw. -Block mit erfolgreicher zentraler
+Speicherung loest die LSL-Anfrage aus.
+
+Fuer eine isolierte Entwicklerregion:
+```ini
+[NexExperiencesViewer]
+    Enabled = true
+    ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
+    ViewerPermissionsApiKey = "${Environment|NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY}"
+    FirestormReadCaps = true
+    FirestormPermissionCaps = true
+    ScriptPendingConsent = true
+    NativeExperiencePrompt = true
+```
+
+Sicherung: NativeExperiencePrompt ist standardmaessig **false** und
+setzt alle vorgelagerten Features und zwei verschiedene echte
+API-Schluessel voraus. Der Viewer erhaelt die Schluessel nie. Ohne
+geeigneten UDP-Client wird nur die bisherige Informationsmeldung
+gesendet, niemals automatisch zugestimmt. Vor Freigabe muessen
+Allow/Block, Timeout, Viewer-Neuanmeldung, Script-Reset, Parzellenrechte
+und unberechtigte fremde Avatare live getestet werden.
+
+## Warum Firestorm Pathfinding grau bleibt
+
+Der *offizielle Firestorm-Quellcode* in
+`indra/newview/llpathfindingmanager.cpp` prueft
+`isPathfindingEnabledForRegion()` mit der Existenz einer
+`RetrieveNavMeshSrc`-CAP-URL. OGL registriert diese absichtlich nicht:
+der existierende Terrain-/Multi-Layer-A*-Graph ist **kein**
+Firestorm-lesbares Havok-NavMesh mit Generation-/Status-/Objekt-/
+Character-CAPS. Ohne korrektes binäres NavMesh-Protokoll darf keine
+leere oder irrefuehrende Capability beworben werden. Das graue Menue
+ist daher derzeit ein ehrlicher Indikator, nicht durch
+`OGLPathfinding.Enabled=true` allein zu beheben.
+
+Die naechsten Implementierungs-Blocker sind realer
+Collision-Triangle-NavMesh-Provider, Versions-/Rebake-Logik,
+`RetrieveNavMeshSrc`, `NavMeshGenerationStatus`,
+`RegionObjects`, `TerrainNavMeshProperties`,
+`CharacterProperties`, `AgentState` und deren
+authentifizierte Live-Integration. Solange dies nicht abgeschlossen
+ist, bleiben die Firestorm-Menues deaktiviert. Eine Viewer-Aenderung,
+die nur das Menue entsperrt, waere keine funktionierende Navigation.
+
 ## IV. Release-Entscheidung und Vorgehen
 
 - **Gate P:** Pathfinding-LSL/Character/NavMesh/Firestorm/Live-Region **alle** bestanden.
