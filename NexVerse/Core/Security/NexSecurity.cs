@@ -36,6 +36,8 @@ namespace NexVerse.Core.Security
         public const string ExperiencesRead = "experiences:read";
         public const string ExperiencesManage = "experiences:manage";
         public const string ExperiencesScript = "experiences:script";
+        // Dedicated trusted simulator key; NEVER grant to resident/OAuth clients.
+        public const string ExperiencesViewerPermissions = "experiences:viewer:permissions";
         public const string DiscoveryRead = "discovery:read";
         public const string DiscoverySubmit = "discovery:submit";
         public const string DiscoveryManage = "discovery:manage";
@@ -89,6 +91,7 @@ namespace NexVerse.Core.Security
                     NexScopes.ExperiencesRead,
                     NexScopes.ExperiencesManage,
                     NexScopes.ExperiencesScript,
+                    NexScopes.ExperiencesViewerPermissions,
                     NexScopes.DiscoveryRead,
                     NexScopes.DiscoverySubmit,
                     NexScopes.DiscoveryManage,
