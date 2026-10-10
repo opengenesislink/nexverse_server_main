@@ -61,7 +61,7 @@ for marker in (
     "float[] bands",
     "float[] offsets",
     "rayClear(Offset(from",
-    "rayClear(Offset(to",
+    "Offset(to, x, y, band)",
     "distance > 16.1f",
 ):
     assert marker in clearance, f"multi-ray corridor guard missing: {marker}"
