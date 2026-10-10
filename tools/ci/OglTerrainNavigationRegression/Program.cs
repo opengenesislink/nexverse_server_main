@@ -18,6 +18,17 @@ Check(!flat.TryFindWorldPath(1, 1, float.NaN, 3, out _), "invalid nonfinite loca
 Check(!flat.TryFindWorldPath(1, 1, 16, 3, out _), "region boundary");
 Check(!flat.TryFindWorldPath(1, 1, 15, 15, out _, 1), "CPU exploration bound");
 
+Check(flat.TryFindNearestTerrainPoint(1, 1, 10, 4, out var nearest),
+    "closest terrain point exists");
+Check(nearest.Z == 10 && nearest.X >= 0 && nearest.Y >= 0,
+    "nearest point has correct sampled terrain height");
+Check(!flat.TryFindNearestTerrainPoint(1, 1, 10, 0.5f, out _),
+    "nearest point obeys requested 3D distance");
+Check(!flat.TryFindNearestTerrainPoint(1, 1, 10, 65, out _),
+    "nearest point has a hard computation bound");
+Check(!flat.TryFindNearestTerrainPoint(float.NaN, 1, 10, 20, out _),
+    "nearest point rejects nonfinite input");
+
 OglTerrainNavigationSnapshot obstacle = OglTerrainNavigationSnapshot.Build(
     16, 16, 4, 0, 1, (_, _) => 10f,
     (x, y) => x >= 4 && x < 8 && y < 12);

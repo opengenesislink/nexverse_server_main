@@ -27,6 +27,19 @@ for safety_marker in (
 ):
     assert safety_marker in module, f"terrain rebuild epoch safety lost: {safety_marker}"
 assert "Interlocked.Exchange(ref state.Dirty, 0);" not in module, "stale navigation was exposed before rebuild"
+assert "TryFindNearestTerrainPoint" in iface
+assert "TryFindNearestTerrainPoint" in module
+assert "TryFindNearestTerrainPoint" in core
+lsl = Path("OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs").read_text(encoding="utf-8")
+lsl_interface = Path("OpenSim/Region/ScriptEngine/Shared/Api/Interface/ILSL_Api.cs").read_text(encoding="utf-8")
+lsl_stub = Path("OpenSim/Region/ScriptEngine/Shared/Api/Runtime/LSL_Stub.cs").read_text(encoding="utf-8")
+native_iface = Path("OpenSim/Region/Framework/Interfaces/IOglNativeTerrainQuery.cs").read_text(encoding="utf-8")
+for marker in ("llGetClosestNavPoint", "GCNP_RADIUS", "GCNP_STATIC", "CHARACTER_TYPE_NONE"):
+    assert marker in lsl, f"missing LSL nearest navigation handler: {marker}"
+assert "llGetClosestNavPoint" in lsl_stub and "llGetClosestNavPoint" in lsl_interface
+assert "TryGetClosestNavPoint" in native_iface
+assert "RegisterModuleInterface<IOglNativeTerrainQuery>" in module
+assert "UnregisterModuleInterface<IOglNativeTerrainQuery>" in module
 assert "TryFindTerrainPath" in iface
 assert "RetrieveNavMeshSrc intentionally not advertised" in module
 assert 'RegisterSimpleHandler("RetrieveNavMeshSrc"' not in module

@@ -681,6 +681,12 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         public const int OBJECT_SERVER_COST = 14;
         public const int OBJECT_STREAMING_COST = 15;
         public const int OBJECT_PHYSICS_COST = 16;
+        // SL Pathfinding: llGetClosestNavPoint options.
+        public const int GCNP_RADIUS = 0;
+        public const int GCNP_STATIC = 1;
+        public const int CHARACTER_TYPE = 6;
+        public const int CHARACTER_TYPE_NONE = 0;
+
         public const int OBJECT_CHARACTER_TIME = 17;
         public const int OBJECT_ROOT = 18;
         public const int OBJECT_ATTACHED_POINT = 19;

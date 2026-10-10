@@ -196,6 +196,7 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api.Interfaces
         LSL_String llGetParcelMusicURL();
        LSL_Integer llGetParcelPrimCount(LSL_Vector pos, int category, int sim_wide);
           LSL_List llGetParcelPrimOwners(LSL_Vector pos);
+        LSL_List llGetClosestNavPoint(LSL_Vector point, LSL_List options);
        LSL_Integer llGetPermissions();
            LSL_Key llGetPermissionsKey();
           LSL_List llGetPrimMediaParams(int face, LSL_List rules);

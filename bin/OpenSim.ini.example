@@ -1026,6 +1026,10 @@
     WorldApiBaseUrl = "https://world.stadt-nexverse.de"
     ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
     RequestTimeoutMilliseconds = 3000
+    ; Opt-in Firestorm GetExperienceInfo + FindExperienceByName (read-only).
+    ; Requires real experiences:script service credentials and viewer E2E tests.
+    ; Does NOT enable viewer permission write/consent capabilities.
+    FirestormReadCaps = false
 
 [NexEconomyViewer]
     ; Central OpenGenesisLINK NV$ Viewer/IMoneyModule adapter.
