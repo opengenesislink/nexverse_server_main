@@ -4,6 +4,17 @@ using NexVerse.Core.Pathfinding;
 
 namespace NexVerse.RegionModules.Pathfinding
 {
+    /// <summary>
+    /// Revision-safe handoff of a strictly certified immutable navigation
+    /// graph to an OpenGenesisLINK-aware viewer transport. This is NOT
+    /// the proprietary Firestorm/Havok NavMesh source contract.
+    /// </summary>
+    public interface IOglCertifiedNavGraphRegion
+    {
+        bool TryCaptureCertifiedGraph(out OglLayeredNavGraph graph,
+            out int revision);
+    }
+
     /// <summary>Internal terrain-route capability; no LSL claims or physics bypass.</summary>
     public interface IOglTerrainNavigationRegion
     {
