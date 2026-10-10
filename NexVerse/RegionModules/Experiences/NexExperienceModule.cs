@@ -765,6 +765,173 @@ namespace NexVerse.RegionModules.Experiences
             }
         }
 
+        private static void CompleteRequests(
+            NexPendingExperienceRequest[] requests, int result)
+        {
+            foreach (NexPendingExperienceRequest request in requests)
+            {
+                try { request.Completion(result); }
+                catch (Exception e)
+                {
+                    m_Log.WarnFormat(
+                        "[NEX-EXPERIENCES]: Failed to deliver pending LSL consent event: {0}",
+                        e.Message);
+                }
+            }
+        }
+
+        private void ExpirePending()
+        {
+            try { CompleteRequests(m_Pending.Expire(DateTimeOffset.UtcNow), 18); }
+            catch (Exception e)
+            {
+                m_Log.WarnFormat("[NEX-EXPERIENCES]: Pending consent cleanup failed: {0}",
+                    e.Message);
+            }
+        }
+
+        private bool FindLiveConsentContext(UUID residentId, UUID objectId,
+            UUID scriptItemId, out Scene scene, out ScenePresence presence)
+        {
+            scene = null;
+            presence = null;
+            Scene[] scenes;
+            lock (m_Sync) scenes = m_Scenes.ToArray();
+            foreach (Scene current in scenes)
+            {
+                SceneObjectPart part = current.GetSceneObjectPart(objectId);
+                if (part == null || part.ParentGroup == null ||
+                    part.ParentGroup.IsDeleted || part.TaskInventory == null ||
+                    part.TaskInventory.GetInventoryItem(scriptItemId) == null)
+                    continue;
+                if (!current.TryGetScenePresence(residentId, out ScenePresence agent) ||
+                    agent == null || agent.IsDeleted || agent.IsNPC ||
+                    agent.IsChildAgent || agent.ControllingClient == null)
+                    continue;
+                scene = current;
+                presence = agent;
+                return true;
+            }
+            return false;
+        }
+
+        public bool QueueExperiencePermissionRequest(UUID scriptItemId, UUID objectId,
+            UUID residentId, UUID parcelId, Action<int> onResult)
+        {
+            if (!m_Enabled || !m_ScriptPendingConsent || onResult == null ||
+                scriptItemId.IsZero() || objectId.IsZero() || residentId.IsZero() ||
+                !FindLiveConsentContext(residentId, objectId, scriptItemId,
+                    out Scene scene, out ScenePresence presence))
+                return false;
+
+            try
+            {
+                // Do not solicit any consent for an Experience that the
+                // resident has actively BLOCKED or that is not script-bound.
+                using HttpRequestMessage check = CreateRequest(HttpMethod.Get,
+                    "/api/v1/experiences/script/permission?script_id=" +
+                    Uri.EscapeDataString(scriptItemId.ToString()) + "&resident_id=" +
+                    Uri.EscapeDataString(residentId.ToString()));
+                using HttpResponseMessage response = m_Http.Send(check);
+                if (!response.IsSuccessStatusCode)
+                    return false;
+                using JsonDocument doc = JsonDocument.Parse(
+                    response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                JsonElement body = doc.RootElement;
+                if (!body.TryGetProperty("status", out JsonElement status) ||
+                    status.GetString() != "none" ||
+                    !body.TryGetProperty("experience_id", out JsonElement id) ||
+                    !UUID.TryParse(id.GetString(), out UUID experienceId) ||
+                    experienceId.IsZero())
+                    return false;
+
+                // An Experience blocked at the parcel/estate layer must
+                // never be queued merely because its resident has no grant.
+                if (!parcelId.IsZero())
+                {
+                    using HttpRequestMessage loc = CreateRequest(HttpMethod.Get,
+                        "/api/v1/experiences/script/location?script_id=" +
+                        Uri.EscapeDataString(scriptItemId.ToString()) + "&parcel_id=" +
+                        Uri.EscapeDataString(parcelId.ToString()));
+                    using HttpResponseMessage locResponse = m_Http.Send(loc);
+                    if (!locResponse.IsSuccessStatusCode)
+                        return false;
+                    using JsonDocument locDocument = JsonDocument.Parse(
+                        locResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                    if (!locDocument.RootElement.TryGetProperty("allowed",
+                            out JsonElement grant) ||
+                        grant.ValueKind != JsonValueKind.True)
+                        return false;
+                }
+
+                NexPendingExperienceRequest pending = new()
+                {
+                    ExperienceId = experienceId.Guid,
+                    ResidentId = residentId.Guid,
+                    RegionId = scene.RegionInfo.RegionID.Guid,
+                    ObjectId = objectId.Guid,
+                    ScriptId = scriptItemId.Guid,
+                    ParcelId = parcelId.Guid,
+                    Deadline = DateTimeOffset.UtcNow.AddSeconds(60),
+                    Completion = onResult
+                };
+                if (!m_Pending.TryAdd(pending, DateTimeOffset.UtcNow))
+                    return false;
+
+                // A native zero-bit ScriptQuestion is NOT a Firestorm
+                // Experience approval prompt. Instead display an honest
+                // informational notice and wait for an explicit Allow in
+                // the viewer's Experiences settings. No implicit grant.
+                try
+                {
+                    presence.ControllingClient.SendAgentAlertMessage(
+                        "An Experience permission was requested. Open your " +
+                        "Experiences settings and explicitly Allow the Experience " +
+                        "within 60 seconds to continue. Otherwise it times out.",
+                        false);
+                }
+                catch (Exception e)
+                {
+                    m_Log.WarnFormat(
+                        "[NEX-EXPERIENCES]: Pending consent notice failed: {0}", e.Message);
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                m_Log.WarnFormat("[NEX-EXPERIENCES]: Consent queue denied safely: {0}",
+                    e.Message);
+                return false;
+            }
+        }
+
+        private void ResolveViewerPendingConsent(UUID residentId,
+            UUID experienceId, bool allowed)
+        {
+            NexPendingExperienceRequest[] requests =
+                m_Pending.Take(residentId.Guid, experienceId.Guid);
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            foreach (NexPendingExperienceRequest pending in requests)
+            {
+                int status = 4; // XP_ERROR_NOT_PERMITTED
+                if (pending.Deadline <= now)
+                    status = 18; // XP_ERROR_REQUEST_PERM_TIMEOUT
+                else if (allowed &&
+                    FindLiveConsentContext(new UUID(pending.ResidentId),
+                        new UUID(pending.ObjectId), new UUID(pending.ScriptId),
+                        out Scene scene, out _) &&
+                    scene.RegionInfo.RegionID.Guid == pending.RegionId &&
+                    HasExperiencePermission(
+                        new UUID(pending.ScriptId),
+                        residentId,
+                        new UUID(pending.ParcelId),
+                        out UUID freshId, out _) &&
+                    freshId == experienceId)
+                    status = 0;
+                CompleteRequests(new[] { pending }, status);
+            }
+        }
+
         public bool HasExperiencePermission(
             UUID scriptItemId,
             UUID residentId,
