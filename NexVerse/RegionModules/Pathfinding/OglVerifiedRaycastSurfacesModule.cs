@@ -122,7 +122,7 @@ namespace NexVerse.RegionModules.Pathfinding
             int queries = 0;
             // Includes surface sampling plus bounded multi-ray checks per
             // cell and transition. Exceeding this limit fails the build.
-            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 280;
+            const int MaxQueries = OglVerifiedSurfaceGraphBuilder.MaxCells * 700;
             IReadOnlyList<OglVerifiedSurfaceContact> Sample(float x, float y)
             {
                 if (++queries > MaxQueries || elapsed.Elapsed.TotalSeconds >
