@@ -108,6 +108,29 @@ internal static class Program
                 galleryVersionBeforeThumbnail,
                 "outfit preview update did not invalidate its parent folder version");
 
+            // Updating an existing thumbnail must invalidate both folder and
+            // parent versions. This does not simulate Firestorm's private
+            // cache, but protects the version contract that the viewer uses.
+            ushort savedVersionBeforeReplacement =
+                service.GetFolder(owner, saved.ID).Version;
+            ushort galleryVersionBeforeReplacement =
+                service.GetFolder(owner, gallery.ID).Version;
+            UUID folderReplacementPreview = UUID.Random();
+            var savedReplacement = service.GetFolder(owner, saved.ID);
+            savedReplacement.ThumbnailID = folderReplacementPreview;
+            savedReplacement.Version++;
+            Assert(service.UpdateFolder(savedReplacement),
+                "outfit thumbnail replacement save rejected");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID ==
+                folderReplacementPreview,
+                "replacing outfit thumbnail did not persist new UUID");
+            Assert(service.GetFolder(owner, saved.ID).Version >
+                savedVersionBeforeReplacement,
+                "replacing outfit thumbnail did not increment folder version");
+            Assert(service.GetFolder(owner, gallery.ID).Version >
+                galleryVersionBeforeReplacement,
+                "replacing outfit thumbnail did not invalidate parent version");
+
             // Ordinary folders follow a different XInventoryService update branch
             // from the protected My Outfits system folder and saved outfits.
             var ordinaryFolder = new InventoryFolderBase(UUID.Random(),
@@ -138,8 +161,9 @@ internal static class Program
             legacyFolder.ThumbnailID = UUID.Zero; // absent on legacy folder wire
             legacyFolder.Version++;
             Assert(service.UpdateFolder(legacyFolder), "legacy folder update rejected");
-            Assert(service.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
-                "legacy folder update erased preview");
+            Assert(service.GetFolder(owner, saved.ID).ThumbnailID ==
+                folderReplacementPreview,
+                "legacy folder update erased replacement preview");
 
             // Also cover system folders (different version-only update path).
             var systemFolder = service.GetFolder(owner, gallery.ID);
@@ -158,16 +182,17 @@ internal static class Program
             var fresh = new XInventoryService(cfg);
             Assert(fresh.GetItem(owner, thumbnailItem.ID).ThumbnailID == itemPreview,
                 "relogin lost item thumbnail");
-            Assert(fresh.GetFolder(owner, saved.ID).ThumbnailID == folderPreview,
-                "relogin lost saved outfit thumbnail");
+            Assert(fresh.GetFolder(owner, saved.ID).ThumbnailID ==
+                folderReplacementPreview,
+                "relogin lost replaced saved outfit thumbnail");
             Assert(fresh.GetFolder(owner, gallery.ID).ThumbnailID == folderPreview,
                 "relogin lost My Outfits thumbnail");
             Assert(fresh.GetFolder(owner, ordinaryFolder.ID).ThumbnailID ==
                 ordinaryPreview, "relogin lost ordinary folder thumbnail");
             var freshChildren = fresh.GetFolderContent(owner, gallery.ID);
             Assert(freshChildren.Folders.Any(f =>
-                f.ID == saved.ID && f.ThumbnailID == folderPreview),
-                "relogin parent fetch lost outfit child thumbnail");
+                f.ID == saved.ID && f.ThumbnailID == folderReplacementPreview),
+                "relogin parent fetch lost replaced outfit child thumbnail");
             var freshRootChildren = fresh.GetFolderContent(
                 owner, service.GetRootFolder(owner).ID);
             Assert(freshRootChildren.Folders.Any(f =>
