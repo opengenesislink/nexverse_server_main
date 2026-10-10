@@ -144,7 +144,7 @@ namespace NexVerse.Core.Pathfinding
                     if (i > 0 && (from < previous.From ||
                         (from == previous.From && to < previous.To) ||
                         (from == previous.From && to == previous.To &&
-                         (portal ? 1 : 0) < (previous.OffMesh ? 1 : 0))))
+                         portal < (previous.OffMesh ? 1 : 0))))
                         return false;
                     parsedArcs[i] = previous = new OglOpenNavArc(
                         from, to, portal == 1);
