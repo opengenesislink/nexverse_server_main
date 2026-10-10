@@ -37,6 +37,9 @@ namespace NexVerse.Core.Experiences
         public Guid ParcelId { get; init; }
         public DateTimeOffset Deadline { get; init; }
         public Action<int> Completion { get; init; }
+        // Called on script reset/removal and logout instead of dispatching a
+        // stale LSL event. Implementations must only release native handlers.
+        public Action Cancel { get; init; }
     }
 
     /// <summary>
@@ -116,6 +119,36 @@ namespace NexVerse.Core.Experiences
                 var expired = m_Requests.Where(x => x.Deadline <= now).ToArray();
                 m_Requests.RemoveAll(x => x.Deadline <= now);
                 return expired;
+            }
+        }
+
+        public NexPendingExperienceRequest[] CancelScript(
+            Guid region, Guid scriptId)
+        {
+            if (region == Guid.Empty || scriptId == Guid.Empty)
+                return Array.Empty<NexPendingExperienceRequest>();
+            lock (m_Lock)
+            {
+                var canceled = m_Requests.Where(x =>
+                    x.RegionId == region && x.ScriptId == scriptId).ToArray();
+                m_Requests.RemoveAll(x =>
+                    x.RegionId == region && x.ScriptId == scriptId);
+                return canceled;
+            }
+        }
+
+        public NexPendingExperienceRequest[] CancelResident(
+            Guid region, Guid resident)
+        {
+            if (region == Guid.Empty || resident == Guid.Empty)
+                return Array.Empty<NexPendingExperienceRequest>();
+            lock (m_Lock)
+            {
+                var canceled = m_Requests.Where(x =>
+                    x.RegionId == region && x.ResidentId == resident).ToArray();
+                m_Requests.RemoveAll(x =>
+                    x.RegionId == region && x.ResidentId == resident);
+                return canceled;
             }
         }
 
