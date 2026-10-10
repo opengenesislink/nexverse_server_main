@@ -48,7 +48,10 @@ kann Firestorm daraus den nativen `ScriptQuestionExperience`-Dialog
 erzeugen. Ein einfaches `ScriptAnswerYes` reicht *nicht* fuer die
 Dauerberechtigung: Nur ein durch die CAPS gebundener Bewohner gesendetes
 `ExperiencePreferences`-Allow bzw. -Block mit erfolgreicher zentraler
-Speicherung loest die LSL-Anfrage aus.
+Speicherung loest die positive LSL-Anfrage aus. Eine explizite
+native **Deny**-Antwort mit `ScriptAnswerYes.Questions=0` beendet die
+offene Anfrage unmittelbar mit `XP_ERROR_NOT_PERMITTED`. Alle Handler
+werden bei Allow, Deny, Timeout oder Regionsabmeldung abgemeldet.
 
 Fuer eine isolierte Entwicklerregion:
 ```ini
