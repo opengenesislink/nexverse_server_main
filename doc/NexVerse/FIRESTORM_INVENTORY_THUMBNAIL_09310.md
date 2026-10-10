@@ -62,6 +62,52 @@ Viewer-Inventarcache und Asset-Abfrage untersuchen. Ein Neuaufbau des
 Viewer-Caches kann den Fehler eingrenzen, **ersetzt aber keinen Serverfix**.
 Keine Loeschung und kein generelles Inventar-Reset.
 
+## Zusatzbefund vom 10.10.2026: Item funktioniert, Ordner verliert Thumbnail
+
+Der Betreiber hat ein Inventargegenstand-Vorschaubild nach vollstaendigem
+Firestorm-Neustart positiv bestaetigt. Beim Inventarordner funktioniert
+der Upload, das Vorschaubild fehlt jedoch nach vollstaendigem Firestorm-Neustart.
+Die Console-Meldung `[AVFACTORY]: Received texture update` ist eine Avatar-
+Texture-Meldung, **kein** Thumbnail-Upload-/Persistenznachweis.
+
+Der Upload-CAP verifiziert bei Ordnern nun vor `state=complete` ueber einen
+zweiten `InventoryService.GetFolder(owner, folderID)`, ob die exakt hochgeladene
+Thumbnail-Asset-UUID gespeichert und wieder abrufbar ist. Bei fehlender
+Referenz: HTTP 503 und gezielte `[INVENTORY THUMBNAIL]`-Warnung;
+**kein** falsches `complete`. Bei Erfolg: INFO mit Ordner-UUID,
+Thumbnail-UUID, Version und Parent-ID. Die neue Pruefung beweist nur den
+synchronen Inventar-Readback, **keinen** erfolgreichen Relog oder
+Asset-Download. Ordner-/Item-Tests bleiben separat.
+
+Read-only-SQL-Diagnose auf der tatsaechlich vom zentralen Robust verwendeten
+Inventardatenbank (Ordner-UUID aus Inventar-API oder Serverlog einsetzen):
+
+```sql
+SELECT folderName, folderID, parentFolderID, type, version, thumbnailID
+FROM inventoryfolders
+WHERE folderID = 'ECHTE-ORDNER-UUID';
+```
+
+Befundmatrix:
+
+- `thumbnailID` ist Null/leer: Schreibpfad, Robust-Build, Migration und
+  Folge-Updates untersuchen; Viewer-Cache ist noch keine Erklaerung.
+- `thumbnailID` ist gesetzt, aber bereits nach Relog wieder Null:
+  Nachtraegliche Updates/abweichender Inventardienst ueberschreiben Daten.
+- `thumbnailID` bleibt gesetzt: Elternordner-Version sowie
+  `FetchInventoryDescendents2` `categories[*].thumbnail.asset_id`
+  kontrollieren. Firestorm uebernimmt Kategorien aus dem Fetch und kann
+  veraltete Inventarcaches verwenden. Gezielter Viewer-Cache-Neuaufbau
+  ist **nur ein Diagnoseschritt**, keine Loeschung der Serverdaten.
+- LLSD enthaelt die richtige UUID, aber Bild bleibt leer: Bild-Asset
+  (`AssetType.Texture`, JP2/J2C) ueber den Asset-Dienst pruefen.
+
+Die Firestorm-Login-`inventory-skeleton` dient dem anfänglichen
+Ordnermodell; der untersuchte Firestorm-Code uebernimmt dort kein
+`thumbnail`-Feld. Deshalb wird die Login-Antwort hier **nicht**
+blind um ein solches Feld erweitert. Der Ordner-Child-Fetch liefert
+die Zuordnung bereits unter `thumbnail.asset_id`.
+
 ## Sichere Rollout-Reihenfolge
 
 1. **Vollstaendiges Backup** der Inventar-DB und Asset-Datenbank anfertigen; DB-Datenbanktyp und exakt verwendeten Inventardienst festhalten.
