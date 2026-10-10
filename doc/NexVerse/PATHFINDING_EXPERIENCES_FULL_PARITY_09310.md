@@ -39,6 +39,35 @@
 5. **Zentrale Persistenz:** Revisions-/Migrations-/Recoverystrategie fuer den heutigen JSON-Store; bei Multi-Robust-Betrieb echte transaktionale zentrale SQL-Autoritaet und CAS-/Audit-/Backup-/Restore-Pruefung statt Dateikonflikte.
 6. **Sicherheit & Live:** Zwei Bewohner und zwei Simulatoren, ein Owner und ein unberechtigter Avatar, Allow/Block/Revoke, Experience-Profilsuche/-pflege, K/V-CAS-Races, Neustart, berechtigtes und missbraeuchliches Script, HG-Gast, Logs/Quoten; danach Firestorm-UI + Live-LSL mit dokumentierten Logs.
 
+## Experience CAP session and script lifecycle hardening (0.9.3.10 Dev)
+
+- A random Experience CAP belongs to its *issuing scene*, not only an
+  avatar UUID. All GetExperienceInfo, role-list, permission-list and
+  Allow/Block/Forget requests verify a live, non-NPC, **root** agent in
+  the same scene; a previously issued cap must return HTTP 410 after
+  region departure even when the avatar is online elsewhere.
+- Every scene subscribes to script reset/removal, avatar presence removal
+  and root-to-child transfers. Pending consent requests are atomically
+  canceled and native `OnScriptAnswer` handlers detached **without**
+  posting an event into a reset/removed script. A timer still settles
+  unanswered live requests with the 60-second timeout.
+- Native Firestorm `ScriptQuestion` requests only the documented
+  `JoinAnExperience` bit `0x2000`. Asking for controls, attachments,
+  camera access or teleport permission as a side effect would mislead
+  residents. A matching `ExperienceID` is still required.
+- Firestorm Allow/Block/Forget is saved only by the
+  avatar-bound `ExperiencePreferences` CAPS using the separate
+  server-side `experiences:viewer:permissions` key. A standalone
+  `ScriptAnswerYes` packet cannot grant persistent Experience rights.
+- Parallel Experience scripts keep isolated pending requests; Deny only
+  cancels its specific script. Allow/Block after central persistence
+  resolves matching requests, with a second enabled/binding/land check.
+
+**Status:** server-side consent lifecycle implementation with CI tests.
+Acceptance with a real resident in Firestorm, scripts reset during
+prompts, teleport/crossing and viewer logout is still mandatory before
+production. This does not constitute proof of full SL Experience parity.
+
 ## Native Firestorm Experience consent – Testimplementierung
 
 Der Client-Adapter unterstuetzt jetzt optional das tatsaechliche UDP-

@@ -441,6 +441,49 @@ internal static class Program
             Deadline = now.AddMinutes(10),
             Completion = _ => { }
         }, now), "unbounded consent deadline accepted");
+        // Logout/child-agent, script reset and removal must discard native
+        // handlers without delivering stale success/denied events to scripts.
+        int staleEvents = 0;
+        int cancellations = 0;
+        Guid anotherRegion = Guid.NewGuid();
+        Guid otherResident = Guid.NewGuid();
+        Guid scriptReset = Guid.NewGuid();
+        NexPendingExperienceRequest Request(Guid region, Guid resident, Guid script) =>
+            new()
+            {
+                ResidentId = resident,
+                ExperienceId = pendingExperience,
+                RegionId = region,
+                ObjectId = pendingObject,
+                ScriptId = script,
+                Deadline = now.AddSeconds(60),
+                Completion = _ => staleEvents++,
+                Cancel = () => cancellations++
+            };
+        Require(pending.TryAdd(Request(pendingRegion, pendingAvatar, scriptReset), now),
+            "script reset fixture rejected");
+        Require(pending.TryAdd(Request(pendingRegion, otherResident, Guid.NewGuid()), now),
+            "unrelated resident fixture rejected");
+        Require(pending.TryAdd(Request(anotherRegion, pendingAvatar, Guid.NewGuid()), now),
+            "unrelated region fixture rejected");
+        var onReset = pending.CancelScript(pendingRegion, scriptReset);
+        Require(onReset.Length == 1 && pending.Count == 2,
+            "script reset must cancel only the matching region/script");
+        foreach (var removed in onReset) removed.Cancel?.Invoke();
+        var onLogout = pending.CancelResident(pendingRegion, otherResident);
+        Require(onLogout.Length == 1 && pending.Count == 1,
+            "logout must cancel only the matching region/resident");
+        foreach (var removed in onLogout) removed.Cancel?.Invoke();
+        Require(pending.CancelResident(pendingRegion, pendingAvatar).Length == 0 &&
+            pending.Count == 1, "old region logout canceled another region");
+        var onOtherRegionShutdown = pending.CancelRegion(anotherRegion);
+        foreach (var removed in onOtherRegionShutdown) removed.Cancel?.Invoke();
+        Require(pending.Count == 0 && cancellations == 3 && staleEvents == 0,
+            "native listener cleanup emitted a stale LSL event");
+        Require(pending.CancelScript(Guid.Empty, scriptReset).Length == 0 &&
+            pending.CancelResident(pendingRegion, Guid.Empty).Length == 0,
+            "invalid cancellation keys must not drain queue");
+
 
         Directory.Delete(root, true);
 
