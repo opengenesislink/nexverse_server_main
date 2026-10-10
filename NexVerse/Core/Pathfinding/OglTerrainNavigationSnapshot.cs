@@ -185,6 +185,49 @@ namespace NexVerse.Core.Pathfinding
         /// The grid has one surface per X/Y; this cannot represent elevated
         /// walkable meshes, dynamic obstacles or multi-layer Havok NavMesh.
         /// </summary>
+        /// <summary>
+        /// Conservative 2D clearance against all blocked heightfield cells
+        /// and region boundaries. Uses exact point-to-tile distance, not
+        /// Euclidean centre-to-centre distance. No 3D mesh clearance claim.
+        /// </summary>
+        private bool CellHasTerrainClearance(GridCell cell, float radius)
+        {
+            if (!m_Routes.IsWalkable(cell))
+                return false;
+            float cx = Math.Min(m_RegionWidth - 0.5f,
+                cell.X * CellMeters + CellMeters * 0.5f);
+            float cy = Math.Min(m_RegionHeight - 0.5f,
+                cell.Y * CellMeters + CellMeters * 0.5f);
+            if (cx < radius || cy < radius ||
+                m_RegionWidth - cx < radius ||
+                m_RegionHeight - cy < radius)
+                return false;
+
+            int cells = (int)Math.Ceiling((radius + CellMeters * 0.5f) /
+                CellMeters);
+            double radiusSq = (double)radius * radius;
+            int minX = Math.Max(0, cell.X - cells);
+            int maxX = Math.Min(GridWidth - 1, cell.X + cells);
+            int minY = Math.Max(0, cell.Y - cells);
+            int maxY = Math.Min(GridHeight - 1, cell.Y + cells);
+
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                if (m_Routes.IsWalkable(new GridCell(x, y)))
+                    continue;
+                float left = x * CellMeters;
+                float right = Math.Min(m_RegionWidth, (x + 1) * CellMeters);
+                float bottom = y * CellMeters;
+                float top = Math.Min(m_RegionHeight, (y + 1) * CellMeters);
+                float dx = Math.Max(0f, Math.Max(left - cx, cx - right));
+                float dy = Math.Max(0f, Math.Max(bottom - cy, cy - top));
+                if ((double)dx * dx + (double)dy * dy < radiusSq)
+                    return false;
+            }
+            return true;
+        }
+
         public bool TryFindStaticTerrainRoute(
             float startX, float startY, float startZ,
             float endX, float endY, float endZ, float agentRadius,
@@ -210,16 +253,57 @@ namespace NexVerse.Core.Pathfinding
                 status = 3; // PU_FAILURE_INVALID_GOAL
                 return false;
             }
-            if (!TryFindWorldPath(startX, startY, endX, endY,
-                out IReadOnlyList<OglNavigationPoint> result, maxExpanded))
+            // Cache each clearance result for this bounded request. Large
+            // VAR-region scripts never precompute another entire grid.
+            Dictionary<int, bool> clearance = new();
+            bool HasClearance(GridCell cell)
+            {
+                int index = cell.Y * GridWidth + cell.X;
+                if (!clearance.TryGetValue(index, out bool allowed))
+                {
+                    allowed = CellHasTerrainClearance(cell, agentRadius);
+                    clearance[index] = allowed;
+                }
+                return allowed;
+            }
+
+            if (!InWorld(startX, startY) ||
+                !HasClearance(new GridCell((int)(startX / CellMeters),
+                    (int)(startY / CellMeters))))
+            {
+                status = 2;
+                return false;
+            }
+            if (!InWorld(endX, endY) ||
+                !HasClearance(new GridCell((int)(endX / CellMeters),
+                    (int)(endY / CellMeters))))
+            {
+                status = 3;
+                return false;
+            }
+
+            if (!m_Routes.TryFindPath(
+                new GridCell((int)(startX / CellMeters), (int)(startY / CellMeters)),
+                new GridCell((int)(endX / CellMeters), (int)(endY / CellMeters)),
+                out IReadOnlyList<GridCell> route, maxExpanded, HasClearance))
             {
                 status = 4; // PU_FAILURE_UNREACHABLE
                 return false;
             }
-            if (result.Count == 0 || result.Count > 256)
+            if (route.Count == 0 || route.Count > 256)
             {
                 status = 0xF4240;
                 return false;
+            }
+            List<OglNavigationPoint> result = new(route.Count);
+            foreach (GridCell cell in route)
+            {
+                result.Add(new OglNavigationPoint(
+                    Math.Min(m_RegionWidth - 0.5f,
+                        cell.X * CellMeters + CellMeters * 0.5f),
+                    Math.Min(m_RegionHeight - 0.5f,
+                        cell.Y * CellMeters + CellMeters * 0.5f),
+                    m_Heights[cell.Y * GridWidth + cell.X]));
             }
             waypoints = result;
             status = 0;

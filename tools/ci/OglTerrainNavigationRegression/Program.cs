@@ -58,6 +58,25 @@ Check(!blocked.TryFindStaticTerrainRoute(1, 1, 10, 13, 1, 10, 0.5f,
     out _, out int blockedStatus) && blockedStatus == 4,
     "llGetStaticPath wall returns PU_FAILURE_UNREACHABLE");
 
+// Agent-radius clearance: a one-cell-wide passage is walkable for a
+// small avatar, but its centre is too near blocked tiles for a wider body.
+OglTerrainNavigationSnapshot narrow = OglTerrainNavigationSnapshot.Build(
+    20, 20, 4, 0, 1, (_, _) => 10f,
+    (_, y) => y < 4 || y >= 8 && y < 12);
+Check(narrow.TryFindStaticTerrainRoute(6, 6, 10, 14, 6, 10, 1f,
+    out var narrowRoute, out int smallStatus) && smallStatus == 0 &&
+    narrowRoute.Count == 3,
+    "narrow passage allows a one metre radius agent");
+Check(!narrow.TryFindStaticTerrainRoute(6, 6, 10, 14, 6, 10, 2.5f,
+    out _, out int largeStatus) && largeStatus == 2,
+    "large avatar clearance rejects corridor touching obstacles");
+
+OglTerrainNavigationSnapshot openWide = OglTerrainNavigationSnapshot.Build(
+    20, 20, 4, 0, 1, (_, _) => 10f);
+Check(openWide.TryFindStaticTerrainRoute(6, 6, 10, 14, 6, 10, 2.5f,
+    out _, out int openWideStatus) && openWideStatus == 0,
+    "large avatar succeeds on sufficiently clear terrain");
+
 OglTerrainNavigationSnapshot steep = OglTerrainNavigationSnapshot.Build(
     16, 16, 4, 0, 0.5f, (x, _) => x >= 8 ? 30f : 10f);
 Check(!steep.TryFindWorldPath(1, 1, 13, 1, out _),
