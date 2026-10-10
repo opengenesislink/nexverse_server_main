@@ -318,6 +318,14 @@ jobs:
         shell: bash
         run: dotnet run --configuration Release --project tools/ci/OglTerrainNavigationRegression/OglTerrainNavigationRegression.csproj
 
+      - name: Verify Firestorm NavMesh CAPS are backed by real native data
+        shell: bash
+        run: python3 tools/ci/verify_ogl_firestorm_navmesh_caps.py
+
+      - name: Regression-test Firestorm compressed NavMesh transport
+        shell: bash
+        run: dotnet run --configuration Release --project tools/ci/OglFirestormNavMeshTransportRegression/OglFirestormNavMeshTransportRegression.csproj
+
       - name: Verify native owner-checked NPC path-following module
         shell: bash
         run: python3 tools/ci/verify_ogl_npc_navigation.py
