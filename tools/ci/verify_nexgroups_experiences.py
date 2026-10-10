@@ -224,7 +224,8 @@ for marker in (
     assert marker in native_interface, marker
 for marker in (
     "IExperienceQuestionClient",
-    "scriptQuestion.Experience.ExperienceID = experienceId;",
+    "scriptQuestion.Experience = new ScriptQuestionPacket.ExperienceBlock",
+    "ExperienceID = experienceId",
     "scriptQuestion.Data.Questions = question;",
     "OutPacket(scriptQuestion, ThrottleOutPacketType.Task);",
 ):
