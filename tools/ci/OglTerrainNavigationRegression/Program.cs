@@ -77,6 +77,46 @@ Check(openWide.TryFindStaticTerrainRoute(6, 6, 10, 14, 6, 10, 2.5f,
     out _, out int openWideStatus) && openWideStatus == 0,
     "large avatar succeeds on sufficiently clear terrain");
 
+// Static 3D prim/mesh bounds are projected only when their elevation
+// overlaps a walker standing on the terrain. The voxel projection is
+// deliberately conservative for non-rectangular mesh interiors.
+OglStaticCollisionAabb wall = new(8, 0, 9.8f, 12, 20, 12.5f);
+bool[] wallMask = OglTerrainStaticObstacles.Project(
+    20, 20, 4, 1.8f, (_, _) => 10f, new[] { wall });
+Check(wallMask[2] && wallMask[7] && !wallMask[0],
+    "ground-level static object projected onto correct walkability cells");
+OglTerrainNavigationSnapshot withWall = OglTerrainNavigationSnapshot.Build(
+    20, 20, 4, 0, 1f, (_, _) => 10f,
+    (x, y) => wallMask[(y / 4) * 5 + x / 4]);
+Check(!withWall.TryFindStaticTerrainRoute(6, 10, 10, 18, 10, 10, 0.5f,
+    out _, out int projectedWallStatus) && projectedWallStatus == 4,
+    "static prim collision across a region must block a terrain route");
+bool[] highBridge = OglTerrainStaticObstacles.Project(
+    20, 20, 4, 1.8f, (_, _) => 10f,
+    new[] { new OglStaticCollisionAabb(8, 0, 14, 12, 20, 16) });
+Check(!highBridge.Any(blocked => blocked),
+    "raised bridge above walker height must not block terrain below");
+bool[] rebuiltNoWall = OglTerrainStaticObstacles.Project(
+    20, 20, 4, 1.8f, (_, _) => 10f,
+    Array.Empty<OglStaticCollisionAabb>());
+Check(!rebuiltNoWall.Any(blocked => blocked),
+    "obstacle removal yields an empty projected snapshot");
+bool excessiveVisitsRejected = false;
+try
+{
+    OglTerrainStaticObstacles.Project(20, 20, 4, 1.8f,
+        (_, _) => 10f, new[] { wall }, maxCellVisits: 1);
+}
+catch (InvalidOperationException) { excessiveVisitsRejected = true; }
+Check(excessiveVisitsRejected, "collider-cell enumeration is budgeted");
+bool invalidColliderRejected = false;
+try
+{
+    _ = new OglStaticCollisionAabb(0, 0, 0, float.NaN, 2, 2);
+}
+catch (ArgumentOutOfRangeException) { invalidColliderRejected = true; }
+Check(invalidColliderRejected, "nonfinite static prim bounds rejected");
+
 OglTerrainNavigationSnapshot steep = OglTerrainNavigationSnapshot.Build(
     16, 16, 4, 0, 0.5f, (x, _) => x >= 8 ? 30f : 10f);
 Check(!steep.TryFindWorldPath(1, 1, 13, 1, out _),
