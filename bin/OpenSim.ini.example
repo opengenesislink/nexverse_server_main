@@ -1264,6 +1264,15 @@
     ; Regionen und unklare Physikergebnisse bleiben fail-closed.
     PhysicsRaycastLayeredSurfaces = false
     PhysicsRaycastMaxBuildSeconds = 30
+    ; Experimenteller Freiraum-Check: 19 Raycasts pro begehbarer
+    ; Verbindung plus Standvolumen-Pruefung, KEIN echter Capsule-Sweep.
+    ; Nur auf isolierter Testregion aktivieren: Raycast-Limits/Timeouts.
+    PhysicsMultiRayClearance = false
+    ; Opt-in Rampe/Treppenstufen: setzt PhysicsMultiRayClearance voraus.
+    ; Nur angrenzende Kollisionen mit zweifach verifizierter Kante.
+    PhysicsVerifiedTransitions = false
+    PhysicsAgentHeight = 1.8
+    PhysicsAgentRadius = 0.5
     ; Firestorm pathfinding viewer CAPS. ONLY advertise after a trusted
     ; Scene/Physics adapter supplies real viewer-compatible compressed
     ; NavMesh data, coherent RegionObjects/Terrain/Character LLSD maps,
