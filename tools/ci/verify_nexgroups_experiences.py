@@ -231,13 +231,36 @@ for marker in (
 ):
     assert marker in native_client, f"native Firestorm UDP prompt missing: {marker}"
 assert "ScriptQuestionPacket" in native_client
-assert "0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000" in experience_module
+assert "const int experiencePermissions = 0x2000;" in experience_module
+assert "0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000" not in experience_module
 assert "consentClient.OnScriptAnswer += nativeAnswerHandler" in experience_module
 assert "consentClient.OnScriptAnswer -= nativeAnswerHandler" in experience_module
 assert "answer != 0" in experience_module
 assert "CompleteRequests(m_Pending.TakeSpecific(" in experience_module
 assert "public NexPendingExperienceRequest[] TakeSpecific(" in experience_store
 assert '"one script Deny drained another script\'s request"' in regression
+for marker in (
+    "public NexPendingExperienceRequest[] CancelResident(",
+    "public NexPendingExperienceRequest[] CancelScript(",
+    "public Action Cancel { get; init; }",
+):
+    assert marker in experience_store, f"missing pending consent lifecycle: {marker}"
+for marker in (
+    "OnScriptReset += lifecycle.Reset",
+    "OnRemoveScript += lifecycle.RemoveScript",
+    "OnRemovePresence += lifecycle.RemovePresence",
+    "OnMakeChildAgent += lifecycle.MakeChild",
+    "CancelPendingSilently(",
+    "m_Pending.CancelScript(",
+    "m_Pending.CancelResident(",
+    "OnScriptReset -= lifecycle.Reset",
+    "OnRemoveScript -= lifecycle.RemoveScript",
+    "OnRemovePresence -= lifecycle.RemovePresence",
+    "OnMakeChildAgent -= lifecycle.MakeChild",
+):
+    assert marker in experience_module, f"pending consent lifecycle guard missing: {marker}"
+assert "native listener cleanup emitted a stale LSL event" in regression
+
 
 
 for marker in (
@@ -291,7 +314,13 @@ for marker in (
     assert marker in regression, f"role-list regression missing: {marker}"
 assert "ExperiencePreferences" in experience_module
 assert "CreateViewerPermissionRequest" in experience_module
-assert "if (!IsCurrentViewer(avatar))" in experience_module
+assert "if (!IsCurrentViewer(issuingScene, avatar))" in experience_module
+assert "RegisterFirestormReadCaps(Scene issuingScene, UUID avatar, Caps caps)" in experience_module
+assert "TryGetScenePresence(avatar" in experience_module
+assert "m_ViewerCapListeners[scene] = listener" in experience_module
+assert "OnRegisterCaps -= listener" in experience_module
+assert "!presence.IsChildAgent" in experience_module
+assert "m_Scenes.Contains(issuingScene)" in experience_module
 assert 'resident_id = avatar.ToString()' in experience_module
 assert '"experiences:viewer:permissions"' in security or "ExperiencesViewerPermissions" in security
 assert "experience.resident.consent" in experience_store
@@ -304,7 +333,7 @@ for marker in (
     '"FindExperienceByName"',
     "RegisterFirestormReadCaps",
     "AddSimpleStreamHandler(info, true)",
-    "IsCurrentViewer(avatar)",
+    "IsCurrentViewer(issuingScene, avatar)",
     "OSDParser.SerializeLLSDXmlString(result)",
 ):
     assert marker in experience_module, f"missing Firestorm read-only CAP contract: {marker}"
