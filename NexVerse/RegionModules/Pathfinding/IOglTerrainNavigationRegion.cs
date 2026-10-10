@@ -9,6 +9,8 @@ namespace NexVerse.RegionModules.Pathfinding
     {
         bool TryFindTerrainPath(float startX, float startY, float targetX, float targetY,
             out IReadOnlyList<OglNavigationPoint> path);
+        bool TryFindNearestTerrainPoint(float x, float y, float z,
+            float radius, out OglNavigationPoint point);
         bool IsNavigationReady { get; }
         bool IsNavigationDirty { get; }
     }
