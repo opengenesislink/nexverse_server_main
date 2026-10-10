@@ -850,6 +850,9 @@ namespace NexVerse.RegionModules.Experiences
                     !UUID.TryParse(id.GetString(), out UUID experienceId) ||
                     experienceId.IsZero())
                     return false;
+                if (!TryGetExperienceDetails(experienceId, out _, out _, out _,
+                        out _, out bool experienceEnabled) || !experienceEnabled)
+                    return false;
 
                 // An Experience blocked at the parcel/estate layer must
                 // never be queued merely because its resident has no grant.
