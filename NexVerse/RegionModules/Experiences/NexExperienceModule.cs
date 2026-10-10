@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -36,6 +37,8 @@ namespace NexVerse.RegionModules.Experiences
 
         private bool m_Enabled;
         private bool m_FirestormReadCaps;
+        private bool m_FirestormPermissionCaps;
+        private string m_ViewerPermissionsApiKey = string.Empty;
         private string m_WorldApiBaseUrl = string.Empty;
         private string m_ApiKey = string.Empty;
         private int m_RequestTimeoutMilliseconds = 3000;
@@ -67,6 +70,22 @@ namespace NexVerse.RegionModules.Experiences
 
             m_FirestormReadCaps =
                 section.GetBoolean("FirestormReadCaps", false);
+            m_FirestormPermissionCaps =
+                section.GetBoolean("FirestormPermissionCaps", false);
+            if (m_FirestormPermissionCaps)
+            {
+                if (!m_FirestormReadCaps)
+                    throw new InvalidOperationException(
+                        "[NEX-EXPERIENCES]: FirestormPermissionCaps requires FirestormReadCaps.");
+                m_ViewerPermissionsApiKey = section.GetString(
+                    "ViewerPermissionsApiKey", string.Empty).Trim();
+                if (m_ViewerPermissionsApiKey.Length < 24 ||
+                    m_ViewerPermissionsApiKey.StartsWith("${", StringComparison.Ordinal) ||
+                    string.Equals(m_ViewerPermissionsApiKey, m_ApiKey,
+                        StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        "[NEX-EXPERIENCES]: A separate experiences:viewer:permissions service API key is required.");
+            }
 
             m_RequestTimeoutMilliseconds =
                 Math.Clamp(
@@ -175,6 +194,182 @@ namespace NexVerse.RegionModules.Experiences
             caps.RegisterSimpleHandler("FindExperienceByName",
                 new SimpleStreamHandler("/" + UUID.Random(),
                     (request, response) => HandleFirestormRead(request, response, avatar, true)));
+            // Mutating capabilities require an explicitly configured and
+            // distinct high-trust simulator key. They are off by default.
+            if (m_FirestormPermissionCaps)
+            {
+                caps.RegisterSimpleHandler("GetExperiences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerPermissions(req, resp, avatar, true)));
+                caps.RegisterSimpleHandler("ExperiencePreferences",
+                    new SimpleStreamHandler("/" + UUID.Random(),
+                        (req, resp) => HandleViewerPermissions(req, resp, avatar, false)));
+            }
+        }
+
+        private HttpRequestMessage CreateViewerPermissionRequest(HttpMethod method,
+            string path, string json = null)
+        {
+            HttpRequestMessage outgoing = new(method, m_WorldApiBaseUrl + path);
+            outgoing.Headers.TryAddWithoutValidation("X-NexVerse-Api-Key",
+                m_ViewerPermissionsApiKey);
+            outgoing.Headers.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+            if (json != null)
+                outgoing.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            return outgoing;
+        }
+
+        private OSDMap FetchViewerPermissionLists(UUID avatar)
+        {
+            using HttpRequestMessage request = CreateViewerPermissionRequest(HttpMethod.Get,
+                "/api/v1/experiences/viewer/permissions?resident_id=" +
+                Uri.EscapeDataString(avatar.ToString()));
+            using HttpResponseMessage response = m_Http.Send(request);
+            response.EnsureSuccessStatusCode();
+            using JsonDocument doc = JsonDocument.Parse(
+                response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+            OSDMap result = new();
+            foreach (string list in new[] { "experiences", "blocked", "experience_ids" })
+            {
+                OSDArray ids = new();
+                if (doc.RootElement.TryGetProperty(list, out JsonElement src) &&
+                    src.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement id in src.EnumerateArray())
+                    {
+                        if (id.ValueKind == JsonValueKind.String &&
+                            UUID.TryParse(id.GetString(), out UUID uuid) && !uuid.IsZero())
+                            ids.Add(OSD.FromUUID(uuid));
+                    }
+                }
+                result[list] = ids;
+            }
+            return result;
+        }
+
+        private void HandleViewerPermissions(IOSHttpRequest req, IOSHttpResponse resp,
+            UUID avatar, bool listOnly)
+        {
+            resp.ContentType = "application/llsd+xml";
+            resp.KeepAlive = false;
+            resp.AddHeader("Cache-Control", "no-store");
+            if (!IsCurrentViewer(avatar))
+            {
+                resp.StatusCode = (int)HttpStatusCode.Gone;
+                return;
+            }
+            if (listOnly && req.HttpMethod != "GET" ||
+                !listOnly && req.HttpMethod != "GET" &&
+                req.HttpMethod != "PUT" && req.HttpMethod != "DELETE")
+            {
+                resp.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                return;
+            }
+            try
+            {
+                if (!listOnly && req.HttpMethod != "GET")
+                {
+                    UUID id;
+                    string status;
+                    if (req.HttpMethod == "DELETE")
+                    {
+                        string raw = req.Url?.Query?.TrimStart('?') ?? "";
+                        if (!UUID.TryParse(Uri.UnescapeDataString(raw), out id) ||
+                            id.IsZero())
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return;
+                        }
+                        status = "none";
+                    }
+                    else
+                    {
+                        if (req.InputStream == null)
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return;
+                        }
+                        // Bound XML input before parsing to prevent a trivial
+                        // large-body allocation on viewer-facing CAPS.
+                        using MemoryStream buffer = new();
+                        byte[] chunk = new byte[1024];
+                        int read;
+                        while ((read = req.InputStream.Read(chunk, 0, chunk.Length)) > 0)
+                        {
+                            if (buffer.Length + read > 16384)
+                            {
+                                resp.StatusCode = (int)HttpStatusCode.RequestEntityTooLarge;
+                                return;
+                            }
+                            buffer.Write(chunk, 0, read);
+                        }
+                        buffer.Position = 0;
+                        if (OSDParser.DeserializeLLSDXml(buffer) is not OSDMap permissions ||
+                            permissions.Count != 1)
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return;
+                        }
+                        id = UUID.Zero;
+                        status = null;
+                        foreach (KeyValuePair<string, OSD> pair in permissions)
+                        {
+                            if (!UUID.TryParse(pair.Key, out id) || id.IsZero() ||
+                                pair.Value is not OSDMap entry ||
+                                !entry.TryGetValue("permission", out OSD rawPermission))
+                            {
+                                resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                                return;
+                            }
+                            status = rawPermission.AsString() switch
+                            {
+                                "Allow" => "allowed",
+                                "Block" => "blocked",
+                                _ => null
+                            };
+                        }
+                        if (status == null)
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return;
+                        }
+                    }
+
+                    // ONLY the authenticated CAP's live avatar is forwarded.
+                    // Never forward a resident_id from client XML/query data.
+                    string json = JsonSerializer.Serialize(new
+                    {
+                        resident_id = avatar.ToString(),
+                        experience_id = id.ToString(),
+                        status
+                    });
+                    using HttpRequestMessage change = CreateViewerPermissionRequest(
+                        HttpMethod.Put, "/api/v1/experiences/viewer/permissions", json);
+                    using HttpResponseMessage changed = m_Http.Send(change);
+                    if (!changed.IsSuccessStatusCode)
+                    {
+                        resp.StatusCode = (int)changed.StatusCode;
+                        return;
+                    }
+                }
+                OSDMap lists = FetchViewerPermissionLists(avatar);
+                resp.RawBuffer = Encoding.UTF8.GetBytes(
+                    OSDParser.SerializeLLSDXmlString(lists));
+                resp.StatusCode = (int)HttpStatusCode.OK;
+            }
+            catch (Exception e) when (e is HttpRequestException ||
+                                      e is TaskCanceledException ||
+                                      e is JsonException ||
+                                      e is InvalidOperationException ||
+                                      e is System.Xml.XmlException ||
+                                      e is IOException ||
+                                      e is ArgumentException)
+            {
+                m_Log.WarnFormat("[NEX-EXPERIENCES]: Viewer permissions capability failed: {0}",
+                    e.Message);
+                resp.StatusCode = (int)HttpStatusCode.BadGateway;
+            }
         }
 
         private bool IsCurrentViewer(UUID avatar)
