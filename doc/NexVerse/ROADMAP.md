@@ -2,7 +2,7 @@
 
 > Status: 0.9.3.8 Stable released 8 October 2026  
 > Current stable release: **OpenGenesisLINK v0.9.3.8**  
-> Active joint development train: **OpenGenesisLINK v0.9.3.10 Dev** (includes 0.9.3.9 scope; no separate 0.9.3.9 Stable)  
+> Active development train: **OpenGenesisLINK v0.9.3.10 Dev** (Runtime + Pathfinding; OGLVoice deferred to an undated later train; no separate 0.9.3.9 Stable)  
 > Completed release train: **0.9.3.2 → 0.9.3.3 → 0.9.3.4 → 0.9.3.8**  
 > Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (successfully validated)  
 > Completed milestone: **0.9.3.8 — Search, Places, Land and Destination Guide**  
@@ -1186,7 +1186,7 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 
 # Milestone 0.9.3.9
 
-> Development workstream included in the **0.9.3.10 Dev → RC → Stable** train. No separate 0.9.3.9 Stable release. Release gates: [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
+> Historical development checkpoint: **Runtime modernisation and existing non-Voice work** continue in the **0.9.3.10 Dev → RC → Stable** train. The formerly planned **OGLVoice** deliverable is deferred to a **later, undated development train**. No separate 0.9.3.9 Stable release. Active release gates: [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
 
 ### 13.0 Runtime-/ThreadPool-Modernisierung
 
@@ -1214,9 +1214,9 @@ No new feature milestone should begin until this gate is closed. The 0.9.3.8 fea
 - [x] Rollen-/Scope-Aenderungen invalidieren bestehende Bearer-/Refresh-Sitzungen ueber den Security-Stamp;
 - [x] OpenAPI-/World-API-Dokumentation und CI-Vertrag fuer die Rechteverwaltung.
 
-## 13. OGLVoice – zentrale Multi-Grid-WebRTC-Sprachplattform
+## 13. OGLVoice – zentrale Multi-Grid-WebRTC-Sprachplattform (verschoben)
 
-**Status: geplant für 0.9.3.9; bisher kein produktiver OGLVoice-Serverconnector in OpenGenesisLINK.** Die bestehende, separat entwickelte NexVoice/LiveKit-Grundlage soll nach Quellcode- und Schnittstellenprüfung als Ausgangspunkt dienen. **LiveKit** ist das Ziel für die Medienebene; das veraltete Janus-Ziel wird ersetzt.
+**Statusentscheidung vom 10.10.2026: PAUSIERT und nicht Teil der 0.9.3.10-Stable-Gates.** Frueher fuer 0.9.3.9 vorgesehen; Fortsetzung in einem spaeteren, noch nicht terminierten Release-Train. Vorhandener C#-Discovery-/Session-/Firestorm-CAPS-Code, Go-Pion-/LiveKit-Media-Bridge, Spatial-Mixer und CI-Regressionen bleiben im Repository erhalten, sind aber **nicht** als funktionsfaehiger, produktiv abgenommener Voice-Dienst nachgewiesen. Bestehende OGLVoice-Deployment-Konfigurationen bleiben standardmaessig deaktiviert. **Keine** verpflichtende Installation des Media-Gateways vor 0.9.3.10; die aelteren Voice-Livetzests werden spaeter separat geplant. LiveKit bleibt die vorgesehene Media-Ebene.
 
 Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
@@ -1264,7 +1264,7 @@ Architektur- und Abnahmedokument: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTU
 
 # Milestone 0.9.3.10
 
-> **Status: active development.** Combined 0.9.3.9 + 0.9.3.10 scope; target `0.9.3.10 Stable` only after OGLVoice, runtime and complete Pathfinding pass [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md). A bounded C# A* grid core with regression tests exists, but region NavMesh/characters/LSL are NOT implemented yet.
+> **Status: active development.** `0.9.3.10 Dev` concentrates on .NET-8 runtime modernisation and complete Pathfinding (native NavMesh, Firestorm capability, NPC/Character, LSL). **OGLVoice is deferred and is not a stable release gate.** The C# A* core, experimental Scene.Heightmap navigation adapter and internal NPC waypoint follower exist, but a real viewer-compatible NavMesh, full LSL Pathfinding and live operator acceptance are not implemented/verified yet. See [RELEASE_TRAIN_0.9.3.10.md](RELEASE_TRAIN_0.9.3.10.md).
 
 ## 14. Pathfinding
 
@@ -1695,8 +1695,8 @@ Target characteristics:
 
 - World API is the primary administration interface.
 - RemoteAdmin no longer exists.
-- legacy Vivox/FreeSwitch voice code no longer exists.
-- OGLVoice is production-capable.
+- Legacy Vivox/FreeSwitch replacement/removal is a separate later Voice migration, not a mandatory prerequisite for 0.9.4.0 unless explicitly re-approved after the OGLVoice rescheduling.
+- OGLVoice production readiness is tracked in a separate, undated release train, **not automatically a v0.9.4.0 acceptance gate** after the 10 October 2026 rescoping decision.
 - user/social/profile management is API-first.
 - simulator/region/estate management is API-first.
 - NV$ economy and banking are stable and auditable.
