@@ -209,6 +209,29 @@ assert "[NexExperiencesViewer]" in opensim_config
 assert "FirestormReadCaps = false" in opensim_config
 assert "FirestormPermissionCaps = false" in opensim_config
 assert "ScriptPendingConsent = false" in opensim_config
+assert "NativeExperiencePrompt = false" in opensim_config
+assert "NativeExperiencePrompt requires ScriptPendingConsent" in experience_module
+assert "IExperienceQuestionClient client" in experience_module
+assert "client.SendExperienceQuestion(" in experience_module
+assert "if (!nativePromptSent)" in experience_module
+assert "ResolveViewerPendingConsent" in experience_module
+native_client = Path("OpenSim/Region/ClientStack/Linden/UDP/LLClientView.cs").read_text(encoding="utf-8")
+native_interface = Path("OpenSim/Framework/IClientAPI.cs").read_text(encoding="utf-8")
+for marker in (
+    "interface IExperienceQuestionClient",
+    "bool SendExperienceQuestion(",
+):
+    assert marker in native_interface, marker
+for marker in (
+    "IExperienceQuestionClient",
+    "scriptQuestion.Experience.ExperienceID = experienceId;",
+    "scriptQuestion.Data.Questions = question;",
+    "OutPacket(scriptQuestion, ThrottleOutPacketType.Task);",
+):
+    assert marker in native_client, f"native Firestorm UDP prompt missing: {marker}"
+assert "ScriptQuestionPacket" in native_client
+assert "0x04 | 0x10 | 0x20 | 0x400 | 0x800 | 0x1000" in experience_module
+
 for marker in (
     "NexPendingExperienceQueue",
     "NexPendingExperienceRequest",
