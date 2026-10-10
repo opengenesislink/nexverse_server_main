@@ -38,6 +38,9 @@ assert store.count("ThumbnailID") >= 5
 assert "check.ThumbnailID = folder.ThumbnailID" in store
 assert "scene.InventoryService.UpdateItem(existing)" in mod
 assert "scene.InventoryService.UpdateFolder(existing)" in mod
+assert "if (linked && m_Folder != UUID.Zero)" in mod
+assert "verified.ThumbnailID != persisted" in mod
+assert "Folder {0} update acknowledged but thumbnail {1} not confirmed" in mod
 item = (root/"OpenSim/Framework/InventoryItemBase.cs").read_text()
 folders = (root/"OpenSim/Capabilities/Handlers/FetchInventory/FetchInvDescHandler.cs").read_text()
 for content in (item,folders):
