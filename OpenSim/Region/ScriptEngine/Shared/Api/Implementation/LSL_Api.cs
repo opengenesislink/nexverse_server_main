@@ -2657,6 +2657,62 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
         /// query. The opt-in region module fails closed on dirty snapshots.
         /// This does NOT claim multi-layer Havok NavMesh compatibility.
         /// </summary>
+        /// <summary>
+        /// Static route on the opt-in native terrain heightfield, matching
+        /// the SL result convention: waypoint vectors followed by a numeric
+        /// path status. Unsupported multi-layer/character modes fail closed;
+        /// no Havok/Firestorm NavMesh interoperability is claimed.
+        /// </summary>
+        public LSL_List llGetStaticPath(LSL_Vector start, LSL_Vector end,
+            LSL_Float radius, LSL_List options)
+        {
+            IOglNativeTerrainQuery navigation =
+                World.RequestModuleInterface<IOglNativeTerrainQuery>();
+            if (navigation == null)
+                return new LSL_List(new LSL_Integer(
+                    ScriptBaseClass.PU_FAILURE_NO_NAVMESH));
+
+            if (options != null)
+            {
+                if ((options.Length & 1) != 0 || options.Length > 12)
+                    return new LSL_List(new LSL_Integer(
+                        ScriptBaseClass.PU_FAILURE_OTHER));
+                try
+                {
+                    for (int i = 0; i < options.Length; i += 2)
+                    {
+                        if (options.GetIntegerItem(i) !=
+                                ScriptBaseClass.CHARACTER_TYPE ||
+                            options.GetIntegerItem(i + 1) !=
+                                ScriptBaseClass.CHARACTER_TYPE_NONE)
+                            return new LSL_List(new LSL_Integer(
+                                ScriptBaseClass.PU_FAILURE_OTHER));
+                    }
+                }
+                catch (Exception e) when (e is InvalidCastException ||
+                                          e is ArgumentException ||
+                                          e is FormatException ||
+                                          e is IndexOutOfRangeException)
+                {
+                    return new LSL_List(new LSL_Integer(
+                        ScriptBaseClass.PU_FAILURE_OTHER));
+                }
+            }
+
+            bool found = navigation.TryGetStaticTerrainPath(
+                new Vector3((float)start.x, (float)start.y, (float)start.z),
+                new Vector3((float)end.x, (float)end.y, (float)end.z),
+                (float)radius.value, out Vector3[] positions, out int resultCode);
+            if (!found)
+                return new LSL_List(new LSL_Integer(resultCode));
+            object[] elements = new object[positions.Length + 1];
+            for (int i = 0; i < positions.Length; i++)
+                elements[i] = new LSL_Vector(
+                    positions[i].X, positions[i].Y, positions[i].Z);
+            elements[^1] = new LSL_Integer(ScriptBaseClass.PU_SLOWDOWN_DISTANCE_REACHED);
+            return new LSL_List(elements);
+        }
+
         public LSL_List llGetClosestNavPoint(LSL_Vector point, LSL_List options)
         {
             IOglNativeTerrainQuery query =

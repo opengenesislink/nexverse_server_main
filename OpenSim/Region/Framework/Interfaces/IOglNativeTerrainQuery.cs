@@ -12,5 +12,9 @@ namespace OpenSim.Region.Framework.Interfaces
     {
         bool TryGetClosestNavPoint(float x, float y, float z,
             float radius, out Vector3 nearest);
+        // Returns SL-compatible numeric status codes and a bounded list of
+        // waypoints. This implementation's geometry is terrain-only.
+        bool TryGetStaticTerrainPath(Vector3 start, Vector3 end,
+            float radius, out Vector3[] waypoints, out int status);
     }
 }

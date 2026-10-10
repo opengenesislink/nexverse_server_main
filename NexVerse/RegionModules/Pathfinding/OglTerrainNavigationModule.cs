@@ -83,6 +83,36 @@ namespace NexVerse.RegionModules.Pathfinding
                 return true;
             }
 
+            public bool TryGetStaticTerrainPath(Vector3 start, Vector3 end,
+                float radius, out Vector3[] waypoints, out int status)
+            {
+                waypoints = Array.Empty<Vector3>();
+                status = 9; // PU_FAILURE_NO_NAVMESH for missing/dirty snapshot.
+                int epoch = Volatile.Read(ref Epoch);
+                OglTerrainNavigationSnapshot snapshot = Volatile.Read(ref Snapshot);
+                if (snapshot == null || IsNavigationDirty ||
+                    epoch != Volatile.Read(ref SnapshotEpoch))
+                    return false;
+
+                if (!snapshot.TryFindStaticTerrainRoute(
+                    start.X, start.Y, start.Z,
+                    end.X, end.Y, end.Z, radius,
+                    out IReadOnlyList<OglNavigationPoint> route,
+                    out status, m_MaxExpanded))
+                    return false;
+                Vector3[] result = new Vector3[route.Count];
+                for (int i = 0; i < result.Length; ++i)
+                    result[i] = new Vector3(route[i].X, route[i].Y, route[i].Z);
+                if (IsNavigationDirty || epoch != Volatile.Read(ref Epoch))
+                {
+                    status = 9;
+                    return false;
+                }
+                waypoints = result;
+                status = 0;
+                return true;
+            }
+
             public bool TryFindTerrainPath(float startX, float startY, float targetX, float targetY,
                 out IReadOnlyList<OglNavigationPoint> path)
             {

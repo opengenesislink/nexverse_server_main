@@ -10,6 +10,19 @@ static void Check(bool condition, string context)
 OglTerrainNavigationSnapshot flat = OglTerrainNavigationSnapshot.Build(
     16, 16, 4, 0, 0.5f, (_, _) => 10.0f);
 Check(flat.GridWidth == 4 && flat.GridHeight == 4, "grid cell dimensions");
+Check(flat.TryFindStaticTerrainRoute(1, 1, 10, 15, 15, 10, 0.5f,
+    out var staticWaypoints, out int staticStatus) &&
+    staticStatus == 0 && staticWaypoints.Count > 1,
+    "llGetStaticPath static terrain route includes waypoints + success");
+Check(!flat.TryFindStaticTerrainRoute(-1, 1, 10, 15, 15, 10, 0.5f,
+    out _, out int badStart) && badStart == 2,
+    "llGetStaticPath invalid start returns PU_FAILURE_INVALID_START");
+Check(!flat.TryFindStaticTerrainRoute(1, 1, 10, 16, 15, 10, 0.5f,
+    out _, out int badGoal) && badGoal == 3,
+    "llGetStaticPath invalid goal returns PU_FAILURE_INVALID_GOAL");
+Check(!flat.TryFindStaticTerrainRoute(1, 1, 10, 15, 15, 10, 0.01f,
+    out _, out int badRadius) && badRadius == 0xF4240,
+    "llGetStaticPath invalid radius fails closed");
 Check(flat.TryFindWorldPath(1, 1, 15, 15, out var route), "flat route");
 Check(route.Count == 4, "shortest diagonal path");
 Check(route.All(p => p.Z == 10), "world coordinates contain terrain elevations");
@@ -41,6 +54,9 @@ OglTerrainNavigationSnapshot blocked = OglTerrainNavigationSnapshot.Build(
     (x, y) => x >= 4 && x < 8);
 Check(!blocked.TryFindWorldPath(1, 1, 13, 1, out _),
     "complete wall blocks crossing");
+Check(!blocked.TryFindStaticTerrainRoute(1, 1, 10, 13, 1, 10, 0.5f,
+    out _, out int blockedStatus) && blockedStatus == 4,
+    "llGetStaticPath wall returns PU_FAILURE_UNREACHABLE");
 
 OglTerrainNavigationSnapshot steep = OglTerrainNavigationSnapshot.Build(
     16, 16, 4, 0, 0.5f, (x, _) => x >= 8 ? 30f : 10f);

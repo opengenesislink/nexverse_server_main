@@ -38,6 +38,23 @@ for marker in ("llGetClosestNavPoint", "GCNP_RADIUS", "GCNP_STATIC", "CHARACTER_
     assert marker in lsl, f"missing LSL nearest navigation handler: {marker}"
 assert "llGetClosestNavPoint" in lsl_stub and "llGetClosestNavPoint" in lsl_interface
 assert "TryGetClosestNavPoint" in native_iface
+assert "TryGetStaticTerrainPath" in native_iface
+assert "TryGetStaticTerrainPath" in module
+assert "TryFindStaticTerrainRoute" in core
+assert "TryFindStaticTerrainRoute" in module
+assert "PU_FAILURE_NO_NAVMESH" in module
+assert "llGetStaticPath" in lsl_interface and "llGetStaticPath" in lsl_stub
+for marker in (
+    "public LSL_List llGetStaticPath(",
+    "ScriptBaseClass.PU_FAILURE_NO_NAVMESH",
+    "ScriptBaseClass.PU_FAILURE_OTHER",
+    "ScriptBaseClass.CHARACTER_TYPE_NONE",
+    "new LSL_List(elements)"
+):
+    assert marker in lsl, f"missing native static path LSL contract: {marker}"
+constants = Path("OpenSim/Region/ScriptEngine/Shared/Api/Runtime/LSL_Constants.cs").read_text(encoding="utf-8")
+for marker in ("PU_FAILURE_NO_NAVMESH = 9", "PU_FAILURE_UNREACHABLE = 4", "PU_FAILURE_OTHER = 0xF4240"):
+    assert marker in constants, f"missing SL static path failure constant: {marker}"
 assert "RegisterModuleInterface<IOglNativeTerrainQuery>" in module
 assert "UnregisterModuleInterface<IOglNativeTerrainQuery>" in module
 assert "TryFindTerrainPath" in iface

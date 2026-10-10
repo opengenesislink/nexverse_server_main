@@ -682,6 +682,21 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         public const int OBJECT_STREAMING_COST = 15;
         public const int OBJECT_PHYSICS_COST = 16;
         // SL Pathfinding: llGetClosestNavPoint options.
+        // Second Life path_update and llGetStaticPath status values.
+        public const int PU_SLOWDOWN_DISTANCE_REACHED = 0;
+        public const int PU_GOAL_REACHED = 1;
+        public const int PU_FAILURE_INVALID_START = 2;
+        public const int PU_FAILURE_INVALID_GOAL = 3;
+        public const int PU_FAILURE_UNREACHABLE = 4;
+        public const int PU_FAILURE_TARGET_GONE = 5;
+        public const int PU_FAILURE_NO_VALID_DESTINATION = 6;
+        public const int PU_EVADE_HIDDEN = 7;
+        public const int PU_EVADE_SPOTTED = 8;
+        public const int PU_FAILURE_NO_NAVMESH = 9;
+        public const int PU_FAILURE_DYNAMIC_PATHFINDING_DISABLED = 10;
+        public const int PU_FAILURE_PARCEL_UNREACHABLE = 11;
+        public const int PU_FAILURE_OTHER = 0xF4240;
+
         public const int GCNP_RADIUS = 0;
         public const int GCNP_STATIC = 1;
         public const int CHARACTER_TYPE = 6;

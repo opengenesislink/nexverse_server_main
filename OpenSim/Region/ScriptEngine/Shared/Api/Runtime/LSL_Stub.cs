@@ -891,6 +891,13 @@ namespace OpenSim.Region.ScriptEngine.Shared.ScriptBase
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LSL_List llGetStaticPath(LSL_Vector start, LSL_Vector end,
+            LSL_Float radius, LSL_List options)
+        {
+            return m_LSL_Functions.llGetStaticPath(start, end, radius, options);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LSL_List llGetClosestNavPoint(LSL_Vector point, LSL_List options)
         {
             return m_LSL_Functions.llGetClosestNavPoint(point, options);

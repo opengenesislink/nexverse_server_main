@@ -180,6 +180,52 @@ namespace NexVerse.Core.Pathfinding
             return found;
         }
 
+        /// <summary>
+        /// A bounded static terrain route with SL-style failure codes.
+        /// The grid has one surface per X/Y; this cannot represent elevated
+        /// walkable meshes, dynamic obstacles or multi-layer Havok NavMesh.
+        /// </summary>
+        public bool TryFindStaticTerrainRoute(
+            float startX, float startY, float startZ,
+            float endX, float endY, float endZ, float agentRadius,
+            out IReadOnlyList<OglNavigationPoint> waypoints, out int status,
+            int maxExpanded = 20000)
+        {
+            waypoints = Array.Empty<OglNavigationPoint>();
+            status = 0xF4240;
+            if (!float.IsFinite(agentRadius) || agentRadius < 0.125f ||
+                agentRadius > 5f || !float.IsFinite(startX) ||
+                !float.IsFinite(startY) || !float.IsFinite(startZ) ||
+                !float.IsFinite(endX) || !float.IsFinite(endY) ||
+                !float.IsFinite(endZ))
+                return false;
+
+            if (!TryFindNearestTerrainPoint(startX, startY, startZ, 8f, out _))
+            {
+                status = 2; // PU_FAILURE_INVALID_START
+                return false;
+            }
+            if (!TryFindNearestTerrainPoint(endX, endY, endZ, 8f, out _))
+            {
+                status = 3; // PU_FAILURE_INVALID_GOAL
+                return false;
+            }
+            if (!TryFindWorldPath(startX, startY, endX, endY,
+                out IReadOnlyList<OglNavigationPoint> result, maxExpanded))
+            {
+                status = 4; // PU_FAILURE_UNREACHABLE
+                return false;
+            }
+            if (result.Count == 0 || result.Count > 256)
+            {
+                status = 0xF4240;
+                return false;
+            }
+            waypoints = result;
+            status = 0;
+            return true;
+        }
+
         private bool InWorld(float x, float y) =>
             float.IsFinite(x) && float.IsFinite(y) &&
             x >= 0 && x < m_RegionWidth && y >= 0 && y < m_RegionHeight;
