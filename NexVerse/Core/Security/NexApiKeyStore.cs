@@ -210,6 +210,17 @@ namespace NexVerse.Core.Security
                 if (record == null)
                     return false;
 
+                // Re-enabling a superseded key must not undo the duplicate
+                // protection enforced at creation time.
+                if (enabled && !record.Enabled &&
+                    m_Document.Keys.Any(other =>
+                        !string.Equals(other.KeyId, keyId, StringComparison.Ordinal) &&
+                        other.Enabled &&
+                        string.Equals(other.Name?.Trim(), record.Name?.Trim(),
+                            StringComparison.OrdinalIgnoreCase) &&
+                        SameScopes(other.Scopes, NormalizeScopes(record.Scopes))))
+                    return false;
+
                 record.Enabled = enabled;
                 record.UpdatedAt =
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds();
