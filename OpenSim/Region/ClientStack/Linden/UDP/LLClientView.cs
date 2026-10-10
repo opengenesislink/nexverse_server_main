@@ -60,7 +60,7 @@ namespace OpenSim.Region.ClientStack.LindenUDP
     /// Handles new client connections
     /// Constructor takes a single Packet and authenticates everything
     /// </summary>
-    public class LLClientView : IClientAPI, IClientCore, IClientIM, IClientChat, IClientInventory, IStatsCollector, IClientIPEndpoint
+    public class LLClientView : IClientAPI, IClientCore, IClientIM, IClientChat, IClientInventory, IStatsCollector, IClientIPEndpoint, IExperienceQuestionClient
     {
         /// <value>
         /// Debug packet level.  See OpenSim.RegisterConsoleCommands() for more details.
@@ -12178,6 +12178,35 @@ namespace OpenSim.Region.ClientStack.LindenUDP
         }
 
         #endregion Packet Handlers
+
+        /// <summary>
+        /// Emit the actual Experience extension block defined by the SL
+        /// ScriptQuestion UDP wire template. The viewer must still commit
+        /// Allow/Block through the authenticated ExperiencePreferences CAPS;
+        /// the ScriptAnswerYes packet alone is NEVER a persistent grant.
+        /// </summary>
+        public bool SendExperienceQuestion(UUID taskID, string taskName,
+            string ownerName, UUID itemID, UUID experienceId, int question)
+        {
+            if (taskID.IsZero() || itemID.IsZero() || experienceId.IsZero() ||
+                question == 0)
+                return false;
+            ScriptQuestionPacket scriptQuestion =
+                (ScriptQuestionPacket)PacketPool.Instance.GetPacket(PacketType.ScriptQuestion);
+            scriptQuestion.Data.TaskID = taskID;
+            scriptQuestion.Data.ItemID = itemID;
+            scriptQuestion.Data.Questions = question;
+            scriptQuestion.Data.ObjectName = Util.StringToBytes256(taskName ?? string.Empty);
+            scriptQuestion.Data.ObjectOwner = Util.StringToBytes256(ownerName ?? string.Empty);
+            // PacketPool may recycle an old packet, so do not assume
+            // an optional Experience block was initialized for us.
+            scriptQuestion.Experience = new ScriptQuestionPacket.ExperienceBlock
+            {
+                ExperienceID = experienceId
+            };
+            OutPacket(scriptQuestion, ThrottleOutPacketType.Task);
+            return true;
+        }
 
         public void SendScriptQuestion(UUID taskID, string taskName, string ownerName, UUID itemID, int question)
         {
