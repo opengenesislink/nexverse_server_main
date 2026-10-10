@@ -4281,6 +4281,41 @@ namespace OpenSim.Region.ScriptEngine.Shared.Api
                 return;
             }
 
+            // A resident without a prior grant may explicitly Allow the
+            // Experience in Firestorm's viewer preferences. Do not mistake
+            // "not yet decided" for permanent denial when the opt-in
+            // trusted, bounded pending-consent bridge is available. The
+            // final LSL event is emitted only after the central service
+            // confirms the viewer's decision and checks land permissions.
+            if (!experienceId.IsZero() &&
+                string.Equals(denialReason,
+                    "Resident has not granted this experience.",
+                    StringComparison.Ordinal))
+            {
+                UUID scriptItem = m_item.ItemID;
+                if (module.QueueExperiencePermissionRequest(scriptItem,
+                    m_host.UUID, residentId, parcelId, result =>
+                    {
+                        if (result == ScriptBaseClass.XP_ERROR_NONE)
+                        {
+                            m_ScriptEngine.PostScriptEvent(scriptItem,
+                                new EventParams("experience_permissions",
+                                    new object[] { new LSL_Key(residentId.ToString()) },
+                                    Array.Empty<DetectParams>()));
+                        }
+                        else
+                        {
+                            m_ScriptEngine.PostScriptEvent(scriptItem,
+                                new EventParams("experience_permissions_denied",
+                                    new object[] {
+                                        new LSL_Key(residentId.ToString()),
+                                        new LSL_Integer(result)
+                                    }, Array.Empty<DetectParams>()));
+                        }
+                    }))
+                    return;
+            }
+
             int error =
                 experienceId.IsZero()
                     ? ScriptBaseClass.XP_ERROR_NO_EXPERIENCE
