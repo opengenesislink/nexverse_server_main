@@ -576,8 +576,9 @@ Administrative management endpoint:
 - `GET /api/v1/auth/api-keys`
 - `POST /api/v1/auth/api-keys`
 - `PATCH /api/v1/auth/api-keys`
+- `DELETE /api/v1/auth/api-keys/{keyId}` — permanently removes a **previously disabled** key
 
-All three management operations require `admin:*` through a resident/OAuth administrator credential. API keys themselves can never receive `admin:*`, wildcard or interactive OIDC scopes.
+All four management operations require `admin:*` through a resident/OAuth administrator credential. API keys themselves can never receive `admin:*`, wildcard or interactive OIDC scopes.
 
 A creation body is:
 
@@ -588,13 +589,37 @@ A creation body is:
 }
 ```
 
-The full key is returned exactly once. Its secret is persisted only as a PBKDF2-SHA256 hash. Runtime storage defaults to:
+The full key is returned exactly once. Its secret is persisted only as a PBKDF2-SHA256 hash. The GET inventory exposes `last_used_at` for maintenance (zero means no recorded use), but **never** plaintext keys, salts or hashes. Duplicate active issuance with the same normalized name and identical set of scopes is rejected with HTTP 409 (`api_key_duplicate`). Disable the old entry explicitly before a rotation; the new secret is not retrievable for an existing key. Runtime storage defaults to:
 
 `data/nexverse-api-keys.json`
 
-Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts. The simulator's Experiences adapter may receive only the `experiences:script` machine scope for Experience script operations; `experiences:manage` and administrator permissions remain unavailable to machine API keys.
+Supported machine scopes are explicit NexVerse functional scopes such as `regions:read`, `regions:manage`, `users:read`, `inventory:read`, `estates:read`, `estates:manage`, `economy:read` and their documented write/transfer counterparts. The simulator's Experiences adapter uses dedicated `experiences:script` credentials for LSL and, **separately**, an `experiences:viewer:permissions` machine key for Firestorm Allow/Block/Forget. The latter MUST be issued as its **only** scope, not bundled with script or other permissions. The broader `experiences:manage` and administrator permissions remain unavailable to machine API keys.
 
 API-key principals use subjects in the form `api-key:<key_id>`. Disabling a key takes effect immediately because validation is performed against the persistent key store on every request.
+
+### Key inventory and safe duplicate cleanup (0.9.3.10 Dev)
+
+The World API docs/control-center page `/api/v1/docs` > **Schluessel & Einrichtung** now offers a read-only inventory with normalized same-name/same-scope duplicate indicators and last-used timestamps. Every disable/reactivate/delete operation requires an explicit click and confirmation. Permanent deletion is forbidden for active keys on the server, even if a client sends DELETE directly. All state changes and deletions emit audit events. The key ID is public metadata to administrators, **not** the secret.
+
+**Before disabling an apparent duplicate:** compare `/etc/nexverse/nexverse.env` on Robust and all relevant simulators, identify which key ID the running process is using, and validate a replacement with restricted permissions. The inventory cannot detect whether a key has been copied into an inactive simulator, nor whether two different IDs share a usage role. The duplicate label is a review hint, not authority to bulk delete.
+
+The new `bin/nexverse.env.example` documents the keys, including:
+- `NEXVERSE_EXPERIENCES_API_KEY` — `experiences:script`
+- `NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY` — **only** `experiences:viewer:permissions`
+- existing `NEXVERSE_ECONOMY_API_KEY`, NexBus and server signing secrets (unchanged)
+
+Example simulator configuration:
+```ini
+[NexExperiencesViewer]
+    Enabled = true
+    ApiKey = "${Environment|NEXVERSE_EXPERIENCES_API_KEY}"
+    FirestormReadCaps = false
+    FirestormPermissionCaps = false
+    ScriptPendingConsent = false
+    ViewerPermissionsApiKey = "${Environment|NEXVERSE_EXPERIENCES_VIEWER_PERMISSIONS_API_KEY}"
+```
+
+Leave all opt-in Firestorm permissions flags disabled until dedicated viewer tests pass. Existing secret values must be preserved; never commit a populated `nexverse.env` and do not print secrets into CI logs. The World API does not modify your host's env file automatically.
 
 The selectable-region endpoint now requires `regions:read` rather than `admin:*`, making it usable by restricted machine integrations while administrator bearer tokens continue to satisfy the scope through their administrative wildcard.
 
