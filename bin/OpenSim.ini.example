@@ -1234,6 +1234,12 @@
     MaxSlopePerMeter = 0.65
     MaxExpandedNodes = 20000
     RebuildSeconds = 30
+    ; Optionaler konservativer Collider-AABB-Snapshot von STATISCHEN Prims
+    ; und Meshes auf Terrain-Niveau. Keine komplexen Mesh-Innenflaechen,
+    ; keine Etagen, keine dynamische Physik. Erst isoliert testen.
+    TrackStaticColliders = false
+    StaticAgentHeight = 1.8
+    MaxStaticPrims = 20000
 
 ; OGLVoice ist noch eine reine Discovery-Grundlage, KEIN Audio-Viewer-Modul.
 ; GRID-BETRIEB: keine lokale [OGLVoice]-Sektion notwendig. Der bestehende

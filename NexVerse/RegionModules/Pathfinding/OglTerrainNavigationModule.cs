@@ -9,6 +9,7 @@ using Mono.Addins;
 using NexVerse.Core.Pathfinding;
 using Nini.Config;
 using OpenMetaverse;
+using OpenSim.Framework;
 using OpenSim.Region.Framework.Interfaces;
 using OpenSim.Region.Framework.Scenes;
 
@@ -26,6 +27,9 @@ namespace NexVerse.RegionModules.Pathfinding
         {
             public readonly Scene Scene;
             public readonly EventManager.OnTerrainTaintedDelegate Listener;
+            public readonly Action<SceneObjectGroup> StaticAdded;
+            public readonly EventManager.ObjectBeingRemovedFromScene StaticRemoved;
+            public readonly EventManager.SceneObjectPartUpdated StaticUpdated;
             private readonly int m_MaxExpanded;
             internal OglTerrainNavigationSnapshot Snapshot;
             // Every terrain mutation advances the epoch, including during a
@@ -39,11 +43,20 @@ namespace NexVerse.RegionModules.Pathfinding
             {
                 Scene = scene;
                 m_MaxExpanded = maxExpanded;
-                Listener = () =>
+                Listener = Invalidate;
+                StaticAdded = _ => Invalidate();
+                StaticRemoved = _ => Invalidate();
+                StaticUpdated = (part, full) =>
                 {
-                    Interlocked.Increment(ref Epoch);
-                    Volatile.Write(ref Dirty, 1);
+                    if (part?.ParentGroup != null && !part.ParentGroup.UsesPhysics)
+                        Invalidate();
                 };
+            }
+
+            public void Invalidate()
+            {
+                Interlocked.Increment(ref Epoch);
+                Volatile.Write(ref Dirty, 1);
             }
 
             public bool IsNavigationReady =>
@@ -143,6 +156,9 @@ namespace NexVerse.RegionModules.Pathfinding
         private float m_MaxSlope = 0.65f;
         private int m_MaxExpanded = 20000;
         private int m_RebuildSeconds = 30;
+        private bool m_TrackStaticColliders;
+        private float m_StaticAgentHeight = 1.8f;
+        private int m_MaxStaticPrims = 20000;
         private Timer m_Timer;
         private int m_Closed;
 
@@ -162,6 +178,9 @@ namespace NexVerse.RegionModules.Pathfinding
             m_MaxSlope = Math.Clamp(config.GetFloat("MaxSlopePerMeter", 0.65f), 0.05f, 2.0f);
             m_MaxExpanded = Math.Clamp(config.GetInt("MaxExpandedNodes", 20000), 128, 100000);
             m_RebuildSeconds = Math.Clamp(config.GetInt("RebuildSeconds", 30), 15, 3600);
+            m_TrackStaticColliders = config.GetBoolean("TrackStaticColliders", false);
+            m_StaticAgentHeight = Math.Clamp(config.GetFloat("StaticAgentHeight", 1.8f), 0.5f, 5f);
+            m_MaxStaticPrims = Math.Clamp(config.GetInt("MaxStaticPrims", 20000), 1, 50000);
         }
 
         public void AddRegion(Scene scene)
@@ -172,6 +191,12 @@ namespace NexVerse.RegionModules.Pathfinding
             if (!m_Regions.TryAdd(scene.RegionInfo.RegionID, state))
                 return;
             scene.EventManager.OnTerrainTainted += state.Listener;
+            if (m_TrackStaticColliders)
+            {
+                scene.EventManager.OnObjectAddedToScene += state.StaticAdded;
+                scene.EventManager.OnObjectBeingRemovedFromScene += state.StaticRemoved;
+                scene.EventManager.OnSceneObjectPartUpdated += state.StaticUpdated;
+            }
             scene.RegisterModuleInterface<IOglTerrainNavigationRegion>(state);
             scene.RegisterModuleInterface<IOglNativeTerrainQuery>(state);
             m_Log.InfoFormat(
@@ -205,8 +230,69 @@ namespace NexVerse.RegionModules.Pathfinding
             Interlocked.Increment(ref state.Epoch);
             Volatile.Write(ref state.Dirty, 1);
             scene.EventManager.OnTerrainTainted -= state.Listener;
+            if (m_TrackStaticColliders)
+            {
+                scene.EventManager.OnObjectAddedToScene -= state.StaticAdded;
+                scene.EventManager.OnObjectBeingRemovedFromScene -= state.StaticRemoved;
+                scene.EventManager.OnSceneObjectPartUpdated -= state.StaticUpdated;
+            }
             scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
             scene.UnregisterModuleInterface<IOglNativeTerrainQuery>(state);
+        }
+
+        private static IReadOnlyList<OglStaticCollisionAabb> CaptureStaticColliders(
+            Scene scene, int maxPrims)
+        {
+            List<OglStaticCollisionAabb> bounds = new();
+            foreach (SceneObjectGroup group in scene.GetSceneObjectGroups())
+            {
+                if (group == null || group.IsDeleted || group.IsAttachmentCheckFull() ||
+                    group.IsPhantom || group.IsVolumeDetect || group.UsesPhysics)
+                    continue;
+                foreach (SceneObjectPart part in group.Parts)
+                {
+                    if (part == null || part.VolumeDetectActive ||
+                        (part.Flags & PrimFlags.Phantom) != 0 ||
+                        part.PhysicsShapeType == (byte)PhysicsShapeType.None)
+                        continue;
+                    if (bounds.Count >= maxPrims)
+                        throw new InvalidOperationException(
+                            "Too many static collidable prims for bounded pathfinding snapshot.");
+
+                    // An oriented prim/mesh contributes its conservative
+                    // world-space AABB. Complex mesh interiors remain blocked:
+                    // this is a collision projection, not a triangle NavMesh.
+                    Vector3 center = part.GetWorldPosition();
+                    Vector3 scale = part.Scale;
+                    Quaternion rotation = part.GetWorldRotation();
+                    if (!float.IsFinite(center.X) || !float.IsFinite(center.Y) ||
+                        !float.IsFinite(center.Z) || !float.IsFinite(scale.X) ||
+                        !float.IsFinite(scale.Y) || !float.IsFinite(scale.Z) ||
+                        scale.X <= 0 || scale.Y <= 0 || scale.Z <= 0)
+                        throw new InvalidOperationException(
+                            "Nonfinite static collidable prim encountered.");
+
+                    Vector3 half = scale * 0.5f;
+                    float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
+                    float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
+                    for (int xi = -1; xi <= 1; xi += 2)
+                    for (int yi = -1; yi <= 1; yi += 2)
+                    for (int zi = -1; zi <= 1; zi += 2)
+                    {
+                        Vector3 pt = center +
+                            new Vector3(xi * half.X, yi * half.Y, zi * half.Z) * rotation;
+                        minX = Math.Min(minX, pt.X);
+                        minY = Math.Min(minY, pt.Y);
+                        minZ = Math.Min(minZ, pt.Z);
+                        maxX = Math.Max(maxX, pt.X);
+                        maxY = Math.Max(maxY, pt.Y);
+                        maxZ = Math.Max(maxZ, pt.Z);
+                    }
+                    bounds.Add(new OglStaticCollisionAabb(
+                        minX, minY, minZ, maxX, maxY, maxZ));
+                }
+            }
+            return bounds;
         }
 
         private void RefreshDirty()
@@ -248,8 +334,21 @@ namespace NexVerse.RegionModules.Pathfinding
                     throw new InvalidOperationException("Terrain channel dimensions differ from region dimensions");
 
                 float water = (float)state.Scene.RegionInfo.RegionSettings.WaterHeight;
+                bool[] staticBlocked = null;
+                if (m_TrackStaticColliders)
+                {
+                    IReadOnlyList<OglStaticCollisionAabb> colliders =
+                        CaptureStaticColliders(state.Scene, m_MaxStaticPrims);
+                    staticBlocked = OglTerrainStaticObstacles.Project(
+                        width, height, m_CellMeters, m_StaticAgentHeight,
+                        (x, y) => copy[x, y], colliders);
+                }
+                int gridWidth = (width + m_CellMeters - 1) / m_CellMeters;
                 OglTerrainNavigationSnapshot snapshot = OglTerrainNavigationSnapshot.Build(
-                    width, height, m_CellMeters, water, m_MaxSlope, (x, y) => copy[x, y]);
+                    width, height, m_CellMeters, water, m_MaxSlope, (x, y) => copy[x, y],
+                    staticBlocked == null ? null :
+                        (x, y) => staticBlocked[(y / m_CellMeters) * gridWidth +
+                                               x / m_CellMeters]);
                 // Invalidation can arrive while building. In that case the
                 // freshly built candidate remains unavailable until next refresh.
                 Volatile.Write(ref state.Snapshot, snapshot);
@@ -282,6 +381,12 @@ namespace NexVerse.RegionModules.Pathfinding
             {
                 Interlocked.Exchange(ref state.Dirty, 1);
                 state.Scene.EventManager.OnTerrainTainted -= state.Listener;
+                if (m_TrackStaticColliders)
+                {
+                    state.Scene.EventManager.OnObjectAddedToScene -= state.StaticAdded;
+                    state.Scene.EventManager.OnObjectBeingRemovedFromScene -= state.StaticRemoved;
+                    state.Scene.EventManager.OnSceneObjectPartUpdated -= state.StaticUpdated;
+                }
                 state.Scene.UnregisterModuleInterface<IOglTerrainNavigationRegion>(state);
                 state.Scene.UnregisterModuleInterface<IOglNativeTerrainQuery>(state);
             }

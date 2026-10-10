@@ -16,6 +16,100 @@ namespace NexVerse.Core.Pathfinding
         }
     }
 
+    /// <summary>
+    /// Conservative world-space bounding volume for a collidable, static
+    /// scene prim or mesh. Complex mesh interiors are NOT inferred from
+    /// these extents; unknown geometry is treated conservatively.
+    /// </summary>
+    public readonly struct OglStaticCollisionAabb
+    {
+        public readonly float MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+
+        public OglStaticCollisionAabb(float minX, float minY, float minZ,
+            float maxX, float maxY, float maxZ)
+        {
+            if (!float.IsFinite(minX) || !float.IsFinite(minY) ||
+                !float.IsFinite(minZ) || !float.IsFinite(maxX) ||
+                !float.IsFinite(maxY) || !float.IsFinite(maxZ) ||
+                minX > maxX || minY > maxY || minZ > maxZ)
+                throw new ArgumentOutOfRangeException(nameof(minX),
+                    "Static collision AABB must contain finite ordered bounds.");
+            MinX = minX; MinY = minY; MinZ = minZ;
+            MaxX = maxX; MaxY = maxY; MaxZ = maxZ;
+        }
+    }
+
+    /// <summary>
+    /// Bounded projection of static 3D prim/mesh AABBs onto a *terrain-level*
+    /// walkability raster. Raised bridges outside the walker height are
+    /// deliberately ignored: they are not a second walkable layer.
+    ///
+    /// Scene geometry is snapshotted by the caller first. No physics actor
+    /// methods or mutable Scene objects are accessed by this pure builder.
+    /// </summary>
+    public static class OglTerrainStaticObstacles
+    {
+        public static bool[] Project(
+            int regionWidth, int regionHeight, int cellMeters,
+            float walkerHeight, Func<int, int, float> terrainAt,
+            IReadOnlyList<OglStaticCollisionAabb> boxes,
+            int maxCellVisits = 2_000_000)
+        {
+            if (regionWidth <= 0 || regionHeight <= 0 ||
+                regionWidth > 4096 || regionHeight > 4096 ||
+                cellMeters <= 0 || cellMeters > 32 ||
+                !float.IsFinite(walkerHeight) ||
+                walkerHeight <= 0f || walkerHeight > 5f ||
+                maxCellVisits <= 0 || terrainAt == null || boxes == null)
+                throw new ArgumentException("Invalid terrain static obstacle projection parameters.");
+
+            int cellsX = (regionWidth + cellMeters - 1) / cellMeters;
+            int cellsY = (regionHeight + cellMeters - 1) / cellMeters;
+            if ((long)cellsX * cellsY > 1024 * 1024 || boxes.Count > 50_000)
+                throw new InvalidOperationException("Terrain static obstacle budget exceeded.");
+
+            bool[] blocked = new bool[cellsX * cellsY];
+            int visited = 0;
+            foreach (OglStaticCollisionAabb box in boxes)
+            {
+                // Ignore entirely outside XY or below ground projection.
+                if (box.MaxX <= 0 || box.MaxY <= 0 ||
+                    box.MinX >= regionWidth || box.MinY >= regionHeight)
+                    continue;
+                int minX = Math.Clamp((int)Math.Floor(box.MinX / cellMeters), 0, cellsX - 1);
+                int maxX = Math.Clamp((int)Math.Ceiling(box.MaxX / cellMeters) - 1, 0, cellsX - 1);
+                int minY = Math.Clamp((int)Math.Floor(box.MinY / cellMeters), 0, cellsY - 1);
+                int maxY = Math.Clamp((int)Math.Ceiling(box.MaxY / cellMeters) - 1, 0, cellsY - 1);
+                if (minX > maxX || minY > maxY) continue;
+                long visits = (long)(maxX - minX + 1) * (maxY - minY + 1);
+                if (visits > maxCellVisits - visited)
+                    throw new InvalidOperationException(
+                        "Too many static obstacle-cell intersections to build safely.");
+                visited += (int)visits;
+                for (int y = minY; y <= maxY; y++)
+                for (int x = minX; x <= maxX; x++)
+                {
+                    int index = y * cellsX + x;
+                    if (blocked[index]) continue;
+                    int wx = Math.Min(regionWidth - 1, x * cellMeters + cellMeters / 2);
+                    int wy = Math.Min(regionHeight - 1, y * cellMeters + cellMeters / 2);
+                    float ground = terrainAt(wx, wy);
+                    if (!float.IsFinite(ground))
+                    {
+                        blocked[index] = true;
+                        continue;
+                    }
+                    // Collision volume overlaps the space occupied by a
+                    // walker standing on this terrain sample.
+                    if (box.MaxZ > ground + 0.05f &&
+                        box.MinZ < ground + walkerHeight)
+                        blocked[index] = true;
+                }
+            }
+            return blocked;
+        }
+    }
+
     public sealed class OglTerrainNavigationSnapshot
     {
         private readonly OglGridPathfinder m_Routes;
