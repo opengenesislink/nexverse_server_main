@@ -9,6 +9,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
+using NexVerse.Core.Experiences;
 using log4net;
 using Mono.Addins;
 using Nini.Config;
@@ -38,6 +40,9 @@ namespace NexVerse.RegionModules.Experiences
         private bool m_Enabled;
         private bool m_FirestormReadCaps;
         private bool m_FirestormPermissionCaps;
+        private bool m_ScriptPendingConsent;
+        private readonly NexPendingExperienceQueue m_Pending = new();
+        private Timer m_PendingTimer;
         private string m_ViewerPermissionsApiKey = string.Empty;
         private string m_WorldApiBaseUrl = string.Empty;
         private string m_ApiKey = string.Empty;
@@ -72,6 +77,11 @@ namespace NexVerse.RegionModules.Experiences
                 section.GetBoolean("FirestormReadCaps", false);
             m_FirestormPermissionCaps =
                 section.GetBoolean("FirestormPermissionCaps", false);
+            m_ScriptPendingConsent =
+                section.GetBoolean("ScriptPendingConsent", false);
+            if (m_ScriptPendingConsent && !m_FirestormPermissionCaps)
+                throw new InvalidOperationException(
+                    "[NEX-EXPERIENCES]: ScriptPendingConsent requires FirestormPermissionCaps.");
             if (m_FirestormPermissionCaps)
             {
                 if (!m_FirestormReadCaps)
@@ -125,6 +135,9 @@ namespace NexVerse.RegionModules.Experiences
 
         public void PostInitialise()
         {
+            if (m_Enabled && m_ScriptPendingConsent)
+                m_PendingTimer = new Timer(_ => ExpirePending(),
+                    null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
         }
 
         public void AddRegion(Scene scene)
@@ -151,6 +164,8 @@ namespace NexVerse.RegionModules.Experiences
 
             scene.UnregisterModuleInterface<IExperienceModule>(this);
             scene.EventManager.OnRegisterCaps -= RegisterFirestormReadCaps;
+            CompleteRequests(m_Pending.CancelRegion(scene.RegionInfo.RegionID.Guid),
+                18);
 
             lock (m_Sync)
                 m_Scenes.Remove(scene);
@@ -158,6 +173,9 @@ namespace NexVerse.RegionModules.Experiences
 
         public void Close()
         {
+            m_PendingTimer?.Dispose();
+            m_PendingTimer = null;
+            CompleteRequests(m_Pending.CancelAll(), 18);
             lock (m_Sync)
             {
                 foreach (Scene scene in m_Scenes)
