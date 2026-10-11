@@ -115,6 +115,7 @@ Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständig
 - [ ] **Persistenz/Betrieb:** Der bestehende JSON-Store ist nicht als transaktionaler Multi-Robust-Cluster belegt. Migrations-/Single-Writer- oder SQL-Konzept, konsistente K/V-Updates und Restart-/Backup-/Recovery-Test fuer produktiven Grid-Betrieb.
 - [ ] **E2E-Abnahme:** Zwei Residents, eine Besitzer-Experience, ein fremdes Objekt, Allow/Block/Forget, disabled/revoked, Parcel-/Estate-Limits, gruppenbasierte Rollen, HG-Gast, Viewer-Floater, Script-Dataserver und Neustarts auf mehreren Simulatoren.
 - Referenz: `doc/NexVerse/PATHFINDING_EXPERIENCES_FULL_PARITY_09310.md`.
+- Operator-Abnahmematrix (alle Live-Tests anfangs NOT RUN): `doc/NexVerse/RC1_OPERATOR_ACCEPTANCE_09310.md`.
 
 ## E. Freigabe-Gates
 
