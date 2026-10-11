@@ -5,7 +5,9 @@
 **Freigabeziel:** `OpenGenesisLINK 0.9.3.10 Stable`; **keine separate Stable-Version 0.9.3.9**.  
 **Status:** begonnen; KEIN RC und KEINE Stable-Freigabe. Ein grüner Build ersetzt keine Live-Abnahme.
 
-**Scope-Entscheidung vom 10.10.2026:** `0.9.3.10 Dev` konzentriert sich auf die bereits begonnenen **.NET-8-Runtime-Modernisierungen, Pathfinding (NavMesh, NPC/Character, Firestorm-Schnittstelle und LSL) und vollstaendige NexExperiences-Integration (Viewer-CAPS, Zustimmung/Revoke, LSL, zentrale Persistenz)**. Der frueher fuer 0.9.3.9 eingeplante **OGLVoice-Funktionsumfang ist vollstaendig in einen spaeteren, noch nicht terminierten Arbeits-/Release-Train verschoben**. Es gibt weiterhin **keine separate 0.9.3.9 Stable-Version**. Bereits entwickelter Voice-Code bleibt unveraendert im Repository, jedoch standardmaessig abgeschaltet; vorhandene CI-/Sicherheits-Regressionen bleiben erhalten. **Weder OGLVoice-Produktivabnahme noch Media-Gateway-Installation sind 0.9.3.10-Freigabebedingungen.**
+**Ueberholte Scope-Entscheidung vom 10.10.2026 (siehe Aktualisierung unten):** `0.9.3.10 Dev` konzentriert sich auf die bereits begonnenen **.NET-8-Runtime-Modernisierungen, Pathfinding (NavMesh, NPC/Character, Firestorm-Schnittstelle und LSL) und vollstaendige NexExperiences-Integration (Viewer-CAPS, Zustimmung/Revoke, LSL, zentrale Persistenz)**. Der frueher fuer 0.9.3.9 eingeplante **OGLVoice-Funktionsumfang ist vollstaendig in einen spaeteren, noch nicht terminierten Arbeits-/Release-Train verschoben**. Es gibt weiterhin **keine separate 0.9.3.9 Stable-Version**. Bereits entwickelter Voice-Code bleibt unveraendert im Repository, jedoch standardmaessig abgeschaltet; vorhandene CI-/Sicherheits-Regressionen bleiben erhalten. **Weder OGLVoice-Produktivabnahme noch Media-Gateway-Installation sind 0.9.3.10-Freigabebedingungen.**
+
+**Scope-Aktualisierung 11.10.2026 (verbindlich):** 0.9.3.10 liefert native, auf real geprueften Kollisionsoberflaechen beruhende OpenGenesisLINK-Navigation als **opt-in** Serverfunktion und NexExperiences fuer Firestorm. Eine vollstaendige Havok-kompatible Firestorm-NavMesh-Darstellung (und Character-/Dynamic-Pathfinding-LSL-Paritaet) wird mit dem eigenen Viewer in einem **spaeteren, noch nicht terminierten Release** fortgefuehrt. Sie ist **KEIN 0.9.3.10-Stable-Gate**. Kein leeres oder gefaelschtes `RetrieveNavMeshSrc`, keine Freischaltung grauer Firestorm-Menues. Native Wegsuche, NPC-Physikmotor und die tatsaechlich angebotenen LSL-Funktionen benoetigen trotzdem Code-/Sicherheits- und reale Regionsabnahmen; nicht implementierte Second-Life-LSL-Funktionen werden nicht als fertig bezeichnet. Experiences inklusive Zustimmung, Widerruf, zentraler Persistenz und Firestorm-Livetests **bleiben** verpflichtend. OGLVoice bleibt ausgeschlossen.
 
 ## A. Ausgangslage und erledigte Vorarbeiten
 
@@ -34,11 +36,7 @@
   OGLVoice-Provider und nativen A*-Status sowie ein schluesselfreies
   read-only-Konfigurations-Preflight plus CI-Tests dokumentiert.
   Details: `doc/NexVerse/FIRESTORM_VOICE_PATHFINDING_LOG_20261010.md`.
-- [ ] **Aktiver Pathfinding-Freigabeblocker:** `RetrieveNavMeshSrc`
-  benoetigt ein echtes Firestorm-kompatibles NavMesh mit gueltigen
-  binären Daten, Versions-/Status-Endpunkt und gepruefter Abnahme;
-  der OGL-Terrain-A*-Snapshot allein leistet das noch nicht.
-  Keine Platzhalter-CAPS oder fingierten Erfolge.
+- [x] **Firestorm-NavMesh auf spaeteren Viewer-Train verschoben:** `RetrieveNavMeshSrc` benoetigt echte Firestorm-kompatible Binaerdaten und wird nicht vorgetaeuscht. Graue Firestorm-Pathfinding-Menues sind fuer 0.9.3.10 eine **dokumentierte Viewer-Einschraenkung und kein Stable-Blocker**. Native OGL-Navigation sowie die tatsaechlich implementierten LSL-/NPC-Funktionen muessen unabhaengig davon getestet werden.
 - [x] **Voice bewusst verschoben:** Der beobachtete Firestorm-Vivox-
   Fallback bleibt als bekannter Zustand dokumentiert. Die noch
   fehlende produktive OGLVoice-/Pion-/LiveKit-Integration ist
@@ -83,6 +81,8 @@ Details: [OGLVOICE_ARCHITECTURE.md](OGLVOICE_ARCHITECTURE.md).
 
 ## D. Arbeitspaket Pathfinding (aus 0.9.3.10)
 
+**Scope-Abgrenzung:** Die offenen Aufgaben unten beschreiben teilweise die langfristige Vollparitaet. Die Firestorm-Havok-NavMesh-Kette, noch nicht implementierte dynamische SL-Character-LSL-APIs und die spaetere OGL-Viewer-Integration sind **keine** zwingenden 0.9.3.10-Stable-Funktionen. Fuer Stable zwingend bleiben korrekte Fail-closed-3D-Navigation, Versions-/Dirty-Handling, sichere native NPC-Bewegung im explizit unterstuetzten Umfang und regionale Live-/Lastabnahme. Bei fehlender Physik-Unterstuetzung opt-in ausschalten, nicht zertifiziert ausgeben.
+
 - [x] Bounded A*-Grid-Foundation als C#-Quellcode in `NexVerse.Core`; automatisierter Runtime-Test mit Hindernissen, Eckensperre, Budget und Snapshot-Rebuild.
 - [ ] Region-NavMesh-Kacheln auf Basis von Terrain, Höhen, Neigung, Wasser, statischen Meshes und Walkability-Policies generieren.
 - [x] **Experimenteller Terrain-Navigation-Snapshot:** initialer echter `Scene.Heightmap`-Adapter mit Wasser- und Steigungsprüfung, optionalen Hindernis-Masken im C#-Kern, interner Regionsschnittstelle und `OnTerrainTainted`-Invalidierung samt zeitgesteuertem Neuaufbau. Standardmäßig deaktiviert (`[OGLPathfinding] Enabled = false`); keine Mesh-/Physik-Kollisionsgarantie.
@@ -118,14 +118,16 @@ Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständig
 
 ## E. Freigabe-Gates
 
-- [ ] **Gate 1 – Functional:** Echtes Region-NavMesh, Firestorm-kompatible `RetrieveNavMeshSrc`-/Status-CAPS, Character-/NPC-Bewegung und Pathfinding-LSL samt `path_update`; **zusaetzlich NexExperiences-Viewer-CAPS, Resident-Zustimmung/Revoke, zentrale Rechte/Persistenz und Experience-LSL im Live-Firestorm-Test**. OGLVoice ist nicht Teil dieses Gates.
+Die folgenden Gates ersetzen fruehere pauschale Anforderungen an Firestorm-Havok-NavMesh und die gesamte Second-Life-Character-API. Keine Checkliste wird allein durch diesen Dokumentationswechsel als bestanden markiert.
+
+- [ ] **Gate 1 – Functional:** Der explizit unterstuetzte **native** OpenGenesisLINK-Navigationsumfang (verifizierte 3D-Oberflaechen, A*-Routen, Snapshot-Invalidierung, 3D-NPC-Wegpunkte, vorhandene statische LSL-Wegsuche) muss mit echten Physikkollisionen und in einer Live-Region korrekt und fehlersicher laufen; nicht unterstuetzte SL-Character-APIs bleiben dokumentiert/deaktiviert. **Zusaetzlich NexExperiences** mit Firestorm-Viewer-CAPS, echter Resident-Zustimmung/Widerruf, LSL/KV, zentraler Rechte-Persistenz und Live-Firestorm-Test. **Firestorm-Havok-NavMesh, die zukuenftige eigene Viewer-Darstellung und OGLVoice sind nicht Teil dieses Gates.**
 - [ ] **Gate 2 – CI:** Release-Build, bestehende Hypergrid-/Login-/NexBus-/NV$-/Inventory-Regressionen und neue Pathfinding-/NavMesh-/Experience-/LSL-/Permission-Tests gruen. Bereits aktive Voice-CI bleibt als Regression fuer eingecheckten Code erhalten, ohne neue Voice-Features als Abnahmebedingung zu setzen.
 - [ ] **Gate 3 – Sicherheit:** Navigator-/NPC-/LSL-Region- und Estate-Berechtigungen sowie Experience-Resident-Zustimmung, Scriptbindung, Owner/Admin-Delegation, Land-/HG-Rechte, K/V-Quoten und Missbrauchslimits sowie unveraenderte Login-/Token-/Secret-Sicherheitsgrenzen pruefen; keine neue Voice-Produktivfreigabe.
 - [ ] **Gate 4 – Performance:** Messwerte gegen 0.9.3.8, keine neue relevante Speicher-/CPU-/GC-/Netzwerk-Regression, Watchdog bleibt aktiv.
-- [ ] **Gate 5 – Operator:** Native Pathfinding-Livetests in realer Region mit bewegtem NPC, Terraforming/Hindernissen sowie echte Experience-Viewer- und LSL-Zustimmungs-/Revoke-Livetests mit zwei Bewohnern; Firestorm und Multi-Simulator-/HG-Regressionen, Restart/Failover sowie Backup/Rollback durch Betreiber bestaetigt. Keine verpflichtenden Voice-/Parcel-Audio-Tests.
+- [ ] **Gate 5 – Operator:** Native OGL-Wegsuche/NPC-Livetests auf realen 3D-Oberflaechen (auch Boden/Bruecke, Treppe/Rampe, gesperrte Kanten, Terraforming/Hindernis-Rebuild) mit funktionierender Bewegung und dokumentierten physikalischen Grenzen; echte Experience-Viewer-/LSL-Zustimmungs-/Widerrufs-Tests mit zwei Bewohnern, Firestorm, Multi-Simulator-/HG-Regressionen, Neustart/Failover und Backup/Rollback. **Kein Firestorm-NavMesh-Menue- oder Voice-Gate.**
 - [ ] **Gate 6 – Release:** `0.9.3.10 RC1` mit dokumentierten Einschränkungen; erst nach sämtlichen zwingenden Gates `0.9.3.10 Stable` taggen.
 
-**Nicht freigeben**, solange Region-NavMesh, Firestorm-Pathfinding-Anbindung, Character-/NPC-Livebewegung und LSL-Navigation **oder** die vollstaendige NexExperiences-Viewer-/LSL-/Einwilligungsintegration nicht gemaess Gate 1 abgenommen sind. **Das OGLVoice-Gateway ist aufgrund der ausdruecklichen Scope-Verschiebung kein 0.9.3.10-Stable-Blocker.** CI allein ersetzt die Pathfinding-Livetests nicht.
+**Nicht freigeben**, solange der vereinbarte native OGL-Navigationsumfang mit realen Regions-/NPC-/LSL-Tests **oder** die vollstaendige NexExperiences-Viewer-/LSL-/Einwilligungsintegration nicht gemaess Gate 1 abgenommen ist. **Firestorm-Havok-NavMesh und OGLVoice sind ausdruecklich keine 0.9.3.10-Stable-Blocker.** CI allein ersetzt Live-Abnahme nicht.
 
 ## F. Kompatibilität und Releasepolitik
 
@@ -133,5 +135,5 @@ Der A*-Rasterkern ist **nur die erste Navigationsgrundlage**, keine vollständig
 - Die aktive Produktversion bleibt `OpenGenesisLINK 0.9.3.10 Dev` fuer Runtime, Pathfinding und Experiences; keine oeffentliche Stable-Verwechslung.
 - Keine separate Veröffentlichung `0.9.3.9 Stable`.
 - OGLVoice bleibt standardmaessig inaktiv und ist ausdruecklich auf einen spaeteren Entwicklungsabschnitt vertagt. Vorhandenen Code, Tests und Sicherheitsgrenzen beibehalten; keine produktive Gateway-Aktivierung zur Erfuellung dieses Release-Trains.
-- Keine unechte Pathfinding-LSL-Kompatibilität bewerben oder unterstützte LSL-Funktionen als blind funktionierende Stubs implementieren.
+- Keine unechte Pathfinding-LSL-Kompatibilität bewerben oder unterstützte LSL-Funktionen als blind funktionierende Stubs implementieren. Firestorm bleibt ohne realen Havok-kompatiblen NavMesh-Provider im Pathfinding-Menue grau; OGLRetrieveNavGraph/1 ist ein getrennter offener Viewer-Vertrag.
 - Alle zusätzlichen Features nach 0.9.3.10 gehören zu späteren Release-Trains.
