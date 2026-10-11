@@ -65,6 +65,38 @@ namespace NexVerse.Core.Pathfinding
             return progressed;
         }
 
+        /// <summary>
+        /// NPC waypoint arrival in 3D. Existing XY-only cursors are kept for
+        /// legacy regression callers, but the live NPC motor MUST use this:
+        /// a bridge waypoint must not be consumed from the ground beneath it.
+        /// NPC MoveToTarget receives a standing offset of +1m above the surface.
+        /// </summary>
+        public bool UpdatePosition3D(float x, float y, float z,
+            float reachRadius, DateTimeOffset now, float verticalTolerance = 1.5f)
+        {
+            if (!float.IsFinite(x) || !float.IsFinite(y) ||
+                !float.IsFinite(z) || !float.IsFinite(reachRadius) ||
+                reachRadius < 0.5f || reachRadius > 8f ||
+                !float.IsFinite(verticalTolerance) || verticalTolerance < 0.5f ||
+                verticalTolerance > 4f)
+                return false;
+
+            float reachSquared = reachRadius * reachRadius;
+            bool progressed = false;
+            while (!Completed)
+            {
+                OglNavigationPoint point = m_Points[m_Index];
+                float dx = point.X - x, dy = point.Y - y;
+                if (dx * dx + dy * dy > reachSquared ||
+                    Math.Abs(point.Z + 1.0f - z) > verticalTolerance)
+                    break;
+                m_Index++;
+                m_LastAdvance = now;
+                progressed = true;
+            }
+            return progressed;
+        }
+
         public bool Stalled(DateTimeOffset now, TimeSpan maximumWaypointWait) =>
             !Completed && maximumWaypointWait > TimeSpan.Zero &&
             now - m_LastAdvance > maximumWaypointWait;
