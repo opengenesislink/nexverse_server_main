@@ -77,8 +77,9 @@ namespace NexVerse.RegionModules.Pathfinding
                     return false;
                 }
 
-                if (!nav.TryFindTerrainPath(sp.AbsolutePosition.X,
-                    sp.AbsolutePosition.Y, destination.X, destination.Y,
+                if (!nav.TryFindNpcPath(sp.AbsolutePosition.X,
+                    sp.AbsolutePosition.Y, sp.AbsolutePosition.Z,
+                    destination.X, destination.Y, destination.Z,
                     out IReadOnlyList<OglNavigationPoint> points))
                 {
                     reason = "route_not_found";
@@ -110,8 +111,9 @@ namespace NexVerse.RegionModules.Pathfinding
                         return false;
                     }
 
-                    cursor.UpdatePosition(sp.AbsolutePosition.X,
-                        sp.AbsolutePosition.Y, 2.0f, DateTimeOffset.UtcNow);
+                    cursor.UpdatePosition3D(sp.AbsolutePosition.X,
+                        sp.AbsolutePosition.Y, sp.AbsolutePosition.Z,
+                        2.0f, DateTimeOffset.UtcNow);
                     if (!cursor.Completed)
                     {
                         OglNavigationPoint p = cursor.Current;
@@ -177,8 +179,9 @@ namespace NexVerse.RegionModules.Pathfinding
                             continue;
                         }
 
-                        if (!job.Cursor.UpdatePosition(sp.AbsolutePosition.X,
-                            sp.AbsolutePosition.Y, 2.0f, DateTimeOffset.UtcNow))
+                        if (!job.Cursor.UpdatePosition3D(sp.AbsolutePosition.X,
+                            sp.AbsolutePosition.Y, sp.AbsolutePosition.Z,
+                            2.0f, DateTimeOffset.UtcNow))
                             continue;
 
                         if (job.Cursor.Completed)

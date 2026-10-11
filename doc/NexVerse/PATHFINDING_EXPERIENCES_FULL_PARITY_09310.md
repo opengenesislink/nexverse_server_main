@@ -1,8 +1,8 @@
 # OpenGenesisLINK 0.9.3.10 Dev – Pathfinding und Experiences: vollstaendige Integrationsabnahme
 
-**Entscheidung 10.10.2026:** Zwei verbindliche Funktionsbereiche fuer den aktuellen Release-Train: (1) Pathfinding einschliesslich realem NavMesh, LSL und Firestorm; (2) NexExperiences einschliesslich Viewer-CAPS, Benutzerzustimmung, persistenten Rechten und LSL. Runtime-/Sicherheitsabnahme laeuft weiter. **OGLVoice ist aus diesem Release-Scope verschoben und bleibt standardmaessig deaktiviert.**
+**Historische Entscheidung 10.10.2026:** Diese Seite dokumentiert das langfristige Vollparitaetsziel. **Aktualisierte Stable-Entscheidung 11.10.2026:** Die Firestorm-Havok-kompatible NavMesh-Ausgabe, komplette dynamische SL-Character-LSL-API und die eigene OGL-Viewer-Darstellung sind **auf spaetere Entwicklung verschoben und kein 0.9.3.10-Stable-Gate**. Fuer 0.9.3.10 verbindlich: nachweisbar korrekte **native** OGL-3D-Navigation/LSL-Teilmenge/NPC-Physik und vollstaendige NexExperiences-Einwilligung, LSL/KV und Firestorm-Live-Abnahme; Runtime und Sicherheit. OGLVoice bleibt deaktiviert und aus dem Scope.
 
-**Nicht freigegeben:** Weder vorhandener Quellcode noch ein gruenes CI sind ein Nachweis, dass Firestorm in einer echten Region das NavMesh rendern kann oder Bewohner Experiences erlauben/widerrufen koennen. Keine neuen Stable-Tags vor den unten stehenden Live-Gates.
+**Nicht freigegeben:** Vorhandener Code oder gruenes CI beweist weder reale native Wegsuche/NPC-Bewegung noch Experience-Allow/Block/Forget mit zwei Firestorm-Avataren. Graue Firestorm-Pathfinding-Menues gelten als bewusst beibehaltene Kompatibilitaetsgrenze, **nicht** als Fehler des 0.9.3.10-Stable-Scopes. Keine Stable-Tags vor den Live-Gates.
 
 ## I. Vorhandener, verifizierbarer Quellcode
 
@@ -21,7 +21,9 @@
 - `OpenSim/Region/ScriptEngine/Shared/Api/Implementation/LSL_Api.cs`: bereits mehrere Experience-LSL-Funktionen, K/V-Dataserver und `experience_permissions(_denied)`-Events. **Bisher keine vollstaendige, vom Viewer vermittelte Zustimmungs-/Widerrufsinteraktion.**
 - Deaktivierte Experiences duerfen nach dem Hardening keine K/V-Lese-/Schreiboperationen trotz vorhandener Scriptbindungen mehr ausfuehren.
 
-## II. Noch zu implementieren: echtes vollstaendiges Pathfinding
+## II. Langfristiger Backlog: vollstaendiges Pathfinding (nicht komplett 0.9.3.10-Gate)
+
+Diese Aufgaben sind der **langfristige** Zielkatalog fuer volle SL-/Firestorm-Paritaet. Der 0.9.3.10-Freigabeumfang umfasst die dokumentierte sichere native Graph-/Terrain-/NPC-/statische-LSL-Teilmenge, nicht die Havok-Ausgabe. Insbesondere Punkt 3 sowie nicht implementierte dynamische Character-LSL-Operationen werden erst in spaeteren Versionen verpflichtend.
 
 1. **Region-NavMesh-Backend:** Begehbare 3D-Kacheln mit Zell-/Agentenradius, Terrain, Hang-/Wasserfilter, statischen Prim-/Mesh-Kollisionen, Etagen/Treppen, dynamischen Hindernissen und expliziten Off-Mesh-Links. Keine Wege durch Waende oder nicht begehbare Bereiche. Bounding/Budget fuer VAR-Regionen.
 2. **Konsistente Updates:** Generation/Epoch, versionierte Snapshots, asynchrone Dirty-Tile-Rebuilds nach Terraforming, Rezzing/Loeschen/Verschieben und Parzellen-/Physikaenderungen, stabile Nebenlaeufigkeit sowie Save/Restore-Strategie fuer NavMesh-Caches.
@@ -146,7 +148,7 @@ die nur das Menue entsperrt, waere keine funktionierende Navigation.
 
 ## IV. Release-Entscheidung und Vorgehen
 
-- **Gate P:** Pathfinding-LSL/Character/NavMesh/Firestorm/Live-Region **alle** bestanden.
+- **Gate P (0.9.3.10):** Native verifizierte 3D-Graph-Routen, Dirty-Snapshot-/Epoch-Sicherheit, 3D-NPC-Wegpunkte, dokumentierte statische LSL-Abfragen und Physik-/Ressourcenbudgets in echter Region abgenommen; nicht unterstuetzte Character-APIs fail-closed. **Kein** Firestorm-Havok-NavMesh- oder eigener Viewer-Gate.
 - **Gate E:** Experience-Viewer-CAPS/Einwilligung/LSL/KV/Persistenz/Rechte/Live-Viewer **alle** bestanden.
 - **Gate R:** Release-Build, bestehende Runtime-/Login-/Inventory-/NexBus-/HG-Regressionen und produktiver Last-/Rollback-Nachweis.
 - **OGLVoice explizit ausgeschlossen.** Vorhandener Voice-Code bleibt unveraendert und standardmaessig inaktiv.

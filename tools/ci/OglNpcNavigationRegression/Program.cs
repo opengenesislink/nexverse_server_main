@@ -60,4 +60,29 @@ try
 }
 catch (ArgumentException) { }
 
-Console.WriteLine("OGL NPC waypoint follower: bounds, sequencing, finish and stall timeout OK");
+// Two floors can share the same X/Y. Reaching the ground waypoint must
+// never falsely consume the corresponding bridge waypoint.
+OglNpcWaypointCursor elevated = new(new[] {
+    new OglNavigationPoint(2, 2, 0),
+    new OglNavigationPoint(2, 2, 8),
+    new OglNavigationPoint(6, 2, 8)
+}, now);
+Check(elevated.UpdatePosition3D(2, 2, 1, 1.5f, now.AddSeconds(1)) &&
+      elevated.Remaining == 2 && elevated.Current.Z == 8,
+    "ground-level arrival must not consume bridge node at identical XY");
+Check(!elevated.UpdatePosition3D(2, 2, 1, 1.5f, now.AddSeconds(2)) &&
+      elevated.Remaining == 2,
+    "ground agent must not advance through elevated floor");
+Check(!elevated.UpdatePosition3D(2, 2, float.NaN, 1.5f, now),
+    "nonfinite NPC elevation rejected");
+Check(!elevated.UpdatePosition3D(2, 2, 9, 1.5f, now, float.PositiveInfinity),
+    "invalid vertical tolerance rejected");
+Check(elevated.UpdatePosition3D(2, 2, 9, 1.5f, now.AddSeconds(3)) &&
+      elevated.Remaining == 1,
+    "correct bridge elevation advances to next waypoint");
+Check(!elevated.UpdatePosition3D(6, 2, 1, 1.5f, now.AddSeconds(4)) &&
+      elevated.Remaining == 1,
+    "lower level cannot complete upper-level goal");
+Check(elevated.UpdatePosition3D(6, 2, 9, 1.5f, now.AddSeconds(5)) &&
+      elevated.Completed, "bridge goal completes at correct elevation");
+Console.WriteLine("OGL NPC waypoint follower: bounds, sequencing, 3D level isolation and stall timeout OK");

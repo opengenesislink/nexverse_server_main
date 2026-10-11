@@ -188,6 +188,44 @@ namespace NexVerse.RegionModules.Pathfinding
                 return true;
             }
 
+            public bool TryFindNpcPath(float startX, float startY, float startZ,
+                float targetX, float targetY, float targetZ,
+                out IReadOnlyList<OglNavigationPoint> path)
+            {
+                path = Array.Empty<OglNavigationPoint>();
+                if (!float.IsFinite(startX) || !float.IsFinite(startY) ||
+                    !float.IsFinite(startZ) || !float.IsFinite(targetX) ||
+                    !float.IsFinite(targetY) || !float.IsFinite(targetZ))
+                    return false;
+
+                // Reuse the epoch-checked LSL 3D route implementation.
+                // In verified-layer mode the source is the collision-certified
+                // graph, not the underlying 2D terrain raster.
+                if (!TryGetStaticTerrainPath(
+                        new Vector3(startX, startY, startZ),
+                        new Vector3(targetX, targetY, targetZ), 0.5f,
+                        out Vector3[] waypoints, out int status) ||
+                    status != 0 || waypoints.Length == 0 ||
+                    waypoints.Length > 256)
+                    return false;
+
+                // The terrain fallback accepts an 8m nearest-surface search.
+                // NPCs must not therefore walk a ground route when actually
+                // standing on a bridge or being sent to a different floor.
+                if (Math.Abs(startZ - waypoints[0].Z) > 2.5f ||
+                    Math.Abs(targetZ - waypoints[waypoints.Length - 1].Z) > 2.5f)
+                    return false;
+
+                OglNavigationPoint[] result = new OglNavigationPoint[waypoints.Length];
+                for (int i = 0; i < result.Length; i++)
+                    result[i] = new OglNavigationPoint(
+                        waypoints[i].X, waypoints[i].Y, waypoints[i].Z);
+                if (IsNavigationDirty)
+                    return false;
+                path = result;
+                return true;
+            }
+
             public bool TryFindTerrainPath(float startX, float startY, float targetX, float targetY,
                 out IReadOnlyList<OglNavigationPoint> path)
             {
