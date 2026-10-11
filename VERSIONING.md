@@ -1,7 +1,7 @@
 # OpenGenesisLINK versioning
 
 Current stable release: **OpenGenesisLINK v0.9.3.8**  
-Current development train: **OpenGenesisLINK v0.9.3.10 Dev**, incorporating earlier .NET runtime modernization, current Pathfinding and full NexExperiences/Firestorm interoperability; OGLVoice deferred beyond 0.9.3.10 (future version not set). No 0.9.3.9 Stable release.  
+Current development train: **OpenGenesisLINK v0.9.3.10 Dev**, incorporating earlier .NET runtime modernization, the validated native OGL navigation subset and full NexExperiences/Firestorm interoperability; Firestorm Havok NavMesh and complete dynamic SL Character API deferred alongside the later OGL Viewer, while OGLVoice is deferred beyond 0.9.3.10 (future version not set). No 0.9.3.9 Stable release.  
 Latest release candidate: **OpenGenesisLINK v0.9.3.8 RC1** (validated and promoted)  
 Active milestone: **0.9.3.10 Dev — Runtime-Modernisierung, Pathfinding und NexExperiences; OGLVoice zurueckgestellt**  
 Next architectural consolidation line: **OpenGenesisLINK v0.9.4.0**  
